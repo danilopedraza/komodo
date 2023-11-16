@@ -13,10 +13,7 @@ impl Iterator for Lexer<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.input.next() {
-            None => None,
-            Some(_) => Some(Token::PLUS),
-        }
+        self.input.next().map(|_| Token::PLUS)
     }
 }
 
