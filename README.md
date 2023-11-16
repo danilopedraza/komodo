@@ -1,0 +1,3 @@
+# Symstatic
+
+Una calculadora simbólica.
