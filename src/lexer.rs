@@ -3,6 +3,7 @@ use std::str::Chars;
 #[derive(PartialEq, Eq, Debug)]
 enum Token {
     PLUS,
+    IDENT(char),
 }
 
 struct Lexer<'a> {
@@ -15,9 +16,9 @@ impl Iterator for Lexer<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.input.next() {
             None => None,
-            Some(' ') => self.next(),
+            Some(' ') | Some('\t') => self.next(),
             Some('+') => Some(Token::PLUS),
-            _ => todo!()
+            Some(chr) => Some(Token::IDENT(chr))
         }
     }
 }
@@ -41,6 +42,14 @@ mod tests {
 
     #[test]
     fn whitespace() {
-        assert_eq!(lexer_from(" ").next(), None);
+        assert_eq!(lexer_from(" \t").next(), None);
+    }
+
+    #[test]
+    fn simple_expression() {
+        assert_eq!(
+            lexer_from("x + y").collect::<Vec<_>>(),
+            vec![Token::IDENT('x'), Token::PLUS, Token::IDENT('y')],
+        );
     }
 }
