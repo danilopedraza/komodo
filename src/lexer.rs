@@ -13,7 +13,12 @@ impl Iterator for Lexer<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.input.next().map(|_| Token::PLUS)
+        match self.input.next() {
+            None => None,
+            Some(' ') => self.next(),
+            Some('+') => Some(Token::PLUS),
+            _ => todo!()
+        }
     }
 }
 
@@ -32,5 +37,10 @@ mod tests {
     #[test]
     fn plus_operator() {
         assert_eq!(lexer_from("+").next(), Some(Token::PLUS));
+    }
+
+    #[test]
+    fn whitespace() {
+        assert_eq!(lexer_from(" ").next(), None);
     }
 }
