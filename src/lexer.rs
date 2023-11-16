@@ -2,7 +2,6 @@ use std::str::Chars;
 
 #[derive(PartialEq, Eq, Debug)]
 enum Token {
-    EOF,
     PLUS,
 }
 
@@ -10,11 +9,13 @@ struct Lexer<'a> {
     input: Chars<'a>,
 }
 
-impl Lexer<'_> {
-    fn next_token(mut self) -> Token {
+impl Iterator for Lexer<'_> {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
         match self.input.next() {
-            None => Token::EOF,
-            Some(_) => Token::PLUS,
+            None => None,
+            Some(_) => Some(Token::PLUS),
         }
     }
 }
@@ -28,11 +29,11 @@ mod tests {
 
     #[test]
     fn empty_string() {
-        assert_eq!(Lexer::next_token(lexer_from("")), Token::EOF);
+        assert!(lexer_from("").next().is_none());
     }
 
     #[test]
     fn plus_operator() {
-        assert_eq!(Lexer::next_token(lexer_from("+")), Token::PLUS);
+        assert_eq!(lexer_from("+").next(), Some(Token::PLUS));
     }
 }
