@@ -1,4 +1,4 @@
-use std::str::Chars;
+use std::{str::Chars, iter::Peekable};
 
 #[derive(PartialEq, Eq, Debug)]
 enum Token {
@@ -7,19 +7,19 @@ enum Token {
 }
 
 struct Lexer<'a> {
-    input: Chars<'a>,
+    input: Peekable<Chars<'a>>,
 }
 
 impl Iterator for Lexer<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.input.next() {
+        match self.input.peek() {
             None => None,
             Some(' ') | Some('\t') => self.whitespace(),
             Some(chr) => Some(match chr {
                 '+' => self.plus(),
-                _ => self.identifier(chr),
+                _ => self.identifier(),
             }),
         }
     }
@@ -27,15 +27,17 @@ impl Iterator for Lexer<'_> {
 
 impl Lexer<'_> {
     fn whitespace(&mut self) -> Option<Token> {
+        self.input.next();
         self.next()
     }
 
-    fn plus(&self) -> Token {
+    fn plus(&mut self) -> Token {
+        self.input.next();
         Token::PLUS
     }
 
-    fn identifier(&self, chr: char) -> Token {
-        Token::IDENT(chr)
+    fn identifier(&mut self) -> Token {
+        Token::IDENT(self.input.next().unwrap())
     }
 }
 
@@ -43,7 +45,7 @@ impl Lexer<'_> {
 mod tests {
     use super::*;
     fn lexer_from(string: &str) -> Lexer {
-        Lexer { input: string.chars() }
+        Lexer { input: string.chars().peekable() }
     }
 
     #[test]
