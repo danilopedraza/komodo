@@ -3,7 +3,7 @@ use std::{str::Chars, iter::Peekable};
 #[derive(PartialEq, Eq, Debug)]
 enum Token {
     PLUS,
-    IDENT(char),
+    IDENT(String),
 }
 
 struct Lexer<'a> {
@@ -37,7 +37,7 @@ impl Lexer<'_> {
     }
 
     fn identifier(&mut self) -> Token {
-        Token::IDENT(self.input.next().unwrap())
+        Token::IDENT(String::from(self.input.next().unwrap()))
     }
 }
 
@@ -67,7 +67,7 @@ mod tests {
     fn simple_expression() {
         assert_eq!(
             lexer_from("x + y").collect::<Vec<_>>(),
-            vec![Token::IDENT('x'), Token::PLUS, Token::IDENT('y')],
+            vec![Token::IDENT(String::from('x')), Token::PLUS, Token::IDENT(String::from('y'))],
         );
     }
 }
