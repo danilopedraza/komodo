@@ -17,8 +17,10 @@ impl Iterator for Lexer<'_> {
         match self.input.next() {
             None => None,
             Some(' ') | Some('\t') => self.next(),
-            Some('+') => Some(Token::PLUS),
-            Some(chr) => Some(Token::IDENT(chr))
+            Some(chr) => Some(match chr {
+                '+' => Token::PLUS,
+                _ => Token::IDENT(chr),
+            }),
         }
     }
 }
