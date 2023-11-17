@@ -16,12 +16,26 @@ impl Iterator for Lexer<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.input.next() {
             None => None,
-            Some(' ') | Some('\t') => self.next(),
+            Some(' ') | Some('\t') => self.whitespace(),
             Some(chr) => Some(match chr {
-                '+' => Token::PLUS,
-                _ => Token::IDENT(chr),
+                '+' => self.plus(),
+                _ => self.identifier(chr),
             }),
         }
+    }
+}
+
+impl Lexer<'_> {
+    fn whitespace(&mut self) -> Option<Token> {
+        self.next()
+    }
+
+    fn plus(&self) -> Token {
+        Token::PLUS
+    }
+
+    fn identifier(&self, chr: char) -> Token {
+        Token::IDENT(chr)
     }
 }
 
