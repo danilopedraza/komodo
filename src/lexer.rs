@@ -26,12 +26,12 @@ impl Iterator for Lexer<'_> {
             None => None,
             Some(' ') | Some('\t') => self.whitespace(),
             Some(chr) => Some(match chr {
-                '+' => self.plus(),
+                '+' => Token::PLUS,
+                '.' => Token::DOT,
+                '(' => Token::LPAREN,
+                ')' => Token::RPAREN,
+                '=' => Token::EQUALS,
                 ':' => self.assign_or_colon(),
-                '.' => self.dot(),
-                '(' => self.lparen(),
-                ')' => self.rparen(),
-                '=' => self.equals(),
                 '0'..='9' => self.integer(chr),
                 _ => self.identifier(chr),
             }),
@@ -42,10 +42,6 @@ impl Iterator for Lexer<'_> {
 impl Lexer<'_> {
     fn whitespace(&mut self) -> Option<Token> {
         self.next()
-    }
-
-    fn plus(&mut self) -> Token {
-        Token::PLUS
     }
 
     fn identifier(&mut self, first: char) -> Token {
@@ -70,10 +66,6 @@ impl Lexer<'_> {
         }
     }
 
-    fn dot(&mut self) -> Token {
-        Token::DOT
-    }
-
     fn integer(&mut self, first: char) -> Token {
         let mut number = String::from(first);
         while let Some(chr) = self.input.by_ref().next_if(|c| c.is_numeric()) {
@@ -81,18 +73,6 @@ impl Lexer<'_> {
         }
 
         Token::INTEGER(number.parse().unwrap())
-    }
-
-    fn lparen(&mut self) -> Token {
-        Token::LPAREN
-    }
-
-    fn rparen(&mut self) -> Token {
-        Token::RPAREN
-    }
-
-    fn equals(&mut self) -> Token {
-        Token::EQUALS
     }
 }
 
