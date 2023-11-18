@@ -2,8 +2,12 @@ use std::{str::Chars, iter::Peekable};
 
 #[derive(PartialEq, Eq, Debug)]
 enum Token {
+    ASSIGN,
+    DOT,
+    LET,
     PLUS,
     IDENT(String),
+    INTEGER(i64),
 }
 
 struct Lexer<'a> {
@@ -19,6 +23,9 @@ impl Iterator for Lexer<'_> {
             Some(' ') | Some('\t') => self.whitespace(),
             Some(chr) => Some(match chr {
                 '+' => self.plus(),
+                ':' => self.assign(),
+                '.' => self.dot(),
+                '0'..='9' => self.integer(),
                 _ => self.identifier(),
             }),
         }
@@ -37,7 +44,35 @@ impl Lexer<'_> {
     }
 
     fn identifier(&mut self) -> Token {
-        Token::IDENT(String::from(self.input.next().unwrap()))
+        let literal = self.input
+            .by_ref()
+            .take_while(|chr| chr.is_alphabetic())
+            .collect::<String>();
+
+        match literal.as_str() {
+            "sea" => Token::LET,
+            _ => Token::IDENT(literal),
+        }
+    }
+
+    fn assign(&mut self) -> Token {
+        self.input.next();
+        match self.input.peek() {
+            Some('=') => {
+                self.input.next();
+                Token::ASSIGN
+            },
+            _ => todo!(),
+        }
+    }
+
+    fn dot(&mut self) -> Token {
+        self.input.next();
+        Token::DOT
+    }
+
+    fn integer(&mut self) -> Token {
+        Token::INTEGER(self.input.next().unwrap().to_digit(10).unwrap() as i64)
     }
 }
 
@@ -68,6 +103,17 @@ mod tests {
         assert_eq!(
             lexer_from("x + y").collect::<Vec<_>>(),
             vec![Token::IDENT(String::from('x')), Token::PLUS, Token::IDENT(String::from('y'))],
+        );
+    }
+
+    #[test]
+    fn simple_statement() {
+        assert_eq!(
+            lexer_from("sea x := 1.").collect::<Vec<_>>(),
+            vec![
+                Token::LET, Token::IDENT(String::from('x')),
+                Token::ASSIGN, Token::INTEGER(1), Token::DOT
+            ],
         );
     }
 }
