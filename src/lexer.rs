@@ -3,6 +3,7 @@ use std::{str::Chars, iter::Peekable};
 #[derive(PartialEq, Eq, Debug)]
 enum Token {
     ASSIGN,
+    COLON,
     DOT,
     LET,
     PLUS,
@@ -23,7 +24,7 @@ impl Iterator for Lexer<'_> {
             Some(' ') | Some('\t') => self.whitespace(),
             Some(chr) => Some(match chr {
                 '+' => self.plus(),
-                ':' => self.assign(),
+                ':' => self.assign_or_colon(),
                 '.' => self.dot(),
                 '0'..='9' => self.integer(),
                 _ => self.identifier(),
@@ -55,14 +56,14 @@ impl Lexer<'_> {
         }
     }
 
-    fn assign(&mut self) -> Token {
+    fn assign_or_colon(&mut self) -> Token {
         self.input.next();
         match self.input.peek() {
             Some('=') => {
                 self.input.next();
                 Token::ASSIGN
             },
-            _ => todo!(),
+            _ => Token::COLON,
         }
     }
 
