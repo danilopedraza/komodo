@@ -41,6 +41,7 @@ impl Iterator for Lexer<'_> {
 
 impl Lexer<'_> {
     fn whitespace(&mut self) -> Option<Token> {
+        while let Some(_) = self.input.by_ref().next_if(|c| c.is_whitespace()) {}
         self.next()
     }
 
