@@ -24,7 +24,7 @@ impl Iterator for Lexer<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.input.next() {
             None => None,
-            Some(' ') | Some('\t') => self.whitespace(),
+            Some(chr) if chr.is_whitespace() => self.whitespace(),
             Some(chr) => Some(match chr {
                 '+' => Token::PLUS,
                 '.' => Token::DOT,
