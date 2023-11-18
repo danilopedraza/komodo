@@ -22,7 +22,7 @@ impl Iterator for Lexer<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.input.peek() {
+        match self.input.next() {
             None => None,
             Some(' ') | Some('\t') => self.whitespace(),
             Some(chr) => Some(match chr {
@@ -32,8 +32,8 @@ impl Iterator for Lexer<'_> {
                 '(' => self.lparen(),
                 ')' => self.rparen(),
                 '=' => self.equals(),
-                '0'..='9' => self.integer(),
-                _ => self.identifier(),
+                '0'..='9' => self.integer(chr),
+                _ => self.identifier(chr),
             }),
         }
     }
@@ -41,17 +41,15 @@ impl Iterator for Lexer<'_> {
 
 impl Lexer<'_> {
     fn whitespace(&mut self) -> Option<Token> {
-        self.input.next();
         self.next()
     }
 
     fn plus(&mut self) -> Token {
-        self.input.next();
         Token::PLUS
     }
 
-    fn identifier(&mut self) -> Token {
-        let mut literal = String::new();
+    fn identifier(&mut self, first: char) -> Token {
+        let mut literal = String::from(first);
         while let Some(chr) = self.input.by_ref().next_if(|c| c.is_alphabetic()) {
             literal.push(chr);
         }
@@ -63,7 +61,6 @@ impl Lexer<'_> {
     }
 
     fn assign_or_colon(&mut self) -> Token {
-        self.input.next();
         match self.input.peek() {
             Some('=') => {
                 self.input.next();
@@ -74,12 +71,11 @@ impl Lexer<'_> {
     }
 
     fn dot(&mut self) -> Token {
-        self.input.next();
         Token::DOT
     }
 
-    fn integer(&mut self) -> Token {
-        let mut number = String::new();
+    fn integer(&mut self, first: char) -> Token {
+        let mut number = String::from(first);
         while let Some(chr) = self.input.by_ref().next_if(|c| c.is_numeric()) {
             number.push(chr);
         }
@@ -88,17 +84,14 @@ impl Lexer<'_> {
     }
 
     fn lparen(&mut self) -> Token {
-        self.input.next();
         Token::LPAREN
     }
 
     fn rparen(&mut self) -> Token {
-        self.input.next();
         Token::RPAREN
     }
 
     fn equals(&mut self) -> Token {
-        self.input.next();
         Token::EQUALS
     }
 }
