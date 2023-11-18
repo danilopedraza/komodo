@@ -5,8 +5,11 @@ enum Token {
     ASSIGN,
     COLON,
     DOT,
+    EQUALS,
     LET,
+    LPAREN,
     PLUS,
+    RPAREN,
     IDENT(String),
     INTEGER(i64),
 }
@@ -26,6 +29,9 @@ impl Iterator for Lexer<'_> {
                 '+' => self.plus(),
                 ':' => self.assign_or_colon(),
                 '.' => self.dot(),
+                '(' => self.lparen(),
+                ')' => self.rparen(),
+                '=' => self.equals(),
                 '0'..='9' => self.integer(),
                 _ => self.identifier(),
             }),
@@ -45,10 +51,10 @@ impl Lexer<'_> {
     }
 
     fn identifier(&mut self) -> Token {
-        let literal = self.input
-            .by_ref()
-            .take_while(|chr| chr.is_alphabetic())
-            .collect::<String>();
+        let mut literal = String::new();
+        while let Some(chr) = self.input.by_ref().next_if(|c| c.is_alphabetic()) {
+            literal.push(chr);
+        }
 
         match literal.as_str() {
             "sea" => Token::LET,
@@ -73,7 +79,27 @@ impl Lexer<'_> {
     }
 
     fn integer(&mut self) -> Token {
-        Token::INTEGER(self.input.next().unwrap().to_digit(10).unwrap() as i64)
+        let mut number = String::new();
+        while let Some(chr) = self.input.by_ref().next_if(|c| c.is_numeric()) {
+            number.push(chr);
+        }
+
+        Token::INTEGER(number.parse().unwrap())
+    }
+
+    fn lparen(&mut self) -> Token {
+        self.input.next();
+        Token::LPAREN
+    }
+
+    fn rparen(&mut self) -> Token {
+        self.input.next();
+        Token::RPAREN
+    }
+
+    fn equals(&mut self) -> Token {
+        self.input.next();
+        Token::EQUALS
     }
 }
 
@@ -114,6 +140,17 @@ mod tests {
             vec![
                 Token::LET, Token::IDENT(String::from('x')),
                 Token::ASSIGN, Token::INTEGER(1), Token::DOT
+            ],
+        );
+    }
+    #[test]
+    fn complex_expression() {
+        assert_eq!(
+            lexer_from("(x + y) = 23").collect::<Vec<_>>(),
+            vec![
+                Token::LPAREN, Token::IDENT(String::from('x')),
+                Token::PLUS, Token::IDENT(String::from('y')), Token::RPAREN,
+                Token::EQUALS, Token::INTEGER(23)
             ],
         );
     }
