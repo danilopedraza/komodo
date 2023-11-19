@@ -6,12 +6,13 @@ enum Token {
     COLON,
     DOT,
     EQUALS,
+    IDENT(String),
+    INTEGER(i64),
     LET,
     LPAREN,
     PLUS,
     RPAREN,
-    IDENT(String),
-    INTEGER(i64),
+    UNKNOWN,
 }
 
 struct Lexer<'a> {
@@ -33,7 +34,8 @@ impl Iterator for Lexer<'_> {
                 '=' => Token::EQUALS,
                 ':' => self.assign_or_colon(),
                 '0'..='9' => self.integer(chr),
-                _ => self.identifier(chr),
+                chr if chr.is_alphabetic() => self.identifier(chr),
+                _ => Token::UNKNOWN,
             }),
         }
     }
@@ -120,6 +122,7 @@ mod tests {
             ],
         );
     }
+
     #[test]
     fn complex_expression() {
         assert_eq!(
