@@ -91,29 +91,26 @@ pub fn build_lexer(input: &str) -> Lexer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn lexer_from(string: &str) -> Lexer {
-        Lexer { input: string.chars().peekable() }
-    }
 
     #[test]
     fn empty_string() {
-        assert!(lexer_from("").next().is_none());
+        assert!(build_lexer("").next().is_none());
     }
 
     #[test]
     fn plus_operator() {
-        assert_eq!(lexer_from("+").next(), Some(Token::PLUS));
+        assert_eq!(build_lexer("+").next(), Some(Token::PLUS));
     }
 
     #[test]
     fn whitespace() {
-        assert_eq!(lexer_from(" \t").next(), None);
+        assert_eq!(build_lexer(" \t").next(), None);
     }
 
     #[test]
     fn simple_expression() {
         assert_eq!(
-            lexer_from("x + y").collect::<Vec<_>>(),
+            build_lexer("x + y").collect::<Vec<_>>(),
             vec![Token::IDENT(String::from('x')), Token::PLUS, Token::IDENT(String::from('y'))],
         );
     }
@@ -121,7 +118,7 @@ mod tests {
     #[test]
     fn simple_statement() {
         assert_eq!(
-            lexer_from("sea x := 1.").collect::<Vec<_>>(),
+            build_lexer("sea x := 1.").collect::<Vec<_>>(),
             vec![
                 Token::LET, Token::IDENT(String::from('x')),
                 Token::ASSIGN, Token::INTEGER(1), Token::DOT
@@ -132,7 +129,7 @@ mod tests {
     #[test]
     fn complex_expression() {
         assert_eq!(
-            lexer_from("(x * y) = 23").collect::<Vec<_>>(),
+            build_lexer("(x * y) = 23").collect::<Vec<_>>(),
             vec![
                 Token::LPAREN, Token::IDENT(String::from('x')),
                 Token::TIMES, Token::IDENT(String::from('y')), Token::RPAREN,
