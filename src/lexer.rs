@@ -35,7 +35,7 @@ impl Iterator for Lexer<'_> {
                 ')' => Token::RPAREN,
                 '=' => Token::EQUALS,
                 ':' => self.assign_or_colon(),
-                '0'..='9' => self.integer(chr),
+                chr if chr.is_numeric() => self.integer(chr),
                 chr if chr.is_alphabetic() => self.identifier(chr),
                 _ => Token::UNKNOWN,
             }),
