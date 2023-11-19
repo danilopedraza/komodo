@@ -1,7 +1,7 @@
 use std::{str::Chars, iter::Peekable};
 
 #[derive(PartialEq, Eq, Debug)]
-enum Token {
+pub enum Token {
     ASSIGN,
     COLON,
     DOT,
@@ -16,7 +16,7 @@ enum Token {
     UNKNOWN,
 }
 
-struct Lexer<'a> {
+pub struct Lexer<'a> {
     input: Peekable<Chars<'a>>,
 }
 
@@ -82,6 +82,10 @@ impl Lexer<'_> {
 
         Token::INTEGER(number.parse().unwrap())
     }
+}
+
+pub fn build_lexer(input: &str) -> Lexer {
+    Lexer { input: input.chars().peekable() }
 }
 
 #[cfg(test)]
