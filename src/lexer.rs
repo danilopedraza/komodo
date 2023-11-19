@@ -12,6 +12,7 @@ enum Token {
     LPAREN,
     PLUS,
     RPAREN,
+    TIMES,
     UNKNOWN,
 }
 
@@ -28,6 +29,7 @@ impl Iterator for Lexer<'_> {
             Some(chr) if chr.is_whitespace() => self.whitespace(),
             Some(chr) => Some(match chr {
                 '+' => Token::PLUS,
+                '*' => Token::TIMES,
                 '.' => Token::DOT,
                 '(' => Token::LPAREN,
                 ')' => Token::RPAREN,
@@ -126,10 +128,10 @@ mod tests {
     #[test]
     fn complex_expression() {
         assert_eq!(
-            lexer_from("(x + y) = 23").collect::<Vec<_>>(),
+            lexer_from("(x * y) = 23").collect::<Vec<_>>(),
             vec![
                 Token::LPAREN, Token::IDENT(String::from('x')),
-                Token::PLUS, Token::IDENT(String::from('y')), Token::RPAREN,
+                Token::TIMES, Token::IDENT(String::from('y')), Token::RPAREN,
                 Token::EQUALS, Token::INTEGER(23)
             ],
         );
