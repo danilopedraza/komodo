@@ -1,13 +1,13 @@
-use crate::lexer::Lexer;
+use crate::lexer::Token;
 
 #[derive(Debug, PartialEq, Eq)]
 enum ASTNode {}
 
-struct Parser<'a> {
-    lexer: Lexer<'a>,
+struct Parser<T: Iterator<Item = Token>> {
+    tokens: T,
 }
 
-impl Iterator for Parser<'_> {
+impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
     type Item = Result<ASTNode, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -20,8 +20,8 @@ mod tests {
     use crate::lexer::{Lexer, build_lexer};
     use super::Parser;
 
-    fn parser_from(lexer: Lexer) -> Parser {
-        Parser { lexer }
+    fn parser_from(tokens: Lexer) -> Parser<Lexer> {
+        Parser { tokens }
     }
 
     #[test]
