@@ -84,13 +84,14 @@ impl Lexer<'_> {
     }
 }
 
-pub fn build_lexer(input: &str) -> Lexer {
-    Lexer { input: input.chars().peekable() }
-}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    
+    pub fn build_lexer(input: &str) -> Lexer {
+        Lexer { input: input.chars().peekable() }
+    }
 
     #[test]
     fn empty_string() {
