@@ -17,10 +17,10 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::lexer::{Lexer, build_lexer};
+    use crate::lexer::{build_lexer, Token};
     use super::Parser;
 
-    fn parser_from(tokens: Lexer) -> Parser<Lexer> {
+    fn parser_from<T: Iterator<Item = Token>>(tokens: T) -> Parser<T> {
         Parser { tokens }
     }
 
