@@ -1,6 +1,6 @@
 use std::{str::Chars, iter::Peekable};
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Token {
     ASSIGN,
     COLON,
