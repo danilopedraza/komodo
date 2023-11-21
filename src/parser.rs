@@ -17,7 +17,8 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::lexer::{build_lexer, Token};
+    use std::iter;
+    use crate::lexer::Token;
     use super::Parser;
 
     fn parser_from<T: Iterator<Item = Token>>(tokens: T) -> Parser<T> {
@@ -26,6 +27,6 @@ mod tests {
 
     #[test]
     fn empty_expression() {
-        assert_eq!(parser_from(build_lexer("")).next(), None);
+        assert_eq!(parser_from(iter::empty::<Token>()).next(), None);
     }
 }
