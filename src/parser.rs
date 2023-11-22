@@ -29,12 +29,11 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
 
 impl <T: Iterator<Item = Token>> Parser<T> {
     fn parenthesis(&mut self) -> Option<Result<ASTNode, String>> {
-        let res = match self.tokens.peek() {
-            Some(Token::RPAREN) => None,
-            Some(_) => self.next(),
-            None => Some(Err(String::from("Missing right parenthesis"))),
-        };
+        if let Some(_) = self.tokens.next_if_eq(&Token::RPAREN) {
+            return None;
+        }
 
+        let res = self.next();
 
         if self.tokens.next() == Some(Token::RPAREN) {
             res
