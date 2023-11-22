@@ -31,7 +31,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         if self.tokens.next() == Some(Token::RPAREN) {
             res
         } else {
-            Some(Err(String::from("Missing left parenthesis")))
+            Some(Err(String::from("Missing right parenthesis")))
         }
     }
 }
@@ -80,7 +80,7 @@ mod tests {
         let tokens = vec![Token::LPAREN, Token::INTEGER(21)];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
-            Some(Err(String::from("Missing left parenthesis")))
+            Some(Err(String::from("Missing right parenthesis")))
         );
     }
 
