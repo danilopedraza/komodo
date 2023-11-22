@@ -15,6 +15,15 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.tokens.next() {
             Some(Token::INTEGER(int)) => Some(Ok(ASTNode::INTEGER(int))),
+            Some(Token::LPAREN) => {
+                let res = self.next();
+                if self.tokens.next() == Some(Token::RPAREN) {
+                    res
+                } else {
+                    Some(Err(String::from("Missing left parenthesis")))
+                }
+            },
+            Some(Token::RPAREN) => Some(Err(String::from("Unexpected right parenthesis"))),
             _ => None,
         }
     }
@@ -47,6 +56,33 @@ mod tests {
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(ASTNode::INTEGER(0)))
+        );
+    }
+
+    #[test]
+    fn integer_in_parenthesis() {
+        let tokens = vec![Token::LPAREN, Token::INTEGER(365), Token::RPAREN];
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Ok(ASTNode::INTEGER(365)))
+        );
+    }
+
+    #[test]
+    fn unbalanced_left_parenthesis() {
+        let tokens = vec![Token::LPAREN, Token::INTEGER(21)];
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Err(String::from("Missing left parenthesis")))
+        );
+    }
+
+    #[test]
+    fn unbalanced_right_parenthesis() {
+        let tokens = vec![Token::RPAREN];
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Err(String::from("Unexpected right parenthesis")))
         );
     }
 }
