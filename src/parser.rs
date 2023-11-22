@@ -1,3 +1,5 @@
+use std::iter::Peekable;
+
 use crate::lexer::Token;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -6,7 +8,7 @@ enum ASTNode {
 }
 
 struct Parser<T: Iterator<Item = Token>> {
-    tokens: T,
+    tokens: Peekable<T>,
 }
 
 impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
@@ -27,7 +29,13 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
 
 impl <T: Iterator<Item = Token>> Parser<T> {
     fn parenthesis(&mut self) -> Option<Result<ASTNode, String>> {
-        let res = self.next();
+        let res = match self.tokens.peek() {
+            Some(Token::RPAREN) => None,
+            Some(_) => self.next(),
+            None => Some(Err(String::from("Missing right parenthesis"))),
+        };
+
+
         if self.tokens.next() == Some(Token::RPAREN) {
             res
         } else {
@@ -49,7 +57,7 @@ mod tests {
     }
 
     fn parser_from<T: Iterator<Item = Token>>(tokens: T) -> Parser<T> {
-        Parser { tokens }
+        Parser { tokens: tokens.peekable() }
     }
 
     #[test]
@@ -63,6 +71,15 @@ mod tests {
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(ASTNode::INTEGER(0)))
+        );
+    }
+
+    #[test]
+    fn empty_parenthesis() {
+        let tokens = vec![Token::LPAREN, Token::RPAREN];
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            None
         );
     }
 
