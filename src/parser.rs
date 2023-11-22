@@ -14,17 +14,24 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.tokens.next() {
-            Some(Token::INTEGER(int)) => Some(Ok(ASTNode::INTEGER(int))),
-            Some(Token::LPAREN) => {
-                let res = self.next();
-                if self.tokens.next() == Some(Token::RPAREN) {
-                    res
-                } else {
-                    Some(Err(String::from("Missing left parenthesis")))
-                }
-            },
-            Some(Token::RPAREN) => Some(Err(String::from("Unexpected right parenthesis"))),
-            _ => None,
+            None => None,
+            Some(Token::LPAREN) => self.parenthesis(),
+            Some(tok) => Some(match tok {
+                Token::INTEGER(int) => Ok(ASTNode::INTEGER(int)),
+                Token::RPAREN => Err(String::from("Unexpected right parenthesis")),
+                _ => todo!(),
+            }),
+        }
+    }
+}
+
+impl <T: Iterator<Item = Token>> Parser<T> {
+    fn parenthesis(&mut self) -> Option<Result<ASTNode, String>> {
+        let res = self.next();
+        if self.tokens.next() == Some(Token::RPAREN) {
+            res
+        } else {
+            Some(Err(String::from("Missing left parenthesis")))
         }
     }
 }
