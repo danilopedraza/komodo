@@ -5,6 +5,7 @@ use crate::lexer::Token;
 #[derive(Debug, PartialEq, Eq)]
 enum ASTNode {
     INTEGER(i64),
+    SUM(Box<ASTNode>, Box<ASTNode>),
 }
 
 struct Parser<T: Iterator<Item = Token>> {
@@ -15,7 +16,7 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
     type Item = Result<ASTNode, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.tokens.next() {
+        let res = match self.tokens.next() {
             None => None,
             Some(Token::LPAREN) => self.parenthesis(),
             Some(tok) => Some(match tok {
@@ -23,6 +24,11 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
                 Token::RPAREN => Err(String::from("Unexpected right parenthesis")),
                 _ => todo!(),
             }),
+        };
+
+        match self.tokens.next_if_eq(&Token::PLUS) {
+            None => res,
+            Some(_) => self.sum(res),
         }
     }
 }
@@ -39,6 +45,18 @@ impl <T: Iterator<Item = Token>> Parser<T> {
             res
         } else {
             Some(Err(String::from("Missing right parenthesis")))
+        }
+    }
+
+    fn sum(&mut self, res: Option<Result<ASTNode, String>>) -> Option<Result<ASTNode, String>> {
+        match (res, self.next()) {
+            (Some(Ok(lhs)), Some(Ok(rhs))) => Some(Ok(
+                ASTNode::SUM(
+                    Box::new(lhs),
+                    Box::new(rhs)
+                )
+            )),
+            _ => todo!(),
         }
     }
 }
@@ -106,6 +124,20 @@ mod tests {
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Err(String::from("Unexpected right parenthesis")))
+        );
+    }
+
+    #[test]
+    fn simple_sum() {
+        let tokens = vec![Token::INTEGER(1), Token::PLUS, Token::INTEGER(1)];
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Ok(
+                ASTNode::SUM(
+                    Box::new(ASTNode::INTEGER(1)),
+                    Box::new(ASTNode::INTEGER(1))
+                )
+            ))
         );
     }
 }
