@@ -59,8 +59,8 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                     Box::new(rhs)
                 )
             )),
+            Some(Err(err)) => Some(Err(err)),
             None => Some(Err(String::from("Missing right side of sum"))),
-            _ => todo!(),
         }
     }
 }
