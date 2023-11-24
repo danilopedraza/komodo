@@ -16,7 +16,7 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
     type Item = Result<ASTNode, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let res = match self.tokens.next() {
+        let res_opt = match self.tokens.next() {
             None => None,
             Some(Token::LPAREN) => self.parenthesis(),
             Some(tok) => Some(match tok {
@@ -26,9 +26,12 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
             }),
         };
 
-        match self.tokens.next_if_eq(&Token::PLUS) {
-            None => res,
-            Some(_) => self.sum(res),
+        match (res_opt, self.tokens.next_if_eq(&Token::PLUS)) {
+            (None, None) => None,
+            (Some(res), None) => Some(res),
+            (Some(Err(err_msg)), Some(_)) => Some(Err(err_msg)),
+            (Some(Ok(lhs)), Some(_)) => self.sum(lhs),
+            (None, Some(_)) => todo!(),
         }
     }
 }
@@ -48,14 +51,15 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn sum(&mut self, res: Option<Result<ASTNode, String>>) -> Option<Result<ASTNode, String>> {
-        match (res, self.next()) {
-            (Some(Ok(lhs)), Some(Ok(rhs))) => Some(Ok(
+    fn sum(&mut self, lhs: ASTNode) -> Option<Result<ASTNode, String>> {
+        match self.next() {
+            Some(Ok(rhs)) => Some(Ok(
                 ASTNode::SUM(
                     Box::new(lhs),
                     Box::new(rhs)
                 )
             )),
+            None => Some(Err(String::from("Missing right side of sum"))),
             _ => todo!(),
         }
     }
@@ -138,6 +142,15 @@ mod tests {
                     Box::new(ASTNode::INTEGER(1))
                 )
             ))
+        );
+    }
+
+    #[test]
+    fn incomplete_sum() {
+        let tokens = vec![Token::INTEGER(1), Token::PLUS];
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Err(String::from("Missing right side of sum")))
         );
     }
 }
