@@ -9,6 +9,21 @@ enum ASTNode {
     PRODUCT(Box<ASTNode>, Box<ASTNode>),
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+enum Precedence {
+    LOWEST,
+    ADDITION,
+    MULTIPLICATION,
+}
+
+fn precedence(tok: Token) -> Precedence {
+    match tok {
+        Token::PLUS => Precedence::ADDITION,
+        Token::TIMES => Precedence::MULTIPLICATION,
+        _ => Precedence::LOWEST,
+    }
+}
+
 struct Parser<T: Iterator<Item = Token>> {
     tokens: Peekable<T>,
 }
@@ -17,12 +32,12 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
     type Item = Result<ASTNode, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.expression()
+        self.expression(Precedence::LOWEST)
     }
 }
 
 impl <T: Iterator<Item = Token>> Parser<T> {
-    fn expression(&mut self) -> Option<Result<ASTNode, String>> {
+    fn expression(&mut self, precedence: Precedence) -> Option<Result<ASTNode, String>> {
         let res_opt = match self.tokens.next() {
             None => None,
             Some(Token::LPAREN) => self.parenthesis(),
@@ -37,7 +52,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
             (None, None) => None,
             (Some(res), None) => Some(res),
             (Some(Err(err_msg)), Some(_)) => Some(Err(err_msg)),
-            (Some(Ok(lhs)), Some(op_tok)) => self.infix(lhs, op_tok),
+            (Some(Ok(lhs)), Some(op_tok)) => self.infix(lhs, op_tok, precedence),
             _ => todo!(),
         }
     }
@@ -47,7 +62,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
             return None;
         }
 
-        let res = self.next();
+        let res = self.expression(Precedence::LOWEST);
 
         if self.tokens.next() == Some(Token::RPAREN) {
             res
@@ -56,8 +71,8 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn infix(&mut self, lhs: ASTNode, op: Token) -> Option<Result<ASTNode, String>> {
-        match self.next() {
+    fn infix(&mut self, lhs: ASTNode, op: Token, precedence: Precedence) -> Option<Result<ASTNode, String>> {
+        match self.expression(precedence) {
             Some(Ok(rhs)) => Some(Ok(match op {
                 Token::PLUS => ASTNode::SUM(
                     Box::new(lhs),
