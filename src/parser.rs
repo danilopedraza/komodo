@@ -9,14 +9,14 @@ enum ASTNode {
     PRODUCT(Box<ASTNode>, Box<ASTNode>),
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Precedence {
     LOWEST,
     ADDITION,
     MULTIPLICATION,
 }
 
-fn precedence(tok: Token) -> Precedence {
+fn prec(tok: Token) -> Precedence {
     match tok {
         Token::PLUS => Precedence::ADDITION,
         Token::TIMES => Precedence::MULTIPLICATION,
@@ -48,8 +48,8 @@ impl <T: Iterator<Item = Token>> Parser<T> {
             }),
         };
 
-        match (res_opt, self.tokens.next_if(|tok| tok == &Token::PLUS || tok == &Token::TIMES)) {
-            (Some(Ok(lhs)), Some(op_tok)) => self.infix(lhs, op_tok, precedence),
+        match (res_opt, self.tokens.next_if(|tok| (tok == &Token::PLUS || tok == &Token::TIMES) && precedence < prec(tok.clone()))) {
+            (Some(Ok(lhs)), Some(op_tok)) => self.infix(lhs, op_tok.clone(), prec(op_tok)),
             (res_opt, _) => res_opt,
         }
     }
@@ -69,7 +69,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn infix(&mut self, lhs: ASTNode, op: Token, precedence: Precedence) -> Option<Result<ASTNode, String>> {
-        match self.expression(precedence) {
+        let res_opt = match self.expression(precedence) {
             Some(Ok(rhs)) => Some(Ok(match op {
                 Token::PLUS => ASTNode::SUM(
                     Box::new(lhs),
@@ -86,6 +86,11 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                 Token::PLUS => String::from("Missing right side of sum"),
                 _ => todo!(),
             })),
+        };
+
+        match (res_opt, self.tokens.next_if(|tok| tok == &Token::PLUS || tok == &Token::TIMES)) {
+            (Some(Ok(lhs)), Some(op_tok)) => self.infix(lhs, op_tok.clone(), precedence),
+            (res_opt, _) => res_opt,
         }
     }
 }
@@ -193,21 +198,21 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn product_and_sum() {
-    //     let tokens = vec![Token::INTEGER(1), Token::TIMES,
-    //                                   Token::INTEGER(1), Token::PLUS, Token::INTEGER(1)];
-    //     assert_eq!(
-    //         parser_from(token_iter!(tokens)).next(),
-    //         Some(Ok(
-    //             ASTNode::SUM(
-    //                 Box::new(ASTNode::PRODUCT(
-    //                     Box::new(ASTNode::INTEGER(1)),
-    //                     Box::new(ASTNode::INTEGER(1))
-    //                 )),
-    //                 Box::new(ASTNode::INTEGER(1))
-    //             )
-    //         )),
-    //     );
-    // }
+    #[test]
+    fn product_and_sum() {
+        let tokens = vec![Token::INTEGER(1), Token::TIMES,
+                                      Token::INTEGER(1), Token::PLUS, Token::INTEGER(1)];
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Ok(
+                ASTNode::SUM(
+                    Box::new(ASTNode::PRODUCT(
+                        Box::new(ASTNode::INTEGER(1)),
+                        Box::new(ASTNode::INTEGER(1))
+                    )),
+                    Box::new(ASTNode::INTEGER(1))
+                )
+            )),
+        );
+    }
 }
