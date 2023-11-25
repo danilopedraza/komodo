@@ -17,6 +17,12 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
     type Item = Result<ASTNode, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        self.expression()
+    }
+}
+
+impl <T: Iterator<Item = Token>> Parser<T> {
+    fn expression(&mut self) -> Option<Result<ASTNode, String>> {
         let res_opt = match self.tokens.next() {
             None => None,
             Some(Token::LPAREN) => self.parenthesis(),
@@ -35,9 +41,7 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
             _ => todo!(),
         }
     }
-}
 
-impl <T: Iterator<Item = Token>> Parser<T> {
     fn parenthesis(&mut self) -> Option<Result<ASTNode, String>> {
         if let Some(_) = self.tokens.next_if_eq(&Token::RPAREN) {
             return None;
@@ -176,4 +180,22 @@ mod tests {
             ))
         );
     }
+
+    // #[test]
+    // fn product_and_sum() {
+    //     let tokens = vec![Token::INTEGER(1), Token::TIMES,
+    //                                   Token::INTEGER(1), Token::PLUS, Token::INTEGER(1)];
+    //     assert_eq!(
+    //         parser_from(token_iter!(tokens)).next(),
+    //         Some(Ok(
+    //             ASTNode::SUM(
+    //                 Box::new(ASTNode::PRODUCT(
+    //                     Box::new(ASTNode::INTEGER(1)),
+    //                     Box::new(ASTNode::INTEGER(1))
+    //                 )),
+    //                 Box::new(ASTNode::INTEGER(1))
+    //             )
+    //         )),
+    //     );
+    // }
 }
