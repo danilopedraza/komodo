@@ -31,8 +31,7 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
             (None, None) => None,
             (Some(res), None) => Some(res),
             (Some(Err(err_msg)), Some(_)) => Some(Err(err_msg)),
-            (Some(Ok(lhs)), Some(Token::PLUS)) => self.sum(lhs),
-            (Some(Ok(lhs)), Some(Token::TIMES)) => self.product(lhs),
+            (Some(Ok(lhs)), Some(op_tok)) => self.infix(lhs, op_tok),
             _ => todo!(),
         }
     }
@@ -53,29 +52,24 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn sum(&mut self, lhs: ASTNode) -> Option<Result<ASTNode, String>> {
+    fn infix(&mut self, lhs: ASTNode, op: Token) -> Option<Result<ASTNode, String>> {
         match self.next() {
-            Some(Ok(rhs)) => Some(Ok(
-                ASTNode::SUM(
+            Some(Ok(rhs)) => Some(Ok(match op {
+                Token::PLUS => ASTNode::SUM(
                     Box::new(lhs),
                     Box::new(rhs)
-                )
-            )),
-            Some(Err(err)) => Some(Err(err)),
-            None => Some(Err(String::from("Missing right side of sum"))),
-        }
-    }
-
-    fn product(&mut self, lhs: ASTNode) -> Option<Result<ASTNode, String>> {
-        match self.next() {
-            Some(Ok(rhs)) => Some(Ok(
-                ASTNode::PRODUCT(
+                ),
+                Token::TIMES => ASTNode::PRODUCT(
                     Box::new(lhs),
                     Box::new(rhs)
-                )
-            )),
-            Some(Err(err)) => Some(Err(err)),
-            None => Some(Err(String::from("Missing right side of product"))),
+                ),
+                _ => todo!(),
+            })),
+            Some(err) => Some(err),
+            None => Some(Err(match op {
+                Token::PLUS => String::from("Missing right side of sum"),
+                _ => todo!(),
+            })),
         }
     }
 }
