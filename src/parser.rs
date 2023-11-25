@@ -49,11 +49,8 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         };
 
         match (res_opt, self.tokens.next_if(|tok| tok == &Token::PLUS || tok == &Token::TIMES)) {
-            (None, None) => None,
-            (Some(res), None) => Some(res),
-            (Some(Err(err_msg)), Some(_)) => Some(Err(err_msg)),
             (Some(Ok(lhs)), Some(op_tok)) => self.infix(lhs, op_tok, precedence),
-            _ => todo!(),
+            (res_opt, _) => res_opt,
         }
     }
 
