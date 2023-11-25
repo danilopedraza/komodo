@@ -24,6 +24,10 @@ fn prec(tok: Token) -> Precedence {
     }
 }
 
+fn is_infix(tok: Token) -> bool {
+    prec(tok) != Precedence::LOWEST // yeah lgtm
+}
+
 struct Parser<T: Iterator<Item = Token>> {
     tokens: Peekable<T>,
 }
@@ -48,7 +52,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
             }),
         };
 
-        match (res_opt, self.tokens.next_if(|tok| (tok == &Token::PLUS || tok == &Token::TIMES) && precedence < prec(tok.clone()))) {
+        match (res_opt, self.tokens.next_if(|tok| is_infix(tok.clone()) && precedence < prec(tok.clone()))) {
             (Some(Ok(lhs)), Some(op_tok)) => self.infix(lhs, op_tok.clone(), prec(op_tok)),
             (res_opt, _) => res_opt,
         }
@@ -88,7 +92,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
             })),
         };
 
-        match (res_opt, self.tokens.next_if(|tok| tok == &Token::PLUS || tok == &Token::TIMES)) {
+        match (res_opt, self.tokens.next_if(|tok| is_infix(tok.clone()))) {
             (Some(Ok(lhs)), Some(op_tok)) => self.infix(lhs, op_tok.clone(), precedence),
             (res_opt, _) => res_opt,
         }
