@@ -6,6 +6,7 @@ use crate::lexer::Token;
 enum ASTNode {
     INTEGER(i64),
     SUM(Box<ASTNode>, Box<ASTNode>),
+    PRODUCT(Box<ASTNode>, Box<ASTNode>),
 }
 
 struct Parser<T: Iterator<Item = Token>> {
@@ -26,12 +27,13 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
             }),
         };
 
-        match (res_opt, self.tokens.next_if_eq(&Token::PLUS)) {
+        match (res_opt, self.tokens.next_if(|tok| tok == &Token::PLUS || tok == &Token::TIMES)) {
             (None, None) => None,
             (Some(res), None) => Some(res),
             (Some(Err(err_msg)), Some(_)) => Some(Err(err_msg)),
-            (Some(Ok(lhs)), Some(_)) => self.sum(lhs),
-            (None, Some(_)) => todo!(),
+            (Some(Ok(lhs)), Some(Token::PLUS)) => self.sum(lhs),
+            (Some(Ok(lhs)), Some(Token::TIMES)) => self.product(lhs),
+            _ => todo!(),
         }
     }
 }
@@ -61,6 +63,19 @@ impl <T: Iterator<Item = Token>> Parser<T> {
             )),
             Some(Err(err)) => Some(Err(err)),
             None => Some(Err(String::from("Missing right side of sum"))),
+        }
+    }
+
+    fn product(&mut self, lhs: ASTNode) -> Option<Result<ASTNode, String>> {
+        match self.next() {
+            Some(Ok(rhs)) => Some(Ok(
+                ASTNode::PRODUCT(
+                    Box::new(lhs),
+                    Box::new(rhs)
+                )
+            )),
+            Some(Err(err)) => Some(Err(err)),
+            None => Some(Err(String::from("Missing right side of product"))),
         }
     }
 }
@@ -151,6 +166,20 @@ mod tests {
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Err(String::from("Missing right side of sum")))
+        );
+    }
+
+    #[test]
+    fn simple_product() {
+        let tokens = vec![Token::INTEGER(1), Token::TIMES, Token::INTEGER(1)];
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Ok(
+                ASTNode::PRODUCT(
+                    Box::new(ASTNode::INTEGER(1)),
+                    Box::new(ASTNode::INTEGER(1))
+                )
+            ))
         );
     }
 }
