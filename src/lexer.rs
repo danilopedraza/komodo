@@ -2,18 +2,18 @@ use std::{str::Chars, iter::Peekable};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Token {
-    ASSIGN,
-    COLON,
-    DOT,
-    EQUALS,
-    IDENT(String),
-    INTEGER(i64),
-    LET,
-    LPAREN,
-    PLUS,
-    RPAREN,
-    TIMES,
-    UNKNOWN,
+    Assign,
+    Colon,
+    Dot,
+    Equals,
+    Ident(String),
+    Integer(i64),
+    Let,
+    Lparen,
+    Plus,
+    Rparen,
+    Times,
+    Unknown,
 }
 
 pub struct Lexer<'a> {
@@ -28,16 +28,16 @@ impl Iterator for Lexer<'_> {
             None => None,
             Some(chr) if chr.is_whitespace() => self.whitespace(),
             Some(chr) => Some(match chr {
-                '+' => Token::PLUS,
-                '*' => Token::TIMES,
-                '.' => Token::DOT,
-                '(' => Token::LPAREN,
-                ')' => Token::RPAREN,
-                '=' => Token::EQUALS,
+                '+' => Token::Plus,
+                '*' => Token::Times,
+                '.' => Token::Dot,
+                '(' => Token::Lparen,
+                ')' => Token::Rparen,
+                '=' => Token::Equals,
                 ':' => self.assign_or_colon(),
                 chr if chr.is_numeric() => self.integer(chr),
                 chr if chr.is_alphabetic() => self.identifier(chr),
-                _ => Token::UNKNOWN,
+                _ => Token::Unknown,
             }),
         }
     }
@@ -59,8 +59,8 @@ impl Lexer<'_> {
         }
 
         match literal.as_str() {
-            "sea" => Token::LET,
-            _ => Token::IDENT(literal),
+            "sea" => Token::Let,
+            _ => Token::Ident(literal),
         }
     }
 
@@ -68,9 +68,9 @@ impl Lexer<'_> {
         match self.input.peek() {
             Some('=') => {
                 self.input.next();
-                Token::ASSIGN
+                Token::Assign
             },
-            _ => Token::COLON,
+            _ => Token::Colon,
         }
     }
 
@@ -80,7 +80,7 @@ impl Lexer<'_> {
             number.push(chr);
         }
 
-        Token::INTEGER(number.parse().unwrap())
+        Token::Integer(number.parse().unwrap())
     }
 }
 
@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn plus_operator() {
-        assert_eq!(build_lexer("+").next(), Some(Token::PLUS));
+        assert_eq!(build_lexer("+").next(), Some(Token::Plus));
     }
 
     #[test]
@@ -112,7 +112,7 @@ mod tests {
     fn simple_expression() {
         assert_eq!(
             build_lexer("x + y").collect::<Vec<_>>(),
-            vec![Token::IDENT(String::from('x')), Token::PLUS, Token::IDENT(String::from('y'))],
+            vec![Token::Ident(String::from('x')), Token::Plus, Token::Ident(String::from('y'))],
         );
     }
 
@@ -121,8 +121,8 @@ mod tests {
         assert_eq!(
             build_lexer("sea x := 1.").collect::<Vec<_>>(),
             vec![
-                Token::LET, Token::IDENT(String::from('x')),
-                Token::ASSIGN, Token::INTEGER(1), Token::DOT
+                Token::Let, Token::Ident(String::from('x')),
+                Token::Assign, Token::Integer(1), Token::Dot
             ],
         );
     }
@@ -132,9 +132,9 @@ mod tests {
         assert_eq!(
             build_lexer("(x * y) = 23").collect::<Vec<_>>(),
             vec![
-                Token::LPAREN, Token::IDENT(String::from('x')),
-                Token::TIMES, Token::IDENT(String::from('y')), Token::RPAREN,
-                Token::EQUALS, Token::INTEGER(23)
+                Token::Lparen, Token::Ident(String::from('x')),
+                Token::Times, Token::Ident(String::from('y')), Token::Rparen,
+                Token::Equals, Token::Integer(23)
             ],
         );
     }

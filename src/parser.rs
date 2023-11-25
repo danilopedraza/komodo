@@ -4,28 +4,28 @@ use crate::lexer::Token;
 
 #[derive(Debug, PartialEq, Eq)]
 enum ASTNode {
-    INTEGER(i64),
-    SUM(Box<ASTNode>, Box<ASTNode>),
-    PRODUCT(Box<ASTNode>, Box<ASTNode>),
+    Integer(i64),
+    Sum(Box<ASTNode>, Box<ASTNode>),
+    Product(Box<ASTNode>, Box<ASTNode>),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Precedence {
-    LOWEST,
-    ADDITION,
-    MULTIPLICATION,
+    Lowest,
+    Addition,
+    Multiplication,
 }
 
 fn prec(tok: Token) -> Precedence {
     match tok {
-        Token::PLUS => Precedence::ADDITION,
-        Token::TIMES => Precedence::MULTIPLICATION,
-        _ => Precedence::LOWEST,
+        Token::Plus => Precedence::Addition,
+        Token::Times => Precedence::Multiplication,
+        _ => Precedence::Lowest,
     }
 }
 
 fn is_infix(tok: Token) -> bool {
-    prec(tok) != Precedence::LOWEST // yeah lgtm
+    prec(tok) != Precedence::Lowest // yeah lgtm
 }
 
 struct Parser<T: Iterator<Item = Token>> {
@@ -36,7 +36,7 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
     type Item = Result<ASTNode, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.expression(Precedence::LOWEST)
+        self.expression(Precedence::Lowest)
     }
 }
 
@@ -44,10 +44,10 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     fn expression(&mut self, precedence: Precedence) -> Option<Result<ASTNode, String>> {
         let res_opt = match self.tokens.next() {
             None => None,
-            Some(Token::LPAREN) => self.parenthesis(),
+            Some(Token::Lparen) => self.parenthesis(),
             Some(tok) => Some(match tok {
-                Token::INTEGER(int) => Ok(ASTNode::INTEGER(int)),
-                Token::RPAREN => Err(String::from("Unexpected right parenthesis")),
+                Token::Integer(int) => Ok(ASTNode::Integer(int)),
+                Token::Rparen => Err(String::from("Unexpected right parenthesis")),
                 _ => todo!(),
             }),
         };
@@ -59,13 +59,13 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn parenthesis(&mut self) -> Option<Result<ASTNode, String>> {
-        if let Some(_) = self.tokens.next_if_eq(&Token::RPAREN) {
+        if let Some(_) = self.tokens.next_if_eq(&Token::Rparen) {
             return None;
         }
 
-        let res = self.expression(Precedence::LOWEST);
+        let res = self.expression(Precedence::Lowest);
 
-        if self.tokens.next() == Some(Token::RPAREN) {
+        if self.tokens.next() == Some(Token::Rparen) {
             res
         } else {
             Some(Err(String::from("Missing right parenthesis")))
@@ -75,11 +75,11 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     fn infix(&mut self, lhs: ASTNode, op: Token, precedence: Precedence) -> Option<Result<ASTNode, String>> {
         let res_opt = match self.expression(precedence) {
             Some(Ok(rhs)) => Some(Ok(match op {
-                Token::PLUS => ASTNode::SUM(
+                Token::Plus => ASTNode::Sum(
                     Box::new(lhs),
                     Box::new(rhs)
                 ),
-                Token::TIMES => ASTNode::PRODUCT(
+                Token::Times => ASTNode::Product(
                     Box::new(lhs),
                     Box::new(rhs)
                 ),
@@ -87,7 +87,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
             })),
             Some(err) => Some(err),
             None => Some(Err(match op {
-                Token::PLUS => String::from("Missing right side of sum"),
+                Token::Plus => String::from("Missing right side of sum"),
                 _ => todo!(),
             })),
         };
@@ -122,16 +122,16 @@ mod tests {
 
     #[test]
     fn integer() {
-        let tokens = vec![Token::INTEGER(0)];
+        let tokens = vec![Token::Integer(0)];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
-            Some(Ok(ASTNode::INTEGER(0)))
+            Some(Ok(ASTNode::Integer(0)))
         );
     }
 
     #[test]
     fn empty_parenthesis() {
-        let tokens = vec![Token::LPAREN, Token::RPAREN];
+        let tokens = vec![Token::Lparen, Token::Rparen];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             None
@@ -140,16 +140,16 @@ mod tests {
 
     #[test]
     fn integer_in_parenthesis() {
-        let tokens = vec![Token::LPAREN, Token::INTEGER(365), Token::RPAREN];
+        let tokens = vec![Token::Lparen, Token::Integer(365), Token::Rparen];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
-            Some(Ok(ASTNode::INTEGER(365)))
+            Some(Ok(ASTNode::Integer(365)))
         );
     }
 
     #[test]
     fn unbalanced_left_parenthesis() {
-        let tokens = vec![Token::LPAREN, Token::INTEGER(21)];
+        let tokens = vec![Token::Lparen, Token::Integer(21)];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Err(String::from("Missing right parenthesis")))
@@ -158,7 +158,7 @@ mod tests {
 
     #[test]
     fn unbalanced_right_parenthesis() {
-        let tokens = vec![Token::RPAREN];
+        let tokens = vec![Token::Rparen];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Err(String::from("Unexpected right parenthesis")))
@@ -167,13 +167,13 @@ mod tests {
 
     #[test]
     fn simple_sum() {
-        let tokens = vec![Token::INTEGER(1), Token::PLUS, Token::INTEGER(1)];
+        let tokens = vec![Token::Integer(1), Token::Plus, Token::Integer(1)];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
-                ASTNode::SUM(
-                    Box::new(ASTNode::INTEGER(1)),
-                    Box::new(ASTNode::INTEGER(1))
+                ASTNode::Sum(
+                    Box::new(ASTNode::Integer(1)),
+                    Box::new(ASTNode::Integer(1))
                 )
             ))
         );
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn incomplete_sum() {
-        let tokens = vec![Token::INTEGER(1), Token::PLUS];
+        let tokens = vec![Token::Integer(1), Token::Plus];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Err(String::from("Missing right side of sum")))
@@ -190,13 +190,13 @@ mod tests {
 
     #[test]
     fn simple_product() {
-        let tokens = vec![Token::INTEGER(1), Token::TIMES, Token::INTEGER(1)];
+        let tokens = vec![Token::Integer(1), Token::Times, Token::Integer(1)];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
-                ASTNode::PRODUCT(
-                    Box::new(ASTNode::INTEGER(1)),
-                    Box::new(ASTNode::INTEGER(1))
+                ASTNode::Product(
+                    Box::new(ASTNode::Integer(1)),
+                    Box::new(ASTNode::Integer(1))
                 )
             ))
         );
@@ -204,17 +204,17 @@ mod tests {
 
     #[test]
     fn product_and_sum() {
-        let tokens = vec![Token::INTEGER(1), Token::TIMES,
-                                      Token::INTEGER(1), Token::PLUS, Token::INTEGER(1)];
+        let tokens = vec![Token::Integer(1), Token::Times,
+                                      Token::Integer(1), Token::Plus, Token::Integer(1)];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
-                ASTNode::SUM(
-                    Box::new(ASTNode::PRODUCT(
-                        Box::new(ASTNode::INTEGER(1)),
-                        Box::new(ASTNode::INTEGER(1))
+                ASTNode::Sum(
+                    Box::new(ASTNode::Product(
+                        Box::new(ASTNode::Integer(1)),
+                        Box::new(ASTNode::Integer(1))
                     )),
-                    Box::new(ASTNode::INTEGER(1))
+                    Box::new(ASTNode::Integer(1))
                 )
             )),
         );
