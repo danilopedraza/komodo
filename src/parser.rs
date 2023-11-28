@@ -5,6 +5,7 @@ use crate::lexer::Token;
 #[derive(Debug, PartialEq, Eq)]
 enum ASTNode {
     Integer(i64),
+    Let(String, Box<ASTNode>),
     Sum(Box<ASTNode>, Box<ASTNode>),
     Product(Box<ASTNode>, Box<ASTNode>),
 }
@@ -36,11 +37,29 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
     type Item = Result<ASTNode, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.expression(Precedence::Lowest)
+        match self.tokens.peek() {
+            Some(Token::Let) => self.let_(),
+            _ => self.expression(Precedence::Lowest),
+        }
     }
 }
 
 impl <T: Iterator<Item = Token>> Parser<T> {
+    fn let_(&mut self) -> Option<Result<ASTNode, String>> {
+        self.tokens.next();
+
+        match self.tokens.next() {
+            Some(Token::Ident(str)) => match self.tokens.next() {
+                Some(Token::Assign) => match self.expression(Precedence::Lowest) {
+                    Some(Ok(node)) => Some(Ok(ASTNode::Let(str, Box::new(node)))),
+                    res_opt => res_opt,
+                },
+                _ => Some(Err(String::from("Expected an assignment symbol"))),
+            },
+            _ => Some(Err(String::from("Expected an identifier"))),
+        }
+    }
+
     fn expression(&mut self, precedence: Precedence) -> Option<Result<ASTNode, String>> {
         let res_opt = match self.tokens.next() {
             None => None,
@@ -214,6 +233,20 @@ mod tests {
                         Box::new(ASTNode::Integer(1)),
                         Box::new(ASTNode::Integer(1))
                     )),
+                    Box::new(ASTNode::Integer(1))
+                )
+            )),
+        );
+    }
+
+    #[test]
+    fn let_statement() {
+        let tokens = vec![Token::Let, Token::Ident(String::from('x')), Token::Assign, Token::Integer(1)];
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Ok(
+                ASTNode::Let(
+                    String::from('x'),
                     Box::new(ASTNode::Integer(1))
                 )
             )),
