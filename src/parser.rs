@@ -50,16 +50,25 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     fn let_(&mut self) -> Result<ASTNode, String> {
         self.tokens.next();
 
-        match self.tokens.next() {
-            Some(Token::Ident(str)) => match self.tokens.next() {
+        match self.arguments() {
+            Ok(args) => match self.tokens.next() {
                 Some(Token::Assign) => match self.expression(Precedence::Lowest) {
-                    Ok(node) => Ok(ASTNode::Let(vec![ASTNode::Symbol(str)], Box::new(node))),
+                    Ok(node) => Ok(ASTNode::Let(args, Box::new(node))),
                     err => err,
                 },
                 _ => Err(String::from("Expected an assignment symbol")),
             },
             _ => Err(String::from("Expected an identifier")),
         }
+    }
+
+    fn arguments(&mut self) -> Result<Vec<ASTNode>, String> {
+        let mut res = vec![];
+        while let Some(Token::Ident(literal)) = self.tokens.next_if(|tok| matches!(tok, Token::Ident(_))) {
+            res.push(ASTNode::Symbol(literal));
+        }
+
+        Ok(res)
     }
 
     fn expression(&mut self, precedence: Precedence) -> Result<ASTNode, String> {
@@ -69,6 +78,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
             Some(tok) => match tok {
                 Token::Integer(int) => Ok(ASTNode::Integer(int)),
                 Token::Rparen => Err(String::from("Unexpected right parenthesis")),
+                Token::Ident(literal) => Ok(ASTNode::Symbol(literal)),
                 _ => todo!(),
             },
         };
@@ -246,6 +256,30 @@ mod tests {
                 ASTNode::Let(
                     vec![ASTNode::Symbol(String::from('x'))],
                     Box::new(ASTNode::Integer(1))
+                )
+            )),
+        );
+    }
+
+    #[test]
+    fn let_function_statement() {
+        let tokens = vec![
+            Token::Let, Token::Ident(String::from('f')), Token::Ident(String::from('x')),
+            Token::Assign,
+            Token::Ident(String::from('x')), Token::Plus, Token::Integer(1)
+        ];
+        
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Ok(
+                ASTNode::Let(
+                    vec![ASTNode::Symbol(String::from('f')), ASTNode::Symbol(String::from('x'))],
+                    Box::new(
+                        ASTNode::Sum(
+                            Box::new(ASTNode::Symbol(String::from('x'))),
+                            Box::new(ASTNode::Integer(1))
+                        )
+                    )
                 )
             )),
         );
