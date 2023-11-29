@@ -38,6 +38,7 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.tokens.peek() {
+            None => None,
             Some(Token::Let) => Some(self.let_()),
             _ => Some(self.expression(Precedence::Lowest)),
         }
@@ -112,7 +113,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
 
 #[cfg(test)]
 mod tests {
-    // use std::iter;
+    use std::iter;
     use crate::lexer::Token;
     use super::*;
 
@@ -126,10 +127,10 @@ mod tests {
         Parser { tokens: tokens.peekable() }
     }
 
-    // #[test]
-    // fn empty_expression() {
-    //     assert_eq!(parser_from(iter::empty::<Token>()).next(), None);
-    // }
+    #[test]
+    fn empty_expression() {
+        assert_eq!(parser_from(iter::empty::<Token>()).next(), None);
+    }
 
     #[test]
     fn integer() {
