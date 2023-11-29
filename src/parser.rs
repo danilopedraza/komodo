@@ -5,8 +5,9 @@ use crate::lexer::Token;
 #[derive(Debug, PartialEq, Eq)]
 enum ASTNode {
     Integer(i64),
-    Let(String, Box<ASTNode>),
+    Let(Vec<ASTNode>, Box<ASTNode>),
     Sum(Box<ASTNode>, Box<ASTNode>),
+    Symbol(String),
     Product(Box<ASTNode>, Box<ASTNode>),
 }
 
@@ -52,7 +53,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         match self.tokens.next() {
             Some(Token::Ident(str)) => match self.tokens.next() {
                 Some(Token::Assign) => match self.expression(Precedence::Lowest) {
-                    Ok(node) => Ok(ASTNode::Let(str, Box::new(node))),
+                    Ok(node) => Ok(ASTNode::Let(vec![ASTNode::Symbol(str)], Box::new(node))),
                     err => err,
                 },
                 _ => Err(String::from("Expected an assignment symbol")),
@@ -243,7 +244,7 @@ mod tests {
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
                 ASTNode::Let(
-                    String::from('x'),
+                    vec![ASTNode::Symbol(String::from('x'))],
                     Box::new(ASTNode::Integer(1))
                 )
             )),
