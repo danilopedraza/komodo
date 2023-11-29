@@ -141,7 +141,6 @@ mod tests {
         );
     }
 
-    // not sure about this behavior
     // #[test]
     // fn empty_parenthesis() {
     //     let tokens = vec![Token::Lparen, Token::Rparen];
