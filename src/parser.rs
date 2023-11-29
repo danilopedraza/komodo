@@ -63,7 +63,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
 
     fn expression(&mut self, precedence: Precedence) -> Result<ASTNode, String> {
         let res = match self.tokens.next() {
-            None => todo!(),
+            None => Err(String::from("Expected an expression but reached end of program")),
             Some(Token::Lparen) => self.parenthesis(),
             Some(tok) => match tok {
                 Token::Integer(int) => Ok(ASTNode::Integer(int)),
@@ -192,14 +192,14 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn incomplete_sum() {
-    //     let tokens = vec![Token::Integer(1), Token::Plus];
-    //     assert_eq!(
-    //         parser_from(token_iter!(tokens)).next(),
-    //         Some(Err(String::from("Missing right side of sum")))
-    //     );
-    // }
+    #[test]
+    fn incomplete_sum() {
+        let tokens = vec![Token::Integer(1), Token::Plus];
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Err(String::from("Expected an expression but reached end of program")))
+        );
+    }
 
     #[test]
     fn simple_product() {
