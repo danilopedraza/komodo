@@ -4,11 +4,7 @@ use crate::parser::ASTNode;
 
 fn eval(node: ASTNode, env: HashMap<String, ASTNode>) -> Result<ASTNode, ()> {
     match node {
-        ASTNode::Symbol(lit) => if env.contains_key(&lit) {
-            Ok(env[&lit].clone())
-        } else {
-            Ok(ASTNode::Symbol(lit))
-        },
+        ASTNode::Symbol(lit) if env.contains_key(&lit) => Ok(env[&lit].clone()),
         ASTNode::Sum(lhs, rhs) => sum(lhs, rhs),
         node => Ok(node),
     }
