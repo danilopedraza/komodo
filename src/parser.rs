@@ -3,7 +3,7 @@ use std::iter::Peekable;
 use crate::lexer::Token;
 
 #[derive(Debug, PartialEq, Eq)]
-enum ASTNode {
+pub enum ASTNode {
     Integer(i64),
     Let(Vec<ASTNode>, Box<ASTNode>),
     Sum(Box<ASTNode>, Box<ASTNode>),
