@@ -2,7 +2,7 @@ use std::iter::Peekable;
 
 use crate::lexer::Token;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ASTNode {
     Integer(i64),
     Let(Vec<ASTNode>, Box<ASTNode>),

@@ -1,9 +1,14 @@
-use std::{ops::Index, collections::HashMap};
+use std::collections::HashMap;
 
 use crate::parser::ASTNode;
 
 fn eval(node: ASTNode, env: HashMap<String, ASTNode>) -> Result<ASTNode, ()> {
     match node {
+        ASTNode::Symbol(lit) => if env.contains_key(&lit) {
+            Ok(env[&lit].clone())
+        } else {
+            Ok(ASTNode::Symbol(lit))
+        },
         ASTNode::Sum(lhs, rhs) => sum(lhs, rhs),
         node => Ok(node),
     }
@@ -40,5 +45,25 @@ mod tests {
             ),
             Ok(ASTNode::Integer(2))
         );
+    }
+
+    #[test]
+    fn get_val() {
+        assert_eq!(
+            eval(
+                ASTNode::Symbol(String::from('x')),
+                HashMap::from([(String::from('x'), ASTNode::Integer(1))])
+            ),
+            Ok(ASTNode::Integer(1)));
+    }
+
+    #[test]
+    fn get_symbol() {
+        assert_eq!(
+            eval(
+                ASTNode::Symbol(String::from('x')),
+                HashMap::new()
+            ),
+            Ok(ASTNode::Symbol(String::from('x'))));
     }
 }
