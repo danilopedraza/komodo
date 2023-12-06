@@ -2,6 +2,7 @@ use std::{str::Chars, iter::Peekable};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Token {
+    Arrow,
     Assign,
     Colon,
     Dot,
@@ -10,6 +11,7 @@ pub enum Token {
     Integer(i64),
     Let,
     Lparen,
+    Minus,
     Plus,
     Rparen,
     Times,
@@ -29,6 +31,13 @@ impl Iterator for Lexer<'_> {
             Some(chr) if chr.is_whitespace() => self.whitespace(),
             Some(chr) => Some(match chr {
                 '+' => Token::Plus,
+                '-' => match self.input.peek() {
+                    Some('>') => {
+                        self.input.next();
+                        Token::Arrow
+                    }
+                    _ => Token::Minus,
+                }
                 '*' => Token::Times,
                 '.' => Token::Dot,
                 '(' => Token::Lparen,
@@ -136,6 +145,14 @@ mod tests {
                 Token::Times, Token::Ident(String::from('y')), Token::Rparen,
                 Token::Equals, Token::Integer(23)
             ],
+        );
+    }
+
+    #[test]
+    fn function_declaration() {
+        assert_eq!(
+            build_lexer("sea f: a -> a").collect::<Vec<_>>(),
+            vec![Token::Let, Token::Ident(String::from('f')), Token::Colon, Token::Ident(String::from('a')), Token::Arrow, Token::Ident(String::from('a'))],
         );
     }
 }
