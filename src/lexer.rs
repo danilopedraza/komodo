@@ -31,18 +31,12 @@ impl Iterator for Lexer<'_> {
             Some(chr) if chr.is_whitespace() => self.whitespace(),
             Some(chr) => Some(match chr {
                 '+' => Token::Plus,
-                '-' => match self.input.peek() {
-                    Some('>') => {
-                        self.input.next();
-                        Token::Arrow
-                    }
-                    _ => Token::Minus,
-                }
                 '*' => Token::Times,
                 '.' => Token::Dot,
                 '(' => Token::Lparen,
                 ')' => Token::Rparen,
                 '=' => Token::Equals,
+                '-' => self.minus_or_arrow(),
                 ':' => self.assign_or_colon(),
                 chr if chr.is_numeric() => self.integer(chr),
                 chr if chr.is_alphabetic() => self.identifier(chr),
@@ -90,6 +84,16 @@ impl Lexer<'_> {
         }
 
         Token::Integer(number.parse().unwrap())
+    }
+
+    fn minus_or_arrow(&mut self) -> Token {
+        match self.input.peek() {
+            Some('>') => {
+                self.input.next();
+                Token::Arrow
+            }
+            _ => Token::Minus,
+        }
     }
 }
 
