@@ -54,21 +54,9 @@ impl <T: Iterator<Item = Token>> Parser<T> {
 
         match self.tokens.next() {
             Some(Token::Ident(name)) => match self.tokens.next() {
-                Some(Token::Colon) => match self.tokens.next() {
-                    Some(Token::Ident(lhs)) => match self.tokens.next() {
-                        Some(Token::Arrow) => match self.tokens.next() {
-                            Some(Token::Ident(rhs)) => Ok(ASTNode::LetType(
-                                Box::new(ASTNode::Symbol(name)),
-                                Box::new(ASTNode::FunctionSignature(
-                                    Box::new(ASTNode::Symbol(lhs)),
-                                    Box::new(ASTNode::Symbol(rhs))
-                                ))
-                            )),
-                            _ => todo!(),
-                        },
-                        _ => todo!(),
-                    },
-                    _ => todo!(),
+                Some(Token::Colon) => match self.function_signature() {
+                    Ok(sig) => Ok(ASTNode::LetType(Box::new(ASTNode::Symbol(name)), Box::new(sig))),
+                    err => err,
                 },
                 Some(Token::Ident(first_arg)) => {
                     let args = self.arguments(first_arg);
@@ -153,6 +141,23 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         match (res, self.tokens.next_if(|tok| is_infix(tok.clone()))) {
             (Ok(lhs), Some(op_tok)) => self.infix(lhs, op_tok.clone(), precedence),
             (res, _) => res,
+        }
+    }
+
+    fn function_signature(&mut self) -> Result<ASTNode, String> {
+        match self.tokens.next() {
+            Some(Token::Ident(lhs)) => match self.tokens.next() {
+                Some(Token::Arrow) => match self.tokens.next() {
+                    Some(Token::Ident(rhs)) => Ok(ASTNode::FunctionSignature(
+                            Box::new(ASTNode::Symbol(lhs)),
+                            Box::new(ASTNode::Symbol(rhs))
+                        )
+                    ),
+                    _ => todo!(),
+                },
+                _ => todo!(),
+            },
+            _ => todo!(),
         }
     }
 }
