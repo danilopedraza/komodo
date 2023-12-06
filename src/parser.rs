@@ -1,11 +1,11 @@
-use std::iter::Peekable;
+use std::{iter::Peekable, vec};
 
 use crate::lexer::Token;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ASTNode {
     Integer(i64),
-    Let(Vec<ASTNode>, Box<ASTNode>),
+    Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
     LetType(Box<ASTNode>, Box<ASTNode>),
     FunctionSignature(Box<ASTNode>, Box<ASTNode>),
     Sum(Box<ASTNode>, Box<ASTNode>),
@@ -52,25 +52,39 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     fn let_(&mut self) -> Result<ASTNode, String> {
         self.tokens.next();
 
-        match self.arguments() {
-            Ok(args) => match self.tokens.next() {
+        match self.tokens.next() {
+            Some(Token::Ident(name)) => match self.tokens.next() {
+                Some(Token::Colon) => todo!(),
+                Some(Token::Ident(first_arg)) => {
+                    let args = self.arguments(first_arg);
+
+                    match self.tokens.next() {
+                        Some(Token::Assign) => match self.expression(Precedence::Lowest) {
+                            Ok(expr) => Ok(ASTNode::Let(Box::new(ASTNode::Symbol(name)), args, Box::new(expr))),
+                            err => err,
+                        },
+                        _ => Err(String::from("Expected an assignment symbol")),
+                    }
+
+                    
+                },
                 Some(Token::Assign) => match self.expression(Precedence::Lowest) {
-                    Ok(node) => Ok(ASTNode::Let(args, Box::new(node))),
+                    Ok(expr) => Ok(ASTNode::Let(Box::new(ASTNode::Symbol(name)), vec![], Box::new(expr))),
                     err => err,
                 },
-                _ => Err(String::from("Expected an assignment symbol")),
+                _ => Err(String::from("Expected an identifier, a colon or an assignment symbol")),
             },
             _ => Err(String::from("Expected an identifier")),
         }
     }
 
-    fn arguments(&mut self) -> Result<Vec<ASTNode>, String> {
-        let mut res = vec![];
+    fn arguments(&mut self, first: String) -> Vec<ASTNode> {
+        let mut res = vec![ASTNode::Symbol(first)];
         while let Some(Token::Ident(literal)) = self.tokens.next_if(|tok| matches!(tok, Token::Ident(_))) {
             res.push(ASTNode::Symbol(literal));
         }
 
-        Ok(res)
+        res
     }
 
     fn expression(&mut self, precedence: Precedence) -> Result<ASTNode, String> {
@@ -81,7 +95,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                 Token::Integer(int) => Ok(ASTNode::Integer(int)),
                 Token::Rparen => Err(String::from("Unexpected right parenthesis")),
                 Token::Ident(literal) => Ok(ASTNode::Symbol(literal)),
-                _ => todo!(),
+                tok => {println!("{:?}", tok); todo!()},
             },
         };
 
@@ -256,7 +270,8 @@ mod tests {
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
                 ASTNode::Let(
-                    vec![ASTNode::Symbol(String::from('x'))],
+                    Box::new(ASTNode::Symbol(String::from('x'))),
+                    vec![],
                     Box::new(ASTNode::Integer(1))
                 )
             )),
@@ -275,7 +290,8 @@ mod tests {
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
                 ASTNode::Let(
-                    vec![ASTNode::Symbol(String::from('f')), ASTNode::Symbol(String::from('x'))],
+                    Box::new(ASTNode::Symbol(String::from('f'))),
+                    vec![ASTNode::Symbol(String::from('x'))],
                     Box::new(
                         ASTNode::Sum(
                             Box::new(ASTNode::Symbol(String::from('x'))),
