@@ -6,6 +6,8 @@ use crate::lexer::Token;
 pub enum ASTNode {
     Integer(i64),
     Let(Vec<ASTNode>, Box<ASTNode>),
+    LetType(Box<ASTNode>, Box<ASTNode>),
+    FunctionSignature(Box<ASTNode>, Box<ASTNode>),
     Sum(Box<ASTNode>, Box<ASTNode>),
     Symbol(String),
     Product(Box<ASTNode>, Box<ASTNode>),
@@ -128,7 +130,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::iter;
+    use std::{iter, vec};
     use crate::lexer::Token;
     use super::*;
 
@@ -278,6 +280,29 @@ mod tests {
                         ASTNode::Sum(
                             Box::new(ASTNode::Symbol(String::from('x'))),
                             Box::new(ASTNode::Integer(1))
+                        )
+                    )
+                )
+            )),
+        );
+    }
+
+    #[test]
+    #[ignore = "need a refactor first"]
+    fn let_function_signature() {
+        let tokens = vec![
+            Token::Let, Token::Ident(String::from('f')), Token::Colon, Token::Ident(String::from('a')), Token::Arrow, Token::Ident(String::from('a'))
+        ];
+
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Ok(
+                ASTNode::LetType(
+                    Box::new(ASTNode::Symbol(String::from('f'))),
+                    Box::new(
+                        ASTNode::FunctionSignature(
+                            Box::new(ASTNode::Symbol(String::from('a'))),
+                            Box::new(ASTNode::Symbol(String::from('a')))
                         )
                     )
                 )
