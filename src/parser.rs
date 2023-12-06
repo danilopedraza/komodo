@@ -54,7 +54,22 @@ impl <T: Iterator<Item = Token>> Parser<T> {
 
         match self.tokens.next() {
             Some(Token::Ident(name)) => match self.tokens.next() {
-                Some(Token::Colon) => todo!(),
+                Some(Token::Colon) => match self.tokens.next() {
+                    Some(Token::Ident(lhs)) => match self.tokens.next() {
+                        Some(Token::Arrow) => match self.tokens.next() {
+                            Some(Token::Ident(rhs)) => Ok(ASTNode::LetType(
+                                Box::new(ASTNode::Symbol(name)),
+                                Box::new(ASTNode::FunctionSignature(
+                                    Box::new(ASTNode::Symbol(lhs)),
+                                    Box::new(ASTNode::Symbol(rhs))
+                                ))
+                            )),
+                            _ => todo!(),
+                        },
+                        _ => todo!(),
+                    },
+                    _ => todo!(),
+                },
                 Some(Token::Ident(first_arg)) => {
                     let args = self.arguments(first_arg);
 
@@ -304,7 +319,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "need a refactor first"]
     fn let_function_signature() {
         let tokens = vec![
             Token::Let, Token::Ident(String::from('f')), Token::Colon, Token::Ident(String::from('a')), Token::Arrow, Token::Ident(String::from('a'))
