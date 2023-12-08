@@ -5,6 +5,7 @@ pub enum Token {
     Arrow,
     Assign,
     Colon,
+    Comma,
     Dot,
     Equals,
     Ident(String),
@@ -30,6 +31,7 @@ impl Iterator for Lexer<'_> {
             None => None,
             Some(chr) if chr.is_whitespace() => self.whitespace(),
             Some(chr) => Some(match chr {
+                ',' => Token::Comma,
                 '+' => Token::Plus,
                 '*' => Token::Times,
                 '.' => Token::Dot,
@@ -157,6 +159,14 @@ mod tests {
         assert_eq!(
             build_lexer("sea f: a -> a").collect::<Vec<_>>(),
             vec![Token::Let, Token::Ident(String::from('f')), Token::Colon, Token::Ident(String::from('a')), Token::Arrow, Token::Ident(String::from('a'))],
+        );
+    }
+
+    #[test]
+    fn function_call() {
+        assert_eq!(
+            build_lexer("f(x,y)").collect::<Vec<_>>(),
+            vec![Token::Ident(String::from('f')), Token::Lparen, Token::Ident(String::from('x')), Token::Comma, Token::Ident(String::from('y')), Token::Rparen],
         );
     }
 }
