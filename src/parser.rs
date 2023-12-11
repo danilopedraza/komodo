@@ -58,31 +58,32 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                     Ok(sig) => Ok(ASTNode::LetType(Box::new(ASTNode::Symbol(name)), Box::new(sig))),
                     err => err,
                 },
-                Some(Token::Ident(first_arg)) => {
-                    let args = self.arguments(first_arg);
+                Some(Token::Lparen) => {
+                    let args = self.arguments();
 
                     match self.tokens.next() {
-                        Some(Token::Assign) => match self.expression(Precedence::Lowest) {
-                            Ok(expr) => Ok(ASTNode::Let(Box::new(ASTNode::Symbol(name)), args, Box::new(expr))),
-                            err => err,
+                        Some(Token::Rparen) => match self.tokens.next() {
+                            Some(Token::Assign) => match self.expression(Precedence::Lowest) {
+                                Ok(expr) => Ok(ASTNode::Let(Box::new(ASTNode::Symbol(name)), args, Box::new(expr))),
+                                err => err,
+                            },
+                            _ => Err(String::from("Expected an assignment symbol")),
                         },
-                        _ => Err(String::from("Expected an assignment symbol")),
+                        _ => Err(String::from("Expected a right parenthesis")),
                     }
-
-                    
-                },
+                }
                 Some(Token::Assign) => match self.expression(Precedence::Lowest) {
                     Ok(expr) => Ok(ASTNode::Let(Box::new(ASTNode::Symbol(name)), vec![], Box::new(expr))),
                     err => err,
                 },
-                _ => Err(String::from("Expected an identifier, a colon or an assignment symbol")),
+                _ => Err(String::from("Expected a left parenthesis, a colon or an assignment symbol")),
             },
             _ => Err(String::from("Expected an identifier")),
         }
     }
 
-    fn arguments(&mut self, first: String) -> Vec<ASTNode> {
-        let mut res = vec![ASTNode::Symbol(first)];
+    fn arguments(&mut self) -> Vec<ASTNode> {
+        let mut res = vec![];
         while let Some(Token::Ident(literal)) = self.tokens.next_if(|tok| matches!(tok, Token::Ident(_))) {
             res.push(ASTNode::Symbol(literal));
         }
@@ -301,7 +302,7 @@ mod tests {
     #[test]
     fn let_function_statement() {
         let tokens = vec![
-            Token::Let, Token::Ident(String::from('f')), Token::Ident(String::from('x')),
+            Token::Let, Token::Ident(String::from('f')), Token::Lparen ,Token::Ident(String::from('x')), Token::Rparen,
             Token::Assign,
             Token::Ident(String::from('x')), Token::Plus, Token::Integer(1)
         ];
