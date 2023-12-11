@@ -59,17 +59,15 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                     err => err,
                 },
                 Some(Token::Lparen) => {
-                    let args = self.arguments();
+                    let args_res = self.arguments();
 
-                    match self.tokens.next() {
-                        Some(Token::Rparen) => match self.tokens.next() {
-                            Some(Token::Assign) => match self.expression(Precedence::Lowest) {
-                                Ok(expr) => Ok(ASTNode::Let(Box::new(ASTNode::Symbol(name)), args, Box::new(expr))),
-                                err => err,
-                            },
-                            _ => Err(String::from("Expected an assignment symbol")),
+                    match (args_res, self.tokens.next()) {
+                        (Ok(args), Some(Token::Assign)) => match self.expression(Precedence::Lowest) {
+                            Ok(expr) => Ok(ASTNode::Let(Box::new(ASTNode::Symbol(name)), args, Box::new(expr))),
+                            err => err,
                         },
-                        _ => Err(String::from("Expected a right parenthesis")),
+                        (Err(err), _) => Err(err),
+                        (_, _) => Err(String::from("Expected an assignment symbol")),
                     }
                 }
                 Some(Token::Assign) => match self.expression(Precedence::Lowest) {
@@ -82,13 +80,19 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn arguments(&mut self) -> Vec<ASTNode> {
+    fn arguments(&mut self) -> Result<Vec<ASTNode>, String> {
         let mut res = vec![];
         while let Some(Token::Ident(literal)) = self.tokens.next_if(|tok| matches!(tok, Token::Ident(_))) {
             res.push(ASTNode::Symbol(literal));
+            
+            match self.tokens.next() {
+                Some(Token::Comma) => continue,
+                Some(Token::Rparen) => break,
+                _ => return Err(String::from("Expected a comma or a right parenthesis")),
+            }
         }
 
-        res
+        Ok(res)
     }
 
     fn expression(&mut self, precedence: Precedence) -> Result<ASTNode, String> {
@@ -302,9 +306,9 @@ mod tests {
     #[test]
     fn let_function_statement() {
         let tokens = vec![
-            Token::Let, Token::Ident(String::from('f')), Token::Lparen ,Token::Ident(String::from('x')), Token::Rparen,
+            Token::Let, Token::Ident(String::from('f')), Token::Lparen ,Token::Ident(String::from('x')), Token::Comma, Token::Ident(String::from('y')), Token::Rparen,
             Token::Assign,
-            Token::Ident(String::from('x')), Token::Plus, Token::Integer(1)
+            Token::Ident(String::from('x')), Token::Plus, Token::Ident(String::from('y'))
         ];
         
         assert_eq!(
@@ -312,11 +316,11 @@ mod tests {
             Some(Ok(
                 ASTNode::Let(
                     Box::new(ASTNode::Symbol(String::from('f'))),
-                    vec![ASTNode::Symbol(String::from('x'))],
+                    vec![ASTNode::Symbol(String::from('x')), ASTNode::Symbol(String::from('y'))],
                     Box::new(
                         ASTNode::Sum(
                             Box::new(ASTNode::Symbol(String::from('x'))),
-                            Box::new(ASTNode::Integer(1))
+                            Box::new(ASTNode::Symbol(String::from('y')))
                         )
                     )
                 )
