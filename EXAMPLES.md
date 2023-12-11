@@ -6,9 +6,9 @@
 
     ```sea f: T -> T```
 
-- Una función que suma 1:
+- Una función que suma dos numeros:
 
-    ```sea f x := x + 1```
+    ```sea f(x, y) := x + y```
 
 ## Expresiones
 
