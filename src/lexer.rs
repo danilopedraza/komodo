@@ -10,10 +10,12 @@ pub enum Token {
     Equals,
     Ident(String),
     Integer(i64),
+    Lbrace,
     Let,
     Lparen,
     Minus,
     Plus,
+    Rbrace,
     Rparen,
     Times,
     Unknown,
@@ -35,7 +37,9 @@ impl Iterator for Lexer<'_> {
                 '+' => Token::Plus,
                 '*' => Token::Times,
                 '.' => Token::Dot,
+                '{' => Token::Lbrace,
                 '(' => Token::Lparen,
+                '}' => Token::Rbrace,
                 ')' => Token::Rparen,
                 '=' => Token::Equals,
                 '-' => self.minus_or_arrow(),
@@ -167,6 +171,14 @@ mod tests {
         assert_eq!(
             build_lexer("f(x,y)").collect::<Vec<_>>(),
             vec![Token::Ident(String::from('f')), Token::Lparen, Token::Ident(String::from('x')), Token::Comma, Token::Ident(String::from('y')), Token::Rparen],
+        );
+    }
+
+    #[test]
+    fn set() {
+        assert_eq!(
+            build_lexer("{0, 1}").collect::<Vec<_>>(),
+            vec![Token::Lbrace, Token::Integer(0), Token::Comma, Token::Integer(1), Token::Rbrace],
         );
     }
 }
