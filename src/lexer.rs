@@ -45,7 +45,7 @@ impl Iterator for Lexer<'_> {
                 '-' => self.minus_or_arrow(),
                 ':' => self.assign_or_colon(),
                 chr if chr.is_numeric() => self.integer(chr),
-                chr if chr.is_alphabetic() => self.identifier(chr),
+                chr if chr.is_alphabetic() => self.identifier_or_keyword(chr),
                 _ => Token::Unknown,
             }),
         }
@@ -61,15 +61,22 @@ impl Lexer<'_> {
         self.next()
     }
 
-    fn identifier(&mut self, first: char) -> Token {
+    fn identifier_or_keyword(&mut self, first: char) -> Token {
         let mut literal = String::from(first);
         while let Some(chr) = self.input.by_ref().next_if(|c| c.is_alphabetic()) {
             literal.push(chr);
         }
 
+        match Self::keyword(&literal) {
+            Some(tok) => tok,
+            None => Token::Ident(literal),
+        }
+    }
+
+    fn keyword(literal: &String) -> Option<Token> {
         match literal.as_str() {
-            "sea" => Token::Let,
-            _ => Token::Ident(literal),
+            "sea" => Some(Token::Let),
+            _ => None,
         }
     }
 
