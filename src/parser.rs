@@ -182,10 +182,6 @@ impl <T: Iterator<Item = Token>> Parser<T> {
             Ok(vec) => Ok(ASTNode::ExtensionSet(vec)),
             Err(msg) => Err(msg),
         }
-        // match self.tokens.next() {
-        //     Some(Token::Rbrace) => Ok(ASTNode::ExtensionSet(vec![])),
-        //     _ => todo!(),
-        // }
     }
 }
 
