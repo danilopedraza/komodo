@@ -178,10 +178,14 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn set(&mut self) -> Result<ASTNode, String> {
-        match self.tokens.next() {
-            Some(Token::Rbrace) => Ok(ASTNode::ExtensionSet(vec![])),
-            _ => todo!(),
+        match self.list(Token::Rbrace) {
+            Ok(vec) => Ok(ASTNode::ExtensionSet(vec)),
+            Err(msg) => Err(msg),
         }
+        // match self.tokens.next() {
+        //     Some(Token::Rbrace) => Ok(ASTNode::ExtensionSet(vec![])),
+        //     _ => todo!(),
+        // }
     }
 }
 
@@ -379,7 +383,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "needs a refactor"]
     fn set() {
         let tokens = vec![
             Token::Lbrace, Token::Lparen, Token::Integer(0),
