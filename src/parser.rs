@@ -60,7 +60,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                     err => err,
                 },
                 Some(Token::Lparen) => {
-                    let args_res = self.arguments();
+                    let args_res = self.list(Token::Rparen);
 
                     match (args_res, self.tokens.next()) {
                         (Ok(args), Some(Token::Assign)) => match self.expression(Precedence::Lowest) {
@@ -81,19 +81,28 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn arguments(&mut self) -> Result<Vec<ASTNode>, String> {
+    fn list(&mut self, terminator: Token) -> Result<Vec<ASTNode>, String> {
         let mut res = vec![];
-        while let Some(Token::Ident(literal)) = self.tokens.next_if(|tok| matches!(tok, Token::Ident(_))) {
-            res.push(ASTNode::Symbol(literal));
-            
-            match self.tokens.next() {
-                Some(Token::Comma) => continue,
-                Some(Token::Rparen) => break,
-                _ => return Err(String::from("Expected a comma or a right parenthesis")),
-            }
-        }
+        match self.tokens.peek() {
+            Some(tok) if *tok == terminator => Ok(res),
+            None => Err(String::from("Reached end of program")),
+            _ => {
+                loop {
+                    match self.expression(Precedence::Lowest) {
+                        Ok(expr) => {
+                            res.push(expr);
 
-        Ok(res)
+                            match self.tokens.next() {
+                                Some(Token::Comma) => continue,
+                                Some(tok) if tok == terminator => break Ok(res),
+                                _ => return Err(String::from("Expected a comma or a right parenthesis")),
+                            }
+                        },
+                        Err(msg) => break Err(msg),
+                    }
+                }
+            },
+        }
     }
 
     fn expression(&mut self, precedence: Precedence) -> Result<ASTNode, String> {
