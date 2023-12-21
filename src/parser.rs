@@ -98,8 +98,8 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     fn expression(&mut self, precedence: Precedence) -> Result<ASTNode, String> {
         let res = match self.tokens.next() {
             None => Err(String::from("Expected an expression but reached end of program")),
-            Some(Token::Lparen) => self.parenthesis(),
             Some(tok) => match tok {
+                Token::Lparen => self.parenthesis(),
                 Token::Integer(int) => Ok(ASTNode::Integer(int)),
                 Token::Rparen => Err(String::from("Unexpected right parenthesis")),
                 Token::Ident(literal) => Ok(ASTNode::Symbol(literal)),
