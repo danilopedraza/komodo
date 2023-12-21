@@ -4,6 +4,7 @@ use crate::lexer::Token;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ASTNode {
+    ExtensionSet(Vec<ASTNode>),
     Integer(i64),
     Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
     LetType(Box<ASTNode>, Box<ASTNode>),
@@ -100,6 +101,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
             None => Err(String::from("Expected an expression but reached end of program")),
             Some(tok) => match tok {
                 Token::Lparen => self.parenthesis(),
+                Token::Lbrace => self.set(),
                 Token::Integer(int) => Ok(ASTNode::Integer(int)),
                 Token::Rparen => Err(String::from("Unexpected right parenthesis")),
                 Token::Ident(literal) => Ok(ASTNode::Symbol(literal)),
@@ -162,6 +164,13 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                 },
                 _ => todo!(),
             },
+            _ => todo!(),
+        }
+    }
+
+    fn set(&mut self) -> Result<ASTNode, String> {
+        match self.tokens.next() {
+            Some(Token::Rbrace) => Ok(ASTNode::ExtensionSet(vec![])),
             _ => todo!(),
         }
     }
@@ -347,6 +356,35 @@ mod tests {
                     )
                 )
             )),
+        );
+    }
+
+    #[test]
+    fn empty_set() {
+        let tokens = vec![Token::Lbrace, Token::Rbrace];
+
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Ok(ASTNode::ExtensionSet(vec![])))
+        );
+    }
+
+    #[test]
+    #[ignore = "needs a refactor"]
+    fn set() {
+        let tokens = vec![
+            Token::Lbrace, Token::Lparen, Token::Integer(0),
+            Token::Rparen, Token::Comma, Token::Integer(0),
+            Token::Rbrace
+        ];
+
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Ok(
+                ASTNode::ExtensionSet(
+                    vec![ASTNode::Integer(0), ASTNode::Integer(0)]
+                )
+            ))
         );
     }
 }
