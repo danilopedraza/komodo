@@ -4,11 +4,10 @@ use crate::lexer::Token;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ASTNode {
+    Correspondence(Box<ASTNode>, Box<ASTNode>),
     ExtensionSet(Vec<ASTNode>),
     Integer(i64),
     Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
-    LetType(Box<ASTNode>, Box<ASTNode>),
-    FunctionSignature(Box<ASTNode>, Box<ASTNode>),
     Sum(Box<ASTNode>, Box<ASTNode>),
     Symbol(String),
     Product(Box<ASTNode>, Box<ASTNode>),
@@ -19,12 +18,14 @@ enum Precedence {
     Lowest,
     Addition,
     Multiplication,
+    Correspondence,
 }
 
 fn prec(tok: Token) -> Precedence {
     match tok {
         Token::Plus => Precedence::Addition,
         Token::Times => Precedence::Multiplication,
+        Token::Arrow => Precedence::Correspondence,
         _ => Precedence::Lowest,
     }
 }
@@ -55,9 +56,9 @@ impl <T: Iterator<Item = Token>> Parser<T> {
 
         match (self.tokens.next(), self.tokens.next()) {
             (Some(Token::Ident(name)), Some(Token::Colon)) => match self.type_() {
-                Ok(sig) => Ok(ASTNode::LetType(Box::new(ASTNode::Symbol(name)), Box::new(sig))),
-                err => err
-            },
+                Ok(tp) => Ok(ASTNode::Let(Box::new(ASTNode::Symbol(name)), vec![], Box::new(tp))),
+                err => err,
+            }
             (Some(Token::Ident(name)), Some(Token::Assign)) => match self.expression(Precedence::Lowest) {
                 Ok(expr) => Ok(ASTNode::Let(Box::new(ASTNode::Symbol(name)), vec![], Box::new(expr))),
                 err => err,
@@ -164,7 +165,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         match self.tokens.next() {
             Some(Token::Ident(lhs)) => match self.tokens.next() {
                 Some(Token::Arrow) => match self.tokens.next() {
-                    Some(Token::Ident(rhs)) => Ok(ASTNode::FunctionSignature(
+                    Some(Token::Ident(rhs)) => Ok(ASTNode::Correspondence(
                             Box::new(ASTNode::Symbol(lhs)),
                             Box::new(ASTNode::Symbol(rhs))
                         )
@@ -349,16 +350,19 @@ mod tests {
     #[test]
     fn let_function_signature() {
         let tokens = vec![
-            Token::Let, Token::Ident(String::from('f')), Token::Colon, Token::Ident(String::from('a')), Token::Arrow, Token::Ident(String::from('a'))
+            Token::Let, Token::Ident(String::from('f')), Token::Colon,
+            Token::Ident(String::from('a')), Token::Arrow,
+            Token::Ident(String::from('a'))
         ];
 
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
-                ASTNode::LetType(
+                ASTNode::Let(
                     Box::new(ASTNode::Symbol(String::from('f'))),
+                    vec![],
                     Box::new(
-                        ASTNode::FunctionSignature(
+                        ASTNode::Correspondence(
                             Box::new(ASTNode::Symbol(String::from('a'))),
                             Box::new(ASTNode::Symbol(String::from('a')))
                         )
