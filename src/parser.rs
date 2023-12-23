@@ -54,7 +54,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         self.tokens.next();
 
         match (self.tokens.next(), self.tokens.next()) {
-            (Some(Token::Ident(name)), Some(Token::Colon)) => match self.function_signature() {
+            (Some(Token::Ident(name)), Some(Token::Colon)) => match self.type_() {
                 Ok(sig) => Ok(ASTNode::LetType(Box::new(ASTNode::Symbol(name)), Box::new(sig))),
                 err => err
             },
@@ -160,7 +160,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn function_signature(&mut self) -> Result<ASTNode, String> {
+    fn type_(&mut self) -> Result<ASTNode, String> {
         match self.tokens.next() {
             Some(Token::Ident(lhs)) => match self.tokens.next() {
                 Some(Token::Arrow) => match self.tokens.next() {
