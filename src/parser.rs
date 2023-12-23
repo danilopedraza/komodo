@@ -148,6 +148,10 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                     Box::new(lhs),
                     Box::new(rhs)
                 ),
+                Token::Arrow => ASTNode::Correspondence(
+                    Box::new(lhs),
+                    Box::new(rhs)
+                ),
                 _ => todo!(),
             }
         );
@@ -159,20 +163,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn type_(&mut self) -> Result<ASTNode, String> {
-        match self.tokens.next() {
-            Some(Token::Ident(lhs)) => match self.tokens.next() {
-                Some(Token::Arrow) => match self.tokens.next() {
-                    Some(Token::Ident(rhs)) => Ok(ASTNode::Correspondence(
-                            Box::new(ASTNode::Symbol(lhs)),
-                            Box::new(ASTNode::Symbol(rhs))
-                        )
-                    ),
-                    _ => todo!(),
-                },
-                _ => todo!(),
-            },
-            _ => todo!(),
-        }
+        self.expression(Precedence::Lowest)
     }
 
     fn set(&mut self) -> Result<ASTNode, String> {
