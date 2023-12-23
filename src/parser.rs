@@ -6,7 +6,7 @@ use crate::lexer::Token;
 pub enum ASTNode {
     Correspondence(Box<ASTNode>, Box<ASTNode>),
     ExtensionSet(Vec<ASTNode>),
-    Integer(i64),
+    Integer(String),
     Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
     Sum(Box<ASTNode>, Box<ASTNode>),
     Symbol(String),
@@ -197,10 +197,10 @@ mod tests {
 
     #[test]
     fn integer() {
-        let tokens = vec![Token::Integer(0)];
+        let tokens = vec![Token::Integer(String::from("0"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
-            Some(Ok(ASTNode::Integer(0)))
+            Some(Ok(ASTNode::Integer(String::from("0"))))
         );
     }
 
@@ -215,16 +215,16 @@ mod tests {
 
     #[test]
     fn integer_in_parenthesis() {
-        let tokens = vec![Token::Lparen, Token::Integer(365), Token::Rparen];
+        let tokens = vec![Token::Lparen, Token::Integer(String::from("365")), Token::Rparen];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
-            Some(Ok(ASTNode::Integer(365)))
+            Some(Ok(ASTNode::Integer(String::from("365"))))
         );
     }
 
     #[test]
     fn unbalanced_left_parenthesis() {
-        let tokens = vec![Token::Lparen, Token::Integer(21)];
+        let tokens = vec![Token::Lparen, Token::Integer(String::from("65"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Err(String::from("Missing right parenthesis")))
@@ -242,13 +242,13 @@ mod tests {
 
     #[test]
     fn simple_sum() {
-        let tokens = vec![Token::Integer(1), Token::Plus, Token::Integer(1)];
+        let tokens = vec![Token::Integer(String::from("1")), Token::Plus, Token::Integer(String::from("1"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
                 ASTNode::Sum(
-                    Box::new(ASTNode::Integer(1)),
-                    Box::new(ASTNode::Integer(1))
+                    Box::new(ASTNode::Integer(String::from("1"))),
+                    Box::new(ASTNode::Integer(String::from("1")))
                 )
             ))
         );
@@ -256,7 +256,7 @@ mod tests {
 
     #[test]
     fn incomplete_sum() {
-        let tokens = vec![Token::Integer(1), Token::Plus];
+        let tokens = vec![Token::Integer(String::from("1")), Token::Plus];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Err(String::from("Expected an expression but reached end of program")))
@@ -265,13 +265,13 @@ mod tests {
 
     #[test]
     fn simple_product() {
-        let tokens = vec![Token::Integer(1), Token::Times, Token::Integer(1)];
+        let tokens = vec![Token::Integer(String::from("1")), Token::Times, Token::Integer(String::from("1"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
                 ASTNode::Product(
-                    Box::new(ASTNode::Integer(1)),
-                    Box::new(ASTNode::Integer(1))
+                    Box::new(ASTNode::Integer(String::from("1"))),
+                    Box::new(ASTNode::Integer(String::from("1")))
                 )
             ))
         );
@@ -279,17 +279,17 @@ mod tests {
 
     #[test]
     fn product_and_sum() {
-        let tokens = vec![Token::Integer(1), Token::Times,
-                                      Token::Integer(1), Token::Plus, Token::Integer(1)];
+        let tokens = vec![Token::Integer(String::from("1")), Token::Times,
+                                      Token::Integer(String::from("1")), Token::Plus, Token::Integer(String::from("1"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
                 ASTNode::Sum(
                     Box::new(ASTNode::Product(
-                        Box::new(ASTNode::Integer(1)),
-                        Box::new(ASTNode::Integer(1))
+                        Box::new(ASTNode::Integer(String::from("1"))),
+                        Box::new(ASTNode::Integer(String::from("1")))
                     )),
-                    Box::new(ASTNode::Integer(1))
+                    Box::new(ASTNode::Integer(String::from("1")))
                 )
             )),
         );
@@ -297,14 +297,14 @@ mod tests {
 
     #[test]
     fn let_statement() {
-        let tokens = vec![Token::Let, Token::Ident(String::from('x')), Token::Assign, Token::Integer(1)];
+        let tokens = vec![Token::Let, Token::Ident(String::from('x')), Token::Assign, Token::Integer(String::from("1"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
                 ASTNode::Let(
                     Box::new(ASTNode::Symbol(String::from('x'))),
                     vec![],
-                    Box::new(ASTNode::Integer(1))
+                    Box::new(ASTNode::Integer(String::from("1")))
                 )
             )),
         );
@@ -373,8 +373,8 @@ mod tests {
     #[test]
     fn set() {
         let tokens = vec![
-            Token::Lbrace, Token::Lparen, Token::Integer(0),
-            Token::Rparen, Token::Comma, Token::Integer(0),
+            Token::Lbrace, Token::Lparen, Token::Integer(String::from("0")),
+            Token::Rparen, Token::Comma, Token::Integer(String::from("0")),
             Token::Rbrace
         ];
 
@@ -382,7 +382,7 @@ mod tests {
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
                 ASTNode::ExtensionSet(
-                    vec![ASTNode::Integer(0), ASTNode::Integer(0)]
+                    vec![ASTNode::Integer(String::from("0")), ASTNode::Integer(String::from("0"))]
                 )
             ))
         );

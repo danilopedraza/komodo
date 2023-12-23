@@ -9,7 +9,7 @@ pub enum Token {
     Dot,
     Equals,
     Ident(String),
-    Integer(i64),
+    Integer(String),
     Lbrace,
     Let,
     Lparen,
@@ -96,7 +96,7 @@ impl Lexer<'_> {
             number.push(chr);
         }
 
-        Token::Integer(number.parse().unwrap())
+        Token::Integer(number)
     }
 
     fn minus_or_arrow(&mut self) -> Token {
@@ -148,7 +148,7 @@ mod tests {
             build_lexer("sea x := 1.").collect::<Vec<_>>(),
             vec![
                 Token::Let, Token::Ident(String::from('x')),
-                Token::Assign, Token::Integer(1), Token::Dot
+                Token::Assign, Token::Integer(String::from("1")), Token::Dot
             ],
         );
     }
@@ -160,7 +160,7 @@ mod tests {
             vec![
                 Token::Lparen, Token::Ident(String::from('x')),
                 Token::Times, Token::Ident(String::from('y')), Token::Rparen,
-                Token::Equals, Token::Integer(23)
+                Token::Equals, Token::Integer(String::from("23"))
             ],
         );
     }
@@ -185,7 +185,7 @@ mod tests {
     fn set() {
         assert_eq!(
             build_lexer("{0, 1}").collect::<Vec<_>>(),
-            vec![Token::Lbrace, Token::Integer(0), Token::Comma, Token::Integer(1), Token::Rbrace],
+            vec![Token::Lbrace, Token::Integer(String::from("0")), Token::Comma, Token::Integer(String::from("1")), Token::Rbrace],
         );
     }
 }
