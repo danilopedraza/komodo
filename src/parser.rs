@@ -53,31 +53,31 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     fn let_(&mut self) -> Result<ASTNode, String> {
         self.tokens.next();
 
-        match self.tokens.next() {
-            Some(Token::Ident(name)) => match self.tokens.next() {
-                Some(Token::Colon) => match self.function_signature() {
-                    Ok(sig) => Ok(ASTNode::LetType(Box::new(ASTNode::Symbol(name)), Box::new(sig))),
-                    err => err,
-                },
-                Some(Token::Lparen) => {
-                    let args_res = self.list(Token::Rparen);
-
-                    match (args_res, self.tokens.next()) {
-                        (Ok(args), Some(Token::Assign)) => match self.expression(Precedence::Lowest) {
-                            Ok(expr) => Ok(ASTNode::Let(Box::new(ASTNode::Symbol(name)), args, Box::new(expr))),
-                            err => err,
-                        },
-                        (Err(err), _) => Err(err),
-                        (_, _) => Err(String::from("Expected an assignment symbol")),
-                    }
-                }
-                Some(Token::Assign) => match self.expression(Precedence::Lowest) {
-                    Ok(expr) => Ok(ASTNode::Let(Box::new(ASTNode::Symbol(name)), vec![], Box::new(expr))),
-                    err => err,
-                },
-                _ => Err(String::from("Expected a left parenthesis, a colon or an assignment symbol")),
+        match (self.tokens.next(), self.tokens.next()) {
+            (Some(Token::Ident(name)), Some(Token::Colon)) => match self.function_signature() {
+                Ok(sig) => Ok(ASTNode::LetType(Box::new(ASTNode::Symbol(name)), Box::new(sig))),
+                err => err
             },
-            _ => Err(String::from("Expected an identifier")),
+            (Some(Token::Ident(name)), Some(Token::Assign)) => match self.expression(Precedence::Lowest) {
+                Ok(expr) => Ok(ASTNode::Let(Box::new(ASTNode::Symbol(name)), vec![], Box::new(expr))),
+                err => err,
+            },
+            (Some(Token::Ident(name)), Some(Token::Lparen)) => self.function_with_arguments(name),
+            (Some(Token::Ident(_)), _) => Err(String::from("Expected a left parenthesis, a colon or an assignment symbol")),
+            (_, _) => Err(String::from("Expected an identifier")),
+        }
+    }
+
+    fn function_with_arguments(&mut self, name: String) -> Result<ASTNode, String> {
+        let args_res = self.list(Token::Rparen);
+
+        match (args_res, self.tokens.next()) {
+            (Ok(args), Some(Token::Assign)) => match self.expression(Precedence::Lowest) {
+                Ok(expr) => Ok(ASTNode::Let(Box::new(ASTNode::Symbol(name)), args, Box::new(expr))),
+                err => err,
+            },
+            (Err(err), _) => Err(err),
+            (_, _) => Err(String::from("Expected an assignment symbol")),
         }
     }
 
