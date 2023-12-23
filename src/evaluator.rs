@@ -5,13 +5,13 @@ use crate::parser::ASTNode;
 fn eval(node: ASTNode, env: HashMap<String, ASTNode>) -> Result<ASTNode, ()> {
     match node {
         ASTNode::Symbol(lit) if env.contains_key(&lit) => Ok(env[&lit].clone()),
-        ASTNode::Sum(lhs, rhs) => sum(lhs, rhs),
+        ASTNode::Sum(lhs, rhs) => sum(*lhs, *rhs),
         node => Ok(node),
     }
 }
 
-fn sum(lhs: Box<ASTNode>, rhs: Box<ASTNode>) -> Result<ASTNode, ()> {
-    match (*lhs, *rhs) {
+fn sum(lhs: ASTNode, rhs: ASTNode) -> Result<ASTNode, ()> {
+    match (lhs, rhs) {
         (ASTNode::Integer(l), ASTNode::Integer(r)) => Ok(ASTNode::Integer(l + r)),
         _ => todo!(),
     }

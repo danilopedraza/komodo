@@ -54,7 +54,7 @@ impl Iterator for Lexer<'_> {
 
 impl Lexer<'_> {
     fn whitespace(&mut self) -> Option<Token> {
-        while let Some(_) = self.input.by_ref().next_if(|c| c.is_whitespace()) {
+        while self.input.by_ref().next_if(|c| c.is_whitespace()).is_some() {
             // this skips all the whitespaces. Kinda obscure,
             // but better than recursion, or even worse, unwrapping and breaking several times
         }
@@ -73,8 +73,8 @@ impl Lexer<'_> {
         }
     }
 
-    fn keyword(literal: &String) -> Option<Token> {
-        match literal.as_str() {
+    fn keyword(literal: &str) -> Option<Token> {
+        match literal {
             "sea" => Some(Token::Let),
             _ => None,
         }

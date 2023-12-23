@@ -124,7 +124,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn parenthesis(&mut self) -> Result<ASTNode, String> {
-        if let Some(_) = self.tokens.next_if_eq(&Token::Rparen) {
+        if self.tokens.next_if_eq(&Token::Rparen).is_some() {
             return Err(String::from("Empty parenthesis"));
         }
 
