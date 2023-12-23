@@ -55,14 +55,12 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         self.tokens.next();
 
         match (self.tokens.next(), self.tokens.next()) {
-            (Some(Token::Ident(name)), Some(Token::Colon)) => match self.type_() {
-                Ok(tp) => Ok(ASTNode::Let(Box::new(ASTNode::Symbol(name)), vec![], Box::new(tp))),
-                err => err,
-            }
-            (Some(Token::Ident(name)), Some(Token::Assign)) => match self.expression(Precedence::Lowest) {
-                Ok(expr) => Ok(ASTNode::Let(Box::new(ASTNode::Symbol(name)), vec![], Box::new(expr))),
-                err => err,
-            },
+            (Some(Token::Ident(name)), Some(Token::Colon)) => self.type_().map(
+                |tp| ASTNode::Let(Box::new(ASTNode::Symbol(name)), vec![], Box::new(tp))
+            ),
+            (Some(Token::Ident(name)), Some(Token::Assign)) => self.expression(Precedence::Lowest).map(
+                |expr| ASTNode::Let(Box::new(ASTNode::Symbol(name)), vec![], Box::new(expr))
+            ),
             (Some(Token::Ident(name)), Some(Token::Lparen)) => self.function_with_arguments(name),
             (Some(Token::Ident(_)), _) => Err(String::from("Expected a left parenthesis, a colon or an assignment symbol")),
             (_, _) => Err(String::from("Expected an identifier")),
@@ -140,8 +138,8 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn infix(&mut self, lhs: ASTNode, op: Token, precedence: Precedence) -> Result<ASTNode, String> {
-        let res = match self.expression(precedence) {
-            Ok(rhs) => Ok(match op {
+        let res = self.expression(precedence).map(
+        |rhs| match op {
                 Token::Plus => ASTNode::Sum(
                     Box::new(lhs),
                     Box::new(rhs)
@@ -151,9 +149,8 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                     Box::new(rhs)
                 ),
                 _ => todo!(),
-            }),
-            err => err,
-        };
+            }
+        );
 
         match (res, self.tokens.next_if(|tok| is_infix(tok.clone()))) {
             (Ok(lhs), Some(op_tok)) => self.infix(lhs, op_tok.clone(), precedence),
