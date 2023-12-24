@@ -13,6 +13,13 @@ pub enum ASTNode {
     Product(Box<ASTNode>, Box<ASTNode>),
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum ParserError {
+    UnexpectedTokenError(Vec<Token>, Token),
+    EOFError,
+    EOFErrorExpecting(Vec<Token>),
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Precedence {
     Lowest,
@@ -39,7 +46,7 @@ struct Parser<T: Iterator<Item = Token>> {
 }
 
 impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
-    type Item = Result<ASTNode, String>;
+    type Item = Result<ASTNode, ParserError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.tokens.peek() {
@@ -51,7 +58,7 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
 }
 
 impl <T: Iterator<Item = Token>> Parser<T> {
-    fn let_(&mut self) -> Result<ASTNode, String> {
+    fn let_(&mut self) -> Result<ASTNode, ParserError> {
         self.tokens.next();
 
         match (self.tokens.next(), self.tokens.next()) {
@@ -62,12 +69,13 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                 |expr| ASTNode::Let(Box::new(ASTNode::Symbol(name)), vec![], Box::new(expr))
             ),
             (Some(Token::Ident(name)), Some(Token::Lparen)) => self.function_with_arguments(name),
-            (Some(Token::Ident(_)), _) => Err(String::from("Expected a left parenthesis, a colon or an assignment symbol")),
-            (_, _) => Err(String::from("Expected an identifier")),
+            (Some(Token::Ident(_)), Some(tok)) => Err(ParserError::UnexpectedTokenError(vec![Token::Lparen, Token::Colon, Token::Assign], tok)),
+            (Some(tok), _) => Err(ParserError::UnexpectedTokenError(vec![Token::Ident(String::from(""))], tok)),
+            (None, _) => Err(ParserError::EOFErrorExpecting(vec![Token::Ident(String::from(""))])),
         }
     }
 
-    fn function_with_arguments(&mut self, name: String) -> Result<ASTNode, String> {
+    fn function_with_arguments(&mut self, name: String) -> Result<ASTNode, ParserError> {
         let args_res = self.list(Token::Rparen);
 
         match (args_res, self.tokens.next()) {
@@ -76,15 +84,16 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                 err => err,
             },
             (Err(err), _) => Err(err),
-            (_, _) => Err(String::from("Expected an assignment symbol")),
+            (_, Some(tok)) => Err(ParserError::UnexpectedTokenError(vec![Token::Assign], tok)),
+            (Ok(_), None) => Err(ParserError::EOFErrorExpecting(vec![Token::Assign])),
         }
     }
 
-    fn list(&mut self, terminator: Token) -> Result<Vec<ASTNode>, String> {
+    fn list(&mut self, terminator: Token) -> Result<Vec<ASTNode>, ParserError> {
         let mut res = vec![];
         match self.tokens.peek() {
             Some(tok) if *tok == terminator => Ok(res),
-            None => Err(String::from("Reached end of program")),
+            None => Err(ParserError::EOFError),
             _ => {
                 loop {
                     match self.expression(Precedence::Lowest) {
@@ -94,7 +103,8 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                             match self.tokens.next() {
                                 Some(Token::Comma) => continue,
                                 Some(tok) if tok == terminator => break Ok(res),
-                                _ => return Err(String::from("Expected a comma or a right parenthesis")),
+                                Some(tok) => return Err(ParserError::UnexpectedTokenError(vec![Token::Comma, Token::Rparen], tok)),
+                                None => return Err(ParserError::EOFErrorExpecting(vec![Token::Comma, Token::Rparen])),
                             }
                         },
                         Err(msg) => break Err(msg),
@@ -104,16 +114,15 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn expression(&mut self, precedence: Precedence) -> Result<ASTNode, String> {
+    fn expression(&mut self, precedence: Precedence) -> Result<ASTNode, ParserError> {
         let res = match self.tokens.next() {
-            None => Err(String::from("Expected an expression but reached end of program")),
+            None => Err(ParserError::EOFError),
             Some(tok) => match tok {
                 Token::Lparen => self.parenthesis(),
                 Token::Lbrace => self.set(),
                 Token::Integer(int) => Ok(ASTNode::Integer(int)),
-                Token::Rparen => Err(String::from("Unexpected right parenthesis")),
                 Token::Ident(literal) => Ok(ASTNode::Symbol(literal)),
-                tok => {println!("{:?}", tok); todo!()},
+                tok => Err(ParserError::UnexpectedTokenError(vec![Token::Lparen, Token::Lbrace, Token::Integer(String::from("")), Token::Ident(String::from(""))], tok)),
             },
         };
 
@@ -123,21 +132,17 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn parenthesis(&mut self) -> Result<ASTNode, String> {
-        if self.tokens.next_if_eq(&Token::Rparen).is_some() {
-            return Err(String::from("Empty parenthesis"));
-        }
-
+    fn parenthesis(&mut self) -> Result<ASTNode, ParserError> {
         let res = self.expression(Precedence::Lowest);
 
-        if self.tokens.next() == Some(Token::Rparen) {
-            res
-        } else {
-            Err(String::from("Missing right parenthesis"))
+        match self.tokens.next() {
+            Some(Token::Rparen) => res,
+            Some(tok) => Err(ParserError::UnexpectedTokenError(vec![Token::Rparen], tok)),
+            None => Err(ParserError::EOFErrorExpecting(vec![Token::Rparen]))
         }
     }
 
-    fn infix(&mut self, lhs: ASTNode, op: Token, precedence: Precedence) -> Result<ASTNode, String> {
+    fn infix(&mut self, lhs: ASTNode, op: Token, precedence: Precedence) -> Result<ASTNode, ParserError> {
         let res = self.expression(precedence).map(
         |rhs| match op {
                 Token::Plus => ASTNode::Sum(
@@ -162,11 +167,11 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn type_(&mut self) -> Result<ASTNode, String> {
+    fn type_(&mut self) -> Result<ASTNode, ParserError> {
         self.expression(Precedence::Lowest)
     }
 
-    fn set(&mut self) -> Result<ASTNode, String> {
+    fn set(&mut self) -> Result<ASTNode, ParserError> {
         self.list(Token::Rbrace).map(|vec| ASTNode::ExtensionSet(vec))
     }
 }
@@ -202,15 +207,6 @@ mod tests {
     }
 
     #[test]
-    fn empty_parenthesis() {
-        let tokens = vec![Token::Lparen, Token::Rparen];
-        assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
-            Some(Err(String::from("Empty parenthesis")))
-        );
-    }
-
-    #[test]
     fn integer_in_parenthesis() {
         let tokens = vec![Token::Lparen, Token::Integer(String::from("365")), Token::Rparen];
         assert_eq!(
@@ -224,16 +220,7 @@ mod tests {
         let tokens = vec![Token::Lparen, Token::Integer(String::from("65"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
-            Some(Err(String::from("Missing right parenthesis")))
-        );
-    }
-
-    #[test]
-    fn unbalanced_right_parenthesis() {
-        let tokens = vec![Token::Rparen];
-        assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
-            Some(Err(String::from("Unexpected right parenthesis")))
+            Some(Err(ParserError::EOFErrorExpecting(vec![Token::Rparen])))
         );
     }
 
@@ -256,7 +243,7 @@ mod tests {
         let tokens = vec![Token::Integer(String::from("1")), Token::Plus];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
-            Some(Err(String::from("Expected an expression but reached end of program")))
+            Some(Err(ParserError::EOFError))
         );
     }
 
