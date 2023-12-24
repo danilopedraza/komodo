@@ -167,10 +167,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn set(&mut self) -> Result<ASTNode, String> {
-        match self.list(Token::Rbrace) {
-            Ok(vec) => Ok(ASTNode::ExtensionSet(vec)),
-            Err(msg) => Err(msg),
-        }
+        self.list(Token::Rbrace).map(|vec| ASTNode::ExtensionSet(vec))
     }
 }
 
