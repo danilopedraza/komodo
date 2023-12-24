@@ -8,9 +8,10 @@ pub enum ASTNode {
     ExtensionSet(Vec<ASTNode>),
     Integer(String),
     Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
+    Product(Box<ASTNode>, Box<ASTNode>),
     Sum(Box<ASTNode>, Box<ASTNode>),
     Symbol(String),
-    Product(Box<ASTNode>, Box<ASTNode>),
+    Tuple(Vec<ASTNode>),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -133,6 +134,10 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn parenthesis(&mut self) -> Result<ASTNode, ParserError> {
+        if self.tokens.next_if_eq(&Token::Rparen).is_some() {
+            return Ok(ASTNode::Tuple(vec![]));
+        }
+
         let res = self.expression(Precedence::Lowest);
 
         match self.tokens.next() {
@@ -369,6 +374,16 @@ mod tests {
                     vec![ASTNode::Integer(String::from("0")), ASTNode::Integer(String::from("0"))]
                 )
             ))
+        );
+    }
+
+    #[test]
+    fn empty_tuple() {
+        let tokens = vec![Token::Lparen, Token::Rparen];
+
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Ok(ASTNode::Tuple(vec![])))
         );
     }
 }
