@@ -98,23 +98,19 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                 Ok(res)
             }
             None => Err(ParserError::EOFError),
-            _ => {
-                loop {
-                    match self.expression(Precedence::Lowest) {
-                        Ok(expr) => {
-                            res.push(expr);
+            _ => loop { match self.expression(Precedence::Lowest) {
+                Ok(expr) => {
+                    res.push(expr);
 
-                            match self.tokens.next() {
-                                Some(Token::Comma) => continue,
-                                Some(tok) if tok == terminator => break Ok(res),
-                                Some(tok) => return Err(ParserError::UnexpectedTokenError(vec![Token::Comma, Token::Rparen], tok)),
-                                None => return Err(ParserError::EOFErrorExpecting(vec![Token::Comma, Token::Rparen])),
-                            }
-                        },
-                        Err(msg) => break Err(msg),
+                    match self.tokens.next() {
+                        Some(Token::Comma) => continue,
+                        Some(tok) if tok == terminator => break Ok(res),
+                        Some(tok) => return Err(ParserError::UnexpectedTokenError(vec![Token::Comma, Token::Rparen], tok)),
+                        None => return Err(ParserError::EOFErrorExpecting(vec![Token::Comma, Token::Rparen])),
                     }
-                }
-            },
+                },
+                Err(msg) => break Err(msg),
+            }},
         }
     }
 
