@@ -93,7 +93,10 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     fn list(&mut self, terminator: Token) -> Result<Vec<ASTNode>, ParserError> {
         let mut res = vec![];
         match self.tokens.peek() {
-            Some(tok) if *tok == terminator => Ok(res),
+            Some(tok) if *tok == terminator => {
+                self.tokens.next();   
+                Ok(res)
+            }
             None => Err(ParserError::EOFError),
             _ => {
                 loop {
