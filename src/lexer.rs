@@ -92,7 +92,7 @@ impl Lexer<'_> {
 
     fn integer(&mut self, first: char) -> Token {
         let mut number = String::from(first);
-        while let Some(chr) = self.input.by_ref().next_if(|c| matches!(c, '0'..='9')) {
+        while let Some(chr) = self.input.by_ref().next_if(|c| c.is_ascii_digit()) {
             number.push(chr);
         }
 

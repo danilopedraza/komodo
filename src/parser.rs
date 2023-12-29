@@ -67,16 +67,42 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         self.tokens.next();
 
         match (self.tokens.next(), self.tokens.next()) {
-            (Some(Token::Ident(name)), Some(Token::Colon)) => self.type_().map(
-                |tp| ASTNode::Let(Box::new(ASTNode::Symbol(name)), vec![], Box::new(tp))
+            (Some(Token::Ident(name)), Some(Token::Colon)) => self.type_()
+            .map(
+            |tp| ASTNode::Let(
+                    Box::new(ASTNode::Symbol(name)),
+                    vec![],
+                    Box::new(tp)
+                )
             ),
-            (Some(Token::Ident(name)), Some(Token::Assign)) => self.expression(Precedence::Lowest).map(
-                |expr| ASTNode::Let(Box::new(ASTNode::Symbol(name)), vec![], Box::new(expr))
+            (Some(Token::Ident(name)), Some(Token::Assign)) => self.expression(Precedence::Lowest)
+            .map(
+            |expr| ASTNode::Let(
+                    Box::new(
+                        ASTNode::Symbol(name)
+                    ),
+                    vec![],
+                    Box::new(expr)
+                )
             ),
             (Some(Token::Ident(name)), Some(Token::Lparen)) => self.function_with_arguments(name),
-            (Some(Token::Ident(_)), Some(tok)) => Err(ParserError::UnexpectedTokenError(vec![Token::Lparen, Token::Colon, Token::Assign], tok)),
-            (Some(tok), _) => Err(ParserError::UnexpectedTokenError(vec![Token::Ident(String::from(""))], tok)),
-            (None, _) => Err(ParserError::EOFErrorExpecting(vec![Token::Ident(String::from(""))])),
+            (Some(Token::Ident(_)), Some(tok)) => Err(
+                ParserError::UnexpectedTokenError(
+                    vec![Token::Lparen, Token::Colon, Token::Assign],
+                    tok
+                )
+            ),
+            (Some(tok), _) => Err(
+                ParserError::UnexpectedTokenError(
+                    vec![Token::Ident(String::from(""))],
+                    tok
+                )
+            ),
+            (None, _) => Err(
+                ParserError::EOFErrorExpecting(
+                    vec![Token::Ident(String::from(""))]
+                )
+            ),
         }
     }
 
@@ -85,12 +111,27 @@ impl <T: Iterator<Item = Token>> Parser<T> {
 
         match (args_res, self.tokens.next()) {
             (Ok(args), Some(Token::Assign)) => match self.expression(Precedence::Lowest) {
-                Ok(expr) => Ok(ASTNode::Let(Box::new(ASTNode::Symbol(name)), args, Box::new(expr))),
+                Ok(expr) => Ok(
+                    ASTNode::Let(
+                        Box::new(ASTNode::Symbol(name)),
+                        args,
+                        Box::new(expr)
+                    )
+                ),
                 err => err,
             },
             (Err(err), _) => Err(err),
-            (_, Some(tok)) => Err(ParserError::UnexpectedTokenError(vec![Token::Assign], tok)),
-            (Ok(_), None) => Err(ParserError::EOFErrorExpecting(vec![Token::Assign])),
+            (_, Some(tok)) => Err(
+                ParserError::UnexpectedTokenError(
+                    vec![Token::Assign],
+                    tok
+                )
+            ),
+            (Ok(_), None) => Err(
+                ParserError::EOFErrorExpecting(
+                    vec![Token::Assign]
+                )
+            ),
         }
     }
 
@@ -113,8 +154,17 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                     match self.tokens.next() {
                         Some(Token::Comma) => continue,
                         Some(tok) if tok == terminator => break Ok(res),
-                        Some(tok) => return Err(ParserError::UnexpectedTokenError(vec![Token::Comma, Token::Rparen], tok)),
-                        None => return Err(ParserError::EOFErrorExpecting(vec![Token::Comma, Token::Rparen])),
+                        Some(tok) => return Err(
+                            ParserError::UnexpectedTokenError(
+                                vec![Token::Comma, Token::Rparen],
+                                tok
+                            )
+                        ),
+                        None => return Err(
+                            ParserError::EOFErrorExpecting(
+                                vec![Token::Comma, Token::Rparen]
+                            )
+                        ),
                     }
                 },
                 Err(msg) => break Err(msg),
@@ -130,12 +180,26 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                 Token::Lbrace => self.set(),
                 Token::Integer(int) => Ok(ASTNode::Integer(int)),
                 Token::Ident(literal) => Ok(ASTNode::Symbol(literal)),
-                tok => Err(ParserError::UnexpectedTokenError(vec![Token::Lparen, Token::Lbrace, Token::Integer(String::from("")), Token::Ident(String::from(""))], tok)),
+                tok => Err(
+                    ParserError::UnexpectedTokenError(
+                        vec![
+                            Token::Lparen,
+                            Token::Lbrace,
+                            Token::Integer(String::from("")),
+                            Token::Ident(String::from(""))
+                        ],
+                        tok
+                    )
+                ),
             },
         };
 
         match (res, self.tokens.next_if(|tok| is_infix(tok.clone()) && precedence < prec(tok.clone()))) {
-            (Ok(lhs), Some(op_tok)) => self.infix(lhs, op_tok.clone(), prec(op_tok)),
+            (Ok(lhs), Some(op_tok)) => self.infix(
+                lhs,
+                op_tok.clone(),
+                prec(op_tok)
+            ),
             (res, _) => res,
         }
     }
@@ -149,8 +213,17 @@ impl <T: Iterator<Item = Token>> Parser<T> {
 
         match self.tokens.next() {
             Some(Token::Rparen) => res,
-            Some(tok) => Err(ParserError::UnexpectedTokenError(vec![Token::Rparen], tok)),
-            None => Err(ParserError::EOFErrorExpecting(vec![Token::Rparen]))
+            Some(tok) => Err(
+                ParserError::UnexpectedTokenError(
+                    vec![Token::Rparen],
+                    tok
+                )
+            ),
+            None => Err(
+                ParserError::EOFErrorExpecting(
+                    vec![Token::Rparen]
+                )
+            ),
         }
     }
 
@@ -178,7 +251,11 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         );
 
         match (res, self.tokens.next_if(|tok| is_infix(tok.clone()))) {
-            (Ok(lhs), Some(op_tok)) => self.infix(lhs, op_tok.clone(), precedence),
+            (Ok(lhs), Some(op_tok)) => self.infix(
+                lhs,
+                op_tok.clone(),
+                precedence
+            ),
             (res, _) => res,
         }
     }
@@ -195,12 +272,36 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         let first_res = self.expression(Precedence::Lowest);
 
         match (first_res, self.tokens.next()) {
-            (Ok(first), Some(Token::Comma) | Some(Token::Rbrace)) => self.list(Token::Rbrace, Some(first))
-                .map(|vec| ASTNode::ExtensionSet(vec)),
+            (Ok(first), Some(Token::Comma) | Some(Token::Rbrace)) => self.list(
+                Token::Rbrace,
+                Some(first)
+            ).map(ASTNode::ExtensionSet),
             (Ok(first), Some(Token::Colon)) => self.expression(Precedence::Lowest)
-                .map(|second| ASTNode::ComprehensionSet(Box::new(first), Box::new(second))),
-            (Ok(_), Some(tok)) => Err(ParserError::UnexpectedTokenError(vec![Token::Comma, Token::Rbrace, Token::Colon], tok)),
-            (Ok(_), None) => Err(ParserError::EOFErrorExpecting(vec![Token::Comma, Token::Rbrace, Token::Colon])),
+            .map(
+                |second| ASTNode::ComprehensionSet(
+                    Box::new(first),
+                    Box::new(second)
+                )
+            ),
+            (Ok(_), Some(tok)) => Err(
+                ParserError::UnexpectedTokenError(
+                    vec![
+                        Token::Comma,
+                        Token::Rbrace, 
+                        Token::Colon
+                    ],
+                    tok
+                )
+            ),
+            (Ok(_), None) => Err(
+                ParserError::EOFErrorExpecting(
+                    vec![
+                        Token::Comma,
+                        Token::Rbrace,
+                        Token::Colon
+                    ]
+                )
+            ),
             (err, _) => err,
         }
     }
