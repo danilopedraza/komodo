@@ -4,7 +4,9 @@ use crate::lexer::Token;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ASTNode {
+    ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
     Correspondence(Box<ASTNode>, Box<ASTNode>),
+    Equality(Box<ASTNode>, Box<ASTNode>),
     ExtensionSet(Vec<ASTNode>),
     Integer(String),
     Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
@@ -24,6 +26,7 @@ enum ParserError {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Precedence {
     Lowest,
+    Comparison,
     Addition,
     Multiplication,
     Correspondence,
@@ -31,6 +34,7 @@ enum Precedence {
 
 fn prec(tok: Token) -> Precedence {
     match tok {
+        Token::Equals => Precedence::Comparison,
         Token::Plus => Precedence::Addition,
         Token::Times => Precedence::Multiplication,
         Token::Arrow => Precedence::Correspondence,
@@ -77,7 +81,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn function_with_arguments(&mut self, name: String) -> Result<ASTNode, ParserError> {
-        let args_res = self.list(Token::Rparen);
+        let args_res = self.list(Token::Rparen, None);
 
         match (args_res, self.tokens.next()) {
             (Ok(args), Some(Token::Assign)) => match self.expression(Precedence::Lowest) {
@@ -90,8 +94,12 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn list(&mut self, terminator: Token) -> Result<Vec<ASTNode>, ParserError> {
-        let mut res = vec![];
+    fn list(&mut self, terminator: Token, first: Option<ASTNode>) -> Result<Vec<ASTNode>, ParserError> {
+        let mut res = match first {
+            None => vec![],
+            Some(node) => vec![node],
+        };
+
         match self.tokens.peek() {
             Some(tok) if *tok == terminator => {
                 self.tokens.next();   
@@ -161,6 +169,10 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                     Box::new(lhs),
                     Box::new(rhs)
                 ),
+                Token::Equals => ASTNode::Equality(
+                    Box::new(lhs), 
+                    Box::new(rhs)
+                ),
                 _ => todo!(),
             }
         );
@@ -176,7 +188,21 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn set(&mut self) -> Result<ASTNode, ParserError> {
-        self.list(Token::Rbrace).map(|vec| ASTNode::ExtensionSet(vec))
+        if matches!(self.tokens.peek(), Some(&Token::Rbrace)) {
+            return Ok(ASTNode::ExtensionSet(vec![]));
+        }
+
+        let first_res = self.expression(Precedence::Lowest);
+
+        match (first_res, self.tokens.next()) {
+            (Ok(first), Some(Token::Comma) | Some(Token::Rbrace)) => self.list(Token::Rbrace, Some(first))
+                .map(|vec| ASTNode::ExtensionSet(vec)),
+            (Ok(first), Some(Token::Colon)) => self.expression(Precedence::Lowest)
+                .map(|second| ASTNode::ComprehensionSet(Box::new(first), Box::new(second))),
+            (Ok(_), Some(tok)) => Err(ParserError::UnexpectedTokenError(vec![Token::Comma, Token::Rbrace, Token::Colon], tok)),
+            (Ok(_), None) => Err(ParserError::EOFErrorExpecting(vec![Token::Comma, Token::Rbrace, Token::Colon])),
+            (err, _) => err,
+        }
     }
 }
 
@@ -383,6 +409,28 @@ mod tests {
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(ASTNode::Tuple(vec![])))
+        );
+    }
+
+    #[test]
+    fn set_comprehension() {
+        let tokens = vec![
+            Token::Lbrace, Token::Ident(String::from("a")),
+            Token::Colon, Token::Ident(String::from("a")),
+            Token::Equals, Token::Integer(String::from("1"))
+        ];
+
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Ok(
+                ASTNode::ComprehensionSet(
+                    Box::new(ASTNode::Symbol(String::from("a"))),
+                    Box::new(ASTNode::Equality(
+                        Box::new(ASTNode::Symbol(String::from("a"))),
+                        Box::new(ASTNode::Integer(String::from("1")))
+                    ))
+                )
+            ))
         );
     }
 }
