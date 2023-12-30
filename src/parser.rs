@@ -62,8 +62,10 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
     }
 }
 
+type NodeResult = Result<ASTNode, ParserError>;
+
 impl <T: Iterator<Item = Token>> Parser<T> {
-    fn let_(&mut self) -> Result<ASTNode, ParserError> {
+    fn let_(&mut self) -> NodeResult {
         self.tokens.next();
 
         match (self.tokens.next(), self.tokens.next()) {
@@ -106,7 +108,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn function_with_arguments(&mut self, name: String) -> Result<ASTNode, ParserError> {
+    fn function_with_arguments(&mut self, name: String) -> NodeResult {
         let args_res = self.list(Token::Rparen, None);
 
         match (args_res, self.tokens.next()) {
@@ -172,7 +174,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn expression(&mut self, precedence: Precedence) -> Result<ASTNode, ParserError> {
+    fn expression(&mut self, precedence: Precedence) -> NodeResult {
         let res = match self.tokens.next() {
             None => Err(ParserError::EOFError),
             Some(tok) => match tok {
@@ -204,7 +206,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn parenthesis(&mut self) -> Result<ASTNode, ParserError> {
+    fn parenthesis(&mut self) -> NodeResult {
         if self.tokens.next_if_eq(&Token::Rparen).is_some() {
             return Ok(ASTNode::Tuple(vec![]));
         }
@@ -227,7 +229,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn infix(&mut self, lhs: ASTNode, op: Token, precedence: Precedence) -> Result<ASTNode, ParserError> {
+    fn infix(&mut self, lhs: ASTNode, op: Token, precedence: Precedence) -> NodeResult {
         let res = self.expression(precedence).map(
         |rhs| match op {
                 Token::Plus => ASTNode::Sum(
@@ -260,11 +262,11 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn type_(&mut self) -> Result<ASTNode, ParserError> {
+    fn type_(&mut self) -> NodeResult {
         self.expression(Precedence::Lowest)
     }
 
-    fn set(&mut self) -> Result<ASTNode, ParserError> {
+    fn set(&mut self) -> NodeResult {
         if matches!(self.tokens.peek(), Some(&Token::Rbrace)) {
             return Ok(ASTNode::ExtensionSet(vec![]));
         }
