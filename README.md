@@ -23,3 +23,5 @@ Hay dos lenguajes que me parecen una buena forma de partir: [Miranda](https://ww
 - List/Set comprehension
 
 Además, si termino enfocando esto a problemas de matemáticas discretas, el compilador tendrá que poder optimizar diversas operaciones recursivas.
+
+Lo que más quiero sacar de estos lenguajes de su expresividad. Como este es un lenguaje para hacer experimentos de matemáticas, no tengo gran interés en rastrear errores en tiempo de compilación. El sistema de tipos y la expresividad de los mismos sólo existe para ayudar al usuario a específicar las propiedades de los símbolos que manipula. Por ejemplo, si el usuario desea integrar simbólicamente una expresión pero no está interesado en obtener funciones en los complejos como resultado, la idea es que esto sea fácil de expresar a través del sistema de tipos.
