@@ -75,7 +75,7 @@ impl Lexer<'_> {
 
     fn keyword(literal: &str) -> Option<Token> {
         match literal {
-            "sea" => Some(Token::Let),
+            "let" => Some(Token::Let),
             _ => None,
         }
     }
@@ -145,7 +145,7 @@ mod tests {
     #[test]
     fn simple_statement() {
         assert_eq!(
-            build_lexer("sea x := 1.").collect::<Vec<_>>(),
+            build_lexer("let x := 1.").collect::<Vec<_>>(),
             vec![
                 Token::Let, Token::Ident(String::from('x')),
                 Token::Assign, Token::Integer(String::from("1")), Token::Dot
@@ -168,7 +168,7 @@ mod tests {
     #[test]
     fn function_declaration() {
         assert_eq!(
-            build_lexer("sea f: a -> a").collect::<Vec<_>>(),
+            build_lexer("let f: a -> a").collect::<Vec<_>>(),
             vec![Token::Let, Token::Ident(String::from('f')), Token::Colon, Token::Ident(String::from('a')), Token::Arrow, Token::Ident(String::from('a'))],
         );
     }
