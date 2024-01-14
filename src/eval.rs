@@ -2,9 +2,10 @@ use crate::parser::ASTNode;
 
 #[derive(Debug, PartialEq, Eq)]
 enum Type {
+    Boolean(bool),
+    ExtensionSet(Vec<Type>),
     Number(i64),
     Symbol(String),
-    ExtensionSet(Vec<Type>),
 }
 
 fn remove_repeated(vec: &Vec<ASTNode>) -> Vec<&ASTNode> {
@@ -18,6 +19,13 @@ fn remove_repeated(vec: &Vec<ASTNode>) -> Vec<&ASTNode> {
     return res;
 }
 
+fn equal(lhs: Type, rhs: Type) -> Type {
+    match (lhs, rhs) {
+        (Type::Symbol(l), Type::Symbol(r)) => Type::Boolean(l == r),
+        _ => todo!(),
+    }
+}
+
 fn sum(lhs: Type, rhs: Type) -> Type {
     match (lhs, rhs) {
         (Type::Number(l), Type::Number(r)) => Type::Number(l + r),
@@ -27,6 +35,7 @@ fn sum(lhs: Type, rhs: Type) -> Type {
 
 fn eval(node: &ASTNode) -> Type {
     match node {
+        ASTNode::Equality(lhs, rhs) => equal(eval(lhs), eval(rhs)),
         ASTNode::Integer(str) => Type::Number(str.parse().unwrap()),
         ASTNode::Symbol(str) => Type::Symbol(str.clone()),
         ASTNode::ExtensionSet(lst) => Type::ExtensionSet(
@@ -76,6 +85,19 @@ mod tests {
         assert_eq!(
             eval(node),
             Type::Number(0)
+        );
+    }
+
+    #[test]
+    fn symbol_comparison() {
+        let node = &&ASTNode::Equality(
+            Box::new(ASTNode::Symbol(String::from("a"))),
+            Box::new(ASTNode::Symbol(String::from("b")))
+        );
+
+        assert_eq!(
+            eval(node),
+            Type::Boolean(false)
         );
     }
 }
