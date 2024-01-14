@@ -53,7 +53,10 @@ fn eval(node: &ASTNode) -> Type {
         ),
         ASTNode::Sum(lhs, rhs) => sum(eval(lhs), eval(rhs)),
         ASTNode::Product(lhs, rhs) => product(eval(lhs), eval(rhs)),
-        _ => todo!(),
+        ASTNode::ComprehensionSet(_, _) => todo!(),
+        ASTNode::Correspondence(_, _) => todo!(),
+        ASTNode::Let(_, _, _) => todo!(),
+        ASTNode::Tuple(_) => todo!(),
     }
 }
 
@@ -111,7 +114,7 @@ mod tests {
 
     #[test]
     fn symbol_comparison() {
-        let node = &&ASTNode::Equality(
+        let node = &ASTNode::Equality(
             Box::new(ASTNode::Symbol(String::from("a"))),
             Box::new(ASTNode::Symbol(String::from("b")))
         );
