@@ -33,6 +33,13 @@ fn sum(lhs: Type, rhs: Type) -> Type {
     }
 }
 
+fn product(lhs: Type, rhs: Type) -> Type {
+    match (lhs, rhs) {
+        (Type::Number(l), Type::Number(r)) => Type::Number(l * r),
+        _ => todo!(),
+    }
+}
+
 fn eval(node: &ASTNode) -> Type {
     match node {
         ASTNode::Equality(lhs, rhs) => equal(eval(lhs), eval(rhs)),
@@ -45,6 +52,7 @@ fn eval(node: &ASTNode) -> Type {
             .collect()
         ),
         ASTNode::Sum(lhs, rhs) => sum(eval(lhs), eval(rhs)),
+        ASTNode::Product(lhs, rhs) => product(eval(lhs), eval(rhs)),
         _ => todo!(),
     }
 }
@@ -79,7 +87,20 @@ mod tests {
     fn integer_sum() {
         let node = &ASTNode::Sum(
             Box::new(ASTNode::Integer(String::from("0"))),
-            Box::new(ASTNode::Integer(String::from("0")))
+            Box::new(ASTNode::Integer(String::from("1")))
+        );
+
+        assert_eq!(
+            eval(node),
+            Type::Number(1)
+        );
+    }
+
+    #[test]
+    fn integer_product() {
+        let node = &ASTNode::Product(
+            Box::new(ASTNode::Integer(String::from("0"))),
+            Box::new(ASTNode::Integer(String::from("1")))
         );
 
         assert_eq!(
