@@ -55,7 +55,7 @@ fn eval(node: &ASTNode) -> Type {
         ASTNode::Product(lhs, rhs) => product(eval(lhs), eval(rhs)),
         ASTNode::ComprehensionSet(_, _) => todo!(),
         ASTNode::Correspondence(_, _) => todo!(),
-        ASTNode::Let(_, _, _) => todo!(),
+        ASTNode::Let(_, _, val) => eval(&val),
         ASTNode::Tuple(_) => todo!(),
     }
 }
@@ -63,6 +63,8 @@ fn eval(node: &ASTNode) -> Type {
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use super::{eval, Type};
     use crate::parser::ASTNode;
 
@@ -122,6 +124,21 @@ mod tests {
         assert_eq!(
             eval(node),
             Type::Boolean(false)
+        );
+    }
+
+    #[test]
+    fn let_statement() {
+        let node = &ASTNode::Let(
+            Box::new(ASTNode::Symbol(
+                String::from("x"))),
+            vec![],
+            Box::new(ASTNode::Integer(String::from("0")))
+        );
+
+        assert_eq!(
+            eval(node),
+            Type::Number(0)
         );
     }
 }
