@@ -57,6 +57,7 @@ fn eval(node: &ASTNode) -> Type {
         ASTNode::Correspondence(_, _) => todo!(),
         ASTNode::Let(_, _, val) => eval(&val),
         ASTNode::Tuple(_) => todo!(),
+        ASTNode::Signature(_, _) => todo!(),
     }
 }
 

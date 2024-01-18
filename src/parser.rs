@@ -11,6 +11,7 @@ pub enum ASTNode {
     Integer(String),
     Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
     Product(Box<ASTNode>, Box<ASTNode>),
+    Signature(Box<ASTNode>, Box<ASTNode>),
     Sum(Box<ASTNode>, Box<ASTNode>),
     Symbol(String),
     Tuple(Vec<ASTNode>),
@@ -69,14 +70,27 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         self.tokens.next();
 
         match (self.tokens.next(), self.tokens.next()) {
-            (Some(Token::Ident(name)), Some(Token::Colon)) => self.type_()
-            .map(
-            |tp| ASTNode::Let(
-                    Box::new(ASTNode::Symbol(name)),
-                    vec![],
-                    Box::new(tp)
-                )
-            ),
+            (Some(Token::Ident(name)), Some(Token::Colon)) => match self.type_() {
+                Ok(tp) => {
+                    let sg = ASTNode::Signature(
+                        Box::new(ASTNode::Symbol(name)),
+                        Box::new(tp)
+                    );
+                    match self.tokens.peek() {
+                        Some(Token::Assign) => {
+                            self.tokens.next();
+                            self.expression(Precedence::Lowest)
+                            .map(|expr| ASTNode::Let(
+                                Box::new(sg),
+                                vec![],
+                                Box::new(expr)
+                            ))
+                        },
+                        _ => Ok(sg)
+                    }
+                },
+                err => err,
+            }
             (Some(Token::Ident(name)), Some(Token::Assign)) => self.expression(Precedence::Lowest)
             .map(
             |expr| ASTNode::Let(
@@ -463,9 +477,8 @@ mod tests {
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
-                ASTNode::Let(
+                ASTNode::Signature(
                     Box::new(ASTNode::Symbol(String::from('f'))),
-                    vec![],
                     Box::new(
                         ASTNode::Correspondence(
                             Box::new(ASTNode::Symbol(String::from('a'))),
@@ -534,6 +547,31 @@ mod tests {
                     ))
                 )
             ))
+        );
+    }
+
+    #[test]
+    fn typed_let() {
+        let tokens = vec![
+            Token::Let, Token::Ident(String::from("x")),
+            Token::Colon, Token::Ident(String::from("Real")),
+            Token::Assign, Token::Integer(String::from("0")),
+        ];
+
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(
+                Ok(
+                    ASTNode::Let(
+                        Box::new(ASTNode::Signature(
+                            Box::new(ASTNode::Symbol(String::from("x"))),
+                            Box::new(ASTNode::Symbol(String::from("Real")))
+                        )),
+                        vec![],
+                        Box::new(ASTNode::Integer(String::from("0")))
+                    )
+                )
+            )
         );
     }
 }
