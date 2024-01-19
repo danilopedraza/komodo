@@ -1,5 +1,6 @@
 mod lexer;
 mod parser;
+mod semantic;
 mod eval;
 
 fn main() {
