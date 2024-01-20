@@ -24,6 +24,25 @@ impl Symbol {
   }
 }
 
+#[derive(PartialEq, Eq, Debug)]
+pub struct Integer {
+  val: String,
+}
+
+impl Integer {
+  fn analyze(node: ASTNode) -> Result<Self, AnalyzerError> {
+    match node {
+      ASTNode::Integer(val) => Ok(Self { val }),
+      node => Err(
+        AnalyzerError::UnexpectedNodeError(
+          ASTNode::Integer(String::from("")),
+          node
+        )
+      ),
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -46,6 +65,14 @@ mod tests {
             ASTNode::Integer(String::from("0"))
           )
         )
+      );
+    }
+
+    #[test]
+    fn integer() {
+      assert_eq!(
+        Integer::analyze(ASTNode::Integer(String::from("0"))),
+        Ok(Integer { val: String::from("0")})
       );
     }
 }
