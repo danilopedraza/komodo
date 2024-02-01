@@ -18,7 +18,7 @@ pub enum ASTNode {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum ParserError {
+pub enum ParserError {
     UnexpectedTokenError(Vec<Token>, Token),
     EOFError,
     EOFErrorExpecting(Vec<Token>),
@@ -47,7 +47,7 @@ fn is_infix(tok: Token) -> bool {
     prec(tok) != Precedence::Lowest // yeah lgtm
 }
 
-struct Parser<T: Iterator<Item = Token>> {
+pub struct Parser<T: Iterator<Item = Token>> {
     tokens: Peekable<T>,
 }
 
@@ -323,6 +323,10 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     }
 }
 
+pub fn parser_from<T: Iterator<Item = Token>>(tokens: T) -> Parser<T> {
+    Parser { tokens: tokens.peekable() }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{iter, vec};
@@ -333,10 +337,6 @@ mod tests {
         ($v:expr) => {
             $v.iter().map(|tok| tok.clone())
         };
-    }
-
-    fn parser_from<T: Iterator<Item = Token>>(tokens: T) -> Parser<T> {
-        Parser { tokens: tokens.peekable() }
     }
 
     #[test]

@@ -1,11 +1,24 @@
 use crate::parser::ASTNode;
 
 #[derive(Debug, PartialEq, Eq)]
-enum Type {
+pub enum Type {
     Boolean(bool),
     ExtensionSet(Vec<Type>),
     Number(i64),
     Symbol(String),
+}
+
+pub fn to_string(t: &Type) -> String {
+    match t {
+        Type::Boolean(true ) => String::from("true"),
+        Type::Boolean(false) => String::from("false"),
+        Type::ExtensionSet(vec) => vec.iter()
+                                      .map(to_string)
+                                      .collect::<Vec<String>>()
+                                      .join(", "),
+        Type::Number(num) => num.to_string(),
+        Type::Symbol(s) => s.to_string(),
+    }
 }
 
 fn remove_repeated(vec: &Vec<ASTNode>) -> Vec<&ASTNode> {
@@ -16,7 +29,7 @@ fn remove_repeated(vec: &Vec<ASTNode>) -> Vec<&ASTNode> {
         }
     }
 
-    return res;
+    res
 }
 
 fn equal(lhs: Type, rhs: Type) -> Type {
@@ -40,7 +53,7 @@ fn product(lhs: Type, rhs: Type) -> Type {
     }
 }
 
-fn eval(node: &ASTNode) -> Type {
+pub fn eval(node: &ASTNode) -> Type {
     match node {
         ASTNode::Equality(lhs, rhs) => equal(eval(lhs), eval(rhs)),
         ASTNode::Integer(str) => Type::Number(str.parse().unwrap()),
@@ -48,14 +61,14 @@ fn eval(node: &ASTNode) -> Type {
         ASTNode::ExtensionSet(lst) => Type::ExtensionSet(
             remove_repeated(lst)
             .iter()
-            .map(|val| eval(*val))
+            .map(|val| eval(val))
             .collect()
         ),
         ASTNode::Sum(lhs, rhs) => sum(eval(lhs), eval(rhs)),
         ASTNode::Product(lhs, rhs) => product(eval(lhs), eval(rhs)),
         ASTNode::ComprehensionSet(_, _) => todo!(),
         ASTNode::Correspondence(_, _) => todo!(),
-        ASTNode::Let(_, _, val) => eval(&val),
+        ASTNode::Let(_, _, val) => eval(val),
         ASTNode::Tuple(_) => todo!(),
         ASTNode::Signature(_, _) => todo!(),
     }
