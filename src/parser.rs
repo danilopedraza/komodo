@@ -1,8 +1,8 @@
-use std::{iter::Peekable, ops::Index, vec};
+use std::{iter::Peekable, vec};
 
 use crate::lexer::Token;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InfixOperator {
     Correspondence,
     Equality,
@@ -20,13 +20,21 @@ impl InfixOperator {
             _ => None,
         }
     }
+
+    fn precedence(&self) -> Precedence {
+        match self {
+            InfixOperator::Correspondence => Precedence::Correspondence,
+            InfixOperator::Equality => Precedence::Comparison,
+            InfixOperator::Product => Precedence::Multiplication,
+            InfixOperator::Sum => Precedence::Addition,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ASTNode {
     Boolean(bool),
     ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
-    Correspondence(Box<ASTNode>, Box<ASTNode>),
     Equality(Box<ASTNode>, Box<ASTNode>),
     ExtensionSet(Vec<ASTNode>),
     Infix(InfixOperator, Box<ASTNode>, Box<ASTNode>),
@@ -53,20 +61,6 @@ enum Precedence {
     Addition,
     Multiplication,
     Correspondence,
-}
-
-fn prec(tok: Token) -> Precedence {
-    match tok {
-        Token::Equals => Precedence::Comparison,
-        Token::Plus => Precedence::Addition,
-        Token::Times => Precedence::Multiplication,
-        Token::Arrow => Precedence::Correspondence,
-        _ => Precedence::Lowest,
-    }
-}
-
-fn is_infix(tok: Token) -> bool {
-    prec(tok) != Precedence::Lowest // yeah lgtm
 }
 
 pub struct Parser<T: Iterator<Item = Token>> {
@@ -234,12 +228,13 @@ impl <T: Iterator<Item = Token>> Parser<T> {
             },
         };
 
-        match (res, self.tokens.next_if(|tok| is_infix(tok.clone()) && precedence < prec(tok.clone()))) {
-            (Ok(lhs), Some(op_tok)) => self.infix(
-                lhs,
-                op_tok.clone(),
-                prec(op_tok)
-            ),
+
+        match (res, self.tokens.peek().and_then(|tok| InfixOperator::from(tok.clone()))) {
+            (Ok(lhs), Some(op)) if precedence < op.precedence() => {
+                self.tokens.next();
+                self.infix(lhs, op, op.precedence())
+            },
+            (Err(err), _) => Err(err),
             (res, _) => res,
         }
     }
@@ -270,15 +265,15 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn infix(&mut self, lhs: ASTNode, op: Token, precedence: Precedence) -> NodeResult {
+    fn infix(&mut self, lhs: ASTNode, op: InfixOperator, precedence: Precedence) -> NodeResult {
         let res = self.expression(precedence).map(
-        |rhs| ASTNode::Infix(InfixOperator::from(op).unwrap(), Box::new(lhs), Box::new(rhs))
+        |rhs| ASTNode::Infix(op, Box::new(lhs), Box::new(rhs))
         );
 
-        match (res, self.tokens.next_if(|tok| is_infix(tok.clone()))) {
+        match (res, self.tokens.next_if(|tok| InfixOperator::from(tok.clone()).is_some())) {
             (Ok(lhs), Some(op_tok)) => self.infix(
                 lhs,
-                op_tok.clone(),
+                InfixOperator::from(op_tok.clone()).unwrap(),
                 precedence
             ),
             (res, _) => res,

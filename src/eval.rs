@@ -68,7 +68,6 @@ pub fn eval(node: &ASTNode) -> Type {
         ASTNode::Sum(lhs, rhs) => sum(eval(lhs), eval(rhs)),
         ASTNode::Product(lhs, rhs) => product(eval(lhs), eval(rhs)),
         ASTNode::ComprehensionSet(_, _) => todo!(),
-        ASTNode::Correspondence(_, _) => todo!(),
         ASTNode::Let(_, _, val) => eval(val),
         ASTNode::Tuple(_) => todo!(),
         ASTNode::Signature(_, _) => todo!(),
