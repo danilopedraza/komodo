@@ -68,27 +68,26 @@ type NodeResult = Result<ASTNode, ParserError>;
 impl <T: Iterator<Item = Token>> Parser<T> {
     fn let_(&mut self) -> NodeResult {
         match (self.tokens.next(), self.tokens.next()) {
-            (Some(Token::Ident(name)), Some(Token::Colon)) => match self.type_() {
-                Ok(tp) => {
-                    let sg = ASTNode::Signature(
-                        Box::new(ASTNode::Symbol(name)),
-                        Box::new(tp)
-                    );
-                    match self.tokens.peek() {
-                        Some(Token::Assign) => {
-                            self.tokens.next();
-                            self.expression(Precedence::Lowest)
-                            .map(|expr| ASTNode::Let(
-                                Box::new(sg),
-                                vec![],
-                                Box::new(expr)
-                            ))
-                        },
-                        _ => Ok(sg)
-                    }
-                },
-                err => err,
-            }
+            (Some(Token::Ident(name)), Some(Token::Colon)) => {
+                let tp = self.type_()?;
+                let sg = ASTNode::Signature(
+                    Box::new(ASTNode::Symbol(name)),
+                    Box::new(tp)
+                );
+                
+                match self.tokens.peek() {
+                    Some(Token::Assign) => {
+                        self.tokens.next();
+                        self.expression(Precedence::Lowest)
+                        .map(|expr| ASTNode::Let(
+                            Box::new(sg),
+                            vec![],
+                            Box::new(expr)
+                        ))
+                    },
+                    _ => Ok(sg)
+                }
+            },
             (Some(Token::Ident(name)), Some(Token::Assign)) => self.expression(Precedence::Lowest)
             .map(
             |expr| ASTNode::Let(
