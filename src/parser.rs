@@ -175,13 +175,13 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                         Some(tok) if tok == terminator => break Ok(res),
                         Some(tok) => return Err(
                             ParserError::UnexpectedTokenError(
-                                vec![Token::Comma, Token::Rparen],
+                                vec![Token::Comma, terminator],
                                 tok
                             )
                         ),
                         None => return Err(
                             ParserError::EOFErrorExpecting(
-                                vec![Token::Comma, Token::Rparen]
+                                vec![Token::Comma, terminator]
                             )
                         ),
                     }
@@ -231,10 +231,13 @@ impl <T: Iterator<Item = Token>> Parser<T> {
             return Ok(ASTNode::Tuple(vec![]));
         }
 
-        let res = self.expression(Precedence::Lowest);
+        let res = self.expression(Precedence::Lowest)?;
 
         match self.tokens.next() {
-            Some(Token::Rparen) => res,
+            Some(Token::Rparen) => Ok(res),
+            Some(Token::Comma) => self.list(
+                Token::Rparen,
+                Some(res)).map(|list| ASTNode::Tuple(list)),
             Some(tok) => Err(
                 ParserError::UnexpectedTokenError(
                     vec![Token::Rparen],
@@ -531,6 +534,31 @@ mod tests {
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(ASTNode::Tuple(vec![])))
+        );
+    }
+
+    #[test]
+    fn tuple() {
+        let tokens = vec![
+            Token::Lparen,
+            Token::Ident(String::from("Real")),
+            Token::Comma,
+            Token::Ident(String::from("Real")),
+            Token::Rparen
+        ];
+
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(
+                Ok(
+                    ASTNode::Tuple(
+                        vec![
+                            ASTNode::Symbol(String::from("Real")),
+                            ASTNode::Symbol(String::from("Real"))
+                        ]
+                    )
+                )
+            )
         );
     }
 
