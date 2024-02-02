@@ -35,14 +35,11 @@ impl InfixOperator {
 pub enum ASTNode {
     Boolean(bool),
     ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
-    Equality(Box<ASTNode>, Box<ASTNode>),
     ExtensionSet(Vec<ASTNode>),
     Infix(InfixOperator, Box<ASTNode>, Box<ASTNode>),
     Integer(String),
     Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
-    Product(Box<ASTNode>, Box<ASTNode>),
     Signature(Box<ASTNode>, Box<ASTNode>),
-    Sum(Box<ASTNode>, Box<ASTNode>),
     Symbol(String),
     Tuple(Vec<ASTNode>),
 }

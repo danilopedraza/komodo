@@ -1,4 +1,4 @@
-use crate::parser::ASTNode;
+use crate::parser::{ASTNode, InfixOperator};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Type {
@@ -32,23 +32,11 @@ fn remove_repeated(vec: &Vec<ASTNode>) -> Vec<&ASTNode> {
     res
 }
 
-fn equal(lhs: Type, rhs: Type) -> Type {
-    match (lhs, rhs) {
-        (Type::Symbol(l), Type::Symbol(r)) => Type::Boolean(l == r),
-        _ => todo!(),
-    }
-}
-
-fn sum(lhs: Type, rhs: Type) -> Type {
-    match (lhs, rhs) {
-        (Type::Number(l), Type::Number(r)) => Type::Number(l + r),
-        _ => todo!(),
-    }
-}
-
-fn product(lhs: Type, rhs: Type) -> Type {
-    match (lhs, rhs) {
-        (Type::Number(l), Type::Number(r)) => Type::Number(l * r),
+fn infix(op: InfixOperator, lhs: Type, rhs: Type) -> Type {
+    match (op, lhs, rhs) {
+        (InfixOperator::Equality, Type::Symbol(l), Type::Symbol(r)) => Type::Boolean(l == r),
+        (InfixOperator::Product, Type::Number(l), Type::Number(r)) => Type::Number(l * r),
+        (InfixOperator::Sum, Type::Number(l), Type::Number(r)) => Type::Number(l + r),
         _ => todo!(),
     }
 }
@@ -56,7 +44,6 @@ fn product(lhs: Type, rhs: Type) -> Type {
 pub fn eval(node: &ASTNode) -> Type {
     match node {
         ASTNode::Boolean(val) => Type::Boolean(*val),
-        ASTNode::Equality(lhs, rhs) => equal(eval(lhs), eval(rhs)),
         ASTNode::Integer(str) => Type::Number(str.parse().unwrap()),
         ASTNode::Symbol(str) => Type::Symbol(str.clone()),
         ASTNode::ExtensionSet(lst) => Type::ExtensionSet(
@@ -65,13 +52,11 @@ pub fn eval(node: &ASTNode) -> Type {
             .map(|val| eval(val))
             .collect()
         ),
-        ASTNode::Sum(lhs, rhs) => sum(eval(lhs), eval(rhs)),
-        ASTNode::Product(lhs, rhs) => product(eval(lhs), eval(rhs)),
         ASTNode::ComprehensionSet(_, _) => todo!(),
         ASTNode::Let(_, _, val) => eval(val),
         ASTNode::Tuple(_) => todo!(),
         ASTNode::Signature(_, _) => todo!(),
-        ASTNode::Infix(_, _, _) => todo!(),
+        ASTNode::Infix(op, lhs, rhs) => infix(*op, eval(lhs), eval(rhs)),
     }
 }
 
@@ -80,7 +65,7 @@ pub fn eval(node: &ASTNode) -> Type {
 mod tests {
     use std::vec;
 
-    use super::{eval, Type};
+    use super::*;
     use crate::parser::ASTNode;
 
     #[test]
@@ -105,7 +90,8 @@ mod tests {
 
     #[test]
     fn integer_sum() {
-        let node = &ASTNode::Sum(
+        let node = &ASTNode::Infix(
+            InfixOperator::Sum,
             Box::new(ASTNode::Integer(String::from("0"))),
             Box::new(ASTNode::Integer(String::from("1")))
         );
@@ -118,7 +104,8 @@ mod tests {
 
     #[test]
     fn integer_product() {
-        let node = &ASTNode::Product(
+        let node = &ASTNode::Infix(
+            InfixOperator::Product,
             Box::new(ASTNode::Integer(String::from("0"))),
             Box::new(ASTNode::Integer(String::from("1")))
         );
@@ -131,7 +118,8 @@ mod tests {
 
     #[test]
     fn symbol_comparison() {
-        let node = &ASTNode::Equality(
+        let node = &ASTNode::Infix(
+            InfixOperator::Equality,
             Box::new(ASTNode::Symbol(String::from("a"))),
             Box::new(ASTNode::Symbol(String::from("b")))
         );
