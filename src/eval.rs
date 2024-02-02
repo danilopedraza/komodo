@@ -72,6 +72,7 @@ pub fn eval(node: &ASTNode) -> Type {
         ASTNode::Let(_, _, val) => eval(val),
         ASTNode::Tuple(_) => todo!(),
         ASTNode::Signature(_, _) => todo!(),
+        ASTNode::Infix(_, _, _) => todo!(),
     }
 }
 
