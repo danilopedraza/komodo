@@ -55,6 +55,7 @@ fn product(lhs: Type, rhs: Type) -> Type {
 
 pub fn eval(node: &ASTNode) -> Type {
     match node {
+        ASTNode::Boolean(val) => Type::Boolean(*val),
         ASTNode::Equality(lhs, rhs) => equal(eval(lhs), eval(rhs)),
         ASTNode::Integer(str) => Type::Number(str.parse().unwrap()),
         ASTNode::Symbol(str) => Type::Symbol(str.clone()),

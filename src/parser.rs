@@ -4,6 +4,7 @@ use crate::lexer::Token;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ASTNode {
+    Boolean(bool),
     ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
     Correspondence(Box<ASTNode>, Box<ASTNode>),
     Equality(Box<ASTNode>, Box<ASTNode>),
@@ -192,6 +193,8 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         let res = match self.tokens.next() {
             None => Err(ParserError::EOFError),
             Some(tok) => match tok {
+                Token::True => Ok(ASTNode::Boolean(true)),
+                Token::False => Ok(ASTNode::Boolean(false)),
                 Token::Lparen => self.parenthesis(),
                 Token::Lbrace => self.set(),
                 Token::Integer(int) => Ok(ASTNode::Integer(int)),
@@ -503,8 +506,8 @@ mod tests {
     #[test]
     fn set() {
         let tokens = vec![
-            Token::Lbrace, Token::Lparen, Token::Integer(String::from("0")),
-            Token::Rparen, Token::Comma, Token::Integer(String::from("0")),
+            Token::Lbrace, Token::Lparen, Token::True,
+            Token::Rparen, Token::Comma, Token::False,
             Token::Rbrace
         ];
 
@@ -512,7 +515,7 @@ mod tests {
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
                 ASTNode::ExtensionSet(
-                    vec![ASTNode::Integer(String::from("0")), ASTNode::Integer(String::from("0"))]
+                    vec![ASTNode::Boolean(true), ASTNode::Boolean(false)]
                 )
             ))
         );

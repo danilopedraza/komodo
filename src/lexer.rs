@@ -8,6 +8,7 @@ pub enum Token {
     Comma,
     Dot,
     Equals,
+    False,
     Ident(String),
     Integer(String),
     Lbrace,
@@ -18,6 +19,7 @@ pub enum Token {
     Rbrace,
     Rparen,
     Times,
+    True,
     Unknown,
 }
 
@@ -76,6 +78,8 @@ impl Lexer<'_> {
     fn keyword(literal: &str) -> Option<Token> {
         match literal {
             "let" => Some(Token::Let),
+            "true" => Some(Token::True),
+            "false" => Some(Token::False),
             _ => None,
         }
     }
@@ -183,8 +187,8 @@ mod tests {
     #[test]
     fn set() {
         assert_eq!(
-            build_lexer("{0, 1}").collect::<Vec<_>>(),
-            vec![Token::Lbrace, Token::Integer(String::from("0")), Token::Comma, Token::Integer(String::from("1")), Token::Rbrace],
+            build_lexer("{true, false}").collect::<Vec<_>>(),
+            vec![Token::Lbrace, Token::True, Token::Comma, Token::False, Token::Rbrace],
         );
     }
 }
