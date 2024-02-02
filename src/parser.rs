@@ -39,7 +39,7 @@ pub enum ASTNode {
     Infix(InfixOperator, Box<ASTNode>, Box<ASTNode>),
     Integer(String),
     Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
-    Signature(Box<ASTNode>, Box<ASTNode>),
+    Signature(Box<ASTNode>, Option<Box<ASTNode>>),
     Symbol(String),
     Tuple(Vec<ASTNode>),
 }
@@ -79,47 +79,37 @@ type NodeResult = Result<ASTNode, ParserError>;
 
 impl <T: Iterator<Item = Token>> Parser<T> {
     fn let_(&mut self) -> NodeResult {
-        match (self.tokens.next(), self.tokens.next()) {
-            (Some(Token::Ident(name)), Some(Token::Colon)) => {
-                let tp = self.type_()?;
-                let sg = ASTNode::Signature(
-                    Box::new(ASTNode::Symbol(name)),
-                    Box::new(tp)
-                );
+        let sg = self.signature()?;
 
-                match self.tokens.peek() {
-                    Some(Token::Assign) => {
-                        self.tokens.next();
-                        self.expression(Precedence::Lowest)
-                        .map(|expr| ASTNode::Let(
-                            Box::new(sg),
-                            vec![],
-                            Box::new(expr)
-                        ))
-                    },
-                    _ => Ok(sg)
-                }
+        match self.tokens.next() {
+            Some(Token::Assign) => self.expression(Precedence::Lowest).map(
+                |res| ASTNode::Let(Box::new(sg), vec![], Box::new(res))
+            ),
+            _ => Ok(sg),
+        }
+    }
+
+    fn signature(&mut self) -> NodeResult {
+        match (self.tokens.next(), self.tokens.peek()) {
+            (Some(Token::Ident(name)), Some(Token::Colon)) => {
+                self.tokens.next();
+                self.type_().map(
+                    |tp| ASTNode::Signature(
+                        Box::new(ASTNode::Symbol(name)),
+                        Some(Box::new(tp))
+                    )
+                )
             },
-            (Some(Token::Ident(name)), Some(Token::Assign)) => self.expression(Precedence::Lowest)
-            .map(
-            |expr| ASTNode::Let(
+            (Some(Token::Ident(name)), Some(Token::Lparen)) => {
+                self.tokens.next();
+                self.function_with_arguments(name)
+            },
+            (Some(Token::Ident(name)), _) => Ok(
+                ASTNode::Signature(
                     Box::new(
                         ASTNode::Symbol(name)
                     ),
-                    vec![],
-                    Box::new(expr)
-                )
-            ),
-            (Some(Token::Ident(name)), Some(Token::Lparen)) => self.function_with_arguments(name),
-            (Some(Token::Ident(_)), Some(tok)) => Err(
-                ParserError::UnexpectedTokenError(
-                    vec![Token::Lparen, Token::Colon, Token::Assign],
-                    tok
-                )
-            ),
-            (Some(Token::Ident(_)), None) => Err(
-                ParserError::EOFErrorExpecting(
-                    vec![Token::Colon, Token::Assign, Token::Lparen]
+                    None
                 )
             ),
             (Some(tok), _) => Err(
@@ -437,7 +427,16 @@ mod tests {
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
                 ASTNode::Let(
-                    Box::new(ASTNode::Symbol(String::from('x'))),
+                    Box::new(
+                        ASTNode::Signature(
+                            Box::new(
+                                ASTNode::Symbol(
+                                    String::from('x')
+                                )
+                            ),
+                            None
+                        )
+                    ),
                     vec![],
                     Box::new(ASTNode::Integer(String::from("1")))
                 )
@@ -484,11 +483,13 @@ mod tests {
             Some(Ok(
                 ASTNode::Signature(
                     Box::new(ASTNode::Symbol(String::from('f'))),
-                    Box::new(
-                        ASTNode::Infix(
-                            InfixOperator::Correspondence,
-                            Box::new(ASTNode::Symbol(String::from('a'))),
-                            Box::new(ASTNode::Symbol(String::from('a')))
+                    Some(
+                        Box::new(
+                            ASTNode::Infix(
+                                InfixOperator::Correspondence,
+                                Box::new(ASTNode::Symbol(String::from('a'))),
+                                Box::new(ASTNode::Symbol(String::from('a')))
+                            )
                         )
                     )
                 )
@@ -597,7 +598,7 @@ mod tests {
                     ASTNode::Let(
                         Box::new(ASTNode::Signature(
                             Box::new(ASTNode::Symbol(String::from("x"))),
-                            Box::new(ASTNode::Symbol(String::from("Real")))
+                            Some(Box::new(ASTNode::Symbol(String::from("Real"))))
                         )),
                         vec![],
                         Box::new(ASTNode::Integer(String::from("0")))
