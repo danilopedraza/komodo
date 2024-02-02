@@ -267,12 +267,11 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         |rhs| ASTNode::Infix(op, Box::new(lhs), Box::new(rhs))
         );
 
-        match (res, self.tokens.next_if(|tok| InfixOperator::from(tok.clone()).is_some())) {
-            (Ok(lhs), Some(op_tok)) => self.infix(
-                lhs,
-                InfixOperator::from(op_tok.clone()).unwrap(),
-                precedence
-            ),
+        match (res, self.tokens.peek().and_then(|tok| InfixOperator::from(tok.clone()))) {
+            (Ok(lhs), Some(op)) => {
+                self.tokens.next();
+                self.infix(lhs, op, precedence)
+            },
             (res, _) => res,
         }
     }
