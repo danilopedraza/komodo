@@ -109,6 +109,11 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                     tok
                 )
             ),
+            (Some(Token::Ident(_)), None) => Err(
+                ParserError::EOFErrorExpecting(
+                    vec![Token::Colon, Token::Assign, Token::Lparen]
+                )
+            ),
             (Some(tok), _) => Err(
                 ParserError::UnexpectedTokenError(
                     vec![Token::Ident(String::from(""))],
