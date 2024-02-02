@@ -247,7 +247,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
             Some(Token::Rparen) => Ok(res),
             Some(Token::Comma) => self.list(
                 Token::Rparen,
-                Some(res)).map(|list| ASTNode::Tuple(list)),
+                Some(res)).map(ASTNode::Tuple),
             Some(tok) => Err(
                 ParserError::UnexpectedTokenError(
                     vec![Token::Rparen],
