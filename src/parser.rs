@@ -58,7 +58,6 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.tokens.peek() {
             None => None,
-            Some(Token::Let) => Some(self.let_()),
             _ => Some(self.expression(Precedence::Lowest)),
         }
     }
@@ -68,8 +67,6 @@ type NodeResult = Result<ASTNode, ParserError>;
 
 impl <T: Iterator<Item = Token>> Parser<T> {
     fn let_(&mut self) -> NodeResult {
-        self.tokens.next();
-
         match (self.tokens.next(), self.tokens.next()) {
             (Some(Token::Ident(name)), Some(Token::Colon)) => match self.type_() {
                 Ok(tp) => {
@@ -198,6 +195,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         let res = match self.tokens.next() {
             None => Err(ParserError::EOFError),
             Some(tok) => match tok {
+                Token::Let => self.let_(),
                 Token::True => Ok(ASTNode::Boolean(true)),
                 Token::False => Ok(ASTNode::Boolean(false)),
                 Token::Lparen => self.parenthesis(),
