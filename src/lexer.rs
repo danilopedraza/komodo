@@ -33,7 +33,10 @@ impl Iterator for Lexer<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.input.next() {
             None => None,
-            Some(chr) if chr.is_whitespace() => self.whitespace(),
+            Some(chr) if chr.is_whitespace() => {
+                self.skip_whitespace();
+                self.next()
+            },
             Some(chr) => Some(match chr {
                 ',' => Token::Comma,
                 '+' => Token::Plus,
@@ -55,12 +58,11 @@ impl Iterator for Lexer<'_> {
 }
 
 impl Lexer<'_> {
-    fn whitespace(&mut self) -> Option<Token> {
+    fn skip_whitespace(&mut self) {
         while self.input.by_ref().next_if(|c| c.is_whitespace()).is_some() {
             // this skips all the whitespaces. Kinda obscure,
             // but better than recursion, or even worse, unwrapping and breaking several times
         }
-        self.next()
     }
 
     fn identifier_or_keyword(&mut self, first: char) -> Token {
