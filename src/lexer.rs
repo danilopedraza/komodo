@@ -20,7 +20,7 @@ pub enum Token {
     Rbrace,
     Rparen,
     Over,
-    Star,
+    Times,
     ToThe,
     True,
     Unknown,
@@ -107,7 +107,7 @@ impl Lexer<'_> {
                 self.input.next();
                 Token::ToThe
             },
-            _ => Token::Star,
+            _ => Token::Times,
         }
     }
 
@@ -180,7 +180,7 @@ mod tests {
             build_lexer("(x * y) = 23 % 2").collect::<Vec<_>>(),
             vec![
                 Token::Lparen, Token::Ident(String::from('x')),
-                Token::Star, Token::Ident(String::from('y')), Token::Rparen,
+                Token::Times, Token::Ident(String::from('y')), Token::Rparen,
                 Token::Equals, Token::Integer(String::from("23")),
                 Token::Mod, Token::Integer(String::from('2')),
             ],

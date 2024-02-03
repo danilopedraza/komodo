@@ -16,7 +16,7 @@ impl InfixOperator {
         match tok {
             Token::Mod => Some(InfixOperator::Mod),
             Token::Plus => Some(InfixOperator::Sum),
-            Token::Star => Some(InfixOperator::Product),
+            Token::Times => Some(InfixOperator::Product),
             Token::Arrow => Some(InfixOperator::Correspondence),
             Token::Equals => Some(InfixOperator::Equality),
             _ => None,
@@ -389,8 +389,8 @@ mod tests {
     }
 
     #[test]
-    fn simple_product() {
-        let tokens = vec![Token::Integer(String::from("1")), Token::Star, Token::Integer(String::from("1"))];
+    fn product_and_power() {
+        let tokens = vec![Token::Integer(String::from("1")), Token::Times, Token::Integer(String::from("1"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
@@ -405,7 +405,7 @@ mod tests {
 
     #[test]
     fn product_and_sum() {
-        let tokens = vec![Token::Integer(String::from("1")), Token::Star,
+        let tokens = vec![Token::Integer(String::from("1")), Token::Times,
                                       Token::Integer(String::from("1")), Token::Plus, Token::Integer(String::from("1"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
