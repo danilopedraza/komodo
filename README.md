@@ -14,6 +14,8 @@ Llevo mucho tiempo pensando en un sistema que me permita hacer conjeturas matem�
 
 Además, Mathematica y Maple no son de código abierto.
 
+Al principio pensé que las palabras clave del lenguaje estuvieran en español (¡por esto este README está en español!). Cambié de opinión.
+
 ## Precedentes
 
 Hay dos lenguajes que me parecen una buena forma de partir: [Miranda](https://www.cs.kent.ac.uk/people/staff/dat/miranda/) y [SETL](https://setl.org/setl/). Aún no estoy seguro de si este lenguaje será completamente funcional. Tal vez no. Las cosas que más me interesa incluir son:
@@ -25,3 +27,5 @@ Hay dos lenguajes que me parecen una buena forma de partir: [Miranda](https://ww
 Además, si termino enfocando esto a problemas de matemáticas discretas, el compilador tendrá que poder optimizar diversas operaciones recursivas.
 
 Lo que más quiero sacar de estos lenguajes de su expresividad. Como este es un lenguaje para hacer experimentos de matemáticas, no tengo gran interés en rastrear errores en tiempo de compilación. El sistema de tipos y la expresividad de los mismos sólo existe para ayudar al usuario a específicar las propiedades de los símbolos que manipula. Por ejemplo, si el usuario desea integrar simbólicamente una expresión pero no está interesado en obtener funciones en los complejos como resultado, la idea es que esto sea fácil de expresar a través del sistema de tipos.
+
+Recientemente me crucé con [Picat](https://picat-lang.org/), un lenguaje con símbolos, predicados y pattern matching. También tiene utilidades para resolver CSPs, problemas de planeación y cosas por el estilo. Es casi como lo que busco con este lenguaje.
