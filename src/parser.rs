@@ -6,6 +6,7 @@ use crate::lexer::Token;
 pub enum InfixOperator {
     Correspondence,
     Equality,
+    Exponentiation,
     Mod,
     Product,
     Sum,
@@ -17,6 +18,7 @@ impl InfixOperator {
             Token::Mod => Some(InfixOperator::Mod),
             Token::Plus => Some(InfixOperator::Sum),
             Token::Times => Some(InfixOperator::Product),
+            Token::ToThe => Some(InfixOperator::Exponentiation),
             Token::Arrow => Some(InfixOperator::Correspondence),
             Token::Equals => Some(InfixOperator::Equality),
             _ => None,
@@ -27,6 +29,7 @@ impl InfixOperator {
         match self {
             InfixOperator::Correspondence => Precedence::Correspondence,
             InfixOperator::Equality => Precedence::Comparison,
+            InfixOperator::Exponentiation => Precedence::Exponentiation,
             InfixOperator::Mod => Precedence::Multiplication,
             InfixOperator::Product => Precedence::Multiplication,
             InfixOperator::Sum => Precedence::Addition,
@@ -60,6 +63,7 @@ enum Precedence {
     Comparison,
     Addition,
     Multiplication,
+    Exponentiation,
     Correspondence,
 }
 
@@ -390,14 +394,27 @@ mod tests {
 
     #[test]
     fn product_and_power() {
-        let tokens = vec![Token::Integer(String::from("1")), Token::Times, Token::Integer(String::from("1"))];
+        let tokens = vec![
+            Token::Integer(String::from("1")), Token::Times,
+            Token::Integer(String::from("2")), Token::ToThe, Token::Integer(String::from("2"))
+        ];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(
                 ASTNode::Infix(
                     InfixOperator::Product,
                     Box::new(ASTNode::Integer(String::from("1"))),
-                    Box::new(ASTNode::Integer(String::from("1")))
+                    Box::new(
+                        ASTNode::Infix(
+                            InfixOperator::Exponentiation,
+                            Box::new(
+                                ASTNode::Integer(String::from("2"))
+                            ),
+                            Box::new(
+                                ASTNode::Integer(String::from("2"))
+                            ),
+                        )
+                    )
                 )
             ))
         );
