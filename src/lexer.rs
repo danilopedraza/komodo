@@ -15,13 +15,13 @@ pub enum Token {
     Let,
     Lparen,
     Minus,
-    Percent,
+    Mod,
     Plus,
     Rbrace,
     Rparen,
-    Slash,
+    Over,
     Star,
-    StarStar,
+    ToThe,
     True,
     Unknown,
 }
@@ -47,10 +47,10 @@ impl Iterator for Lexer<'_> {
                 '.' => Token::Dot,
                 '{' => Token::Lbrace,
                 '(' => Token::Lparen,
-                '%' => Token::Percent,
+                '%' => Token::Mod,
                 '}' => Token::Rbrace,
                 ')' => Token::Rparen,
-                '/' => Token::Slash,
+                '/' => Token::Over,
                 '=' => Token::Equals,
                 '-' => self.minus_or_arrow(),
                 ':' => self.assign_or_colon(),
@@ -105,7 +105,7 @@ impl Lexer<'_> {
         match self.input.peek() {
             Some('*') => {
                 self.input.next();
-                Token::StarStar
+                Token::ToThe
             },
             _ => Token::Star,
         }
@@ -169,7 +169,7 @@ mod tests {
             vec![
                 Token::Let, Token::Ident(String::from('x')),
                 Token::Assign, Token::Integer(String::from('1')),
-                Token::Slash, Token::Integer(String::from('2')), Token::Dot
+                Token::Over, Token::Integer(String::from('2')), Token::Dot
             ],
         );
     }
@@ -182,7 +182,7 @@ mod tests {
                 Token::Lparen, Token::Ident(String::from('x')),
                 Token::Star, Token::Ident(String::from('y')), Token::Rparen,
                 Token::Equals, Token::Integer(String::from("23")),
-                Token::Percent, Token::Integer(String::from('2')),
+                Token::Mod, Token::Integer(String::from('2')),
             ],
         );
     }
@@ -202,7 +202,7 @@ mod tests {
             vec![
                 Token::Ident(String::from('f')),
                 Token::Lparen, Token::Ident(String::from('x')), Token::Comma,
-                Token::Ident(String::from('y')), Token::StarStar, Token::Integer(String::from('2')),
+                Token::Ident(String::from('y')), Token::ToThe, Token::Integer(String::from('2')),
                 Token::Rparen
             ],
         );
