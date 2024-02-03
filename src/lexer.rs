@@ -15,10 +15,13 @@ pub enum Token {
     Let,
     Lparen,
     Minus,
+    Percent,
     Plus,
     Rbrace,
     Rparen,
+    Slash,
     Star,
+    StarStar,
     True,
     Unknown,
 }
@@ -40,12 +43,14 @@ impl Iterator for Lexer<'_> {
             Some(chr) => Some(match chr {
                 ',' => Token::Comma,
                 '+' => Token::Plus,
-                '*' => Token::Star,
+                '*' => self.stars(),
                 '.' => Token::Dot,
                 '{' => Token::Lbrace,
                 '(' => Token::Lparen,
+                '%' => Token::Percent,
                 '}' => Token::Rbrace,
                 ')' => Token::Rparen,
+                '/' => Token::Slash,
                 '=' => Token::Equals,
                 '-' => self.minus_or_arrow(),
                 ':' => self.assign_or_colon(),
@@ -93,6 +98,16 @@ impl Lexer<'_> {
                 Token::Assign
             },
             _ => Token::Colon,
+        }
+    }
+
+    fn stars(&mut self) -> Token {
+        match self.input.peek() {
+            Some('*') => {
+                self.input.next();
+                Token::StarStar
+            },
+            _ => Token::Star,
         }
     }
 
@@ -150,10 +165,11 @@ mod tests {
     #[test]
     fn simple_statement() {
         assert_eq!(
-            build_lexer("let x := 1.").collect::<Vec<_>>(),
+            build_lexer("let x := 1 / 2.").collect::<Vec<_>>(),
             vec![
                 Token::Let, Token::Ident(String::from('x')),
-                Token::Assign, Token::Integer(String::from("1")), Token::Dot
+                Token::Assign, Token::Integer(String::from('1')),
+                Token::Slash, Token::Integer(String::from('2')), Token::Dot
             ],
         );
     }
@@ -161,11 +177,12 @@ mod tests {
     #[test]
     fn complex_expression() {
         assert_eq!(
-            build_lexer("(x * y) = 23").collect::<Vec<_>>(),
+            build_lexer("(x * y) = 23 % 2").collect::<Vec<_>>(),
             vec![
                 Token::Lparen, Token::Ident(String::from('x')),
                 Token::Star, Token::Ident(String::from('y')), Token::Rparen,
-                Token::Equals, Token::Integer(String::from("23"))
+                Token::Equals, Token::Integer(String::from("23")),
+                Token::Percent, Token::Integer(String::from('2')),
             ],
         );
     }
@@ -181,8 +198,13 @@ mod tests {
     #[test]
     fn function_call() {
         assert_eq!(
-            build_lexer("f(x,y)").collect::<Vec<_>>(),
-            vec![Token::Ident(String::from('f')), Token::Lparen, Token::Ident(String::from('x')), Token::Comma, Token::Ident(String::from('y')), Token::Rparen],
+            build_lexer("f(x,y ** 2)").collect::<Vec<_>>(),
+            vec![
+                Token::Ident(String::from('f')),
+                Token::Lparen, Token::Ident(String::from('x')), Token::Comma,
+                Token::Ident(String::from('y')), Token::StarStar, Token::Integer(String::from('2')),
+                Token::Rparen
+            ],
         );
     }
 
