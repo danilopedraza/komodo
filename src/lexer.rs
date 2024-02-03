@@ -18,7 +18,7 @@ pub enum Token {
     Plus,
     Rbrace,
     Rparen,
-    Times,
+    Star,
     True,
     Unknown,
 }
@@ -37,7 +37,7 @@ impl Iterator for Lexer<'_> {
             Some(chr) => Some(match chr {
                 ',' => Token::Comma,
                 '+' => Token::Plus,
-                '*' => Token::Times,
+                '*' => Token::Star,
                 '.' => Token::Dot,
                 '{' => Token::Lbrace,
                 '(' => Token::Lparen,
@@ -162,7 +162,7 @@ mod tests {
             build_lexer("(x * y) = 23").collect::<Vec<_>>(),
             vec![
                 Token::Lparen, Token::Ident(String::from('x')),
-                Token::Times, Token::Ident(String::from('y')), Token::Rparen,
+                Token::Star, Token::Ident(String::from('y')), Token::Rparen,
                 Token::Equals, Token::Integer(String::from("23"))
             ],
         );
