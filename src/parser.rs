@@ -5,6 +5,7 @@ use crate::lexer::Token;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InfixOperator {
     Correspondence,
+    Division,
     Equality,
     Exponentiation,
     Mod,
@@ -16,6 +17,7 @@ impl InfixOperator {
     fn from(tok: Token) -> Option<Self> {
         match tok {
             Token::Mod => Some(InfixOperator::Mod),
+            Token::Over => Some(InfixOperator::Division),
             Token::Plus => Some(InfixOperator::Sum),
             Token::Times => Some(InfixOperator::Product),
             Token::ToThe => Some(InfixOperator::Exponentiation),
@@ -28,6 +30,7 @@ impl InfixOperator {
     fn precedence(&self) -> Precedence {
         match self {
             InfixOperator::Correspondence => Precedence::Correspondence,
+            InfixOperator::Division => Precedence::Multiplication,
             InfixOperator::Equality => Precedence::Comparison,
             InfixOperator::Exponentiation => Precedence::Exponentiation,
             InfixOperator::Mod => Precedence::Multiplication,
@@ -421,8 +424,8 @@ mod tests {
     }
 
     #[test]
-    fn product_and_sum() {
-        let tokens = vec![Token::Integer(String::from("1")), Token::Times,
+    fn division_and_sum() {
+        let tokens = vec![Token::Integer(String::from("1")), Token::Over,
                                       Token::Integer(String::from("1")), Token::Plus, Token::Integer(String::from("1"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
@@ -430,7 +433,7 @@ mod tests {
                 ASTNode::Infix(
                     InfixOperator::Sum,
                     Box::new(ASTNode::Infix(
-                        InfixOperator::Product,
+                        InfixOperator::Division,
                         Box::new(ASTNode::Integer(String::from("1"))),
                         Box::new(ASTNode::Integer(String::from("1")))
                     )),
