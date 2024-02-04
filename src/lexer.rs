@@ -1,4 +1,4 @@
-use std::{str::Chars, iter::Peekable};
+use std::{iter::Peekable, str::Chars, vec};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Token {
@@ -14,6 +14,7 @@ pub enum Token {
     Ident(String),
     Integer(String),
     Lbrace,
+    LeftShift,
     Less,
     LessEqual,
     Let,
@@ -23,6 +24,7 @@ pub enum Token {
     NotEqual,
     Plus,
     Rbrace,
+    RightShift,
     Rparen,
     Over,
     Times,
@@ -51,16 +53,28 @@ impl Iterator for Lexer<'_> {
                 '*' => self.stars(),
                 '.' => Token::Dot,
                 '{' => Token::Lbrace,
-                '<' => self.fork(Token::Less, '=', Token::LessEqual),
-                '>' => self.fork(Token::Greater, '=', Token::GreaterEqual),
+                '<' => self.fork(
+                    Token::Less,
+                    vec![
+                        ('<', Token::LeftShift),
+                        ('=', Token::LessEqual)
+                    ]
+                ),
+                '>' => self.fork(
+                    Token::Greater,
+                    vec![
+                        ('>', Token::RightShift),
+                        ('=', Token::GreaterEqual)
+                    ]
+                ),
                 '(' => Token::Lparen,
                 '%' => Token::Mod,
                 '}' => Token::Rbrace,
                 ')' => Token::Rparen,
-                '/' => self.fork(Token::Over, '=', Token::NotEqual),
+                '/' => self.fork(Token::Over, vec![('=', Token::NotEqual)]),
                 '=' => Token::Equals,
-                '-' => self.fork(Token::Minus, '>', Token::Arrow),
-                ':' => self.fork(Token::Colon, '=', Token::Assign),
+                '-' => self.fork(Token::Minus, vec![('>', Token::Arrow)]),
+                ':' => self.fork(Token::Colon, vec![('=', Token::Assign)]),
                 chr if chr.is_numeric() => self.integer(chr),
                 chr if chr.is_alphabetic() => self.identifier_or_keyword(chr),
                 _ => Token::Unknown,
@@ -108,14 +122,15 @@ impl Lexer<'_> {
         }
     }
 
-    fn fork(&mut self, def: Token, chr: char, other: Token) -> Token {
-        match self.input.peek() {
-            Some(c) if *c == chr => {
+    fn fork(&mut self, def: Token, alts: Vec<(char, Token)>) -> Token {
+        for (chr, tok) in alts {
+            if matches!(self.input.peek(), Some(c) if *c == chr) {
                 self.input.next();
-                other
-            },
-            _ => def,
+                return tok;
+            }
         }
+
+        def
     }
 
     fn integer(&mut self, first: char) -> Token {
@@ -219,6 +234,19 @@ mod tests {
         assert_eq!(
             build_lexer("let f: a -> a").collect::<Vec<_>>(),
             vec![Token::Let, Token::Ident(String::from('f')), Token::Colon, Token::Ident(String::from('a')), Token::Arrow, Token::Ident(String::from('a'))],
+        );
+    }
+
+    #[test]
+    fn shift_operator() {
+        assert_eq!(
+            build_lexer("(1 << 2) >> 2").collect::<Vec<_>>(),
+            vec![
+                Token::Lparen, Token::Integer(String::from("1")),
+                Token::LeftShift, Token::Integer(String::from("2")),
+                Token::Rparen, Token::RightShift,
+                Token::Integer(String::from("2"))
+            ]
         );
     }
 
