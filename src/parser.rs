@@ -19,6 +19,7 @@ pub enum InfixOperator {
     Equality,
     Exponentiation,
     Mod,
+    NotEquality,
     Product,
     Sum,
 }
@@ -33,6 +34,7 @@ impl InfixOperator {
             Token::ToThe => Some(InfixOperator::Exponentiation),
             Token::Arrow => Some(InfixOperator::Correspondence),
             Token::Equals => Some(InfixOperator::Equality),
+            Token::NotEqual => Some(InfixOperator::NotEquality),
             _ => None,
         }
     }
@@ -44,6 +46,7 @@ impl InfixOperator {
             InfixOperator::Equality => Precedence::Comparison,
             InfixOperator::Exponentiation => Precedence::Exponentiation,
             InfixOperator::Mod => Precedence::Multiplication,
+            InfixOperator::NotEquality => Precedence::Comparison,
             InfixOperator::Product => Precedence::Multiplication,
             InfixOperator::Sum => Precedence::Addition,
         }
@@ -465,6 +468,46 @@ mod tests {
                     Box::new(ASTNode::Integer(String::from("1")))
                 )
             )),
+        );
+    }
+
+    #[test]
+    fn comparison_precedence() {
+        let tokens = vec![
+            Token::Integer(String::from("1")), Token::Plus,
+            Token::Integer(String::from("5")),
+            Token::NotEqual,
+            Token::Integer(String::from("6")), Token::Mod,
+            Token::Integer(String::from("2"))
+        ];
+
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Ok(ASTNode::Infix(
+                InfixOperator::NotEquality,
+                Box::new(
+                    ASTNode::Infix(
+                        InfixOperator::Sum,
+                        Box::new(
+                            ASTNode::Integer(String::from("1"))
+                        ),
+                        Box::new(
+                            ASTNode::Integer(String::from("5"))
+                        ),
+                    )
+                ),
+                Box::new(
+                    ASTNode::Infix(
+                        InfixOperator::Mod,
+                        Box::new(
+                            ASTNode::Integer(String::from("6"))
+                        ),
+                        Box::new(
+                            ASTNode::Integer(String::from("2"))
+                        ),
+                    )
+                )
+            )))
         );
     }
 
