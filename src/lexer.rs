@@ -49,17 +49,9 @@ impl Iterator for Lexer<'_> {
             },
             Some(chr) => Some(match chr {
                 ',' => Token::Comma,
-                '+' => Token::Plus,
-                '*' => self.stars(),
                 '.' => Token::Dot,
-                '{' => Token::Lbrace,
-                '<' => self.fork(
-                    Token::Less,
-                    vec![
-                        ('<', Token::LeftShift),
-                        ('=', Token::LessEqual)
-                    ]
-                ),
+                '=' => Token::Equals,
+                ':' => self.fork(Token::Colon, vec![('=', Token::Assign)]),
                 '>' => self.fork(
                     Token::Greater,
                     vec![
@@ -67,14 +59,22 @@ impl Iterator for Lexer<'_> {
                         ('=', Token::GreaterEqual)
                     ]
                 ),
+                '<' => self.fork(
+                    Token::Less,
+                    vec![
+                        ('<', Token::LeftShift),
+                        ('=', Token::LessEqual)
+                    ]
+                ),
+                '-' => self.fork(Token::Minus, vec![('>', Token::Arrow)]),
+                '/' => self.fork(Token::Over, vec![('=', Token::NotEqual)]),
+                '{' => Token::Lbrace,
                 '(' => Token::Lparen,
                 '%' => Token::Mod,
+                '+' => Token::Plus,
+                '*' => self.stars(),
                 '}' => Token::Rbrace,
                 ')' => Token::Rparen,
-                '/' => self.fork(Token::Over, vec![('=', Token::NotEqual)]),
-                '=' => Token::Equals,
-                '-' => self.fork(Token::Minus, vec![('>', Token::Arrow)]),
-                ':' => self.fork(Token::Colon, vec![('=', Token::Assign)]),
                 chr if chr.is_numeric() => self.integer(chr),
                 chr if chr.is_alphabetic() => self.identifier_or_keyword(chr),
                 _ => Token::Unknown,
