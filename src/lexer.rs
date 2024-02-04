@@ -51,16 +51,16 @@ impl Iterator for Lexer<'_> {
                 '*' => self.stars(),
                 '.' => Token::Dot,
                 '{' => Token::Lbrace,
-                '<' => self.less_or_leq(),
-                '>' => self.greater_or_geq(),
+                '<' => self.fork(Token::Less, '=', Token::LessEqual),
+                '>' => self.fork(Token::Greater, '=', Token::GreaterEqual),
                 '(' => Token::Lparen,
                 '%' => Token::Mod,
                 '}' => Token::Rbrace,
                 ')' => Token::Rparen,
-                '/' => self.over_or_neq(),
+                '/' => self.fork(Token::Over, '=', Token::NotEqual),
                 '=' => Token::Equals,
-                '-' => self.minus_or_arrow(),
-                ':' => self.assign_or_colon(),
+                '-' => self.fork(Token::Minus, '>', Token::Arrow),
+                ':' => self.fork(Token::Colon, '=', Token::Assign),
                 chr if chr.is_numeric() => self.integer(chr),
                 chr if chr.is_alphabetic() => self.identifier_or_keyword(chr),
                 _ => Token::Unknown,
@@ -98,16 +98,6 @@ impl Lexer<'_> {
         }
     }
 
-    fn assign_or_colon(&mut self) -> Token {
-        match self.input.peek() {
-            Some('=') => {
-                self.input.next();
-                Token::Assign
-            },
-            _ => Token::Colon,
-        }
-    }
-
     fn stars(&mut self) -> Token {
         match self.input.peek() {
             Some('*') => {
@@ -118,43 +108,13 @@ impl Lexer<'_> {
         }
     }
 
-    fn minus_or_arrow(&mut self) -> Token {
+    fn fork(&mut self, def: Token, chr: char, other: Token) -> Token {
         match self.input.peek() {
-            Some('>') => {
+            Some(c) if *c == chr => {
                 self.input.next();
-                Token::Arrow
-            }
-            _ => Token::Minus,
-        }
-    }
-
-    fn less_or_leq(&mut self) -> Token {
-        match self.input.peek() {
-            Some('=') => {
-                self.input.next();
-                Token::LessEqual
-            }
-            _ => Token::Less,
-        }
-    }
-
-    fn greater_or_geq(&mut self) -> Token {
-        match self.input.peek() {
-            Some('=') => {
-                self.input.next();
-                Token::GreaterEqual
-            }
-            _ => Token::Greater,
-        }
-    }
-
-    fn over_or_neq(&mut self) -> Token {
-        match self.input.peek() {
-            Some('=') => {
-                self.input.next();
-                Token::NotEqual
-            }
-            _ => Token::Over,
+                other
+            },
+            _ => def,
         }
     }
 
