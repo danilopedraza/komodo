@@ -9,13 +9,18 @@ pub enum Token {
     Dot,
     Equals,
     False,
+    Greater,
+    GreaterEqual,
     Ident(String),
     Integer(String),
     Lbrace,
+    Less,
+    LessEqual,
     Let,
     Lparen,
     Minus,
     Mod,
+    NotEqual,
     Plus,
     Rbrace,
     Rparen,
@@ -46,11 +51,13 @@ impl Iterator for Lexer<'_> {
                 '*' => self.stars(),
                 '.' => Token::Dot,
                 '{' => Token::Lbrace,
+                '<' => self.less_or_leq(),
+                '>' => self.greater_or_geq(),
                 '(' => Token::Lparen,
                 '%' => Token::Mod,
                 '}' => Token::Rbrace,
                 ')' => Token::Rparen,
-                '/' => Token::Over,
+                '/' => self.over_or_neq(),
                 '=' => Token::Equals,
                 '-' => self.minus_or_arrow(),
                 ':' => self.assign_or_colon(),
@@ -111,15 +118,6 @@ impl Lexer<'_> {
         }
     }
 
-    fn integer(&mut self, first: char) -> Token {
-        let mut number = String::from(first);
-        while let Some(chr) = self.input.by_ref().next_if(|c| c.is_ascii_digit()) {
-            number.push(chr);
-        }
-
-        Token::Integer(number)
-    }
-
     fn minus_or_arrow(&mut self) -> Token {
         match self.input.peek() {
             Some('>') => {
@@ -129,6 +127,45 @@ impl Lexer<'_> {
             _ => Token::Minus,
         }
     }
+
+    fn less_or_leq(&mut self) -> Token {
+        match self.input.peek() {
+            Some('=') => {
+                self.input.next();
+                Token::LessEqual
+            }
+            _ => Token::Less,
+        }
+    }
+
+    fn greater_or_geq(&mut self) -> Token {
+        match self.input.peek() {
+            Some('=') => {
+                self.input.next();
+                Token::GreaterEqual
+            }
+            _ => Token::Greater,
+        }
+    }
+
+    fn over_or_neq(&mut self) -> Token {
+        match self.input.peek() {
+            Some('=') => {
+                self.input.next();
+                Token::NotEqual
+            }
+            _ => Token::Over,
+        }
+    }
+
+    fn integer(&mut self, first: char) -> Token {
+        let mut number = String::from(first);
+        while let Some(chr) = self.input.by_ref().next_if(|c| c.is_ascii_digit()) {
+            number.push(chr);
+        }
+
+        Token::Integer(number)
+    }
 }
 
 pub fn build_lexer(input: &str) -> Lexer {
@@ -137,6 +174,8 @@ pub fn build_lexer(input: &str) -> Lexer {
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use super::*;
 
     #[test]
@@ -157,8 +196,12 @@ mod tests {
     #[test]
     fn simple_expression() {
         assert_eq!(
-            build_lexer("x + y").collect::<Vec<_>>(),
-            vec![Token::Ident(String::from('x')), Token::Plus, Token::Ident(String::from('y'))],
+            build_lexer("x + y /= a").collect::<Vec<_>>(),
+            vec![
+                Token::Ident(String::from('x')), Token::Plus,
+                Token::Ident(String::from('y')), Token::NotEqual,
+                Token::Ident(String::from('a'))
+            ],
         );
     }
 
@@ -183,6 +226,30 @@ mod tests {
                 Token::Times, Token::Ident(String::from('y')), Token::Rparen,
                 Token::Equals, Token::Integer(String::from("23")),
                 Token::Mod, Token::Integer(String::from('2')),
+            ],
+        );
+    }
+
+    #[test]
+    fn leq_comparisons() {
+        assert_eq!(
+            build_lexer("a < b <= c").collect::<Vec<_>>(),
+            vec![
+                Token::Ident(String::from("a")), Token::Less,
+                Token::Ident(String::from("b")), Token::LessEqual,
+                Token::Ident(String::from("c"))
+            ],
+        );
+    }
+
+    #[test]
+    fn geq_comparisons() {
+        assert_eq!(
+            build_lexer("a > b >= c").collect::<Vec<_>>(),
+            vec![
+                Token::Ident(String::from("a")), Token::Greater,
+                Token::Ident(String::from("b")), Token::GreaterEqual,
+                Token::Ident(String::from("c"))
             ],
         );
     }
