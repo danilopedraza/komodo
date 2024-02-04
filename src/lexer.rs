@@ -4,6 +4,9 @@ use std::{iter::Peekable, str::Chars, vec};
 pub enum Token {
     Arrow,
     Assign,
+    BitwiseAnd,
+    BitwiseOr,
+    BitwiseXor,
     Colon,
     Comma,
     Dot,
@@ -18,6 +21,8 @@ pub enum Token {
     Less,
     LessEqual,
     Let,
+    LogicAnd,
+    LogicOr,
     Lparen,
     Minus,
     Mod,
@@ -48,9 +53,12 @@ impl Iterator for Lexer<'_> {
                 self.next()
             },
             Some(chr) => Some(match chr {
+                '^' => Token::BitwiseXor,
                 ',' => Token::Comma,
                 '.' => Token::Dot,
                 '=' => Token::Equals,
+                '&' => self.fork(Token::BitwiseAnd, vec![('&', Token::LogicAnd)]),
+                '|' => self.fork(Token::BitwiseOr, vec![('|', Token::LogicOr)]),
                 ':' => self.fork(Token::Colon, vec![('=', Token::Assign)]),
                 '>' => self.fork(
                     Token::Greater,
