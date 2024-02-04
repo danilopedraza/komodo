@@ -5,8 +5,8 @@ use crate::lexer::Token;
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Precedence {
     Lowest,
-    Shift,
     Comparison,
+    Shift,
     Addition,
     Multiplication,
     Exponentiation,
@@ -356,7 +356,7 @@ pub fn parser_from<T: Iterator<Item = Token>>(tokens: T) -> Parser<T> {
 #[cfg(test)]
 mod tests {
     use std::{iter, vec};
-    use crate::lexer::Token;
+    use crate::lexer::{build_lexer, Token};
     use super::*;
 
     macro_rules! token_iter {
@@ -735,6 +735,36 @@ mod tests {
                                 InfixOperator::Substraction,
                                 Box::new(
                                     ASTNode::Symbol(String::from('x'))
+                                ),
+                                Box::new(
+                                    ASTNode::Integer(String::from('1'))
+                                )
+                            )
+                        ),
+                        Box::new(
+                            ASTNode::Integer(String::from('1'))
+                        )
+                    )
+                )
+            )
+        );
+    }
+
+    #[test]
+    fn shift_and_comparison() {
+        let lexer = build_lexer("1 << 1 > 1");
+        
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(
+                Ok(
+                    ASTNode::Infix(
+                        InfixOperator::Greater,
+                        Box::new(
+                            ASTNode::Infix(
+                                InfixOperator::LeftShift,
+                                Box::new(
+                                    ASTNode::Integer(String::from('1'))
                                 ),
                                 Box::new(
                                     ASTNode::Integer(String::from('1'))
