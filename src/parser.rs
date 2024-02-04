@@ -18,6 +18,10 @@ pub enum InfixOperator {
     Division,
     Equality,
     Exponentiation,
+    Greater,
+    GreaterEqual,
+    Less,
+    LessEqual,
     Mod,
     NotEquality,
     Product,
@@ -27,6 +31,10 @@ pub enum InfixOperator {
 impl InfixOperator {
     fn from(tok: Token) -> Option<Self> {
         match tok {
+            Token::Greater => Some(InfixOperator::Greater),
+            Token::GreaterEqual => Some(InfixOperator::GreaterEqual),
+            Token::Less => Some(InfixOperator::Less),
+            Token::LessEqual => Some(InfixOperator::LessEqual),
             Token::Mod => Some(InfixOperator::Mod),
             Token::Over => Some(InfixOperator::Division),
             Token::Plus => Some(InfixOperator::Sum),
@@ -45,6 +53,10 @@ impl InfixOperator {
             InfixOperator::Division => Precedence::Multiplication,
             InfixOperator::Equality => Precedence::Comparison,
             InfixOperator::Exponentiation => Precedence::Exponentiation,
+            InfixOperator::Greater => Precedence::Comparison,
+            InfixOperator::GreaterEqual => Precedence::Comparison,
+            InfixOperator::Less => Precedence::Comparison,
+            InfixOperator::LessEqual => Precedence::Comparison,
             InfixOperator::Mod => Precedence::Multiplication,
             InfixOperator::NotEquality => Precedence::Comparison,
             InfixOperator::Product => Precedence::Multiplication,
