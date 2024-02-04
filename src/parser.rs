@@ -5,6 +5,7 @@ use crate::lexer::Token;
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Precedence {
     Lowest,
+    Shift,
     Comparison,
     Addition,
     Multiplication,
@@ -20,11 +21,14 @@ pub enum InfixOperator {
     Exponentiation,
     Greater,
     GreaterEqual,
+    LeftShift,
     Less,
     LessEqual,
     Mod,
     NotEquality,
     Product,
+    RightShift,
+    Substraction,
     Sum,
 }
 
@@ -33,11 +37,14 @@ impl InfixOperator {
         match tok {
             Token::Greater => Some(Self::Greater),
             Token::GreaterEqual => Some(Self::GreaterEqual),
+            Token::LeftShift => Some(Self::LeftShift),
+            Token::RightShift => Some(Self::RightShift),
             Token::Less => Some(Self::Less),
             Token::LessEqual => Some(Self::LessEqual),
             Token::Mod => Some(Self::Mod),
             Token::Over => Some(Self::Division),
             Token::Plus => Some(Self::Sum),
+            Token::Minus => Some(Self::Substraction),
             Token::Times => Some(Self::Product),
             Token::ToThe => Some(Self::Exponentiation),
             Token::Arrow => Some(Self::Correspondence),
@@ -55,11 +62,14 @@ impl InfixOperator {
             Self::Exponentiation => Precedence::Exponentiation,
             Self::Greater => Precedence::Comparison,
             Self::GreaterEqual => Precedence::Comparison,
+            Self::LeftShift => Precedence::Shift,
             Self::Less => Precedence::Comparison,
             Self::LessEqual => Precedence::Comparison,
             Self::Mod => Precedence::Multiplication,
             Self::NotEquality => Precedence::Comparison,
             Self::Product => Precedence::Multiplication,
+            Self::RightShift => Precedence::Shift,
+            Self::Substraction => Precedence::Addition,
             Self::Sum => Precedence::Addition,
         }
     }
@@ -699,6 +709,40 @@ mod tests {
                                     )
                                 )
                             )
+                        )
+                    )
+                )
+            )
+        );
+    }
+
+    #[test]
+    fn shift_operator() {
+        let tokens = vec![
+            Token::Ident(String::from('x')), Token::Minus, Token::Integer(String::from('1')),
+            Token::LeftShift,
+            Token::Integer(String::from('1')) 
+        ];
+
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(
+                Ok(
+                    ASTNode::Infix(
+                        InfixOperator::LeftShift,
+                        Box::new(
+                            ASTNode::Infix(
+                                InfixOperator::Substraction,
+                                Box::new(
+                                    ASTNode::Symbol(String::from('x'))
+                                ),
+                                Box::new(
+                                    ASTNode::Integer(String::from('1'))
+                                )
+                            )
+                        ),
+                        Box::new(
+                            ASTNode::Integer(String::from('1'))
                         )
                     )
                 )
