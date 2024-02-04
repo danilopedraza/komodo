@@ -31,36 +31,36 @@ pub enum InfixOperator {
 impl InfixOperator {
     fn from(tok: Token) -> Option<Self> {
         match tok {
-            Token::Greater => Some(InfixOperator::Greater),
-            Token::GreaterEqual => Some(InfixOperator::GreaterEqual),
-            Token::Less => Some(InfixOperator::Less),
-            Token::LessEqual => Some(InfixOperator::LessEqual),
-            Token::Mod => Some(InfixOperator::Mod),
-            Token::Over => Some(InfixOperator::Division),
-            Token::Plus => Some(InfixOperator::Sum),
-            Token::Times => Some(InfixOperator::Product),
-            Token::ToThe => Some(InfixOperator::Exponentiation),
-            Token::Arrow => Some(InfixOperator::Correspondence),
-            Token::Equals => Some(InfixOperator::Equality),
-            Token::NotEqual => Some(InfixOperator::NotEquality),
+            Token::Greater => Some(Self::Greater),
+            Token::GreaterEqual => Some(Self::GreaterEqual),
+            Token::Less => Some(Self::Less),
+            Token::LessEqual => Some(Self::LessEqual),
+            Token::Mod => Some(Self::Mod),
+            Token::Over => Some(Self::Division),
+            Token::Plus => Some(Self::Sum),
+            Token::Times => Some(Self::Product),
+            Token::ToThe => Some(Self::Exponentiation),
+            Token::Arrow => Some(Self::Correspondence),
+            Token::Equals => Some(Self::Equality),
+            Token::NotEqual => Some(Self::NotEquality),
             _ => None,
         }
     }
 
     fn precedence(&self) -> Precedence {
         match self {
-            InfixOperator::Correspondence => Precedence::Correspondence,
-            InfixOperator::Division => Precedence::Multiplication,
-            InfixOperator::Equality => Precedence::Comparison,
-            InfixOperator::Exponentiation => Precedence::Exponentiation,
-            InfixOperator::Greater => Precedence::Comparison,
-            InfixOperator::GreaterEqual => Precedence::Comparison,
-            InfixOperator::Less => Precedence::Comparison,
-            InfixOperator::LessEqual => Precedence::Comparison,
-            InfixOperator::Mod => Precedence::Multiplication,
-            InfixOperator::NotEquality => Precedence::Comparison,
-            InfixOperator::Product => Precedence::Multiplication,
-            InfixOperator::Sum => Precedence::Addition,
+            Self::Correspondence => Precedence::Correspondence,
+            Self::Division => Precedence::Multiplication,
+            Self::Equality => Precedence::Comparison,
+            Self::Exponentiation => Precedence::Exponentiation,
+            Self::Greater => Precedence::Comparison,
+            Self::GreaterEqual => Precedence::Comparison,
+            Self::Less => Precedence::Comparison,
+            Self::LessEqual => Precedence::Comparison,
+            Self::Mod => Precedence::Multiplication,
+            Self::NotEquality => Precedence::Comparison,
+            Self::Product => Precedence::Multiplication,
+            Self::Sum => Precedence::Addition,
         }
     }
 }
