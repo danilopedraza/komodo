@@ -2,6 +2,16 @@ use std::{iter::Peekable, vec};
 
 use crate::lexer::Token;
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum Precedence {
+    Lowest,
+    Comparison,
+    Addition,
+    Multiplication,
+    Exponentiation,
+    Correspondence,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InfixOperator {
     Correspondence,
@@ -60,15 +70,6 @@ pub enum ParserError {
     EOFErrorExpecting(Vec<Token>),
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum Precedence {
-    Lowest,
-    Comparison,
-    Addition,
-    Multiplication,
-    Exponentiation,
-    Correspondence,
-}
 
 pub struct Parser<T: Iterator<Item = Token>> {
     tokens: Peekable<T>,
