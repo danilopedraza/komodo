@@ -33,10 +33,20 @@ fn remove_repeated(vec: &Vec<ASTNode>) -> Vec<&ASTNode> {
 }
 
 fn infix(op: InfixOperator, lhs: Type, rhs: Type) -> Type {
+    type O = InfixOperator;
+    type T = Type;
     match (op, lhs, rhs) {
-        (InfixOperator::Equality, Type::Symbol(l), Type::Symbol(r)) => Type::Boolean(l == r),
-        (InfixOperator::Product, Type::Number(l), Type::Number(r)) => Type::Number(l * r),
-        (InfixOperator::Sum, Type::Number(l), Type::Number(r)) => Type::Number(l + r),
+        (O::Equality    , T::Symbol(l) , T::Symbol(r) ) => T::Boolean(l == r),
+        (O::NotEquality , T::Number(l) , T::Number(r) ) => T::Boolean(l != r),
+        (O::NotEquality , _            , _            ) => T::Boolean(true),
+        (O::Product     , T::Number(l) , T::Number(r) ) => T::Number(l * r),
+        (O::Sum         , T::Number(l) , T::Number(r) ) => T::Number(l + r),
+        (O::GreaterEqual, T::Number(l) , T::Number(r) ) => T::Boolean(l >= r),
+        (O::Greater     , T::Number(l) , T::Number(r) ) => T::Boolean(l > r),
+        (O::LessEqual   , T::Number(l) , T::Number(r) ) => T::Boolean(l <= r),
+        (O::Less        , T::Number(l) , T::Number(r) ) => T::Boolean(l < r),
+        (O::LogicAnd    , T::Boolean(l), T::Boolean(r)) => T::Boolean(l && r),
+        (O::LogicOr     , T::Boolean(l), T::Boolean(r)) => T::Boolean(l || r),
         _ => todo!(),
     }
 }
@@ -142,6 +152,112 @@ mod tests {
         assert_eq!(
             eval(node),
             Type::Number(0)
+        );
+    }
+
+    #[test]
+    fn logic_operators() {
+        let node = &ASTNode::Infix(
+            InfixOperator::LogicAnd,
+            Box::new(
+                ASTNode::Infix(
+                    InfixOperator::LogicOr,
+                    Box::new(ASTNode::Boolean(true)),
+                    Box::new(ASTNode::Boolean(false))
+                )
+            ),
+            Box::new(ASTNode::Boolean(false))
+        );
+
+        assert_eq!(
+            eval(node),
+            Type::Boolean(false)
+        );
+    }
+
+    #[test]
+    fn less_leq() {
+        let node = &ASTNode::Infix(
+            InfixOperator::LogicAnd,
+            Box::new(
+                ASTNode::Infix(
+                    InfixOperator::Less,
+                    Box::new(ASTNode::Integer(String::from('0'))),
+                    Box::new(ASTNode::Integer(String::from('1')))
+                )
+            ),
+            Box::new(
+                ASTNode::Infix(
+                    InfixOperator::LessEqual,
+                    Box::new(ASTNode::Integer(String::from('1'))),
+                    Box::new(ASTNode::Integer(String::from('1')))
+                )
+            )
+        );
+
+        assert_eq!(
+            eval(node),
+            Type::Boolean(true)
+        );
+    }
+
+    #[test]
+    fn greater_geq() {
+        let node = &ASTNode::Infix(
+            InfixOperator::LogicAnd,
+            Box::new(
+                ASTNode::Infix(
+                    InfixOperator::Greater,
+                    Box::new(ASTNode::Integer(String::from('1'))),
+                    Box::new(ASTNode::Integer(String::from('0')))
+                )
+            ),
+            Box::new(
+                ASTNode::Infix(
+                    InfixOperator::GreaterEqual,
+                    Box::new(ASTNode::Integer(String::from('0'))),
+                    Box::new(ASTNode::Integer(String::from('0')))
+                )
+            )
+        );
+
+        assert_eq!(
+            eval(node),
+            Type::Boolean(true)
+        );
+    }
+
+    #[test]
+    fn neq() {
+        let node = &ASTNode::Infix(
+            InfixOperator::LogicAnd,
+            Box::new(
+                ASTNode::Infix(
+                    InfixOperator::NotEquality,
+                    Box::new(
+                        ASTNode::Integer(String::from('1'))
+                    ),
+                    Box::new(
+                        ASTNode::Integer(String::from('2'))
+                    )
+                )
+            ),
+            Box::new(
+                ASTNode::Infix(
+                    InfixOperator::NotEquality,
+                    Box::new(
+                        ASTNode::Integer(String::from('1'))
+                    ),
+                    Box::new(
+                        ASTNode::Boolean(true)
+                    )
+                )
+            ),
+        );
+
+        assert_eq!(
+            eval(node),
+            Type::Boolean(true)
         );
     }
 }
