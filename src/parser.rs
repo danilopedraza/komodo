@@ -271,7 +271,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
             },
         }?;
 
-        while let Some(op) = self.tokens.peek().and_then(|tok| InfixOperator::from(tok.clone())) {
+        while let Some(op) = self.current_infix() {
             if precedence < op.precedence() {
                 self.tokens.next();
                 expr = self.infix(expr, op)?;
@@ -281,6 +281,10 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
 
         Ok(expr)
+    }
+
+    fn current_infix(&mut self) -> Option<InfixOperator> {
+        self.tokens.peek().and_then(|tok| InfixOperator::from(tok.clone()))
     }
 
     fn parenthesis(&mut self) -> NodeResult {
