@@ -9,6 +9,7 @@ enum Precedence {
     LogicAnd,
     Comparison,
     BitwiseOr,
+    BitwiseXor,
     BitwiseAnd,
     Shift,
     Addition,
@@ -21,6 +22,7 @@ enum Precedence {
 pub enum InfixOperator {
     BitwiseAnd,
     BitwiseOr,
+    BitwiseXor,
     Correspondence,
     Division,
     Equality,
@@ -45,6 +47,7 @@ impl InfixOperator {
         match tok {
             Token::BitwiseAnd => Some(Self::BitwiseAnd),
             Token::BitwiseOr => Some(Self::BitwiseOr),
+            Token::BitwiseXor => Some(Self::BitwiseXor),
             Token::Greater => Some(Self::Greater),
             Token::GreaterEqual => Some(Self::GreaterEqual),
             Token::LeftShift => Some(Self::LeftShift),
@@ -70,6 +73,7 @@ impl InfixOperator {
         match self {
             Self::BitwiseAnd => Precedence::BitwiseAnd,
             Self::BitwiseOr => Precedence::BitwiseOr,
+            Self::BitwiseXor => Precedence::BitwiseXor,
             Self::Correspondence => Precedence::Correspondence,
             Self::Division => Precedence::Multiplication,
             Self::Equality => Precedence::Comparison,
@@ -271,7 +275,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         match (res, self.tokens.peek().and_then(|tok| InfixOperator::from(tok.clone()))) {
             (Ok(lhs), Some(op)) if precedence < op.precedence() => {
                 self.tokens.next();
-                self.infix(lhs, op, op.precedence())
+                self.infix(lhs, op)
             },
             (Err(err), _) => Err(err),
             (res, _) => res,
@@ -304,15 +308,15 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn infix(&mut self, lhs: ASTNode, op: InfixOperator, precedence: Precedence) -> NodeResult {
-        let res = self.expression(precedence).map(
+    fn infix(&mut self, lhs: ASTNode, op: InfixOperator) -> NodeResult {
+        let res = self.expression(op.precedence()).map(
         |rhs| ASTNode::Infix(op, Box::new(lhs), Box::new(rhs))
         );
 
         match (res, self.tokens.peek().and_then(|tok| InfixOperator::from(tok.clone()))) {
-            (Ok(lhs), Some(op)) => {
+            (Ok(lhs), Some(new_op)) => {
                 self.tokens.next();
-                self.infix(lhs, op, op.precedence())
+                self.infix(lhs, new_op)
             },
             (res, _) => res,
         }
@@ -895,6 +899,45 @@ mod tests {
                                     )
                                 )
                             )
+                        )
+                    )
+                )
+            )
+        );
+    }
+
+    #[test]
+    #[ignore = "does not work yet"]
+    fn bitwise_xor() {
+        let lexer = build_lexer("a ^ b & c | d");
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(
+                Ok(
+                    ASTNode::Infix(
+                        InfixOperator::BitwiseOr,
+                        Box::new(
+                            ASTNode::Infix(
+                                InfixOperator::BitwiseXor,
+                                Box::new(
+                                    ASTNode::Symbol(String::from('a'))
+                                ),
+                                Box::new(
+                                    ASTNode::Infix(
+                                        InfixOperator::BitwiseAnd,
+                                        Box::new(
+                                            ASTNode::Symbol(String::from('b'))
+                                        ),
+                                        Box::new(
+                                            ASTNode::Symbol(String::from('c'))
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+                        Box::new(
+                            ASTNode::Symbol(String::from('d'))
                         )
                     )
                 )
