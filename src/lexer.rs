@@ -83,7 +83,7 @@ impl Iterator for Lexer<'_> {
                 '*' => self.stars(),
                 '}' => Token::Rbrace,
                 ')' => Token::Rparen,
-                chr if chr.is_numeric() => self.integer(chr),
+                '0'..='9' => self.integer(chr),
                 chr if chr.is_alphabetic() => self.identifier_or_keyword(chr),
                 _ => Token::Unknown,
             }),
@@ -142,7 +142,12 @@ impl Lexer<'_> {
     }
 
     fn integer(&mut self, first: char) -> Token {
+        if first == '0' {
+            return Token::Integer(String::from(first));
+        }
+
         let mut number = String::from(first);
+
         while let Some(chr) = self.input.by_ref().next_if(|c| c.is_ascii_digit()) {
             number.push(chr);
         }
@@ -276,6 +281,14 @@ mod tests {
         assert_eq!(
             build_lexer("{true, false}").collect::<Vec<_>>(),
             vec![Token::Lbrace, Token::True, Token::Comma, Token::False, Token::Rbrace],
+        );
+    }
+
+    #[test]
+    fn trailing_zeros() {
+        assert_eq!(
+            build_lexer("01").collect::<Vec<_>>(),
+            vec![Token::Integer(String::from('0')), Token::Integer(String::from('1'))]
         );
     }
 }
