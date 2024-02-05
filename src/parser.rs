@@ -288,7 +288,8 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn parenthesis(&mut self) -> NodeResult {
-        if self.tokens.next_if_eq(&Token::Rparen).is_some() {
+        if matches!(self.tokens.peek(), Some(&Token::Rparen)) {
+            self.tokens.next();
             return Ok(ASTNode::Tuple(vec![]));
         }
 
@@ -325,6 +326,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
 
     fn set(&mut self) -> NodeResult {
         if matches!(self.tokens.peek(), Some(&Token::Rbrace)) {
+            self.tokens.next();
             return Ok(ASTNode::ExtensionSet(vec![]));
         }
 
@@ -935,6 +937,25 @@ mod tests {
                         Box::new(
                             ASTNode::Symbol(String::from('d'))
                         )
+                    )
+                )
+            )
+        );
+    }
+
+    #[test]
+    fn something_after_empty_set() {
+        let lexer = build_lexer("({}, 0)");
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(
+                Ok(
+                    ASTNode::Tuple(
+                        vec![
+                            ASTNode::ExtensionSet(vec![]),
+                            ASTNode::Integer(String::from('0'))
+                        ]
                     )
                 )
             )
