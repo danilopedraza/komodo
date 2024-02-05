@@ -131,7 +131,7 @@ mod tests {
     }
 
     #[test]
-    fn let_statement() {
+    fn let_expression() {
         let node = &ASTNode::Let(
             Box::new(ASTNode::Symbol(
                 String::from("x"))),
