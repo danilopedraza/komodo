@@ -5,7 +5,11 @@ use crate::lexer::Token;
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Precedence {
     Lowest,
+    LogicOr,
+    LogicAnd,
     Comparison,
+    BitwiseOr,
+    BitwiseAnd,
     Shift,
     Addition,
     Multiplication,
@@ -15,6 +19,8 @@ enum Precedence {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InfixOperator {
+    BitwiseAnd,
+    BitwiseOr,
     Correspondence,
     Division,
     Equality,
@@ -24,6 +30,8 @@ pub enum InfixOperator {
     LeftShift,
     Less,
     LessEqual,
+    LogicAnd,
+    LogicOr,
     Mod,
     NotEquality,
     Product,
@@ -35,12 +43,16 @@ pub enum InfixOperator {
 impl InfixOperator {
     fn from(tok: Token) -> Option<Self> {
         match tok {
+            Token::BitwiseAnd => Some(Self::BitwiseAnd),
+            Token::BitwiseOr => Some(Self::BitwiseOr),
             Token::Greater => Some(Self::Greater),
             Token::GreaterEqual => Some(Self::GreaterEqual),
             Token::LeftShift => Some(Self::LeftShift),
             Token::RightShift => Some(Self::RightShift),
             Token::Less => Some(Self::Less),
             Token::LessEqual => Some(Self::LessEqual),
+            Token::LogicAnd => Some(Self::LogicAnd),
+            Token::LogicOr => Some(Self::LogicOr),
             Token::Mod => Some(Self::Mod),
             Token::Over => Some(Self::Division),
             Token::Plus => Some(Self::Sum),
@@ -56,6 +68,8 @@ impl InfixOperator {
 
     fn precedence(&self) -> Precedence {
         match self {
+            Self::BitwiseAnd => Precedence::BitwiseAnd,
+            Self::BitwiseOr => Precedence::BitwiseOr,
             Self::Correspondence => Precedence::Correspondence,
             Self::Division => Precedence::Multiplication,
             Self::Equality => Precedence::Comparison,
@@ -65,6 +79,8 @@ impl InfixOperator {
             Self::LeftShift => Precedence::Shift,
             Self::Less => Precedence::Comparison,
             Self::LessEqual => Precedence::Comparison,
+            Self::LogicAnd => Precedence::LogicAnd,
+            Self::LogicOr => Precedence::LogicOr,
             Self::Mod => Precedence::Multiplication,
             Self::NotEquality => Precedence::Comparison,
             Self::Product => Precedence::Multiplication,
@@ -296,7 +312,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
         match (res, self.tokens.peek().and_then(|tok| InfixOperator::from(tok.clone()))) {
             (Ok(lhs), Some(op)) => {
                 self.tokens.next();
-                self.infix(lhs, op, precedence)
+                self.infix(lhs, op, op.precedence())
             },
             (res, _) => res,
         }
@@ -773,6 +789,112 @@ mod tests {
                         ),
                         Box::new(
                             ASTNode::Integer(String::from('1'))
+                        )
+                    )
+                )
+            )
+        );
+    }
+
+    #[test]
+    fn bitwise() {
+        let lexer = build_lexer("a & b | c");
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(
+                Ok(
+                    ASTNode::Infix(
+                        InfixOperator::BitwiseOr,
+                        Box::new(
+                            ASTNode::Infix(
+                                InfixOperator::BitwiseAnd,
+                                Box::new(
+                                    ASTNode::Symbol(String::from('a'))
+                                ),
+                                Box::new(
+                                    ASTNode::Symbol(String::from('b'))
+                                )
+                            )
+                        ),
+                        Box::new(
+                            ASTNode::Symbol(String::from('c'))
+                        )
+                    )
+                )
+            )
+        );
+    }
+
+    #[test]
+    fn logic_infix_operators() {
+        let lexer = build_lexer("a && b || c");
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(
+                Ok(
+                    ASTNode::Infix(
+                        InfixOperator::LogicOr,
+                        Box::new(
+                            ASTNode::Infix(
+                                InfixOperator::LogicAnd,
+                                Box::new(
+                                    ASTNode::Symbol(String::from('a'))
+                                ),
+                                Box::new(
+                                    ASTNode::Symbol(String::from('b'))
+                                )
+                            )
+                        ),
+                        Box::new(
+                            ASTNode::Symbol(String::from('c'))
+                        )
+                    )
+                )
+            )
+        );
+    }
+
+    #[test]
+    fn complex_precedence() {
+        let lexer = build_lexer("a + b || a & b << c");
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(
+                Ok(
+                    ASTNode::Infix(
+                        InfixOperator::LogicOr,
+                        Box::new(
+                            ASTNode::Infix(
+                                InfixOperator::Sum,
+                                Box::new(
+                                    ASTNode::Symbol(String::from('a'))
+                                ),
+                                Box::new(
+                                    ASTNode::Symbol(String::from('b'))
+                                )
+                            )
+                        ),
+                        Box::new(
+                            ASTNode::Infix(
+                                InfixOperator::BitwiseAnd,
+                                Box::new(
+                                    ASTNode::Symbol(String::from('a'))
+                                ),
+                                Box::new(
+                                    ASTNode::Infix(
+                                        InfixOperator::LeftShift,
+                                        Box::new(
+                                            ASTNode::Symbol(String::from('b'))
+                                        ),
+                                        Box::new(
+                                            ASTNode::Symbol(String::from('c'))
+                                        )
+                                    )
+                                )
+                            )
                         )
                     )
                 )
