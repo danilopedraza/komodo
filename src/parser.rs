@@ -247,7 +247,7 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn expression(&mut self, precedence: Precedence) -> NodeResult {
-        let res = match self.tokens.next() {
+        let mut expr = match self.tokens.next() {
             None => Err(ParserError::EOFError),
             Some(tok) => match tok {
                 Token::Let => self.let_(),
@@ -269,17 +269,18 @@ impl <T: Iterator<Item = Token>> Parser<T> {
                     )
                 ),
             },
-        };
+        }?;
 
-
-        match (res, self.tokens.peek().and_then(|tok| InfixOperator::from(tok.clone()))) {
-            (Ok(lhs), Some(op)) if precedence < op.precedence() => {
+        while let Some(op) = self.tokens.peek().and_then(|tok| InfixOperator::from(tok.clone())) {
+            if precedence < op.precedence() {
                 self.tokens.next();
-                self.infix(lhs, op)
-            },
-            (Err(err), _) => Err(err),
-            (res, _) => res,
+                expr = self.infix(expr, op)?;
+            } else {
+                break;
+            }
         }
+
+        Ok(expr)
     }
 
     fn parenthesis(&mut self) -> NodeResult {
@@ -309,17 +310,9 @@ impl <T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn infix(&mut self, lhs: ASTNode, op: InfixOperator) -> NodeResult {
-        let res = self.expression(op.precedence()).map(
-        |rhs| ASTNode::Infix(op, Box::new(lhs), Box::new(rhs))
-        );
-
-        match (res, self.tokens.peek().and_then(|tok| InfixOperator::from(tok.clone()))) {
-            (Ok(lhs), Some(new_op)) => {
-                self.tokens.next();
-                self.infix(lhs, new_op)
-            },
-            (res, _) => res,
-        }
+        self.expression(op.precedence()).map(
+            |rhs| ASTNode::Infix(op, Box::new(lhs), Box::new(rhs))
+        )
     }
 
     fn type_(&mut self) -> NodeResult {
@@ -907,7 +900,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "does not work yet"]
     fn bitwise_xor() {
         let lexer = build_lexer("a ^ b & c | d");
 
