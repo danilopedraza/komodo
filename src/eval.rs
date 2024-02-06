@@ -10,12 +10,13 @@ pub enum Type {
 
 pub fn to_string(t: &Type) -> String {
     match t {
-        Type::Boolean(true ) => String::from("true"),
+        Type::Boolean(true) => String::from("true"),
         Type::Boolean(false) => String::from("false"),
-        Type::ExtensionSet(vec) => vec.iter()
-                                      .map(to_string)
-                                      .collect::<Vec<String>>()
-                                      .join(", "),
+        Type::ExtensionSet(vec) => vec
+            .iter()
+            .map(to_string)
+            .collect::<Vec<String>>()
+            .join(", "),
         Type::Number(num) => num.to_string(),
         Type::Symbol(s) => s.to_string(),
     }
@@ -36,17 +37,17 @@ fn infix(op: InfixOperator, lhs: Type, rhs: Type) -> Type {
     type O = InfixOperator;
     type T = Type;
     match (op, lhs, rhs) {
-        (O::Equality    , T::Symbol(l) , T::Symbol(r) ) => T::Boolean(l == r),
-        (O::NotEquality , T::Number(l) , T::Number(r) ) => T::Boolean(l != r),
-        (O::NotEquality , _            , _            ) => T::Boolean(true),
-        (O::Product     , T::Number(l) , T::Number(r) ) => T::Number(l * r),
-        (O::Sum         , T::Number(l) , T::Number(r) ) => T::Number(l + r),
-        (O::GreaterEqual, T::Number(l) , T::Number(r) ) => T::Boolean(l >= r),
-        (O::Greater     , T::Number(l) , T::Number(r) ) => T::Boolean(l > r),
-        (O::LessEqual   , T::Number(l) , T::Number(r) ) => T::Boolean(l <= r),
-        (O::Less        , T::Number(l) , T::Number(r) ) => T::Boolean(l < r),
-        (O::LogicAnd    , T::Boolean(l), T::Boolean(r)) => T::Boolean(l && r),
-        (O::LogicOr     , T::Boolean(l), T::Boolean(r)) => T::Boolean(l || r),
+        (O::Equality, T::Symbol(l), T::Symbol(r)) => T::Boolean(l == r),
+        (O::NotEquality, T::Number(l), T::Number(r)) => T::Boolean(l != r),
+        (O::NotEquality, _, _) => T::Boolean(true),
+        (O::Product, T::Number(l), T::Number(r)) => T::Number(l * r),
+        (O::Sum, T::Number(l), T::Number(r)) => T::Number(l + r),
+        (O::GreaterEqual, T::Number(l), T::Number(r)) => T::Boolean(l >= r),
+        (O::Greater, T::Number(l), T::Number(r)) => T::Boolean(l > r),
+        (O::LessEqual, T::Number(l), T::Number(r)) => T::Boolean(l <= r),
+        (O::Less, T::Number(l), T::Number(r)) => T::Boolean(l < r),
+        (O::LogicAnd, T::Boolean(l), T::Boolean(r)) => T::Boolean(l && r),
+        (O::LogicOr, T::Boolean(l), T::Boolean(r)) => T::Boolean(l || r),
         _ => todo!(),
     }
 }
@@ -56,12 +57,9 @@ pub fn eval(node: &ASTNode) -> Type {
         ASTNode::Boolean(val) => Type::Boolean(*val),
         ASTNode::Integer(str) => Type::Number(str.parse().unwrap()),
         ASTNode::Symbol(str) => Type::Symbol(str.clone()),
-        ASTNode::ExtensionSet(lst) => Type::ExtensionSet(
-            remove_repeated(lst)
-            .iter()
-            .map(|val| eval(val))
-            .collect()
-        ),
+        ASTNode::ExtensionSet(lst) => {
+            Type::ExtensionSet(remove_repeated(lst).iter().map(|val| eval(val)).collect())
+        }
         ASTNode::ComprehensionSet(_, _) => todo!(),
         ASTNode::Let(_, _, val) => eval(val),
         ASTNode::Tuple(_) => todo!(),
@@ -69,7 +67,6 @@ pub fn eval(node: &ASTNode) -> Type {
         ASTNode::Infix(op, lhs, rhs) => infix(*op, eval(lhs), eval(rhs)),
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -92,9 +89,7 @@ mod tests {
         ]);
         assert_eq!(
             eval(node),
-            Type::ExtensionSet(vec![
-                Type::Symbol(String::from("a")),
-            ])
+            Type::ExtensionSet(vec![Type::Symbol(String::from("a")),])
         );
     }
 
@@ -103,13 +98,10 @@ mod tests {
         let node = &ASTNode::Infix(
             InfixOperator::Sum,
             Box::new(ASTNode::Integer(String::from("0"))),
-            Box::new(ASTNode::Integer(String::from("1")))
+            Box::new(ASTNode::Integer(String::from("1"))),
         );
 
-        assert_eq!(
-            eval(node),
-            Type::Number(1)
-        );
+        assert_eq!(eval(node), Type::Number(1));
     }
 
     #[test]
@@ -117,13 +109,10 @@ mod tests {
         let node = &ASTNode::Infix(
             InfixOperator::Product,
             Box::new(ASTNode::Integer(String::from("0"))),
-            Box::new(ASTNode::Integer(String::from("1")))
+            Box::new(ASTNode::Integer(String::from("1"))),
         );
 
-        assert_eq!(
-            eval(node),
-            Type::Number(0)
-        );
+        assert_eq!(eval(node), Type::Number(0));
     }
 
     #[test]
@@ -131,133 +120,92 @@ mod tests {
         let node = &ASTNode::Infix(
             InfixOperator::Equality,
             Box::new(ASTNode::Symbol(String::from("a"))),
-            Box::new(ASTNode::Symbol(String::from("b")))
+            Box::new(ASTNode::Symbol(String::from("b"))),
         );
 
-        assert_eq!(
-            eval(node),
-            Type::Boolean(false)
-        );
+        assert_eq!(eval(node), Type::Boolean(false));
     }
 
     #[test]
     fn let_expression() {
         let node = &ASTNode::Let(
-            Box::new(ASTNode::Symbol(
-                String::from("x"))),
+            Box::new(ASTNode::Symbol(String::from("x"))),
             vec![],
-            Box::new(ASTNode::Integer(String::from("0")))
+            Box::new(ASTNode::Integer(String::from("0"))),
         );
 
-        assert_eq!(
-            eval(node),
-            Type::Number(0)
-        );
+        assert_eq!(eval(node), Type::Number(0));
     }
 
     #[test]
     fn logic_operators() {
         let node = &ASTNode::Infix(
             InfixOperator::LogicAnd,
-            Box::new(
-                ASTNode::Infix(
-                    InfixOperator::LogicOr,
-                    Box::new(ASTNode::Boolean(true)),
-                    Box::new(ASTNode::Boolean(false))
-                )
-            ),
-            Box::new(ASTNode::Boolean(false))
+            Box::new(ASTNode::Infix(
+                InfixOperator::LogicOr,
+                Box::new(ASTNode::Boolean(true)),
+                Box::new(ASTNode::Boolean(false)),
+            )),
+            Box::new(ASTNode::Boolean(false)),
         );
 
-        assert_eq!(
-            eval(node),
-            Type::Boolean(false)
-        );
+        assert_eq!(eval(node), Type::Boolean(false));
     }
 
     #[test]
     fn less_leq() {
         let node = &ASTNode::Infix(
             InfixOperator::LogicAnd,
-            Box::new(
-                ASTNode::Infix(
-                    InfixOperator::Less,
-                    Box::new(ASTNode::Integer(String::from('0'))),
-                    Box::new(ASTNode::Integer(String::from('1')))
-                )
-            ),
-            Box::new(
-                ASTNode::Infix(
-                    InfixOperator::LessEqual,
-                    Box::new(ASTNode::Integer(String::from('1'))),
-                    Box::new(ASTNode::Integer(String::from('1')))
-                )
-            )
+            Box::new(ASTNode::Infix(
+                InfixOperator::Less,
+                Box::new(ASTNode::Integer(String::from('0'))),
+                Box::new(ASTNode::Integer(String::from('1'))),
+            )),
+            Box::new(ASTNode::Infix(
+                InfixOperator::LessEqual,
+                Box::new(ASTNode::Integer(String::from('1'))),
+                Box::new(ASTNode::Integer(String::from('1'))),
+            )),
         );
 
-        assert_eq!(
-            eval(node),
-            Type::Boolean(true)
-        );
+        assert_eq!(eval(node), Type::Boolean(true));
     }
 
     #[test]
     fn greater_geq() {
         let node = &ASTNode::Infix(
             InfixOperator::LogicAnd,
-            Box::new(
-                ASTNode::Infix(
-                    InfixOperator::Greater,
-                    Box::new(ASTNode::Integer(String::from('1'))),
-                    Box::new(ASTNode::Integer(String::from('0')))
-                )
-            ),
-            Box::new(
-                ASTNode::Infix(
-                    InfixOperator::GreaterEqual,
-                    Box::new(ASTNode::Integer(String::from('0'))),
-                    Box::new(ASTNode::Integer(String::from('0')))
-                )
-            )
+            Box::new(ASTNode::Infix(
+                InfixOperator::Greater,
+                Box::new(ASTNode::Integer(String::from('1'))),
+                Box::new(ASTNode::Integer(String::from('0'))),
+            )),
+            Box::new(ASTNode::Infix(
+                InfixOperator::GreaterEqual,
+                Box::new(ASTNode::Integer(String::from('0'))),
+                Box::new(ASTNode::Integer(String::from('0'))),
+            )),
         );
 
-        assert_eq!(
-            eval(node),
-            Type::Boolean(true)
-        );
+        assert_eq!(eval(node), Type::Boolean(true));
     }
 
     #[test]
     fn neq() {
         let node = &ASTNode::Infix(
             InfixOperator::LogicAnd,
-            Box::new(
-                ASTNode::Infix(
-                    InfixOperator::NotEquality,
-                    Box::new(
-                        ASTNode::Integer(String::from('1'))
-                    ),
-                    Box::new(
-                        ASTNode::Integer(String::from('2'))
-                    )
-                )
-            ),
-            Box::new(
-                ASTNode::Infix(
-                    InfixOperator::NotEquality,
-                    Box::new(
-                        ASTNode::Integer(String::from('1'))
-                    ),
-                    Box::new(
-                        ASTNode::Boolean(true)
-                    )
-                )
-            ),
+            Box::new(ASTNode::Infix(
+                InfixOperator::NotEquality,
+                Box::new(ASTNode::Integer(String::from('1'))),
+                Box::new(ASTNode::Integer(String::from('2'))),
+            )),
+            Box::new(ASTNode::Infix(
+                InfixOperator::NotEquality,
+                Box::new(ASTNode::Integer(String::from('1'))),
+                Box::new(ASTNode::Boolean(true)),
+            )),
         );
 
-        assert_eq!(
-            eval(node),
-            Type::Boolean(true)
-        );
+        assert_eq!(eval(node), Type::Boolean(true));
     }
 }

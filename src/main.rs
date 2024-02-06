@@ -3,9 +3,9 @@ mod parser;
 // mod semantic;
 mod eval;
 
+use eval::{eval, to_string};
 use lexer::build_lexer;
 use parser::parser_from;
-use eval::{eval, to_string};
 
 use std::io::{stdin, stdout, BufRead, Write};
 

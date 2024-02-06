@@ -51,7 +51,7 @@ impl Iterator for Lexer<'_> {
             Some(chr) if chr.is_whitespace() => {
                 self.skip_whitespace();
                 self.next()
-            },
+            }
             Some(chr) => Some(match chr {
                 '^' => Token::BitwiseXor,
                 ',' => Token::Comma,
@@ -62,17 +62,11 @@ impl Iterator for Lexer<'_> {
                 ':' => self.fork(Token::Colon, vec![('=', Token::Assign)]),
                 '>' => self.fork(
                     Token::Greater,
-                    vec![
-                        ('>', Token::RightShift),
-                        ('=', Token::GreaterEqual)
-                    ]
+                    vec![('>', Token::RightShift), ('=', Token::GreaterEqual)],
                 ),
                 '<' => self.fork(
                     Token::Less,
-                    vec![
-                        ('<', Token::LeftShift),
-                        ('=', Token::LessEqual)
-                    ]
+                    vec![('<', Token::LeftShift), ('=', Token::LessEqual)],
                 ),
                 '-' => self.fork(Token::Minus, vec![('>', Token::Arrow)]),
                 '/' => self.fork(Token::Over, vec![('=', Token::NotEqual)]),
@@ -125,7 +119,7 @@ impl Lexer<'_> {
             Some('*') => {
                 self.input.next();
                 Token::ToThe
-            },
+            }
             _ => Token::Times,
         }
     }
@@ -157,7 +151,9 @@ impl Lexer<'_> {
 }
 
 pub fn build_lexer(input: &str) -> Lexer {
-    Lexer { input: input.chars().peekable() }
+    Lexer {
+        input: input.chars().peekable(),
+    }
 }
 
 #[cfg(test)]
@@ -186,8 +182,10 @@ mod tests {
         assert_eq!(
             build_lexer("x + y /= a").collect::<Vec<_>>(),
             vec![
-                Token::Ident(String::from('x')), Token::Plus,
-                Token::Ident(String::from('y')), Token::NotEqual,
+                Token::Ident(String::from('x')),
+                Token::Plus,
+                Token::Ident(String::from('y')),
+                Token::NotEqual,
                 Token::Ident(String::from('a'))
             ],
         );
@@ -198,9 +196,13 @@ mod tests {
         assert_eq!(
             build_lexer("let x := 1 / 2.").collect::<Vec<_>>(),
             vec![
-                Token::Let, Token::Ident(String::from('x')),
-                Token::Assign, Token::Integer(String::from('1')),
-                Token::Over, Token::Integer(String::from('2')), Token::Dot
+                Token::Let,
+                Token::Ident(String::from('x')),
+                Token::Assign,
+                Token::Integer(String::from('1')),
+                Token::Over,
+                Token::Integer(String::from('2')),
+                Token::Dot
             ],
         );
     }
@@ -210,10 +212,15 @@ mod tests {
         assert_eq!(
             build_lexer("(x * y) = 23 % 2").collect::<Vec<_>>(),
             vec![
-                Token::Lparen, Token::Ident(String::from('x')),
-                Token::Times, Token::Ident(String::from('y')), Token::Rparen,
-                Token::Equals, Token::Integer(String::from("23")),
-                Token::Mod, Token::Integer(String::from('2')),
+                Token::Lparen,
+                Token::Ident(String::from('x')),
+                Token::Times,
+                Token::Ident(String::from('y')),
+                Token::Rparen,
+                Token::Equals,
+                Token::Integer(String::from("23")),
+                Token::Mod,
+                Token::Integer(String::from('2')),
             ],
         );
     }
@@ -223,8 +230,10 @@ mod tests {
         assert_eq!(
             build_lexer("a < b <= c").collect::<Vec<_>>(),
             vec![
-                Token::Ident(String::from("a")), Token::Less,
-                Token::Ident(String::from("b")), Token::LessEqual,
+                Token::Ident(String::from("a")),
+                Token::Less,
+                Token::Ident(String::from("b")),
+                Token::LessEqual,
                 Token::Ident(String::from("c"))
             ],
         );
@@ -235,8 +244,10 @@ mod tests {
         assert_eq!(
             build_lexer("a > b >= c").collect::<Vec<_>>(),
             vec![
-                Token::Ident(String::from("a")), Token::Greater,
-                Token::Ident(String::from("b")), Token::GreaterEqual,
+                Token::Ident(String::from("a")),
+                Token::Greater,
+                Token::Ident(String::from("b")),
+                Token::GreaterEqual,
                 Token::Ident(String::from("c"))
             ],
         );
@@ -246,7 +257,14 @@ mod tests {
     fn function_declaration() {
         assert_eq!(
             build_lexer("let f: a -> a").collect::<Vec<_>>(),
-            vec![Token::Let, Token::Ident(String::from('f')), Token::Colon, Token::Ident(String::from('a')), Token::Arrow, Token::Ident(String::from('a'))],
+            vec![
+                Token::Let,
+                Token::Ident(String::from('f')),
+                Token::Colon,
+                Token::Ident(String::from('a')),
+                Token::Arrow,
+                Token::Ident(String::from('a'))
+            ],
         );
     }
 
@@ -255,9 +273,12 @@ mod tests {
         assert_eq!(
             build_lexer("(1 << 2) >> 2").collect::<Vec<_>>(),
             vec![
-                Token::Lparen, Token::Integer(String::from("1")),
-                Token::LeftShift, Token::Integer(String::from("2")),
-                Token::Rparen, Token::RightShift,
+                Token::Lparen,
+                Token::Integer(String::from("1")),
+                Token::LeftShift,
+                Token::Integer(String::from("2")),
+                Token::Rparen,
+                Token::RightShift,
                 Token::Integer(String::from("2"))
             ]
         );
@@ -269,8 +290,12 @@ mod tests {
             build_lexer("f(x,y ** 2)").collect::<Vec<_>>(),
             vec![
                 Token::Ident(String::from('f')),
-                Token::Lparen, Token::Ident(String::from('x')), Token::Comma,
-                Token::Ident(String::from('y')), Token::ToThe, Token::Integer(String::from('2')),
+                Token::Lparen,
+                Token::Ident(String::from('x')),
+                Token::Comma,
+                Token::Ident(String::from('y')),
+                Token::ToThe,
+                Token::Integer(String::from('2')),
                 Token::Rparen
             ],
         );
@@ -280,7 +305,13 @@ mod tests {
     fn set() {
         assert_eq!(
             build_lexer("{true, false}").collect::<Vec<_>>(),
-            vec![Token::Lbrace, Token::True, Token::Comma, Token::False, Token::Rbrace],
+            vec![
+                Token::Lbrace,
+                Token::True,
+                Token::Comma,
+                Token::False,
+                Token::Rbrace
+            ],
         );
     }
 
@@ -288,7 +319,10 @@ mod tests {
     fn trailing_zeros() {
         assert_eq!(
             build_lexer("01").collect::<Vec<_>>(),
-            vec![Token::Integer(String::from('0')), Token::Integer(String::from('1'))]
+            vec![
+                Token::Integer(String::from('0')),
+                Token::Integer(String::from('1'))
+            ]
         );
     }
 }
