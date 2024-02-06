@@ -316,7 +316,7 @@ mod tests {
     }
 
     #[test]
-    fn trailing_zeros() {
+    fn leading_zeros() {
         assert_eq!(
             build_lexer("01").collect::<Vec<_>>(),
             vec![
