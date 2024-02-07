@@ -48,6 +48,9 @@ fn infix(op: InfixOperator, lhs: Type, rhs: Type) -> Type {
         (O::Less, T::Number(l), T::Number(r)) => T::Boolean(l < r),
         (O::LogicAnd, T::Boolean(l), T::Boolean(r)) => T::Boolean(l && r),
         (O::LogicOr, T::Boolean(l), T::Boolean(r)) => T::Boolean(l || r),
+        (O::BitwiseAnd, T::Number(l), T::Number(r)) => T::Number(l & r),
+        (O::BitwiseOr, T::Number(l), T::Number(r)) => T::Number(l | r),
+        (O::BitwiseXor, T::Number(l), T::Number(r)) => T::Number(l ^ r),
         _ => todo!(),
     }
 }
@@ -207,5 +210,24 @@ mod tests {
         );
 
         assert_eq!(eval(node), Type::Boolean(true));
+    }
+
+    #[test]
+    fn bitwise_and_xor_or() {
+        let node = &ASTNode::Infix(
+            InfixOperator::BitwiseOr,
+            Box::new(ASTNode::Infix(
+                InfixOperator::BitwiseXor,
+                Box::new(ASTNode::Infix(
+                    InfixOperator::BitwiseAnd,
+                    Box::new(ASTNode::Integer(String::from("7"))),
+                    Box::new(ASTNode::Integer(String::from("6"))),
+                )),
+                Box::new(ASTNode::Integer(String::from("1"))),
+            )),
+            Box::new(ASTNode::Integer(String::from("0"))),
+        );
+
+        assert_eq!(eval(node), Type::Number(7));
     }
 }
