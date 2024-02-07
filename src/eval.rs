@@ -51,6 +51,9 @@ fn infix(op: InfixOperator, lhs: Type, rhs: Type) -> Type {
         (O::BitwiseAnd, T::Number(l), T::Number(r)) => T::Number(l & r),
         (O::BitwiseOr, T::Number(l), T::Number(r)) => T::Number(l | r),
         (O::BitwiseXor, T::Number(l), T::Number(r)) => T::Number(l ^ r),
+        (O::LeftShift, T::Number(l), T::Number(r)) => T::Number(l << r),
+        (O::RightShift, T::Number(l), T::Number(r)) => T::Number(l >> r),
+
         _ => todo!(),
     }
 }
@@ -229,5 +232,20 @@ mod tests {
         );
 
         assert_eq!(eval(node), Type::Number(7));
+    }
+
+    #[test]
+    fn shifts() {
+        let node = &ASTNode::Infix(
+            InfixOperator::LeftShift,
+            Box::new(ASTNode::Infix(
+                InfixOperator::RightShift,
+                Box::new(ASTNode::Integer(String::from("256"))),
+                Box::new(ASTNode::Integer(String::from("4"))),
+            )),
+            Box::new(ASTNode::Integer(String::from("1"))),
+        );
+
+        assert_eq!(eval(node), Type::Number(32));
     }
 }
