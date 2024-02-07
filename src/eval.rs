@@ -1,4 +1,4 @@
-use crate::parser::{ASTNode, InfixOperator};
+use crate::parser::{ASTNode, InfixOperator, PrefixOperator};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Type {
@@ -61,6 +61,16 @@ fn infix(op: InfixOperator, lhs: Type, rhs: Type) -> Type {
     }
 }
 
+fn prefix(op: PrefixOperator, expr: Type) -> Type {
+    type P = PrefixOperator;
+    match (op, expr) {
+        (P::BitwiseNot, Type::Number(num)) => Type::Number(!num),
+        (P::LogicNot, Type::Boolean(val)) => Type::Boolean(!val),
+        (P::Minus, Type::Number(num)) => Type::Number(-num),
+        _ => todo!(),
+    }
+}
+
 pub fn eval(node: &ASTNode) -> Type {
     match node {
         ASTNode::Boolean(val) => Type::Boolean(*val),
@@ -74,7 +84,7 @@ pub fn eval(node: &ASTNode) -> Type {
         ASTNode::Tuple(_) => todo!(),
         ASTNode::Signature(_, _) => todo!(),
         ASTNode::Infix(op, lhs, rhs) => infix(*op, eval(lhs), eval(rhs)),
-        ASTNode::Prefix(_, _) => todo!(),
+        ASTNode::Prefix(op, expr) => prefix(*op, eval(expr)),
     }
 }
 
@@ -288,5 +298,25 @@ mod tests {
         );
 
         assert_eq!(eval(node), Type::Number(1));
+    }
+
+    #[test]
+    fn prefix() {
+        let node = &ASTNode::Prefix(
+            PrefixOperator::LogicNot,
+            Box::new(ASTNode::Infix(
+                InfixOperator::NotEquality,
+                Box::new(ASTNode::Prefix(
+                    PrefixOperator::BitwiseNot,
+                    Box::new(ASTNode::Integer(String::from("1"))),
+                )),
+                Box::new(ASTNode::Prefix(
+                    PrefixOperator::Minus,
+                    Box::new(ASTNode::Integer(String::from("1"))),
+                )),
+            )),
+        );
+
+        assert_eq!(eval(node), Type::Boolean(false));
     }
 }
