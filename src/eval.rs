@@ -42,6 +42,8 @@ fn infix(op: InfixOperator, lhs: Type, rhs: Type) -> Type {
         (O::NotEquality, _, _) => T::Boolean(true),
         (O::Product, T::Number(l), T::Number(r)) => T::Number(l * r),
         (O::Sum, T::Number(l), T::Number(r)) => T::Number(l + r),
+        (O::Exponentiation, T::Number(l), T::Number(r)) => T::Number(l.pow(r.try_into().unwrap())),
+        (O::Division, T::Number(l), T::Number(r)) => T::Number(l / r),
         (O::GreaterEqual, T::Number(l), T::Number(r)) => T::Boolean(l >= r),
         (O::Greater, T::Number(l), T::Number(r)) => T::Boolean(l > r),
         (O::LessEqual, T::Number(l), T::Number(r)) => T::Boolean(l <= r),
@@ -247,5 +249,20 @@ mod tests {
         );
 
         assert_eq!(eval(node), Type::Number(32));
+    }
+
+    #[test]
+    fn power_and_division() {
+        let node = &ASTNode::Infix(
+            InfixOperator::Division,
+            Box::new(ASTNode::Infix(
+                InfixOperator::Exponentiation,
+                Box::new(ASTNode::Integer(String::from("3"))),
+                Box::new(ASTNode::Integer(String::from("2"))),
+            )),
+            Box::new(ASTNode::Integer(String::from("2"))),
+        );
+
+        assert_eq!(eval(node), Type::Number(4));
     }
 }
