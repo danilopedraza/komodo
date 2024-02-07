@@ -42,6 +42,7 @@ fn infix(op: InfixOperator, lhs: Type, rhs: Type) -> Type {
         (O::NotEquality, _, _) => T::Boolean(true),
         (O::Product, T::Number(l), T::Number(r)) => T::Number(l * r),
         (O::Sum, T::Number(l), T::Number(r)) => T::Number(l + r),
+        (O::Substraction, T::Number(l), T::Number(r)) => T::Number(l - r),
         (O::Exponentiation, T::Number(l), T::Number(r)) => T::Number(l.pow(r.try_into().unwrap())),
         (O::Division, T::Number(l), T::Number(r)) => T::Number(l / r),
         (O::Mod, T::Number(l), T::Number(r)) => T::Number(l % r),
@@ -111,6 +112,17 @@ mod tests {
         );
 
         assert_eq!(eval(node), Type::Number(1));
+    }
+
+    #[test]
+    fn integer_substraction() {
+        let node = &ASTNode::Infix(
+            InfixOperator::Substraction,
+            Box::new(ASTNode::Integer(String::from("0"))),
+            Box::new(ASTNode::Integer(String::from("1"))),
+        );
+
+        assert_eq!(eval(node), Type::Number(-1));
     }
 
     #[test]
