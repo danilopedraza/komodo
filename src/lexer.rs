@@ -4,6 +4,7 @@ use std::{iter::Peekable, str::Chars, vec};
 pub enum Token {
     Arrow,
     Assign,
+    Bang,
     BitwiseAnd,
     BitwiseOr,
     BitwiseXor,
@@ -32,6 +33,7 @@ pub enum Token {
     RightShift,
     Rparen,
     Over,
+    Tilde,
     Times,
     ToThe,
     True,
@@ -53,6 +55,7 @@ impl Iterator for Lexer<'_> {
                 self.next()
             }
             Some(chr) => Some(match chr {
+                '!' => Token::Bang,
                 '^' => Token::BitwiseXor,
                 ',' => Token::Comma,
                 '.' => Token::Dot,
@@ -77,6 +80,7 @@ impl Iterator for Lexer<'_> {
                 '*' => self.stars(),
                 '}' => Token::Rbrace,
                 ')' => Token::Rparen,
+                '~' => Token::Tilde,
                 '0'..='9' => self.integer(chr),
                 chr if chr.is_alphabetic() => self.identifier_or_keyword(chr),
                 _ => Token::Unknown,

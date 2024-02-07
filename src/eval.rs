@@ -73,6 +73,7 @@ pub fn eval(node: &ASTNode) -> Type {
         ASTNode::Tuple(_) => todo!(),
         ASTNode::Signature(_, _) => todo!(),
         ASTNode::Infix(op, lhs, rhs) => infix(*op, eval(lhs), eval(rhs)),
+        ASTNode::Prefix(_, _) => todo!(),
     }
 }
 

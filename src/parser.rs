@@ -16,6 +16,7 @@ enum Precedence {
     Multiplication,
     Exponentiation,
     Correspondence,
+    Highest,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -96,6 +97,24 @@ impl InfixOperator {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PrefixOperator {
+    BitwiseNot,
+    LogicNot,
+    Minus,
+}
+
+impl PrefixOperator {
+    fn from(tok: Token) -> Option<Self> {
+        match tok {
+            Token::Bang => Some(Self::LogicNot),
+            Token::Minus => Some(Self::Minus),
+            Token::Tilde => Some(Self::BitwiseNot),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ASTNode {
     Boolean(bool),
     ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
@@ -103,6 +122,7 @@ pub enum ASTNode {
     Infix(InfixOperator, Box<ASTNode>, Box<ASTNode>),
     Integer(String),
     Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
+    Prefix(PrefixOperator, Box<ASTNode>),
     Signature(Box<ASTNode>, Option<Box<ASTNode>>),
     Symbol(String),
     Tuple(Vec<ASTNode>),
@@ -238,6 +258,9 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 Token::Lbrace => self.set(),
                 Token::Integer(int) => Ok(ASTNode::Integer(int)),
                 Token::Ident(literal) => Ok(ASTNode::Symbol(literal)),
+                tok if PrefixOperator::from(tok.clone()).is_some() => {
+                    self.prefix(PrefixOperator::from(tok).unwrap())
+                }
                 tok => Err(ParserError::UnexpectedTokenError(
                     vec![
                         Token::Lparen,
@@ -266,6 +289,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         self.tokens
             .peek()
             .and_then(|tok| InfixOperator::from(tok.clone()))
+    }
+
+    fn prefix(&mut self, op: PrefixOperator) -> NodeResult {
+        self.expression(Precedence::Highest)
+            .map(|expr| ASTNode::Prefix(op, Box::new(expr)))
     }
 
     fn parenthesis(&mut self) -> NodeResult {
@@ -812,6 +840,29 @@ mod tests {
                 ASTNode::ExtensionSet(vec![]),
                 ASTNode::Integer(String::from('0'))
             ])))
+        );
+    }
+
+    #[test]
+    fn prefixes() {
+        let lexer = build_lexer("!(~1 - -1)");
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(ASTNode::Prefix(
+                PrefixOperator::LogicNot,
+                Box::new(ASTNode::Infix(
+                    InfixOperator::Substraction,
+                    Box::new(ASTNode::Prefix(
+                        PrefixOperator::BitwiseNot,
+                        Box::new(ASTNode::Integer(String::from("1"))),
+                    )),
+                    Box::new(ASTNode::Prefix(
+                        PrefixOperator::Minus,
+                        Box::new(ASTNode::Integer(String::from("1"))),
+                    )),
+                ))
+            )))
         );
     }
 }
