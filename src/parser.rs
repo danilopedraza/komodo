@@ -96,7 +96,7 @@ impl InfixOperator {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PrefixOperator {
     BitwiseNot,
     LogicNot,
@@ -845,14 +845,14 @@ mod tests {
 
     #[test]
     fn prefixes() {
-        let lexer = build_lexer("!(~1 - -1)");
+        let lexer = build_lexer("!(~1 /= -1)");
 
         assert_eq!(
             parser_from(lexer).next(),
             Some(Ok(ASTNode::Prefix(
                 PrefixOperator::LogicNot,
                 Box::new(ASTNode::Infix(
-                    InfixOperator::Substraction,
+                    InfixOperator::NotEquality,
                     Box::new(ASTNode::Prefix(
                         PrefixOperator::BitwiseNot,
                         Box::new(ASTNode::Integer(String::from("1"))),
