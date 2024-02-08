@@ -105,9 +105,12 @@ impl Lexer<'_> {
     }
 
     fn skip_whitespace(&mut self) {
-        while self.input.by_ref().next_if(|c| c.is_whitespace()).is_some() {
-            // this skips all the whitespaces. Kinda obscure,
-            // but better than recursion, or even worse, unwrapping and breaking several times
+        while let Some(chr) = self.input.peek() {
+            if chr.is_whitespace() {
+                self.input.next();
+            } else {
+                break;
+            }
         }
     }
 
