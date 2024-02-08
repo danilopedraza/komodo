@@ -54,6 +54,10 @@ impl Iterator for Lexer<'_> {
                 self.skip_whitespace();
                 self.next()
             }
+            Some('#') => {
+                self.skip_comment();
+                self.next()
+            }
             Some(chr) => Some(match chr {
                 '!' => Token::Bang,
                 '^' => Token::BitwiseXor,
@@ -90,6 +94,16 @@ impl Iterator for Lexer<'_> {
 }
 
 impl Lexer<'_> {
+    fn skip_comment(&mut self) {
+        for chr in self.input.by_ref() {
+            if chr == 0xA as char {
+                break;
+            } else {
+                continue;
+            }
+        }
+    }
+
     fn skip_whitespace(&mut self) {
         while self.input.by_ref().next_if(|c| c.is_whitespace()).is_some() {
             // this skips all the whitespaces. Kinda obscure,
@@ -327,6 +341,24 @@ mod tests {
                 Token::Integer(String::from('0')),
                 Token::Integer(String::from('1'))
             ]
+        );
+    }
+
+    #[test]
+    fn comment() {
+        let code = "input() # get input
+        print() # print";
+
+        assert_eq!(
+            build_lexer(code).collect::<Vec<_>>(),
+            vec![
+                Token::Ident(String::from("input")),
+                Token::Lparen,
+                Token::Rparen,
+                Token::Ident(String::from("print")),
+                Token::Lparen,
+                Token::Rparen,
+            ],
         );
     }
 }
