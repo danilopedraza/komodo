@@ -11,11 +11,13 @@ pub enum Token {
     Colon,
     Comma,
     Dot,
+    Else,
     Equals,
     False,
     Greater,
     GreaterEqual,
     Ident(String),
+    If,
     Integer(String),
     Lbrace,
     LeftShift,
@@ -33,6 +35,7 @@ pub enum Token {
     RightShift,
     Rparen,
     Over,
+    Then,
     Tilde,
     Times,
     ToThe,
@@ -128,9 +131,12 @@ impl Lexer<'_> {
 
     fn keyword(literal: &str) -> Option<Token> {
         match literal {
-            "let" => Some(Token::Let),
-            "true" => Some(Token::True),
+            "else" => Some(Token::Else),
             "false" => Some(Token::False),
+            "if" => Some(Token::If),
+            "let" => Some(Token::Let),
+            "then" => Some(Token::Then),
+            "true" => Some(Token::True),
             _ => None,
         }
     }
@@ -362,6 +368,26 @@ mod tests {
                 Token::Lparen,
                 Token::Rparen,
             ],
+        );
+    }
+
+    #[test]
+    fn if_expr() {
+        let code = "if a < 0 then -a else a";
+
+        assert_eq!(
+            build_lexer(code).collect::<Vec<_>>(),
+            vec![
+                Token::If,
+                Token::Ident(String::from("a")),
+                Token::Less,
+                Token::Integer(String::from("0")),
+                Token::Then,
+                Token::Minus,
+                Token::Ident(String::from("a")),
+                Token::Else,
+                Token::Ident(String::from("a")),
+            ]
         );
     }
 }
