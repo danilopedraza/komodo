@@ -119,6 +119,7 @@ pub enum ASTNode {
     Boolean(bool),
     ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
     ExtensionSet(Vec<ASTNode>),
+    If(Box<ASTNode>, Box<ASTNode>, Box<ASTNode>),
     Infix(InfixOperator, Box<ASTNode>, Box<ASTNode>),
     Integer(String),
     Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
@@ -251,6 +252,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let mut expr = match self.tokens.next() {
             None => Err(ParserError::EOFError),
             Some(tok) => match tok {
+                Token::If => self.if_(),
                 Token::Let => self.let_(),
                 Token::True => Ok(ASTNode::Boolean(true)),
                 Token::False => Ok(ASTNode::Boolean(false)),
@@ -283,6 +285,32 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
 
         Ok(expr)
+    }
+
+    fn if_(&mut self) -> NodeResult {
+        let cond = self.expression(Precedence::Lowest)?;
+
+        if let Some(tok) = self.tokens.next() {
+            if tok != Token::Then {
+                return Err(ParserError::UnexpectedTokenError(vec![Token::Then], tok));
+            }
+        }
+
+        let first_res = self.expression(Precedence::Lowest)?;
+
+        if let Some(tok) = self.tokens.next() {
+            if tok != Token::Else {
+                return Err(ParserError::UnexpectedTokenError(vec![Token::Then], tok));
+            }
+        }
+
+        let second_res = self.expression(Precedence::Lowest)?;
+
+        Ok(ASTNode::If(
+            Box::new(cond),
+            Box::new(first_res),
+            Box::new(second_res),
+        ))
     }
 
     fn current_infix(&mut self) -> Option<InfixOperator> {
@@ -862,6 +890,37 @@ mod tests {
                         Box::new(ASTNode::Integer(String::from("1"))),
                     )),
                 ))
+            )))
+        );
+    }
+
+    #[test]
+    fn if_expr() {
+        let tokens = vec![
+            Token::If,
+            Token::Ident(String::from("a")),
+            Token::Less,
+            Token::Integer(String::from("0")),
+            Token::Then,
+            Token::Minus,
+            Token::Ident(String::from("a")),
+            Token::Else,
+            Token::Ident(String::from("a")),
+        ];
+
+        assert_eq!(
+            parser_from(token_iter!(tokens)).next(),
+            Some(Ok(ASTNode::If(
+                Box::new(ASTNode::Infix(
+                    InfixOperator::Less,
+                    Box::new(ASTNode::Symbol(String::from("a"))),
+                    Box::new(ASTNode::Integer(String::from("0")))
+                )),
+                Box::new(ASTNode::Prefix(
+                    PrefixOperator::Minus,
+                    Box::new(ASTNode::Symbol(String::from("a")))
+                )),
+                Box::new(ASTNode::Symbol(String::from("a"))),
             )))
         );
     }
