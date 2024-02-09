@@ -300,7 +300,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
         if let Some(tok) = self.tokens.next() {
             if tok != Token::Else {
-                return Err(ParserError::UnexpectedTokenError(vec![Token::Then], tok));
+                return Err(ParserError::UnexpectedTokenError(vec![Token::Else], tok));
             }
         }
 
