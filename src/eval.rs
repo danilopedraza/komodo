@@ -71,6 +71,13 @@ fn prefix(op: PrefixOperator, expr: Type) -> Type {
     }
 }
 
+fn truthy(val: Type) -> bool {
+    match val {
+        Type::Boolean(res) => res,
+        _ => todo!(),
+    }
+}
+
 pub fn eval(node: &ASTNode) -> Type {
     match node {
         ASTNode::Boolean(val) => Type::Boolean(*val),
@@ -85,7 +92,13 @@ pub fn eval(node: &ASTNode) -> Type {
         ASTNode::Signature(_, _) => todo!(),
         ASTNode::Infix(op, lhs, rhs) => infix(*op, eval(lhs), eval(rhs)),
         ASTNode::Prefix(op, expr) => prefix(*op, eval(expr)),
-        ASTNode::If(_, _, _) => todo!(),
+        ASTNode::If(cond, true_res, false_res) => {
+            if truthy(eval(cond)) {
+                eval(true_res)
+            } else {
+                eval(false_res)
+            }
+        }
     }
 }
 
@@ -319,5 +332,26 @@ mod tests {
         );
 
         assert_eq!(eval(node), Type::Boolean(false));
+    }
+
+    #[test]
+    fn if_expr() {
+        let node = &ASTNode::If(
+            Box::new(ASTNode::Infix(
+                InfixOperator::Less,
+                Box::new(ASTNode::Prefix(
+                    PrefixOperator::Minus,
+                    Box::new(ASTNode::Integer(String::from("5"))),
+                )),
+                Box::new(ASTNode::Integer(String::from("0"))),
+            )),
+            Box::new(ASTNode::Prefix(
+                PrefixOperator::Minus,
+                Box::new(ASTNode::Integer(String::from("1"))),
+            )),
+            Box::new(ASTNode::Integer(String::from("1"))),
+        );
+
+        assert_eq!(eval(node), Type::Number(-1));
     }
 }
