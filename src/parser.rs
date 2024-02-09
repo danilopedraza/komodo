@@ -287,7 +287,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         Ok(expr)
     }
 
-    fn expect(&mut self, expected_tok: Token) -> Result<(), ParserError> {
+    fn consume(&mut self, expected_tok: Token) -> Result<(), ParserError> {
         match self.tokens.next() {
             Some(tok) if tok == expected_tok => Ok(()),
             Some(tok) => Err(ParserError::UnexpectedTokenError(vec![expected_tok], tok)),
@@ -298,11 +298,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     fn if_(&mut self) -> NodeResult {
         let cond = self.expression(Precedence::Lowest)?;
 
-        self.expect(Token::Then)?;
+        self.consume(Token::Then)?;
 
         let first_res = self.expression(Precedence::Lowest)?;
 
-        self.expect(Token::Else)?;
+        self.consume(Token::Else)?;
 
         let second_res = self.expression(Precedence::Lowest)?;
 
