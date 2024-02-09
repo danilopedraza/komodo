@@ -287,22 +287,22 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         Ok(expr)
     }
 
+    fn expect(&mut self, expected_tok: Token) -> Result<(), ParserError> {
+        match self.tokens.next() {
+            Some(tok) if tok == expected_tok => Ok(()),
+            Some(tok) => Err(ParserError::UnexpectedTokenError(vec![expected_tok], tok)),
+            None => Err(ParserError::EOFErrorExpecting(vec![expected_tok])),
+        }
+    }
+
     fn if_(&mut self) -> NodeResult {
         let cond = self.expression(Precedence::Lowest)?;
 
-        if let Some(tok) = self.tokens.next() {
-            if tok != Token::Then {
-                return Err(ParserError::UnexpectedTokenError(vec![Token::Then], tok));
-            }
-        }
+        self.expect(Token::Then)?;
 
         let first_res = self.expression(Precedence::Lowest)?;
 
-        if let Some(tok) = self.tokens.next() {
-            if tok != Token::Else {
-                return Err(ParserError::UnexpectedTokenError(vec![Token::Else], tok));
-            }
-        }
+        self.expect(Token::Else)?;
 
         let second_res = self.expression(Precedence::Lowest)?;
 
