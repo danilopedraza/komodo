@@ -132,7 +132,7 @@ mod tests {
             ASTNode::Symbol(String::from("a")),
         ]);
         assert_eq!(
-            eval(node, &&Default::default()),
+            eval(node, &Default::default()),
             Type::ExtensionSet(vec![Type::Symbol(String::from("a")),])
         );
     }
