@@ -11,6 +11,10 @@ impl Scope {
     fn get(&self, name: &str) -> Option<&ASTNode> {
         self.dict.get(name)
     }
+
+    fn set(&mut self, name: &str, val: ASTNode) {
+        self.dict.insert(name.to_string(), val);
+    }
 }
 
 pub enum Environment {
@@ -33,5 +37,16 @@ impl Environment {
                 None => inner.get(name),
             },
         }
+    }
+
+    pub fn set(&mut self, name: &str, val: ASTNode) {
+        match self {
+            Self::Root(scope) => scope.set(name, val),
+            Self::Child(scope, _) => scope.set(name, val),
+        }
+    }
+
+    pub fn new_scope(self) -> Self {
+        Self::Child(Default::default(), Box::new(self))
     }
 }

@@ -83,7 +83,10 @@ pub fn eval(node: &ASTNode, _env: &Environment) -> Type {
     match node {
         ASTNode::Boolean(val) => Type::Boolean(*val),
         ASTNode::Integer(str) => Type::Number(str.parse().unwrap()),
-        ASTNode::Symbol(str) => Type::Symbol(str.clone()),
+        ASTNode::Symbol(str) => match _env.get(str) {
+            Some(val) => eval(val, _env),
+            None => Type::Symbol(str.clone()),
+        },
         ASTNode::ExtensionSet(lst) => Type::ExtensionSet(
             remove_repeated(lst)
                 .iter()
@@ -343,22 +346,39 @@ mod tests {
 
     #[test]
     fn if_expr() {
+        let mut env = Environment::default();
+        env.set(
+            "a",
+            ASTNode::Prefix(
+                PrefixOperator::Minus,
+                Box::new(ASTNode::Integer(String::from("5"))),
+            ),
+        );
+
         let node = &ASTNode::If(
             Box::new(ASTNode::Infix(
                 InfixOperator::Less,
-                Box::new(ASTNode::Prefix(
-                    PrefixOperator::Minus,
-                    Box::new(ASTNode::Integer(String::from("5"))),
-                )),
+                Box::new(ASTNode::Symbol(String::from("a"))),
                 Box::new(ASTNode::Integer(String::from("0"))),
             )),
             Box::new(ASTNode::Prefix(
                 PrefixOperator::Minus,
-                Box::new(ASTNode::Integer(String::from("1"))),
+                Box::new(ASTNode::Symbol(String::from("a"))),
             )),
-            Box::new(ASTNode::Integer(String::from("1"))),
+            Box::new(ASTNode::Symbol(String::from("a"))),
         );
 
-        assert_eq!(eval(node, &Default::default()), Type::Number(-1));
+        assert_eq!(eval(node, &env), Type::Number(5));
+    }
+
+    #[test]
+    fn scope_hierarchy() {
+        let mut env = Environment::default();
+        env.set("x", ASTNode::Boolean(true));
+        env = env.new_scope();
+
+        let node = &ASTNode::Symbol(String::from("x"));
+
+        assert_eq!(eval(node, &env), Type::Boolean(true));
     }
 }
