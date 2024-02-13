@@ -1,4 +1,4 @@
-use crate::parser::{ASTNode, InfixOperator, PrefixOperator};
+use crate::ast::{ASTNode, InfixOperator, PrefixOperator};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Type {
@@ -107,7 +107,7 @@ mod tests {
     use std::vec;
 
     use super::*;
-    use crate::parser::ASTNode;
+    use crate::ast::ASTNode;
 
     #[test]
     fn symbol() {
