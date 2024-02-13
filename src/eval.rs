@@ -1,4 +1,5 @@
 use crate::ast::{ASTNode, InfixOperator, PrefixOperator};
+use crate::env::Environment;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Type {
@@ -78,25 +79,28 @@ fn truthy(val: Type) -> bool {
     }
 }
 
-pub fn eval(node: &ASTNode) -> Type {
+pub fn eval(node: &ASTNode, _env: &Environment) -> Type {
     match node {
         ASTNode::Boolean(val) => Type::Boolean(*val),
         ASTNode::Integer(str) => Type::Number(str.parse().unwrap()),
         ASTNode::Symbol(str) => Type::Symbol(str.clone()),
-        ASTNode::ExtensionSet(lst) => {
-            Type::ExtensionSet(remove_repeated(lst).iter().map(|val| eval(val)).collect())
-        }
+        ASTNode::ExtensionSet(lst) => Type::ExtensionSet(
+            remove_repeated(lst)
+                .iter()
+                .map(|val| eval(val, _env))
+                .collect(),
+        ),
         ASTNode::ComprehensionSet(_, _) => todo!(),
-        ASTNode::Let(_, _, val) => eval(val),
+        ASTNode::Let(_, _, val) => eval(val, _env),
         ASTNode::Tuple(_) => todo!(),
         ASTNode::Signature(_, _) => todo!(),
-        ASTNode::Infix(op, lhs, rhs) => infix(*op, eval(lhs), eval(rhs)),
-        ASTNode::Prefix(op, expr) => prefix(*op, eval(expr)),
+        ASTNode::Infix(op, lhs, rhs) => infix(*op, eval(lhs, _env), eval(rhs, _env)),
+        ASTNode::Prefix(op, expr) => prefix(*op, eval(expr, _env)),
         ASTNode::If(cond, true_res, false_res) => {
-            if truthy(eval(cond)) {
-                eval(true_res)
+            if truthy(eval(cond, _env)) {
+                eval(true_res, _env)
             } else {
-                eval(false_res)
+                eval(false_res, _env)
             }
         }
     }
@@ -112,7 +116,10 @@ mod tests {
     #[test]
     fn symbol() {
         let node = &ASTNode::Symbol(String::from("a"));
-        assert_eq!(eval(node), Type::Symbol(String::from("a")));
+        assert_eq!(
+            eval(node, &Default::default()),
+            Type::Symbol(String::from("a"))
+        );
     }
 
     #[test]
@@ -122,7 +129,7 @@ mod tests {
             ASTNode::Symbol(String::from("a")),
         ]);
         assert_eq!(
-            eval(node),
+            eval(node, &&Default::default()),
             Type::ExtensionSet(vec![Type::Symbol(String::from("a")),])
         );
     }
@@ -135,7 +142,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("1"))),
         );
 
-        assert_eq!(eval(node), Type::Number(1));
+        assert_eq!(eval(node, &Default::default()), Type::Number(1));
     }
 
     #[test]
@@ -146,7 +153,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("1"))),
         );
 
-        assert_eq!(eval(node), Type::Number(-1));
+        assert_eq!(eval(node, &Default::default()), Type::Number(-1));
     }
 
     #[test]
@@ -157,7 +164,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("1"))),
         );
 
-        assert_eq!(eval(node), Type::Number(0));
+        assert_eq!(eval(node, &Default::default()), Type::Number(0));
     }
 
     #[test]
@@ -168,7 +175,7 @@ mod tests {
             Box::new(ASTNode::Symbol(String::from("b"))),
         );
 
-        assert_eq!(eval(node), Type::Boolean(false));
+        assert_eq!(eval(node, &Default::default()), Type::Boolean(false));
     }
 
     #[test]
@@ -179,7 +186,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("0"))),
         );
 
-        assert_eq!(eval(node), Type::Number(0));
+        assert_eq!(eval(node, &Default::default()), Type::Number(0));
     }
 
     #[test]
@@ -194,7 +201,7 @@ mod tests {
             Box::new(ASTNode::Boolean(false)),
         );
 
-        assert_eq!(eval(node), Type::Boolean(false));
+        assert_eq!(eval(node, &Default::default()), Type::Boolean(false));
     }
 
     #[test]
@@ -213,7 +220,7 @@ mod tests {
             )),
         );
 
-        assert_eq!(eval(node), Type::Boolean(true));
+        assert_eq!(eval(node, &Default::default()), Type::Boolean(true));
     }
 
     #[test]
@@ -232,7 +239,7 @@ mod tests {
             )),
         );
 
-        assert_eq!(eval(node), Type::Boolean(true));
+        assert_eq!(eval(node, &Default::default()), Type::Boolean(true));
     }
 
     #[test]
@@ -251,7 +258,7 @@ mod tests {
             )),
         );
 
-        assert_eq!(eval(node), Type::Boolean(true));
+        assert_eq!(eval(node, &Default::default()), Type::Boolean(true));
     }
 
     #[test]
@@ -270,7 +277,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("0"))),
         );
 
-        assert_eq!(eval(node), Type::Number(7));
+        assert_eq!(eval(node, &Default::default()), Type::Number(7));
     }
 
     #[test]
@@ -285,7 +292,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("1"))),
         );
 
-        assert_eq!(eval(node), Type::Number(32));
+        assert_eq!(eval(node, &Default::default()), Type::Number(32));
     }
 
     #[test]
@@ -300,7 +307,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("2"))),
         );
 
-        assert_eq!(eval(node), Type::Number(4));
+        assert_eq!(eval(node, &Default::default()), Type::Number(4));
     }
 
     #[test]
@@ -311,7 +318,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("2"))),
         );
 
-        assert_eq!(eval(node), Type::Number(1));
+        assert_eq!(eval(node, &Default::default()), Type::Number(1));
     }
 
     #[test]
@@ -331,7 +338,7 @@ mod tests {
             )),
         );
 
-        assert_eq!(eval(node), Type::Boolean(false));
+        assert_eq!(eval(node, &Default::default()), Type::Boolean(false));
     }
 
     #[test]
@@ -352,6 +359,6 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("1"))),
         );
 
-        assert_eq!(eval(node), Type::Number(-1));
+        assert_eq!(eval(node, &Default::default()), Type::Number(-1));
     }
 }

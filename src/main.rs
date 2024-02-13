@@ -1,7 +1,7 @@
 mod ast;
+mod env;
 mod lexer;
 mod parser;
-mod env;
 // mod semantic;
 mod eval;
 
@@ -16,7 +16,7 @@ fn eval_line(line: &str) -> String {
     let mut parser = parser_from(lexer);
     match parser.next() {
         None => String::from(""),
-        Some(Ok(node)) => to_string(&eval(&node)),
+        Some(Ok(node)) => to_string(&eval(&node, &Default::default())),
         Some(Err(_)) => String::from("error"),
     }
 }

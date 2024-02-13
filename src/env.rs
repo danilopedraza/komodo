@@ -8,7 +8,7 @@ pub struct Scope {
 }
 
 impl Scope {
-    pub fn get(&self, name: &str) -> Option<&ASTNode> {
+    fn get(&self, name: &str) -> Option<&ASTNode> {
         self.dict.get(name)
     }
 }
@@ -16,6 +16,12 @@ impl Scope {
 pub enum Environment {
     Child(Scope, Box<Environment>),
     Root(Scope),
+}
+
+impl Default for Environment {
+    fn default() -> Self {
+        Self::Root(Default::default())
+    }
 }
 
 impl Environment {
