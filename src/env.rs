@@ -17,6 +17,7 @@ impl Scope {
     }
 }
 
+#[allow(unused)]
 pub enum Environment {
     Child(Scope, Box<Environment>),
     Root(Scope),
@@ -28,6 +29,7 @@ impl Default for Environment {
     }
 }
 
+#[allow(unused)]
 impl Environment {
     pub fn get(&self, name: &str) -> Option<&ASTNode> {
         match self {
