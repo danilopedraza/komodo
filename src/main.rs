@@ -1,11 +1,13 @@
 mod ast;
 mod env;
+mod file;
 mod lexer;
 mod parser;
 // mod semantic;
 mod eval;
 
 use eval::{eval, to_string};
+use file::parse_file;
 use lexer::build_lexer;
 use parser::parser_from;
 
@@ -21,7 +23,7 @@ fn eval_line(line: &str) -> String {
     }
 }
 
-fn main() -> std::io::Result<()> {
+fn repl() -> std::io::Result<()> {
     let mut handle = stdin().lock();
     loop {
         let mut line = String::new();
@@ -31,4 +33,20 @@ fn main() -> std::io::Result<()> {
         let res = eval_line(&line);
         println!("{res}");
     }
+}
+
+fn main() -> std::io::Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+
+    if args.len() == 1 {
+        repl()?;
+    } else {
+        let nodes = parse_file(&args[1]);
+        for node in nodes {
+            let line = to_string(&eval(&node, &Default::default()));
+            println!("{line}");
+        }
+    }
+
+    Ok(())
 }
