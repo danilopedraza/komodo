@@ -28,6 +28,20 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
 type NodeResult = Result<ASTNode, ParserError>;
 
 impl<T: Iterator<Item = Token>> Parser<T> {
+    #[allow(unused)]
+    fn program(&mut self) -> Vec<ASTNode> {
+        let mut res = vec![];
+
+        loop {
+            let exp = self.expression(Precedence::Lowest);
+
+            match exp {
+                Ok(node) => res.push(node),
+                Err(_) => break res,
+            }
+        }
+    }
+
     fn let_(&mut self) -> NodeResult {
         let sg = self.signature()?;
 
@@ -796,6 +810,34 @@ mod tests {
                 )),
                 Box::new(ASTNode::Symbol(String::from("a"))),
             )))
+        );
+    }
+
+    #[test]
+    fn program() {
+        let input = "let a := 5
+        a * a
+        ";
+
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).program(),
+            vec![
+                ASTNode::Let(
+                    Box::new(ASTNode::Signature(
+                        Box::new(ASTNode::Symbol(String::from("a"))),
+                        None,
+                    )),
+                    vec![],
+                    Box::new(ASTNode::Integer(String::from("5"))),
+                ),
+                ASTNode::Infix(
+                    InfixOperator::Product,
+                    Box::new(ASTNode::Symbol(String::from("a"))),
+                    Box::new(ASTNode::Symbol(String::from("a"))),
+                )
+            ],
         );
     }
 }
