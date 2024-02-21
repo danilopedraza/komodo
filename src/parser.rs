@@ -865,4 +865,18 @@ mod tests {
             ))),
         );
     }
+
+    #[test]
+    fn comma_last_item() {
+        let input = "(1,)";
+
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(ASTNode::Tuple(vec![ASTNode::Integer(String::from(
+                "1"
+            ))]))),
+        );
+    }
 }
