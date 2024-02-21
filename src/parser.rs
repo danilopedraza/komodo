@@ -147,7 +147,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 Token::Lparen => self.parenthesis(),
                 Token::Lbrace => self.set(),
                 Token::Integer(int) => Ok(ASTNode::Integer(int)),
-                Token::Ident(literal) => Ok(ASTNode::Symbol(literal)),
+                Token::Ident(literal) => match self.tokens.peek() {
+                    Some(Token::Lparen) => {
+                        self.tokens.next();
+                        self.list(Token::Rparen, None)
+                            .map(|lst| ASTNode::Call(literal, lst))
+                    }
+                    _ => Ok(ASTNode::Symbol(literal)),
+                },
                 tok if PrefixOperator::from(tok.clone()).is_some() => {
                     self.prefix(PrefixOperator::from(tok).unwrap())
                 }
@@ -838,6 +845,24 @@ mod tests {
                     Box::new(ASTNode::Symbol(String::from("a"))),
                 )
             ],
+        );
+    }
+
+    #[test]
+    fn function_call() {
+        let input = "f(x, y)";
+
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(ASTNode::Call(
+                String::from("f"),
+                vec![
+                    ASTNode::Symbol(String::from("x")),
+                    ASTNode::Symbol(String::from("y")),
+                ],
+            ))),
         );
     }
 }
