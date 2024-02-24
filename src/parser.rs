@@ -151,7 +151,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                     Some(Token::Lparen) => {
                         self.tokens.next();
                         self.list(Token::Rparen, None)
-                            .map(|lst| ASTNode::Call(literal, lst))
+                            .map(|lst| ASTNode::Call(Box::new(ASTNode::Symbol(literal)), lst))
                     }
                     _ => Ok(ASTNode::Symbol(literal)),
                 },
@@ -857,7 +857,7 @@ mod tests {
         assert_eq!(
             parser_from(lexer).next(),
             Some(Ok(ASTNode::Call(
-                String::from("f"),
+                Box::new(ASTNode::Symbol(String::from("f"))),
                 vec![
                     ASTNode::Symbol(String::from("x")),
                     ASTNode::Symbol(String::from("y")),
@@ -899,4 +899,16 @@ mod tests {
             )))
         );
     }
+
+    // #[test]
+    // fn anon_function_call() {
+    //     let input = "(x -> x)(1)";
+
+    //     let lexer = build_lexer(input);
+
+    //     assert_eq!(
+    //         parser_from(lexer).next(),
+    //         Some(Ok(ASTNode::Call((), ())))
+    //     );
+    // }
 }

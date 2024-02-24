@@ -115,7 +115,7 @@ impl PrefixOperator {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ASTNode {
     Boolean(bool),
-    Call(String, Vec<ASTNode>),
+    Call(Box<ASTNode>, Vec<ASTNode>),
     ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
     ExtensionSet(Vec<ASTNode>),
     If(Box<ASTNode>, Box<ASTNode>, Box<ASTNode>),
