@@ -14,6 +14,7 @@ pub enum Precedence {
     Addition,
     Multiplication,
     Exponentiation,
+    Call,
     Highest,
 }
 
@@ -22,6 +23,7 @@ pub enum InfixOperator {
     BitwiseAnd,
     BitwiseOr,
     BitwiseXor,
+    Call,
     Correspondence,
     Division,
     Equality,
@@ -47,6 +49,7 @@ impl InfixOperator {
             Token::BitwiseAnd => Some(Self::BitwiseAnd),
             Token::BitwiseOr => Some(Self::BitwiseOr),
             Token::BitwiseXor => Some(Self::BitwiseXor),
+            Token::Lparen => Some(Self::Call),
             Token::Greater => Some(Self::Greater),
             Token::GreaterEqual => Some(Self::GreaterEqual),
             Token::LeftShift => Some(Self::LeftShift),
@@ -73,6 +76,7 @@ impl InfixOperator {
             Self::BitwiseAnd => Precedence::BitwiseAnd,
             Self::BitwiseOr => Precedence::BitwiseOr,
             Self::BitwiseXor => Precedence::BitwiseXor,
+            Self::Call => Precedence::Call,
             Self::Correspondence => Precedence::Correspondence,
             Self::Division => Precedence::Multiplication,
             Self::Equality => Precedence::Comparison,

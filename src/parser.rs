@@ -236,8 +236,13 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn infix(&mut self, lhs: ASTNode, op: InfixOperator) -> NodeResult {
-        self.expression(op.precedence())
-            .map(|rhs| ASTNode::Infix(op, Box::new(lhs), Box::new(rhs)))
+        if op == InfixOperator::Call {
+            self.list(Token::Rparen, None)
+                .map(|args| ASTNode::Infix(op, Box::new(lhs), Box::new(ASTNode::Tuple(args))))
+        } else {
+            self.expression(op.precedence())
+                .map(|rhs| ASTNode::Infix(op, Box::new(lhs), Box::new(rhs)))
+        }
     }
 
     fn type_(&mut self) -> NodeResult {
@@ -900,15 +905,26 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn anon_function_call() {
-    //     let input = "(x -> x)(1)";
+    #[test]
+    fn anon_function_call() {
+        let input = "(x -> x)(1, 2)";
 
-    //     let lexer = build_lexer(input);
+        let lexer = build_lexer(input);
 
-    //     assert_eq!(
-    //         parser_from(lexer).next(),
-    //         Some(Ok(ASTNode::Call((), ())))
-    //     );
-    // }
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(ASTNode::Infix(
+                InfixOperator::Call,
+                Box::new(ASTNode::Infix(
+                    InfixOperator::Correspondence,
+                    Box::new(ASTNode::Symbol(String::from("x"))),
+                    Box::new(ASTNode::Symbol(String::from("x"))),
+                )),
+                Box::new(ASTNode::Tuple(vec![
+                    ASTNode::Integer(String::from("1")),
+                    ASTNode::Integer(String::from("2")),
+                ])),
+            )))
+        );
+    }
 }
