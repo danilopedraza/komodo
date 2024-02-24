@@ -879,4 +879,24 @@ mod tests {
             ))]))),
         );
     }
+
+    #[test]
+    fn anon_function() {
+        let input = "(x) -> 2*x";
+
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(ASTNode::Infix(
+                InfixOperator::Correspondence,
+                Box::new(ASTNode::Symbol(String::from("x"))),
+                Box::new(ASTNode::Infix(
+                    InfixOperator::Product,
+                    Box::new(ASTNode::Integer(String::from("2"))),
+                    Box::new(ASTNode::Symbol(String::from("x"))),
+                ))
+            )))
+        );
+    }
 }

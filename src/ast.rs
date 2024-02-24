@@ -3,6 +3,7 @@ use crate::lexer::Token;
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Precedence {
     Lowest,
+    Correspondence,
     LogicOr,
     LogicAnd,
     Comparison,
@@ -13,7 +14,6 @@ pub enum Precedence {
     Addition,
     Multiplication,
     Exponentiation,
-    Correspondence,
     Highest,
 }
 
