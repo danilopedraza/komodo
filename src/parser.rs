@@ -907,7 +907,7 @@ mod tests {
 
     #[test]
     fn anon_function_call() {
-        let input = "(x -> x)(1, 2)";
+        let input = "((x, y) -> x)(1, 2)";
 
         let lexer = build_lexer(input);
 
@@ -917,7 +917,10 @@ mod tests {
                 InfixOperator::Call,
                 Box::new(ASTNode::Infix(
                     InfixOperator::Correspondence,
-                    Box::new(ASTNode::Symbol(String::from("x"))),
+                    Box::new(ASTNode::Tuple(vec![
+                        ASTNode::Symbol(String::from("x")),
+                        ASTNode::Symbol(String::from("y")),
+                    ])),
                     Box::new(ASTNode::Symbol(String::from("x"))),
                 )),
                 Box::new(ASTNode::Tuple(vec![
