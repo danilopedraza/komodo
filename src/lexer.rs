@@ -109,7 +109,7 @@ impl Iterator for Lexer<'_> {
 impl Lexer<'_> {
     fn string_(&mut self) -> Result<Token, LexerError> {
         let mut str = String::new();
-        
+
         loop {
             match self.input.next() {
                 Some('"') => break Ok(Token::String(str)),
