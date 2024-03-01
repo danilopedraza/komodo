@@ -71,7 +71,7 @@ impl Iterator for Lexer<'_> {
             Some('\'') => {
                 let chr = self.input.next().unwrap();
                 match self.input.next() {
-                    Some(c) if c == '\'' => Some(Ok(Token::Char(chr))),
+                    Some('\'') => Some(Ok(Token::Char(chr))),
                     Some(c) => Some(Err(LexerError::UnexpectedCharError(c))),
                     None => Some(Err(LexerError::UnexpectedEOFError)),
                 }
