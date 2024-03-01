@@ -15,7 +15,7 @@ use std::io::{stdin, stdout, BufRead, Write};
 
 fn eval_line(line: &str) -> String {
     let lexer = build_lexer(line);
-    let mut parser = parser_from(lexer);
+    let mut parser = parser_from(lexer.map(|res| res.unwrap()));
     match parser.next() {
         None => String::from(""),
         Some(Ok(node)) => to_string(&eval(&node, &Default::default())),

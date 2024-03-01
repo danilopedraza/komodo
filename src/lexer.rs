@@ -1,6 +1,9 @@
 use std::{iter::Peekable, str::Chars, vec};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub enum LexerError {}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Token {
     Arrow,
     Assign,
@@ -48,7 +51,7 @@ pub struct Lexer<'a> {
 }
 
 impl Iterator for Lexer<'_> {
-    type Item = Token;
+    type Item = Result<Token, LexerError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.input.next() {
@@ -61,7 +64,7 @@ impl Iterator for Lexer<'_> {
                 self.skip_comment();
                 self.next()
             }
-            Some(chr) => Some(match chr {
+            Some(chr) => Some(Ok(match chr {
                 '!' => Token::Bang,
                 '^' => Token::BitwiseXor,
                 ',' => Token::Comma,
@@ -91,7 +94,7 @@ impl Iterator for Lexer<'_> {
                 '0'..='9' => self.integer(chr),
                 chr if chr.is_alphabetic() => self.identifier_or_keyword(chr),
                 _ => Token::Unknown,
-            }),
+            })),
         }
     }
 }
@@ -196,7 +199,7 @@ mod tests {
 
     #[test]
     fn plus_operator() {
-        assert_eq!(build_lexer("+").next(), Some(Token::Plus));
+        assert_eq!(build_lexer("+").next(), Some(Ok(Token::Plus)));
     }
 
     #[test]
@@ -207,7 +210,11 @@ mod tests {
     #[test]
     fn simple_expression() {
         assert_eq!(
-            build_lexer("x + y /= a").collect::<Vec<_>>(),
+            build_lexer("x + y /= a")
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|res| res.clone().unwrap())
+                .collect::<Vec<_>>(),
             vec![
                 Token::Ident(String::from('x')),
                 Token::Plus,
@@ -221,7 +228,11 @@ mod tests {
     #[test]
     fn simple_statement() {
         assert_eq!(
-            build_lexer("let x := 1 / 2.").collect::<Vec<_>>(),
+            build_lexer("let x := 1 / 2.")
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|res| res.clone().unwrap())
+                .collect::<Vec<_>>(),
             vec![
                 Token::Let,
                 Token::Ident(String::from('x')),
@@ -237,7 +248,11 @@ mod tests {
     #[test]
     fn complex_expression() {
         assert_eq!(
-            build_lexer("(x * y) = 23 % 2").collect::<Vec<_>>(),
+            build_lexer("(x * y) = 23 % 2")
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|res| res.clone().unwrap())
+                .collect::<Vec<_>>(),
             vec![
                 Token::Lparen,
                 Token::Ident(String::from('x')),
@@ -255,7 +270,11 @@ mod tests {
     #[test]
     fn leq_comparisons() {
         assert_eq!(
-            build_lexer("a < b <= c").collect::<Vec<_>>(),
+            build_lexer("a < b <= c")
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|res| res.clone().unwrap())
+                .collect::<Vec<_>>(),
             vec![
                 Token::Ident(String::from("a")),
                 Token::Less,
@@ -269,7 +288,11 @@ mod tests {
     #[test]
     fn geq_comparisons() {
         assert_eq!(
-            build_lexer("a > b >= c").collect::<Vec<_>>(),
+            build_lexer("a > b >= c")
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|res| res.clone().unwrap())
+                .collect::<Vec<_>>(),
             vec![
                 Token::Ident(String::from("a")),
                 Token::Greater,
@@ -283,7 +306,11 @@ mod tests {
     #[test]
     fn function_declaration() {
         assert_eq!(
-            build_lexer("let f: a -> a").collect::<Vec<_>>(),
+            build_lexer("let f: a -> a")
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|res| res.clone().unwrap())
+                .collect::<Vec<_>>(),
             vec![
                 Token::Let,
                 Token::Ident(String::from('f')),
@@ -298,7 +325,11 @@ mod tests {
     #[test]
     fn shift_operator() {
         assert_eq!(
-            build_lexer("(1 << 2) >> 2").collect::<Vec<_>>(),
+            build_lexer("(1 << 2) >> 2")
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|res| res.clone().unwrap())
+                .collect::<Vec<_>>(),
             vec![
                 Token::Lparen,
                 Token::Integer(String::from("1")),
@@ -314,7 +345,11 @@ mod tests {
     #[test]
     fn function_call() {
         assert_eq!(
-            build_lexer("f(x,y ** 2)").collect::<Vec<_>>(),
+            build_lexer("f(x,y ** 2)")
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|res| res.clone().unwrap())
+                .collect::<Vec<_>>(),
             vec![
                 Token::Ident(String::from('f')),
                 Token::Lparen,
@@ -331,7 +366,11 @@ mod tests {
     #[test]
     fn set() {
         assert_eq!(
-            build_lexer("{true, false}").collect::<Vec<_>>(),
+            build_lexer("{true, false}")
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|res| res.clone().unwrap())
+                .collect::<Vec<_>>(),
             vec![
                 Token::Lbrace,
                 Token::True,
@@ -345,7 +384,11 @@ mod tests {
     #[test]
     fn leading_zeros() {
         assert_eq!(
-            build_lexer("01").collect::<Vec<_>>(),
+            build_lexer("01")
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|res| res.clone().unwrap())
+                .collect::<Vec<_>>(),
             vec![
                 Token::Integer(String::from('0')),
                 Token::Integer(String::from('1'))
@@ -359,7 +402,11 @@ mod tests {
         print() # print";
 
         assert_eq!(
-            build_lexer(code).collect::<Vec<_>>(),
+            build_lexer(code)
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|res| res.clone().unwrap())
+                .collect::<Vec<_>>(),
             vec![
                 Token::Ident(String::from("input")),
                 Token::Lparen,
@@ -376,7 +423,11 @@ mod tests {
         let code = "if a < 0 then -a else a";
 
         assert_eq!(
-            build_lexer(code).collect::<Vec<_>>(),
+            build_lexer(code)
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|res| res.clone().unwrap())
+                .collect::<Vec<_>>(),
             vec![
                 Token::If,
                 Token::Ident(String::from("a")),
