@@ -68,14 +68,7 @@ impl Iterator for Lexer<'_> {
                 self.skip_comment();
                 self.next()
             }
-            Some('\'') => {
-                let chr = self.input.next().unwrap();
-                match self.input.next() {
-                    Some('\'') => Some(Ok(Token::Char(chr))),
-                    Some(c) => Some(Err(LexerError::UnexpectedCharError(c))),
-                    None => Some(Err(LexerError::UnexpectedEOFError)),
-                }
-            }
+            Some('\'') => self.char(),
             Some(chr) => Some(Ok(match chr {
                 '!' => Token::Bang,
                 '^' => Token::BitwiseXor,
@@ -112,6 +105,19 @@ impl Iterator for Lexer<'_> {
 }
 
 impl Lexer<'_> {
+    fn char(&mut self) -> Option<Result<Token, LexerError>> {
+        let chr = self.input.next();
+        if chr.is_none() {
+            return Some(Err(LexerError::UnexpectedEOFError));
+        }
+
+        Some(match self.input.next() {
+            Some('\'') => Ok(Token::Char(chr.unwrap())),
+            Some(c) => Err(LexerError::UnexpectedCharError(c)),
+            None => Err(LexerError::UnexpectedEOFError),
+        })
+    }
+
     fn skip_comment(&mut self) {
         for chr in self.input.by_ref() {
             if chr == 0xA as char {
