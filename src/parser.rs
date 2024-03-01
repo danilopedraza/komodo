@@ -140,6 +140,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let mut expr = match self.tokens.next() {
             None => Err(ParserError::EOFError),
             Some(tok) => match tok {
+                Token::Char(chr) => Ok(ASTNode::Char(chr)),
                 Token::If => self.if_(),
                 Token::Let => self.let_(),
                 Token::True => Ok(ASTNode::Boolean(true)),
@@ -155,6 +156,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                     }
                     _ => Ok(ASTNode::Symbol(literal)),
                 },
+                Token::String(str) => Ok(ASTNode::String(str)),
                 tok if PrefixOperator::from(tok.clone()).is_some() => {
                     self.prefix(PrefixOperator::from(tok).unwrap())
                 }
@@ -928,6 +930,21 @@ mod tests {
                     ASTNode::Integer(String::from("2")),
                 ])),
             )))
+        );
+    }
+
+    #[test]
+    fn char_and_string() {
+        let input = "('a', \"b\")";
+
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer.map(|res| res.unwrap())).next(),
+            Some(Ok(ASTNode::Tuple(vec![
+                ASTNode::Char('a'),
+                ASTNode::String(String::from('b')),
+            ])))
         );
     }
 }

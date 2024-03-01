@@ -107,6 +107,8 @@ pub fn eval(node: &ASTNode, _env: &Environment) -> Type {
             }
         }
         ASTNode::Call(_, _) => todo!(),
+        ASTNode::Char(_) => todo!(),
+        ASTNode::String(_) => todo!(),
     }
 }
 

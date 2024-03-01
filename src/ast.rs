@@ -120,6 +120,7 @@ impl PrefixOperator {
 pub enum ASTNode {
     Boolean(bool),
     Call(Box<ASTNode>, Vec<ASTNode>),
+    Char(char),
     ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
     ExtensionSet(Vec<ASTNode>),
     If(Box<ASTNode>, Box<ASTNode>, Box<ASTNode>),
@@ -128,6 +129,7 @@ pub enum ASTNode {
     Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
     Prefix(PrefixOperator, Box<ASTNode>),
     Signature(Box<ASTNode>, Option<Box<ASTNode>>),
+    String(String),
     Symbol(String),
     Tuple(Vec<ASTNode>),
 }
