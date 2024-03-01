@@ -37,11 +37,12 @@ pub enum Token {
     Minus,
     Mod,
     NotEqual,
+    Over,
     Plus,
     Rbrace,
     RightShift,
     Rparen,
-    Over,
+    String(String),
     Then,
     Tilde,
     Times,
@@ -69,6 +70,7 @@ impl Iterator for Lexer<'_> {
                 self.next()
             }
             Some('\'') => self.char(),
+            Some('"') => Some(self.string_()),
             Some(chr) => Some(Ok(match chr {
                 '!' => Token::Bang,
                 '^' => Token::BitwiseXor,
@@ -105,6 +107,18 @@ impl Iterator for Lexer<'_> {
 }
 
 impl Lexer<'_> {
+    fn string_(&mut self) -> Result<Token, LexerError> {
+        let mut str = String::new();
+        
+        loop {
+            match self.input.next() {
+                Some('"') => break Ok(Token::String(str)),
+                Some(c) => str.push(c),
+                None => break Err(LexerError::UnexpectedEOFError),
+            }
+        }
+    }
+
     fn char(&mut self) -> Option<Result<Token, LexerError>> {
         let chr = self.input.next();
         if chr.is_none() {
@@ -484,6 +498,16 @@ mod tests {
         assert_eq!(
             build_lexer(code).next(),
             Some(Err(LexerError::UnexpectedCharError(')')))
+        );
+    }
+
+    #[test]
+    fn string() {
+        let code = "\"abc\"";
+
+        assert_eq!(
+            build_lexer(code).next(),
+            Some(Ok(Token::String(String::from("abc")))),
         );
     }
 }
