@@ -1,7 +1,10 @@
 use std::{iter::Peekable, str::Chars, vec};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum LexerError {}
+pub enum LexerError {
+    UnexpectedCharError(char),
+    UnexpectedEOFError,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Token {
@@ -11,6 +14,7 @@ pub enum Token {
     BitwiseAnd,
     BitwiseOr,
     BitwiseXor,
+    Char(char),
     Colon,
     Comma,
     Dot,
@@ -63,6 +67,14 @@ impl Iterator for Lexer<'_> {
             Some('#') => {
                 self.skip_comment();
                 self.next()
+            }
+            Some('\'') => {
+                let chr = self.input.next().unwrap();
+                match self.input.next() {
+                    Some(c) if c == '\'' => Some(Ok(Token::Char(chr))),
+                    Some(c) => Some(Err(LexerError::UnexpectedCharError(c))),
+                    None => Some(Err(LexerError::UnexpectedEOFError)),
+                }
             }
             Some(chr) => Some(Ok(match chr {
                 '!' => Token::Bang,
@@ -439,6 +451,33 @@ mod tests {
                 Token::Else,
                 Token::Ident(String::from("a")),
             ]
+        );
+    }
+
+    #[test]
+    fn character() {
+        let code = "'x'";
+
+        assert_eq!(build_lexer(code).next(), Some(Ok(Token::Char('x'))),);
+    }
+
+    #[test]
+    fn unexpected_char_eof() {
+        let code = "'x";
+
+        assert_eq!(
+            build_lexer(code).next(),
+            Some(Err(LexerError::UnexpectedEOFError)),
+        );
+    }
+
+    #[test]
+    fn bad_delimiter() {
+        let code = "'x)";
+
+        assert_eq!(
+            build_lexer(code).next(),
+            Some(Err(LexerError::UnexpectedCharError(')')))
         );
     }
 }
