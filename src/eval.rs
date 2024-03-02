@@ -41,10 +41,10 @@ fn remove_repeated(vec: &Vec<ASTNode>) -> Vec<&ASTNode> {
     res
 }
 
-fn infix(op: InfixOperator, lhs: Object, rhs: Object) -> Object {
+fn infix(op: InfixOperator, lhs: Object, rhs: Object) -> Result<Object, EvalError> {
     type O = InfixOperator;
     type T = Object;
-    match (op, lhs, rhs) {
+    Ok(match (op, lhs, rhs) {
         (O::Equality, T::Symbol(l), T::Symbol(r)) => T::Boolean(l == r),
         (O::NotEquality, T::Number(l), T::Number(r)) => T::Boolean(l != r),
         (O::NotEquality, _, _) => T::Boolean(true),
@@ -66,17 +66,17 @@ fn infix(op: InfixOperator, lhs: Object, rhs: Object) -> Object {
         (O::LeftShift, T::Number(l), T::Number(r)) => T::Number(l << r),
         (O::RightShift, T::Number(l), T::Number(r)) => T::Number(l >> r),
         _ => todo!(),
-    }
+    })
 }
 
-fn prefix(op: PrefixOperator, expr: Object) -> Object {
+fn prefix(op: PrefixOperator, expr: Object) -> Result<Object, EvalError> {
     type P = PrefixOperator;
-    match (op, expr) {
+    Ok(match (op, expr) {
         (P::BitwiseNot, Object::Number(num)) => Object::Number(!num),
         (P::LogicNot, Object::Boolean(val)) => Object::Boolean(!val),
         (P::Minus, Object::Number(num)) => Object::Number(-num),
         _ => todo!(),
-    }
+    })
 }
 
 fn truthy(val: Object) -> bool {
@@ -104,8 +104,8 @@ pub fn eval(node: &ASTNode, _env: &Environment) -> Result<Object, EvalError> {
         ASTNode::Let(_, _, val) => eval(val, _env)?,
         ASTNode::Tuple(_) => todo!(),
         ASTNode::Signature(_, _) => todo!(),
-        ASTNode::Infix(op, lhs, rhs) => infix(*op, eval(lhs, _env)?, eval(rhs, _env)?),
-        ASTNode::Prefix(op, expr) => prefix(*op, eval(expr, _env)?),
+        ASTNode::Infix(op, lhs, rhs) => infix(*op, eval(lhs, _env)?, eval(rhs, _env)?)?,
+        ASTNode::Prefix(op, expr) => prefix(*op, eval(expr, _env)?)?,
         ASTNode::If(cond, true_res, false_res) => {
             if truthy(eval(cond, _env)?) {
                 eval(true_res, _env)?
