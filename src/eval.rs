@@ -4,8 +4,10 @@ use crate::env::Environment;
 #[derive(Debug, PartialEq, Eq)]
 pub enum Type {
     Boolean(bool),
+    Char(char),
     ExtensionSet(Vec<Type>),
     Number(i64),
+    String(String),
     Symbol(String),
 }
 
@@ -20,6 +22,8 @@ pub fn to_string(t: &Type) -> String {
             .join(", "),
         Type::Number(num) => num.to_string(),
         Type::Symbol(s) => s.to_string(),
+        Type::Char(chr) => String::from(*chr),
+        Type::String(str) => str.clone(),
     }
 }
 
@@ -107,8 +111,8 @@ pub fn eval(node: &ASTNode, _env: &Environment) -> Type {
             }
         }
         ASTNode::Call(_, _) => todo!(),
-        ASTNode::Char(_) => todo!(),
-        ASTNode::String(_) => todo!(),
+        ASTNode::Char(chr) => Type::Char(*chr),
+        ASTNode::String(str) => Type::String(str.clone()),
     }
 }
 
