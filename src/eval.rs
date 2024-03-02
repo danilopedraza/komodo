@@ -2,6 +2,9 @@ use crate::ast::{ASTNode, InfixOperator, PrefixOperator};
 use crate::env::Environment;
 
 #[derive(Debug, PartialEq, Eq)]
+pub enum EvalError {}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum Object {
     Boolean(bool),
     Char(char),
@@ -83,37 +86,37 @@ fn truthy(val: Object) -> bool {
     }
 }
 
-pub fn eval(node: &ASTNode, _env: &Environment) -> Object {
-    match node {
+pub fn eval(node: &ASTNode, _env: &Environment) -> Result<Object, EvalError> {
+    Ok(match node {
         ASTNode::Boolean(val) => Object::Boolean(*val),
         ASTNode::Integer(str) => Object::Number(str.parse().unwrap()),
         ASTNode::Symbol(str) => match _env.get(str) {
-            Some(val) => eval(val, _env),
+            Some(val) => eval(val, _env)?,
             None => Object::Symbol(str.clone()),
         },
         ASTNode::ExtensionSet(lst) => Object::ExtensionSet(
             remove_repeated(lst)
                 .iter()
-                .map(|val| eval(val, _env))
+                .map(|val| eval(val, _env).unwrap())
                 .collect(),
         ),
         ASTNode::ComprehensionSet(_, _) => todo!(),
-        ASTNode::Let(_, _, val) => eval(val, _env),
+        ASTNode::Let(_, _, val) => eval(val, _env)?,
         ASTNode::Tuple(_) => todo!(),
         ASTNode::Signature(_, _) => todo!(),
-        ASTNode::Infix(op, lhs, rhs) => infix(*op, eval(lhs, _env), eval(rhs, _env)),
-        ASTNode::Prefix(op, expr) => prefix(*op, eval(expr, _env)),
+        ASTNode::Infix(op, lhs, rhs) => infix(*op, eval(lhs, _env)?, eval(rhs, _env)?),
+        ASTNode::Prefix(op, expr) => prefix(*op, eval(expr, _env)?),
         ASTNode::If(cond, true_res, false_res) => {
-            if truthy(eval(cond, _env)) {
-                eval(true_res, _env)
+            if truthy(eval(cond, _env)?) {
+                eval(true_res, _env)?
             } else {
-                eval(false_res, _env)
+                eval(false_res, _env)?
             }
         }
         ASTNode::Call(_, _) => todo!(),
         ASTNode::Char(chr) => Object::Char(*chr),
         ASTNode::String(str) => Object::String(str.clone()),
-    }
+    })
 }
 
 #[cfg(test)]
@@ -128,7 +131,7 @@ mod tests {
         let node = &ASTNode::Symbol(String::from("a"));
         assert_eq!(
             eval(node, &Default::default()),
-            Object::Symbol(String::from("a"))
+            Ok(Object::Symbol(String::from("a")))
         );
     }
 
@@ -140,7 +143,9 @@ mod tests {
         ]);
         assert_eq!(
             eval(node, &Default::default()),
-            Object::ExtensionSet(vec![Object::Symbol(String::from("a")),])
+            Ok(Object::ExtensionSet(vec![Object::Symbol(String::from(
+                "a"
+            )),]))
         );
     }
 
@@ -152,7 +157,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("1"))),
         );
 
-        assert_eq!(eval(node, &Default::default()), Object::Number(1));
+        assert_eq!(eval(node, &Default::default()), Ok(Object::Number(1)));
     }
 
     #[test]
@@ -163,7 +168,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("1"))),
         );
 
-        assert_eq!(eval(node, &Default::default()), Object::Number(-1));
+        assert_eq!(eval(node, &Default::default()), Ok(Object::Number(-1)));
     }
 
     #[test]
@@ -174,7 +179,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("1"))),
         );
 
-        assert_eq!(eval(node, &Default::default()), Object::Number(0));
+        assert_eq!(eval(node, &Default::default()), Ok(Object::Number(0)));
     }
 
     #[test]
@@ -185,7 +190,7 @@ mod tests {
             Box::new(ASTNode::Symbol(String::from("b"))),
         );
 
-        assert_eq!(eval(node, &Default::default()), Object::Boolean(false));
+        assert_eq!(eval(node, &Default::default()), Ok(Object::Boolean(false)));
     }
 
     #[test]
@@ -196,7 +201,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("0"))),
         );
 
-        assert_eq!(eval(node, &Default::default()), Object::Number(0));
+        assert_eq!(eval(node, &Default::default()), Ok(Object::Number(0)));
     }
 
     #[test]
@@ -211,7 +216,7 @@ mod tests {
             Box::new(ASTNode::Boolean(false)),
         );
 
-        assert_eq!(eval(node, &Default::default()), Object::Boolean(false));
+        assert_eq!(eval(node, &Default::default()), Ok(Object::Boolean(false)));
     }
 
     #[test]
@@ -230,7 +235,7 @@ mod tests {
             )),
         );
 
-        assert_eq!(eval(node, &Default::default()), Object::Boolean(true));
+        assert_eq!(eval(node, &Default::default()), Ok(Object::Boolean(true)));
     }
 
     #[test]
@@ -249,7 +254,7 @@ mod tests {
             )),
         );
 
-        assert_eq!(eval(node, &Default::default()), Object::Boolean(true));
+        assert_eq!(eval(node, &Default::default()), Ok(Object::Boolean(true)));
     }
 
     #[test]
@@ -268,7 +273,7 @@ mod tests {
             )),
         );
 
-        assert_eq!(eval(node, &Default::default()), Object::Boolean(true));
+        assert_eq!(eval(node, &Default::default()), Ok(Object::Boolean(true)));
     }
 
     #[test]
@@ -287,7 +292,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("0"))),
         );
 
-        assert_eq!(eval(node, &Default::default()), Object::Number(7));
+        assert_eq!(eval(node, &Default::default()), Ok(Object::Number(7)));
     }
 
     #[test]
@@ -302,7 +307,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("1"))),
         );
 
-        assert_eq!(eval(node, &Default::default()), Object::Number(32));
+        assert_eq!(eval(node, &Default::default()), Ok(Object::Number(32)));
     }
 
     #[test]
@@ -317,7 +322,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("2"))),
         );
 
-        assert_eq!(eval(node, &Default::default()), Object::Number(4));
+        assert_eq!(eval(node, &Default::default()), Ok(Object::Number(4)));
     }
 
     #[test]
@@ -328,7 +333,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("2"))),
         );
 
-        assert_eq!(eval(node, &Default::default()), Object::Number(1));
+        assert_eq!(eval(node, &Default::default()), Ok(Object::Number(1)));
     }
 
     #[test]
@@ -348,7 +353,7 @@ mod tests {
             )),
         );
 
-        assert_eq!(eval(node, &Default::default()), Object::Boolean(false));
+        assert_eq!(eval(node, &Default::default()), Ok(Object::Boolean(false)));
     }
 
     #[test]
@@ -375,7 +380,7 @@ mod tests {
             Box::new(ASTNode::Symbol(String::from("a"))),
         );
 
-        assert_eq!(eval(node, &env), Object::Number(5));
+        assert_eq!(eval(node, &env), Ok(Object::Number(5)));
     }
 
     #[test]
@@ -386,6 +391,6 @@ mod tests {
 
         let node = &ASTNode::Symbol(String::from("x"));
 
-        assert_eq!(eval(node, &env), Object::Boolean(true));
+        assert_eq!(eval(node, &env), Ok(Object::Boolean(true)));
     }
 }
