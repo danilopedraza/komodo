@@ -427,7 +427,10 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("2"))),
         );
 
-        assert_eq!(_eval(node, &Default::default()), Ok(_Object::Integer(Integer::from(1))));
+        assert_eq!(
+            _eval(node, &Default::default()),
+            Ok(_Object::Integer(Integer::from(1)))
+        );
     }
 
     #[test]
@@ -447,7 +450,10 @@ mod tests {
             )),
         );
 
-        assert_eq!(_eval(node, &Default::default()), Ok(_Object::Boolean(Bool::from(false))));
+        assert_eq!(
+            _eval(node, &Default::default()),
+            Ok(_Object::Boolean(Bool::from(false)))
+        );
     }
 
     #[test]

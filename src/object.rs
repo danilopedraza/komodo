@@ -44,8 +44,8 @@ pub trait InfixOperable {
     }
 
     fn modulo(&self, _other: _Object) -> Result<_Object, ()> {
-      Err(())
-  }
+        Err(())
+    }
 
     fn neq(&self, _other: _Object) -> Result<_Object, ()> {
         Err(())
@@ -78,15 +78,15 @@ pub trait InfixOperable {
 
 pub trait PrefixOperable {
     fn bitwise_not(&self) -> Result<_Object, ()> {
-      Err(())
+        Err(())
     }
 
     fn logic_not(&self) -> Result<_Object, ()> {
-      Err(())
+        Err(())
     }
 
     fn inverse(&self) -> Result<_Object, ()> {
-      Err(())
+        Err(())
     }
 }
 
@@ -180,11 +180,11 @@ impl _Object {
     }
 
     pub fn modulo(&self, other: _Object) -> Result<_Object, ()> {
-      match self {
-          Self::Integer(int) => int.modulo(other),
-          _ => todo!(),
-      }
-  }
+        match self {
+            Self::Integer(int) => int.modulo(other),
+            _ => todo!(),
+        }
+    }
 
     pub fn neq(&self, other: _Object) -> Result<_Object, ()> {
         match self {
@@ -238,26 +238,26 @@ impl _Object {
 }
 
 impl _Object {
-  pub fn bitwise_not(&self) -> Result<_Object, ()> {
-    match self {
-      _Object::Integer(int) => int.bitwise_not(),
-      _ => todo!(),
+    pub fn bitwise_not(&self) -> Result<_Object, ()> {
+        match self {
+            _Object::Integer(int) => int.bitwise_not(),
+            _ => todo!(),
+        }
     }
-  }
 
-  pub fn logic_not(&self) -> Result<_Object, ()> {
-    match self {
-      _Object::Boolean(boolean) => boolean.logic_not(),
-      _ => todo!(),
+    pub fn logic_not(&self) -> Result<_Object, ()> {
+        match self {
+            _Object::Boolean(boolean) => boolean.logic_not(),
+            _ => todo!(),
+        }
     }
-  }
 
-  pub fn inverse(&self) -> Result<_Object, ()> {
-    match self {
-      _Object::Integer(int) => int.inverse(),
-      _ => todo!(),
+    pub fn inverse(&self) -> Result<_Object, ()> {
+        match self {
+            _Object::Integer(int) => int.inverse(),
+            _ => todo!(),
+        }
     }
-  }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -282,9 +282,9 @@ impl InfixOperable for Bool {
 }
 
 impl PrefixOperable for Bool {
-  fn logic_not(&self) -> Result<_Object, ()> {
-      Ok(_Object::Boolean(Bool::from(!self.val)))
-  }
+    fn logic_not(&self) -> Result<_Object, ()> {
+        Ok(_Object::Boolean(Bool::from(!self.val)))
+    }
 }
 
 impl From<bool> for Bool {
@@ -395,11 +395,13 @@ impl InfixOperable for Integer {
     }
 
     fn modulo(&self, other: _Object) -> Result<_Object, ()> {
-      match other {
-          _Object::Integer(Integer { val }) => Ok(_Object::Integer(Integer::from(self.val % val))),
-          _ => Err(()),
-      }
-  }
+        match other {
+            _Object::Integer(Integer { val }) => {
+                Ok(_Object::Integer(Integer::from(self.val % val)))
+            }
+            _ => Err(()),
+        }
+    }
 
     fn neq(&self, other: _Object) -> Result<_Object, ()> {
         match other {
@@ -464,13 +466,13 @@ impl InfixOperable for Integer {
 }
 
 impl PrefixOperable for Integer {
-  fn bitwise_not(&self) -> Result<_Object, ()> {
-      Ok(_Object::Integer(Integer::from(!self.val)))
-  }
+    fn bitwise_not(&self) -> Result<_Object, ()> {
+        Ok(_Object::Integer(Integer::from(!self.val)))
+    }
 
-  fn inverse(&self) -> Result<_Object, ()> {
-    Ok(_Object::Integer(Integer::from(-self.val)))
-  }
+    fn inverse(&self) -> Result<_Object, ()> {
+        Ok(_Object::Integer(Integer::from(-self.val)))
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
