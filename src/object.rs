@@ -95,7 +95,7 @@ pub enum _Object {
     Boolean(Bool),
     Char(Char),
     ExtensionSet(ExtensionSet),
-    ComprehensionSet(ComprehensionSet),
+    // ComprehensionSet(ComprehensionSet),
     Integer(Integer),
     String(MyString),
     Symbol(Symbol),
@@ -262,7 +262,7 @@ impl _Object {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Bool {
-    val: bool,
+    pub val: bool,
 }
 
 impl InfixOperable for Bool {
@@ -294,7 +294,15 @@ impl From<bool> for Bool {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Char {}
+pub struct Char {
+    val: char,
+}
+
+impl From<char> for Char {
+    fn from(val: char) -> Self {
+        Char { val }
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ExtensionSet {
@@ -476,7 +484,17 @@ impl PrefixOperable for Integer {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct MyString {}
+pub struct MyString {
+    val: String,
+}
+
+impl From<&str> for MyString {
+    fn from(val: &str) -> Self {
+        MyString {
+            val: val.to_string(),
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Symbol {

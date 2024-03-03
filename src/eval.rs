@@ -1,6 +1,6 @@
 use crate::ast::{ASTNode, InfixOperator, PrefixOperator};
 use crate::env::Environment;
-use crate::object::{Bool, ExtensionSet, Integer, Symbol, _Object};
+use crate::object::{Bool, Char, ExtensionSet, Integer, MyString, Symbol, _Object};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum EvalError {
@@ -89,6 +89,13 @@ fn truthy(val: Object) -> bool {
     }
 }
 
+fn _truthy(val: _Object) -> bool {
+    match val {
+        _Object::Boolean(Bool { val }) => val,
+        _ => false,
+    }
+}
+
 pub fn eval(node: &ASTNode, _env: &Environment) -> Result<Object, EvalError> {
     Ok(match node {
         ASTNode::Boolean(val) => Object::Boolean(*val),
@@ -124,21 +131,30 @@ pub fn eval(node: &ASTNode, _env: &Environment) -> Result<Object, EvalError> {
 
 pub fn _eval(node: &ASTNode, _env: &Environment) -> Result<_Object, EvalError> {
     match node {
-        ASTNode::Symbol(str) => Ok(Symbol::new(&str)),
+        ASTNode::Symbol(str) => match _env.get(str) {
+            Some(node) => _eval(node, _env),
+            None => Ok(Symbol::new(str)),
+        },
         ASTNode::ExtensionSet(list) => Ok(ExtensionSet::new(
             list.iter().map(|node| _eval(node, _env).unwrap()).collect(),
         )),
-        ASTNode::Integer(str) => Ok(Integer::new(&str)),
+        ASTNode::Integer(str) => Ok(Integer::new(str)),
         ASTNode::Infix(op, lhs, rhs) => _infix(*op, _eval(lhs, _env)?, _eval(rhs, _env)?),
         ASTNode::Let(_, _, node) => _eval(node, _env),
         ASTNode::Boolean(val) => Ok(_Object::Boolean(Bool::from(*val))),
         ASTNode::Call(_, _) => todo!(),
-        ASTNode::Char(_) => todo!(),
+        ASTNode::Char(chr) => Ok(_Object::Char(Char::from(*chr))),
         ASTNode::ComprehensionSet(_, _) => todo!(),
-        ASTNode::If(_, _, _) => todo!(),
+        ASTNode::If(cond, first, second) => {
+            if _truthy(_eval(cond, _env)?) {
+                _eval(first, _env)
+            } else {
+                _eval(second, _env)
+            }
+        }
         ASTNode::Prefix(op, node) => _prefix(*op, _eval(node, _env)?),
         ASTNode::Signature(_, _) => todo!(),
-        ASTNode::String(_) => todo!(),
+        ASTNode::String(str) => Ok(_Object::String(MyString::from(str.as_str()))),
         ASTNode::Tuple(_) => todo!(),
     }
 }
@@ -480,7 +496,7 @@ mod tests {
             Box::new(ASTNode::Symbol(String::from("a"))),
         );
 
-        assert_eq!(eval(node, &env), Ok(Object::Number(5)));
+        assert_eq!(_eval(node, &env), Ok(_Object::Integer(Integer::from(5))));
     }
 
     #[test]
@@ -491,6 +507,6 @@ mod tests {
 
         let node = &ASTNode::Symbol(String::from("x"));
 
-        assert_eq!(eval(node, &env), Ok(Object::Boolean(true)));
+        assert_eq!(_eval(node, &env), Ok(_Object::Boolean(Bool::from(true))));
     }
 }
