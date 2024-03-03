@@ -7,7 +7,6 @@ pub enum EvalError {
     NonExistentOperationError,
 }
 
-
 fn _truthy(val: _Object) -> bool {
     match val {
         _Object::Boolean(Bool { val }) => val,
@@ -19,12 +18,14 @@ pub fn _eval(node: &ASTNode, _env: &Environment) -> Result<_Object, EvalError> {
     match node {
         ASTNode::Symbol(str) => match _env.get(str) {
             Some(node) => _eval(node, _env),
-            None => Ok(Symbol::new(str)),
+            None => Ok(_Object::Symbol(Symbol::from(str.as_str()))),
         },
-        ASTNode::ExtensionSet(list) => Ok(ExtensionSet::new(
-            list.iter().map(|node| _eval(node, _env).unwrap()).collect(),
-        )),
-        ASTNode::Integer(str) => Ok(Integer::new(str)),
+        ASTNode::ExtensionSet(list) => Ok(_Object::ExtensionSet(ExtensionSet::from(
+            list.iter()
+                .map(|node| _eval(node, _env).unwrap())
+                .collect::<Vec<_>>(),
+        ))),
+        ASTNode::Integer(str) => Ok(_Object::Integer(Integer::from(str.as_str()))),
         ASTNode::Infix(op, lhs, rhs) => _infix(*op, _eval(lhs, _env)?, _eval(rhs, _env)?),
         ASTNode::Let(_, _, node) => _eval(node, _env),
         ASTNode::Boolean(val) => Ok(_Object::Boolean(Bool::from(*val))),
@@ -100,7 +101,10 @@ mod tests {
     #[test]
     fn symbol() {
         let node = &ASTNode::Symbol(String::from("a"));
-        assert_eq!(_eval(node, &Default::default()), Ok(Symbol::new("a")));
+        assert_eq!(
+            _eval(node, &Default::default()),
+            Ok(_Object::Symbol(Symbol::from("a")))
+        );
     }
 
     #[test]
@@ -111,7 +115,10 @@ mod tests {
         ]);
         assert_eq!(
             _eval(node, &Default::default()),
-            Ok(ExtensionSet::new(vec![Symbol::new("a"), Symbol::new("a"),])),
+            Ok(_Object::ExtensionSet(ExtensionSet::from(vec![
+                _Object::Symbol(Symbol::from("a")),
+                _Object::Symbol(Symbol::from("a")),
+            ]))),
         );
     }
 
@@ -123,7 +130,10 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("1"))),
         );
 
-        assert_eq!(_eval(node, &Default::default()), Ok(Integer::new("1")));
+        assert_eq!(
+            _eval(node, &Default::default()),
+            Ok(_Object::Integer(Integer::from("1")))
+        );
     }
 
     #[test]
@@ -148,7 +158,10 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("1"))),
         );
 
-        assert_eq!(_eval(node, &Default::default()), Ok(Integer::new("0")));
+        assert_eq!(
+            _eval(node, &Default::default()),
+            Ok(_Object::Integer(Integer::from("0")))
+        );
     }
 
     #[test]

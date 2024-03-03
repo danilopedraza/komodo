@@ -338,9 +338,9 @@ pub struct ExtensionSet {
     list: Vec<_Object>,
 }
 
-impl ExtensionSet {
-    pub fn new(list: Vec<_Object>) -> _Object {
-        _Object::ExtensionSet(Self { list })
+impl From<Vec<_Object>> for ExtensionSet {
+    fn from(list: Vec<_Object>) -> Self {
+        Self { list }
     }
 }
 
@@ -365,14 +365,6 @@ pub struct Integer {
     val: i64,
 }
 
-impl Integer {
-    pub fn new(val: &str) -> _Object {
-        _Object::Integer(Self {
-            val: val.parse().unwrap(),
-        })
-    }
-}
-
 impl fmt::Display for Integer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.val)
@@ -382,6 +374,14 @@ impl fmt::Display for Integer {
 impl From<i64> for Integer {
     fn from(val: i64) -> Self {
         Self { val }
+    }
+}
+
+impl From<&str> for Integer {
+    fn from(val: &str) -> Self {
+        Self {
+            val: val.parse().unwrap(),
+        }
     }
 }
 
@@ -555,11 +555,9 @@ pub struct Symbol {
     val: String,
 }
 
-impl Symbol {
-    pub fn new(val: &str) -> _Object {
-        _Object::Symbol(Self {
-            val: val.to_string(),
-        })
+impl From<&str> for Symbol {
+    fn from(val: &str) -> Self {
+        Self { val: val.into() }
     }
 }
 
