@@ -86,168 +86,81 @@ impl fmt::Display for Object {
     }
 }
 
-impl Object {
-    pub fn bitwise_and(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Boolean(left) => left.bitwise_and(other),
-            Self::Char(left) => left.bitwise_and(other),
-            Self::ExtensionSet(left) => left.bitwise_and(other),
-            Self::Integer(left) => left.bitwise_and(other),
-            Self::String(left) => left.bitwise_and(other),
-            Self::Symbol(left) => left.bitwise_and(other),
+macro_rules! derived_object_infix_trait {
+    ($ident:ident) => {
+        pub fn $ident(&self, other: Object) -> Result<Object, ()> {
+            match self {
+                Self::Boolean(left) => left.$ident(other),
+                Self::Char(left) => left.$ident(other),
+                Self::ExtensionSet(left) => left.$ident(other),
+                Self::Integer(left) => left.$ident(other),
+                Self::String(left) => left.$ident(other),
+                Self::Symbol(left) => left.$ident(other),
+            }
         }
-    }
-
-    pub fn bitwise_or(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Integer(int) => int.bitwise_or(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn bitwise_xor(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Integer(int) => int.bitwise_xor(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn equality(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Symbol(symbol) => symbol.equality(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn greater(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Integer(int) => int.greater(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn greater_equal(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Integer(int) => int.greater_equal(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn left_shift(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Integer(int) => int.left_shift(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn less(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Integer(int) => int.less(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn less_equal(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Integer(int) => int.less_equal(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn logic_and(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Boolean(boolean) => boolean.logic_and(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn logic_or(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Boolean(boolean) => boolean.logic_or(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn modulo(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Integer(int) => int.modulo(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn neq(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Integer(int) => int.neq(other),
-            Self::Boolean(boolean) => boolean.neq(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn over(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Integer(int) => int.over(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn pow(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Integer(int) => int.pow(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn product(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Integer(int) => int.product(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn right_shift(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Integer(int) => int.right_shift(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn sum(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Integer(int) => int.sum(other),
-            _ => todo!(),
-        }
-    }
-
-    pub fn substraction(&self, other: Object) -> Result<Object, ()> {
-        match self {
-            Self::Integer(int) => int.substraction(other),
-            _ => todo!(),
-        }
-    }
+    };
 }
 
-impl Object {
-    pub fn bitwise_not(&self) -> Result<Object, ()> {
-        match self {
-            Object::Integer(int) => int.bitwise_not(),
-            _ => todo!(),
+macro_rules! derived_object_infix_traits {
+    () => {};
+    ($($ident:ident),*) => {
+        impl Object {
+            $(
+                derived_object_infix_trait!($ident);
+            )*
         }
-    }
-
-    pub fn logic_not(&self) -> Result<Object, ()> {
-        match self {
-            Object::Boolean(boolean) => boolean.logic_not(),
-            _ => todo!(),
-        }
-    }
-
-    pub fn inverse(&self) -> Result<Object, ()> {
-        match self {
-            Object::Integer(int) => int.inverse(),
-            _ => todo!(),
-        }
-    }
+    };
 }
+
+derived_object_infix_traits!(
+    bitwise_and,
+    bitwise_or,
+    bitwise_xor,
+    equality,
+    greater,
+    greater_equal,
+    left_shift,
+    less,
+    less_equal,
+    logic_and,
+    logic_or,
+    modulo,
+    neq,
+    over,
+    pow,
+    product,
+    right_shift,
+    sum,
+    substraction
+);
+
+macro_rules! derived_object_prefix_trait {
+    ($ident:ident) => {
+        pub fn $ident(&self) -> Result<Object, ()> {
+            match self {
+                Self::Boolean(left) => left.$ident(),
+                Self::Char(left) => left.$ident(),
+                Self::ExtensionSet(left) => left.$ident(),
+                Self::Integer(left) => left.$ident(),
+                Self::String(left) => left.$ident(),
+                Self::Symbol(left) => left.$ident(),
+            }
+        }
+    };
+}
+
+macro_rules! derived_object_prefix_traits {
+    () => {};
+    ($($ident:ident),*) => {
+        impl Object {
+            $(
+                derived_object_prefix_trait!($ident);
+            )*
+        }
+    };
+}
+
+derived_object_prefix_traits!(bitwise_not, logic_not, inverse);
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Bool {
@@ -296,6 +209,7 @@ pub struct Char {
 }
 
 impl InfixOperable for Char {}
+impl PrefixOperable for Char {}
 
 impl fmt::Display for Char {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -315,6 +229,7 @@ pub struct ExtensionSet {
 }
 
 impl InfixOperable for ExtensionSet {}
+impl PrefixOperable for ExtensionSet {}
 
 impl From<Vec<Object>> for ExtensionSet {
     fn from(list: Vec<Object>) -> Self {
@@ -495,6 +410,7 @@ pub struct MyString {
 }
 
 impl InfixOperable for MyString {}
+impl PrefixOperable for MyString {}
 
 impl fmt::Display for MyString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -535,3 +451,5 @@ impl InfixOperable for Symbol {
         }
     }
 }
+
+impl PrefixOperable for Symbol {}
