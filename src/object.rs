@@ -1,96 +1,66 @@
 use std::fmt;
 
-pub trait InfixOperable {
-    fn bitwise_and(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn bitwise_or(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn bitwise_xor(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn equality(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn greater(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn greater_equal(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn left_shift(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn less(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn less_equal(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn logic_and(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn logic_or(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn modulo(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn neq(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn over(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn pow(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn product(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn right_shift(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn sum(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn substraction(&self, _other: Object) -> Result<Object, ()> {
-        Err(())
-    }
+macro_rules! default_infix_method {
+    ($ident:ident) => {
+        fn $ident(&self, _other: Object) -> Result<Object, ()> {
+            Err(())
+        }
+    };
 }
 
-pub trait PrefixOperable {
-    fn bitwise_not(&self) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn logic_not(&self) -> Result<Object, ()> {
-        Err(())
-    }
-
-    fn inverse(&self) -> Result<Object, ()> {
-        Err(())
-    }
+macro_rules! default_infix_methods {
+    () => {};
+    ($($ident:ident),*) => {
+        pub trait InfixOperable {
+            $(
+                default_infix_method!($ident);
+            )*
+        }
+    };
 }
+
+default_infix_methods!(
+    bitwise_and,
+    bitwise_or,
+    bitwise_xor,
+    equality,
+    greater,
+    greater_equal,
+    left_shift,
+    less,
+    less_equal,
+    logic_and,
+    logic_or,
+    modulo,
+    neq,
+    over,
+    pow,
+    product,
+    right_shift,
+    sum,
+    substraction
+);
+
+macro_rules! default_prefix_method {
+    ($ident:ident) => {
+        fn $ident(&self) -> Result<Object, ()> {
+            Err(())
+        }
+    };
+}
+
+macro_rules! default_prefix_methods {
+    () => {};
+    ($($ident:ident),*) => {
+        pub trait PrefixOperable {
+            $(
+                default_prefix_method!($ident);
+            )*
+        }
+    };
+}
+
+default_prefix_methods!(bitwise_not, logic_not, inverse);
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Object {
