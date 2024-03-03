@@ -1,3 +1,5 @@
+use std::fmt;
+
 pub trait InfixOperable {
     fn bitwise_and(&self, _other: _Object) -> Result<_Object, ()> {
         Err(())
@@ -99,6 +101,19 @@ pub enum _Object {
     Integer(Integer),
     String(MyString),
     Symbol(Symbol),
+}
+
+impl fmt::Display for _Object {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            _Object::Boolean(boolean) => boolean.fmt(f),
+            _Object::Char(chr) => chr.fmt(f),
+            _Object::ExtensionSet(es) => es.fmt(f),
+            _Object::Integer(int) => int.fmt(f),
+            _Object::String(str) => str.fmt(f),
+            _Object::Symbol(s) => s.fmt(f),
+        }
+    }
 }
 
 impl _Object {
@@ -265,6 +280,14 @@ pub struct Bool {
     pub val: bool,
 }
 
+impl fmt::Display for Bool {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let text = if self.val { "true" } else { "false" };
+
+        write!(f, "{}", text)
+    }
+}
+
 impl InfixOperable for Bool {
     fn logic_and(&self, other: _Object) -> Result<_Object, ()> {
         match other {
@@ -298,6 +321,12 @@ pub struct Char {
     val: char,
 }
 
+impl fmt::Display for Char {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.val)
+    }
+}
+
 impl From<char> for Char {
     fn from(val: char) -> Self {
         Char { val }
@@ -315,6 +344,19 @@ impl ExtensionSet {
     }
 }
 
+impl fmt::Display for ExtensionSet {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let list = self
+            .list
+            .iter()
+            .map(|obj| obj.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        write!(f, "[{}]", list)
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct ComprehensionSet {}
 
@@ -328,6 +370,12 @@ impl Integer {
         _Object::Integer(Self {
             val: val.parse().unwrap(),
         })
+    }
+}
+
+impl fmt::Display for Integer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.val)
     }
 }
 
@@ -488,6 +536,12 @@ pub struct MyString {
     val: String,
 }
 
+impl fmt::Display for MyString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.val)
+    }
+}
+
 impl From<&str> for MyString {
     fn from(val: &str) -> Self {
         MyString {
@@ -506,6 +560,12 @@ impl Symbol {
         _Object::Symbol(Self {
             val: val.to_string(),
         })
+    }
+}
+
+impl fmt::Display for Symbol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.val)
     }
 }
 
