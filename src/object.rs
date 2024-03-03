@@ -89,8 +89,12 @@ impl fmt::Display for Object {
 impl Object {
     pub fn bitwise_and(&self, other: Object) -> Result<Object, ()> {
         match self {
-            Self::Integer(int) => int.bitwise_and(other),
-            _ => todo!(),
+            Self::Boolean(left) => left.bitwise_and(other),
+            Self::Char(left) => left.bitwise_and(other),
+            Self::ExtensionSet(left) => left.bitwise_and(other),
+            Self::Integer(left) => left.bitwise_and(other),
+            Self::String(left) => left.bitwise_and(other),
+            Self::Symbol(left) => left.bitwise_and(other),
         }
     }
 
@@ -291,6 +295,8 @@ pub struct Char {
     val: char,
 }
 
+impl InfixOperable for Char {}
+
 impl fmt::Display for Char {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.val)
@@ -307,6 +313,8 @@ impl From<char> for Char {
 pub struct ExtensionSet {
     list: Vec<Object>,
 }
+
+impl InfixOperable for ExtensionSet {}
 
 impl From<Vec<Object>> for ExtensionSet {
     fn from(list: Vec<Object>) -> Self {
@@ -485,6 +493,8 @@ impl PrefixOperable for Integer {
 pub struct MyString {
     val: String,
 }
+
+impl InfixOperable for MyString {}
 
 impl fmt::Display for MyString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
