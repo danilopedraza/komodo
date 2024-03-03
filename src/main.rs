@@ -7,7 +7,7 @@ mod parser;
 // mod semantic;
 mod eval;
 
-use eval::_eval;
+use eval::eval;
 use file::parse_file;
 use lexer::build_lexer;
 use parser::parser_from;
@@ -19,7 +19,7 @@ fn eval_line(line: &str) -> String {
     let mut parser = parser_from(lexer.map(|res| res.unwrap()));
     match parser.next() {
         None => String::from(""),
-        Some(Ok(node)) => _eval(&node, &Default::default()).unwrap().to_string(),
+        Some(Ok(node)) => eval(&node, &Default::default()).unwrap().to_string(),
         Some(Err(_)) => String::from("error"),
     }
 }
@@ -44,7 +44,7 @@ fn main() -> std::io::Result<()> {
     } else {
         let nodes = parse_file(&args[1]);
         for node in nodes {
-            let line = _eval(&node, &Default::default()).unwrap().to_string();
+            let line = eval(&node, &Default::default()).unwrap().to_string();
             println!("{line}");
         }
     }
