@@ -1,8 +1,11 @@
 use crate::ast::{ASTNode, InfixOperator, PrefixOperator};
 use crate::env::Environment;
+use crate::object::{ExtensionSet, Integer, Symbol, _Object};
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum EvalError {}
+pub enum EvalError {
+    NonExistentOperationError,
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Object {
@@ -119,33 +122,53 @@ pub fn eval(node: &ASTNode, _env: &Environment) -> Result<Object, EvalError> {
     })
 }
 
+pub fn _eval(node: &ASTNode, _env: &Environment) -> Result<_Object, EvalError> {
+    match node {
+        ASTNode::Symbol(str) => Ok(Symbol::new(&str)),
+        ASTNode::ExtensionSet(list) => Ok(ExtensionSet::new(
+            list.iter().map(|node| _eval(node, _env).unwrap()).collect(),
+        )),
+        ASTNode::Integer(str) => Ok(Integer::new(&str)),
+        ASTNode::Infix(op, lhs, rhs) => _infix(*op, _eval(lhs, _env)?, _eval(rhs, _env)?),
+        _ => todo!(),
+    }
+}
+
+fn _infix(op: InfixOperator, lhs: _Object, rhs: _Object) -> Result<_Object, EvalError> {
+    let res = match op {
+        InfixOperator::Sum => lhs.sum(rhs),
+        _ => todo!(),
+    };
+
+    match res {
+        Err(()) => Err(EvalError::NonExistentOperationError),
+        Ok(obj) => Ok(obj),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::vec;
 
     use super::*;
     use crate::ast::ASTNode;
+    use crate::object::*;
 
     #[test]
     fn symbol() {
         let node = &ASTNode::Symbol(String::from("a"));
-        assert_eq!(
-            eval(node, &Default::default()),
-            Ok(Object::Symbol(String::from("a")))
-        );
+        assert_eq!(_eval(node, &Default::default()), Ok(Symbol::new("a")));
     }
 
     #[test]
-    fn set_with_repeated_elements() {
+    fn set_by_extension() {
         let node = &ASTNode::ExtensionSet(vec![
             ASTNode::Symbol(String::from("a")),
             ASTNode::Symbol(String::from("a")),
         ]);
         assert_eq!(
-            eval(node, &Default::default()),
-            Ok(Object::ExtensionSet(vec![Object::Symbol(String::from(
-                "a"
-            )),]))
+            _eval(node, &Default::default()),
+            Ok(ExtensionSet::new(vec![Symbol::new("a"), Symbol::new("a"),])),
         );
     }
 
@@ -157,7 +180,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("1"))),
         );
 
-        assert_eq!(eval(node, &Default::default()), Ok(Object::Number(1)));
+        assert_eq!(_eval(node, &Default::default()), Ok(Integer::new("1")));
     }
 
     #[test]

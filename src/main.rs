@@ -2,6 +2,7 @@ mod ast;
 mod env;
 mod file;
 mod lexer;
+mod object;
 mod parser;
 // mod semantic;
 mod eval;
