@@ -1,5 +1,17 @@
 pub trait Operable {
+    fn equality(&self, _other: _Object) -> Result<_Object, ()> {
+        Err(())
+    }
+
+    fn product(&self, _other: _Object) -> Result<_Object, ()> {
+        Err(())
+    }
+
     fn sum(&self, _other: _Object) -> Result<_Object, ()> {
+        Err(())
+    }
+
+    fn substraction(&self, _other: _Object) -> Result<_Object, ()> {
         Err(())
     }
 }
@@ -16,16 +28,45 @@ pub enum _Object {
 }
 
 impl _Object {
+    pub fn equality(&self, other: _Object) -> Result<_Object, ()> {
+        match self {
+            Self::Symbol(symbol) => symbol.equality(other),
+            _ => todo!(),
+        }
+    }
+
+    pub fn product(&self, other: _Object) -> Result<_Object, ()> {
+        match self {
+            Self::Integer(int) => int.product(other),
+            _ => todo!(),
+        }
+    }
+
     pub fn sum(&self, other: _Object) -> Result<_Object, ()> {
         match self {
             Self::Integer(int) => int.sum(other),
             _ => todo!(),
         }
     }
+
+    pub fn substraction(&self, other: _Object) -> Result<_Object, ()> {
+        match self {
+            Self::Integer(int) => int.substraction(other),
+            _ => todo!(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct Bool {}
+pub struct Bool {
+    val: bool,
+}
+
+impl From<bool> for Bool {
+    fn from(val: bool) -> Self {
+        Self { val }
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 struct Char {}
@@ -57,9 +98,38 @@ impl Integer {
     }
 }
 
+impl From<i64> for Integer {
+    fn from(val: i64) -> Self {
+        Self { val }
+    }
+}
+
 impl Operable for Integer {
     fn sum(&self, other: _Object) -> Result<_Object, ()> {
-        Ok(Self::new("1"))
+        match other {
+            _Object::Integer(Integer { val }) => {
+                Ok(_Object::Integer(Integer::from(self.val + val)))
+            }
+            _ => Err(()),
+        }
+    }
+
+    fn substraction(&self, other: _Object) -> Result<_Object, ()> {
+        match other {
+            _Object::Integer(Integer { val }) => {
+                Ok(_Object::Integer(Integer::from(self.val - val)))
+            }
+            _ => Err(()),
+        }
+    }
+
+    fn product(&self, other: _Object) -> Result<_Object, ()> {
+        match other {
+            _Object::Integer(Integer { val }) => {
+                Ok(_Object::Integer(Integer::from(self.val * val)))
+            }
+            _ => Err(()),
+        }
     }
 }
 
@@ -76,5 +146,14 @@ impl Symbol {
         _Object::Symbol(Self {
             val: val.to_string(),
         })
+    }
+}
+
+impl Operable for Symbol {
+    fn equality(&self, other: _Object) -> Result<_Object, ()> {
+        match other {
+            _Object::Symbol(symbol) => Ok(_Object::Boolean(Bool::from(self.val == symbol.val))),
+            _ => todo!(),
+        }
     }
 }

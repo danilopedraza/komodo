@@ -130,13 +130,17 @@ pub fn _eval(node: &ASTNode, _env: &Environment) -> Result<_Object, EvalError> {
         )),
         ASTNode::Integer(str) => Ok(Integer::new(&str)),
         ASTNode::Infix(op, lhs, rhs) => _infix(*op, _eval(lhs, _env)?, _eval(rhs, _env)?),
+        ASTNode::Let(_, _, node) => _eval(node, _env),
         _ => todo!(),
     }
 }
 
 fn _infix(op: InfixOperator, lhs: _Object, rhs: _Object) -> Result<_Object, EvalError> {
     let res = match op {
+        InfixOperator::Equality => lhs.equality(rhs),
+        InfixOperator::Product => lhs.product(rhs),
         InfixOperator::Sum => lhs.sum(rhs),
+        InfixOperator::Substraction => lhs.substraction(rhs),
         _ => todo!(),
     };
 
@@ -191,7 +195,10 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("1"))),
         );
 
-        assert_eq!(eval(node, &Default::default()), Ok(Object::Number(-1)));
+        assert_eq!(
+            _eval(node, &Default::default()),
+            Ok(_Object::Integer(Integer::from(-1)))
+        );
     }
 
     #[test]
@@ -202,7 +209,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("1"))),
         );
 
-        assert_eq!(eval(node, &Default::default()), Ok(Object::Number(0)));
+        assert_eq!(_eval(node, &Default::default()), Ok(Integer::new("0")));
     }
 
     #[test]
@@ -213,7 +220,10 @@ mod tests {
             Box::new(ASTNode::Symbol(String::from("b"))),
         );
 
-        assert_eq!(eval(node, &Default::default()), Ok(Object::Boolean(false)));
+        assert_eq!(
+            _eval(node, &Default::default()),
+            Ok(_Object::Boolean(Bool::from(false)))
+        );
     }
 
     #[test]
@@ -224,7 +234,10 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("0"))),
         );
 
-        assert_eq!(eval(node, &Default::default()), Ok(Object::Number(0)));
+        assert_eq!(
+            _eval(node, &Default::default()),
+            Ok(_Object::Integer(Integer::from(0)))
+        );
     }
 
     #[test]
