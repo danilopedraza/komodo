@@ -14,17 +14,27 @@ fn truthy(val: Object) -> bool {
     }
 }
 
+fn list(l: &Vec<ASTNode>, env: &Environment) -> Result<Vec<Object>, EvalError> {
+    let mut objs = vec![];
+
+    for node in l {
+        let obj = eval(node, env)?;
+
+        objs.push(obj);
+    }
+
+    Ok(objs)
+}
+
 pub fn eval(node: &ASTNode, _env: &Environment) -> Result<Object, EvalError> {
     match node {
         ASTNode::Symbol(str) => match _env.get(str) {
             Some(node) => eval(node, _env),
             None => Ok(Object::Symbol(Symbol::from(str.as_str()))),
         },
-        ASTNode::ExtensionSet(list) => Ok(Object::ExtensionSet(ExtensionSet::from(
-            list.iter()
-                .map(|node| eval(node, _env).unwrap())
-                .collect::<Vec<_>>(),
-        ))),
+        ASTNode::ExtensionSet(l) => {
+            list(l, _env).map(|lst| Object::ExtensionSet(ExtensionSet::from(lst)))
+        }
         ASTNode::Integer(str) => Ok(Object::Integer(Integer::from(str.as_str()))),
         ASTNode::Infix(op, lhs, rhs) => infix(*op, eval(lhs, _env)?, eval(rhs, _env)?),
         ASTNode::Let(_, _, node) => eval(node, _env),
