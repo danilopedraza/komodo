@@ -431,7 +431,7 @@ mod tests {
             Box::new(ASTNode::Integer(String::from("0"))),
         );
 
-        assert!(matches!(exec(node, &mut env), Ok(_)));
+        assert!(exec(node, &mut env).is_ok());
 
         assert_eq!(env.get("x"), Some(&Object::Integer(Integer::from(0))));
     }
