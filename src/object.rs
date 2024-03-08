@@ -62,7 +62,7 @@ macro_rules! default_prefix_methods {
 
 default_prefix_methods!(bitwise_not, logic_not, inverse);
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Object {
     Boolean(Bool),
     Char(Char),
@@ -162,7 +162,7 @@ macro_rules! derived_object_prefix_traits {
 
 derived_object_prefix_traits!(bitwise_not, logic_not, inverse);
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Bool {
     pub val: bool,
 }
@@ -203,7 +203,7 @@ impl From<bool> for Bool {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Char {
     val: char,
 }
@@ -223,7 +223,7 @@ impl From<char> for Char {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExtensionSet {
     list: Vec<Object>,
 }
@@ -253,7 +253,7 @@ impl fmt::Display for ExtensionSet {
 #[derive(Debug, PartialEq, Eq)]
 pub struct ComprehensionSet {}
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Integer {
     val: i64,
 }
@@ -404,7 +404,7 @@ impl PrefixOperable for Integer {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MyString {
     val: String,
 }
@@ -426,7 +426,7 @@ impl From<&str> for MyString {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Symbol {
     val: String,
 }

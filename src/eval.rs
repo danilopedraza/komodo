@@ -29,7 +29,7 @@ fn list(l: &Vec<ASTNode>, env: &Environment) -> Result<Vec<Object>, EvalError> {
 pub fn exec(node: &ASTNode, _env: &Environment) -> Result<Object, EvalError> {
     match node {
         ASTNode::Symbol(str) => match _env.get(str) {
-            Some(node) => exec(node, _env),
+            Some(obj) => Ok(obj.clone()),
             None => Ok(Object::Symbol(Symbol::from(str.as_str()))),
         },
         ASTNode::ExtensionSet(l) => {
@@ -384,13 +384,7 @@ mod tests {
     #[test]
     fn if_expr() {
         let mut env = Environment::default();
-        env.set(
-            "a",
-            ASTNode::Prefix(
-                PrefixOperator::Minus,
-                Box::new(ASTNode::Integer(String::from("5"))),
-            ),
-        );
+        env.set("a", Object::Integer(Integer::from(-5)));
 
         let node = &ASTNode::If(
             Box::new(ASTNode::Infix(
@@ -411,11 +405,26 @@ mod tests {
     #[test]
     fn scope_hierarchy() {
         let mut env = Environment::default();
-        env.set("x", ASTNode::Boolean(true));
+        env.set("x", Object::Boolean(Bool::from(true)));
         env = env.new_scope();
 
         let node = &ASTNode::Symbol(String::from("x"));
 
         assert_eq!(exec(node, &env), Ok(Object::Boolean(Bool::from(true))));
     }
+
+    // #[test]
+    // fn save_value() {
+    //     let mut env = Environment::default();
+
+    //     let node = &ASTNode::Let(
+    //         Box::new(ASTNode::Symbol(String::from("x"))),
+    //         vec![],
+    //         Box::new(ASTNode::Integer(String::from("0"))),
+    //     );
+
+    //     assert!(matches!(exec(node, &env), Ok(_)));
+
+    //     assert_eq!(env.get("x"), Some(&Object::Integer(Integer::from(0))));
+    // }
 }
