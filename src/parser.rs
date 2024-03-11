@@ -5,10 +5,10 @@ use crate::lexer::Token;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ParserError {
-    ExpectedExpressionError(Token),
-    UnexpectedTokenError(Vec<Token>, Token),
-    EOFError,
-    EOFErrorExpecting(Vec<Token>),
+    ExpectedExpression(Token),
+    UnexpectedToken(Vec<Token>, Token),
+    EOF,
+    EOFExpecting(Vec<Token>),
 }
 
 pub struct Parser<T: Iterator<Item = Token>> {
@@ -69,11 +69,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             (Some(Token::Ident(name)), _) => {
                 Ok(ASTNode::Signature(Box::new(ASTNode::Symbol(name)), None))
             }
-            (Some(tok), _) => Err(ParserError::UnexpectedTokenError(
+            (Some(tok), _) => Err(ParserError::UnexpectedToken(
                 vec![Token::Ident(String::from(""))],
                 tok,
             )),
-            (None, _) => Err(ParserError::EOFErrorExpecting(vec![Token::Ident(
+            (None, _) => Err(ParserError::EOFExpecting(vec![Token::Ident(
                 String::from(""),
             )])),
         }
@@ -92,8 +92,8 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 err => err,
             },
             (Err(err), _) => Err(err),
-            (_, Some(tok)) => Err(ParserError::UnexpectedTokenError(vec![Token::Assign], tok)),
-            (Ok(_), None) => Err(ParserError::EOFErrorExpecting(vec![Token::Assign])),
+            (_, Some(tok)) => Err(ParserError::UnexpectedToken(vec![Token::Assign], tok)),
+            (Ok(_), None) => Err(ParserError::EOFExpecting(vec![Token::Assign])),
         }
     }
 
@@ -112,7 +112,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 self.tokens.next();
                 Ok(res)
             }
-            None => Err(ParserError::EOFError),
+            None => Err(ParserError::EOF),
             _ => loop {
                 let expr = self.expression(Precedence::Lowest)?;
                 res.push(expr);
@@ -121,13 +121,13 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                     Some(Token::Comma) => continue,
                     Some(tok) if tok == terminator => break Ok(res),
                     Some(tok) => {
-                        return Err(ParserError::UnexpectedTokenError(
+                        return Err(ParserError::UnexpectedToken(
                             vec![Token::Comma, terminator],
                             tok,
                         ))
                     }
                     None => {
-                        return Err(ParserError::EOFErrorExpecting(vec![
+                        return Err(ParserError::EOFExpecting(vec![
                             Token::Comma,
                             terminator,
                         ]))
@@ -139,7 +139,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
     fn expression(&mut self, precedence: Precedence) -> NodeResult {
         let mut expr = match self.tokens.next() {
-            None => Err(ParserError::EOFError),
+            None => Err(ParserError::EOF),
             Some(tok) => match tok {
                 Token::Char(chr) => Ok(ASTNode::Char(chr)),
                 Token::If => self.if_(),
@@ -161,7 +161,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 tok if PrefixOperator::from(tok.clone()).is_some() => {
                     self.prefix(PrefixOperator::from(tok).unwrap())
                 }
-                tok => Err(ParserError::ExpectedExpressionError(tok)),
+                tok => Err(ParserError::ExpectedExpression(tok)),
             },
         }?;
 
@@ -180,8 +180,8 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     fn consume(&mut self, expected_tok: Token) -> Result<(), ParserError> {
         match self.tokens.next() {
             Some(tok) if tok == expected_tok => Ok(()),
-            Some(tok) => Err(ParserError::UnexpectedTokenError(vec![expected_tok], tok)),
-            None => Err(ParserError::EOFErrorExpecting(vec![expected_tok])),
+            Some(tok) => Err(ParserError::UnexpectedToken(vec![expected_tok], tok)),
+            None => Err(ParserError::EOFExpecting(vec![expected_tok])),
         }
     }
 
@@ -225,8 +225,8 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         match self.tokens.next() {
             Some(Token::Rparen) => Ok(res),
             Some(Token::Comma) => self.list(Token::Rparen, Some(res)).map(ASTNode::Tuple),
-            Some(tok) => Err(ParserError::UnexpectedTokenError(vec![Token::Rparen], tok)),
-            None => Err(ParserError::EOFErrorExpecting(vec![Token::Rparen])),
+            Some(tok) => Err(ParserError::UnexpectedToken(vec![Token::Rparen], tok)),
+            None => Err(ParserError::EOFExpecting(vec![Token::Rparen])),
         }
     }
 
@@ -259,11 +259,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             (Ok(first), Some(Token::Colon)) => self
                 .expression(Precedence::Lowest)
                 .map(|second| ASTNode::ComprehensionSet(Box::new(first), Box::new(second))),
-            (Ok(_), Some(tok)) => Err(ParserError::UnexpectedTokenError(
+            (Ok(_), Some(tok)) => Err(ParserError::UnexpectedToken(
                 vec![Token::Comma, Token::Rbrace, Token::Colon],
                 tok,
             )),
-            (Ok(_), None) => Err(ParserError::EOFErrorExpecting(vec![
+            (Ok(_), None) => Err(ParserError::EOFExpecting(vec![
                 Token::Comma,
                 Token::Rbrace,
                 Token::Colon,
@@ -323,7 +323,7 @@ mod tests {
         let tokens = vec![Token::Lparen, Token::Integer(String::from("65"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
-            Some(Err(ParserError::EOFErrorExpecting(vec![Token::Rparen])))
+            Some(Err(ParserError::EOFExpecting(vec![Token::Rparen])))
         );
     }
 
@@ -349,7 +349,7 @@ mod tests {
         let tokens = vec![Token::Integer(String::from("1")), Token::Plus];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
-            Some(Err(ParserError::EOFError))
+            Some(Err(ParserError::EOF))
         );
     }
 
