@@ -1,16 +1,17 @@
 mod ast;
 mod env;
+mod eval;
 mod file;
 mod lexer;
 mod object;
 mod parser;
-// mod semantic;
-mod eval;
+mod semantic;
 
 use eval::exec;
 use file::parse_file;
 use lexer::build_lexer;
 use parser::parser_from;
+use semantic::postprocess;
 
 use std::io::{stdin, stdout, BufRead, Write};
 
@@ -19,7 +20,9 @@ fn eval_line(line: &str) -> String {
     let mut parser = parser_from(lexer.map(|res| res.unwrap()));
     match parser.next() {
         None => String::from(""),
-        Some(Ok(node)) => exec(&node, &mut Default::default()).unwrap().to_string(),
+        Some(Ok(node)) => exec(&postprocess(node), &mut Default::default())
+            .unwrap()
+            .to_string(),
         Some(Err(_)) => String::from("error"),
     }
 }

@@ -26,8 +26,11 @@ fn list(l: &Vec<ASTNode>, env: &mut Environment) -> Result<Vec<Object>, EvalErro
     Ok(objs)
 }
 
-fn function(params: &Vec<ASTNode>, proc: &Vec<ASTNode>) -> Result<Object, EvalError> {
-    Ok(Object::Function(Function::new(params.clone(), proc.clone())))
+fn function(params: &[ASTNode], proc: &[ASTNode]) -> Result<Object, EvalError> {
+    Ok(Object::Function(Function::new(
+        params.to_owned(),
+        proc.to_owned(),
+    )))
 }
 
 pub fn exec(node: &ASTNode, _env: &mut Environment) -> Result<Object, EvalError> {
@@ -460,7 +463,7 @@ mod tests {
     #[test]
     fn function() {
         let node = &ASTNode::Function(
-            vec![ASTNode::Symbol(String::from("x")),],
+            vec![ASTNode::Symbol(String::from("x"))],
             vec![ASTNode::Infix(
                 InfixOperator::Product,
                 Box::new(ASTNode::Integer(String::from("2"))),
