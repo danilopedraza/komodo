@@ -5,6 +5,7 @@ use crate::lexer::Token;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ParserError {
+    ExpectedExpressionError(Token),
     UnexpectedTokenError(Vec<Token>, Token),
     EOFError,
     EOFErrorExpecting(Vec<Token>),
@@ -160,15 +161,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 tok if PrefixOperator::from(tok.clone()).is_some() => {
                     self.prefix(PrefixOperator::from(tok).unwrap())
                 }
-                tok => Err(ParserError::UnexpectedTokenError(
-                    vec![
-                        Token::Lparen,
-                        Token::Lbrace,
-                        Token::Integer(String::from("")),
-                        Token::Ident(String::from("")),
-                    ],
-                    tok,
-                )),
+                tok => Err(ParserError::ExpectedExpressionError(tok)),
             },
         }?;
 
