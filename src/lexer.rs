@@ -2,8 +2,8 @@ use std::{iter::Peekable, str::Chars, vec};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LexerError {
-    UnexpectedCharError(char),
-    UnexpectedEOFError,
+    UnexpectedChar(char),
+    UnexpectedEOF,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -114,7 +114,7 @@ impl Lexer<'_> {
             match self.input.next() {
                 Some('"') => break Ok(Token::String(str)),
                 Some(c) => str.push(c),
-                None => break Err(LexerError::UnexpectedEOFError),
+                None => break Err(LexerError::UnexpectedEOF),
             }
         }
     }
@@ -122,13 +122,13 @@ impl Lexer<'_> {
     fn char(&mut self) -> Option<Result<Token, LexerError>> {
         let chr = self.input.next();
         if chr.is_none() {
-            return Some(Err(LexerError::UnexpectedEOFError));
+            return Some(Err(LexerError::UnexpectedEOF));
         }
 
         Some(match self.input.next() {
             Some('\'') => Ok(Token::Char(chr.unwrap())),
-            Some(c) => Err(LexerError::UnexpectedCharError(c)),
-            None => Err(LexerError::UnexpectedEOFError),
+            Some(c) => Err(LexerError::UnexpectedChar(c)),
+            None => Err(LexerError::UnexpectedEOF),
         })
     }
 
@@ -487,7 +487,7 @@ mod tests {
 
         assert_eq!(
             build_lexer(code).next(),
-            Some(Err(LexerError::UnexpectedEOFError)),
+            Some(Err(LexerError::UnexpectedEOF)),
         );
     }
 
@@ -497,7 +497,7 @@ mod tests {
 
         assert_eq!(
             build_lexer(code).next(),
-            Some(Err(LexerError::UnexpectedCharError(')')))
+            Some(Err(LexerError::UnexpectedChar(')')))
         );
     }
 
