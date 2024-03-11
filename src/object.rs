@@ -1,5 +1,7 @@
 use std::fmt;
 
+use crate::ast::ASTNode;
+
 macro_rules! default_infix_method {
     ($ident:ident) => {
         fn $ident(&self, _other: Object) -> Result<Object, ()> {
@@ -67,6 +69,7 @@ pub enum Object {
     Boolean(Bool),
     Char(Char),
     ExtensionSet(ExtensionSet),
+    Function(Function),
     // ComprehensionSet(ComprehensionSet),
     Integer(Integer),
     String(MyString),
@@ -80,6 +83,7 @@ impl fmt::Display for Object {
             Object::Boolean(boolean) => boolean.fmt(f),
             Object::Char(chr) => chr.fmt(f),
             Object::ExtensionSet(es) => es.fmt(f),
+            Object::Function(func) => func.fmt(f),
             Object::Integer(int) => int.fmt(f),
             Object::String(str) => str.fmt(f),
             Object::Symbol(s) => s.fmt(f),
@@ -95,6 +99,7 @@ macro_rules! derived_object_infix_trait {
                 Self::Boolean(left) => left.$ident(other),
                 Self::Char(left) => left.$ident(other),
                 Self::ExtensionSet(left) => left.$ident(other),
+                Self::Function(left) => left.$ident(other),
                 Self::Integer(left) => left.$ident(other),
                 Self::String(left) => left.$ident(other),
                 Self::Symbol(left) => left.$ident(other),
@@ -144,6 +149,7 @@ macro_rules! derived_object_prefix_trait {
                 Self::Boolean(left) => left.$ident(),
                 Self::Char(left) => left.$ident(),
                 Self::ExtensionSet(left) => left.$ident(),
+                Self::Function(left) => left.$ident(),
                 Self::Integer(left) => left.$ident(),
                 Self::String(left) => left.$ident(),
                 Self::Symbol(left) => left.$ident(),
@@ -482,5 +488,26 @@ impl fmt::Display for Tuple {
 impl From<Vec<Object>> for Tuple {
     fn from(list: Vec<Object>) -> Self {
         Self { list }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Function {
+    params: Vec<ASTNode>,
+    proc: ASTNode,
+}
+
+impl InfixOperable for Function {}
+impl PrefixOperable for Function {}
+
+impl fmt::Display for Function {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "function")
+    }
+}
+
+impl Function {
+    pub fn new(params: Vec<ASTNode>, proc: ASTNode) -> Self {
+        Self { params, proc }
     }
 }
