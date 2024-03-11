@@ -71,6 +71,7 @@ pub enum Object {
     Integer(Integer),
     String(MyString),
     Symbol(Symbol),
+    Tuple(Tuple),
 }
 
 impl fmt::Display for Object {
@@ -82,6 +83,7 @@ impl fmt::Display for Object {
             Object::Integer(int) => int.fmt(f),
             Object::String(str) => str.fmt(f),
             Object::Symbol(s) => s.fmt(f),
+            Object::Tuple(s) => s.fmt(f),
         }
     }
 }
@@ -96,6 +98,7 @@ macro_rules! derived_object_infix_trait {
                 Self::Integer(left) => left.$ident(other),
                 Self::String(left) => left.$ident(other),
                 Self::Symbol(left) => left.$ident(other),
+                Self::Tuple(left) => left.$ident(other),
             }
         }
     };
@@ -144,6 +147,7 @@ macro_rules! derived_object_prefix_trait {
                 Self::Integer(left) => left.$ident(),
                 Self::String(left) => left.$ident(),
                 Self::Symbol(left) => left.$ident(),
+                Self::Tuple(left) => left.$ident(),
             }
         }
     };
@@ -453,3 +457,30 @@ impl InfixOperable for Symbol {
 }
 
 impl PrefixOperable for Symbol {}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Tuple {
+    list: Vec<Object>,
+}
+
+impl InfixOperable for Tuple {}
+impl PrefixOperable for Tuple {}
+
+impl fmt::Display for Tuple {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let list = self
+            .list
+            .iter()
+            .map(|obj| obj.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        write!(f, "({})", list)
+    }
+}
+
+impl From<Vec<Object>> for Tuple {
+    fn from(list: Vec<Object>) -> Self {
+        Self { list }
+    }
+}

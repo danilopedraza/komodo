@@ -1,6 +1,6 @@
 use crate::ast::{ASTNode, InfixOperator, PrefixOperator};
 use crate::env::Environment;
-use crate::object::{Bool, Char, ExtensionSet, Integer, MyString, Object, Symbol};
+use crate::object::{Bool, Char, ExtensionSet, Integer, MyString, Object, Symbol, Tuple};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum EvalError {
@@ -60,7 +60,7 @@ pub fn exec(node: &ASTNode, _env: &mut Environment) -> Result<Object, EvalError>
         ASTNode::Prefix(op, node) => prefix(*op, exec(node, _env)?),
         ASTNode::Signature(_, _) => todo!(),
         ASTNode::String(str) => Ok(Object::String(MyString::from(str.as_str()))),
-        ASTNode::Tuple(_) => todo!(),
+        ASTNode::Tuple(l) => list(l, _env).map(|lst| Object::Tuple(Tuple::from(lst))),
     }
 }
 
@@ -434,5 +434,21 @@ mod tests {
         assert!(exec(node, &mut env).is_ok());
 
         assert_eq!(env.get("x"), Some(&Object::Integer(Integer::from(0))));
+    }
+
+    #[test]
+    fn tuple() {
+        let node = &ASTNode::Tuple(vec![
+            ASTNode::Integer(String::from("1")),
+            ASTNode::Integer(String::from("2")),
+        ]);
+
+        assert_eq!(
+            exec(node, &mut Environment::default()),
+            Ok(Object::Tuple(Tuple::from(vec![
+                Object::Integer(Integer::from(1)),
+                Object::Integer(Integer::from(2)),
+            ]))),
+        );
     }
 }
