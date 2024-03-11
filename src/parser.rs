@@ -7,7 +7,7 @@ use crate::lexer::Token;
 pub enum ParserError {
     ExpectedExpression(Token),
     UnexpectedToken(Vec<Token>, Token),
-    EOF,
+    EOFReached,
     EOFExpecting(Vec<Token>),
 }
 
@@ -73,9 +73,9 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 vec![Token::Ident(String::from(""))],
                 tok,
             )),
-            (None, _) => Err(ParserError::EOFExpecting(vec![Token::Ident(
-                String::from(""),
-            )])),
+            (None, _) => Err(ParserError::EOFExpecting(vec![Token::Ident(String::from(
+                "",
+            ))])),
         }
     }
 
@@ -112,7 +112,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 self.tokens.next();
                 Ok(res)
             }
-            None => Err(ParserError::EOF),
+            None => Err(ParserError::EOFReached),
             _ => loop {
                 let expr = self.expression(Precedence::Lowest)?;
                 res.push(expr);
@@ -126,12 +126,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                             tok,
                         ))
                     }
-                    None => {
-                        return Err(ParserError::EOFExpecting(vec![
-                            Token::Comma,
-                            terminator,
-                        ]))
-                    }
+                    None => return Err(ParserError::EOFExpecting(vec![Token::Comma, terminator])),
                 }
             },
         }
@@ -139,7 +134,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
     fn expression(&mut self, precedence: Precedence) -> NodeResult {
         let mut expr = match self.tokens.next() {
-            None => Err(ParserError::EOF),
+            None => Err(ParserError::EOFReached),
             Some(tok) => match tok {
                 Token::Char(chr) => Ok(ASTNode::Char(chr)),
                 Token::If => self.if_(),
@@ -349,7 +344,7 @@ mod tests {
         let tokens = vec![Token::Integer(String::from("1")), Token::Plus];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
-            Some(Err(ParserError::EOF))
+            Some(Err(ParserError::EOFReached))
         );
     }
 
