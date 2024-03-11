@@ -889,7 +889,7 @@ mod tests {
 
     #[test]
     fn anon_function() {
-        let input = "(x) -> 2*x";
+        let input = "x -> 2*x";
 
         let lexer = build_lexer(input);
 
