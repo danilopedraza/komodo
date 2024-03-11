@@ -4,7 +4,7 @@ use crate::object::{Bool, Char, ExtensionSet, Function, Integer, MyString, Objec
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum EvalError {
-    NonExistentOperationError,
+    NonExistentOperation,
 }
 
 fn truthy(val: Object) -> bool {
@@ -98,7 +98,7 @@ fn infix(op: InfixOperator, lhs: Object, rhs: Object) -> Result<Object, EvalErro
     };
 
     match res {
-        Err(()) => Err(EvalError::NonExistentOperationError),
+        Err(()) => Err(EvalError::NonExistentOperation),
         Ok(obj) => Ok(obj),
     }
 }
@@ -111,7 +111,7 @@ fn prefix(op: PrefixOperator, obj: Object) -> Result<Object, EvalError> {
     };
 
     match res {
-        Err(()) => Err(EvalError::NonExistentOperationError),
+        Err(()) => Err(EvalError::NonExistentOperation),
         Ok(obj) => Ok(obj),
     }
 }
