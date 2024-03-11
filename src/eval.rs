@@ -26,13 +26,8 @@ fn list(l: &Vec<ASTNode>, env: &mut Environment) -> Result<Vec<Object>, EvalErro
     Ok(objs)
 }
 
-fn function(params_node: &ASTNode, proc: &ASTNode) -> Result<Object, EvalError> {
-    let params = match params_node {
-        ASTNode::Symbol(s) => vec![ASTNode::Symbol(s.to_string())],
-        _ => todo!(),
-    };
-
-    Ok(Object::Function(Function::new(params, proc.clone())))
+fn function(params: &Vec<ASTNode>, proc: &Vec<ASTNode>) -> Result<Object, EvalError> {
+    Ok(Object::Function(Function::new(params.clone(), proc.clone())))
 }
 
 pub fn exec(node: &ASTNode, _env: &mut Environment) -> Result<Object, EvalError> {
@@ -45,7 +40,7 @@ pub fn exec(node: &ASTNode, _env: &mut Environment) -> Result<Object, EvalError>
             list(l, _env).map(|lst| Object::ExtensionSet(ExtensionSet::from(lst)))
         }
         ASTNode::Integer(str) => Ok(Object::Integer(Integer::from(str.as_str()))),
-        ASTNode::Infix(InfixOperator::Correspondence, lhs, rhs) => function(lhs, rhs),
+        ASTNode::Function(params, proc) => function(params, proc),
         ASTNode::Infix(op, lhs, rhs) => infix(*op, exec(lhs, _env)?, exec(rhs, _env)?),
         ASTNode::Let(ident, _, node) => match *ident.clone() {
             ASTNode::Symbol(name) => {
@@ -464,25 +459,24 @@ mod tests {
 
     #[test]
     fn function() {
-        let node = &ASTNode::Infix(
-            InfixOperator::Correspondence,
-            Box::new(ASTNode::Symbol(String::from("x"))),
-            Box::new(ASTNode::Infix(
+        let node = &ASTNode::Function(
+            vec![ASTNode::Symbol(String::from("x")),],
+            vec![ASTNode::Infix(
                 InfixOperator::Product,
                 Box::new(ASTNode::Integer(String::from("2"))),
                 Box::new(ASTNode::Symbol(String::from("x"))),
-            )),
+            )],
         );
 
         assert_eq!(
             exec(node, &mut Environment::default()),
             Ok(Object::Function(Function::new(
                 vec![ASTNode::Symbol(String::from("x")),],
-                ASTNode::Infix(
+                vec![ASTNode::Infix(
                     InfixOperator::Product,
                     Box::new(ASTNode::Integer(String::from("2"))),
                     Box::new(ASTNode::Symbol(String::from("x"))),
-                ),
+                )],
             ))),
         );
     }
