@@ -33,11 +33,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let mut res = vec![];
 
         loop {
-            let exp = self.expression(Precedence::Lowest);
+            let exp = self.next();
 
             match exp {
-                Ok(node) => res.push(node),
-                Err(_) => break res,
+                Some(Ok(node)) => res.push(node),
+                _ => break res,
             }
         }
     }
