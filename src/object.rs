@@ -493,8 +493,8 @@ impl From<Vec<Object>> for Tuple {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Function {
-    params: Vec<String>,
-    proc: Vec<ASTNode>,
+    pub params: Vec<String>,
+    pub proc: Vec<ASTNode>,
 }
 
 impl InfixOperable for Function {}

@@ -55,11 +55,20 @@ pub fn exec(node: &ASTNode, _env: &mut Environment) -> Result<Object, EvalError>
             _ => todo!(),
         },
         ASTNode::Boolean(val) => Ok(Object::Boolean(Bool::from(*val))),
-        ASTNode::Call(_, _) => todo!(),
-        // ASTNode::Call(func_node, args) => {
-        //     let func = exec(&func_node, _env)?;
-        //     _env = &mut _env.new_scope();
-        // },
+        ASTNode::Call(func_node, args) => {
+            let func = exec(&func_node, _env)?;
+            let arg = exec(&args[0], _env)?;
+            
+            match func {
+                Object::Function(f) => {
+                    _env.push_scope();
+                    _env.set(&f.params[0], arg);
+
+                    exec(&f.proc[0], _env)
+                }
+                _ => todo!(),
+            }
+        },
         ASTNode::Char(chr) => Ok(Object::Char(Char::from(*chr))),
         ASTNode::ComprehensionSet(_, _) => todo!(),
         ASTNode::If(cond, first, second) => {
