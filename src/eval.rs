@@ -55,24 +55,7 @@ pub fn exec(node: &ASTNode, _env: &mut Environment) -> Result<Object, EvalError>
             _ => todo!(),
         },
         ASTNode::Boolean(val) => Ok(Object::Boolean(Bool::from(*val))),
-        ASTNode::Call(func_node, args) => {
-            let func = exec(func_node, _env)?;
-            let arg = exec(&args[0], _env)?;
-
-            match func {
-                Object::Function(f) => {
-                    _env.push_scope();
-                    _env.set(&f.params[0], arg);
-
-                    let res = exec(&f.proc[0], _env);
-
-                    _env.pop_scope();
-
-                    res
-                }
-                _ => todo!(),
-            }
-        }
+        ASTNode::Call(func_node, args) => call(func_node, args, _env),
         ASTNode::Char(chr) => Ok(Object::Char(Char::from(*chr))),
         ASTNode::ComprehensionSet(_, _) => todo!(),
         ASTNode::If(cond, first, second) => {
@@ -86,6 +69,25 @@ pub fn exec(node: &ASTNode, _env: &mut Environment) -> Result<Object, EvalError>
         ASTNode::Signature(_, _) => todo!(),
         ASTNode::String(str) => Ok(Object::String(MyString::from(str.as_str()))),
         ASTNode::Tuple(l) => list(l, _env).map(|lst| Object::Tuple(Tuple::from(lst))),
+    }
+}
+
+fn call(func_node: &ASTNode, args: &[ASTNode], env: &mut Environment) -> Result<Object, EvalError> {
+    let func = exec(func_node, env)?;
+    let arg = exec(&args[0], env)?;
+
+    match func {
+        Object::Function(f) => {
+            env.push_scope();
+            env.set(&f.params[0], arg);
+
+            let res = exec(&f.proc[0], env);
+
+            env.pop_scope();
+
+            res
+        }
+        _ => todo!(),
     }
 }
 
