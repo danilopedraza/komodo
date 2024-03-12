@@ -189,14 +189,14 @@ impl InfixOperable for Bool {
     fn logic_and(&self, other: Object) -> Result<Object, ()> {
         match other {
             Object::Boolean(boolean) => Ok(Object::Boolean(Bool::from(self.val && boolean.val))),
-            _ => todo!(),
+            _ => Err(()),
         }
     }
 
     fn logic_or(&self, other: Object) -> Result<Object, ()> {
         match other {
             Object::Boolean(boolean) => Ok(Object::Boolean(Bool::from(self.val || boolean.val))),
-            _ => todo!(),
+            _ => Err(()),
         }
     }
 }
@@ -457,7 +457,7 @@ impl InfixOperable for Symbol {
     fn equality(&self, other: Object) -> Result<Object, ()> {
         match other {
             Object::Symbol(symbol) => Ok(Object::Boolean(Bool::from(self.val == symbol.val))),
-            _ => todo!(),
+            _ => Err(()),
         }
     }
 }
