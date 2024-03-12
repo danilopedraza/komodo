@@ -56,6 +56,10 @@ pub fn exec(node: &ASTNode, _env: &mut Environment) -> Result<Object, EvalError>
         },
         ASTNode::Boolean(val) => Ok(Object::Boolean(Bool::from(*val))),
         ASTNode::Call(_, _) => todo!(),
+        // ASTNode::Call(func_node, args) => {
+        //     let func = exec(&func_node, _env)?;
+        //     _env = &mut _env.new_scope();
+        // },
         ASTNode::Char(chr) => Ok(Object::Char(Char::from(*chr))),
         ASTNode::ComprehensionSet(_, _) => todo!(),
         ASTNode::If(cond, first, second) => {
@@ -481,6 +485,26 @@ mod tests {
                     Box::new(ASTNode::Symbol(String::from("x"))),
                 )],
             ))),
+        );
+    }
+
+    #[test]
+    fn call() {
+        let node = &ASTNode::Call(
+            Box::new(ASTNode::Function(
+                vec![ASTNode::Symbol(String::from("x"))],
+                vec![ASTNode::Infix(
+                    InfixOperator::Product,
+                    Box::new(ASTNode::Integer(String::from("2"))),
+                    Box::new(ASTNode::Symbol(String::from("x"))),
+                )],
+            )),
+            vec![ASTNode::Integer(String::from("1"))],
+        );
+
+        assert_eq!(
+            exec(node, &mut Environment::default()),
+            Ok(Object::Integer(Integer::from(2)))
         );
     }
 }
