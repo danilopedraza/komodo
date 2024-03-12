@@ -64,7 +64,11 @@ pub fn exec(node: &ASTNode, _env: &mut Environment) -> Result<Object, EvalError>
                     _env.push_scope();
                     _env.set(&f.params[0], arg);
 
-                    exec(&f.proc[0], _env)
+                    let res = exec(&f.proc[0], _env);
+
+                    _env.pop_scope();
+
+                    res
                 }
                 _ => todo!(),
             }

@@ -48,4 +48,10 @@ impl Environment {
     pub fn push_scope(&mut self) {
         self.scopes.push(Scope::default());
     }
+
+    pub fn pop_scope(&mut self) {
+        if self.scopes.len() > 1 {
+            self.scopes.pop();
+        }
+    }
 }
