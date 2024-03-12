@@ -17,38 +17,33 @@ impl Scope {
     }
 }
 
-#[allow(unused)]
-pub enum Environment {
-    Child(Scope, Box<Environment>),
-    Root(Scope),
+pub struct Environment {
+    scopes: Vec<Scope>,
 }
 
 impl Default for Environment {
     fn default() -> Self {
-        Self::Root(Default::default())
+        Self { scopes: vec![Scope::default()] }
     }
 }
 
-#[allow(unused)]
 impl Environment {
     pub fn get(&self, name: &str) -> Option<&Object> {
-        match self {
-            Self::Root(scope) => scope.get(name),
-            Self::Child(scope, inner) => match scope.get(name) {
-                Some(val) => Some(val),
-                None => inner.get(name),
-            },
+        for scope in self.scopes.iter().rev() {
+            match scope.get(name) {
+                None => continue,
+                obj_opt => return obj_opt,
+            }
         }
+
+        None
     }
 
     pub fn set(&mut self, name: &str, val: Object) {
-        match self {
-            Self::Root(scope) => scope.set(name, val),
-            Self::Child(scope, _) => scope.set(name, val),
-        }
+        self.scopes.last_mut().unwrap().set(name, val);
     }
 
-    pub fn new_scope(self) -> Self {
-        Self::Child(Default::default(), Box::new(self))
+    pub fn push_scope(&mut self) {
+        self.scopes.push(Scope::default());
     }
 }

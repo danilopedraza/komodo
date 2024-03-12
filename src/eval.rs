@@ -426,7 +426,7 @@ mod tests {
     fn scope_hierarchy() {
         let mut env = Environment::default();
         env.set("x", Object::Boolean(Bool::from(true)));
-        env = env.new_scope();
+        env.push_scope();
 
         let node = &ASTNode::Symbol(String::from("x"));
 
