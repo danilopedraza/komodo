@@ -56,9 +56,9 @@ pub fn exec(node: &ASTNode, _env: &mut Environment) -> Result<Object, EvalError>
         },
         ASTNode::Boolean(val) => Ok(Object::Boolean(Bool::from(*val))),
         ASTNode::Call(func_node, args) => {
-            let func = exec(&func_node, _env)?;
+            let func = exec(func_node, _env)?;
             let arg = exec(&args[0], _env)?;
-            
+
             match func {
                 Object::Function(f) => {
                     _env.push_scope();
@@ -68,7 +68,7 @@ pub fn exec(node: &ASTNode, _env: &mut Environment) -> Result<Object, EvalError>
                 }
                 _ => todo!(),
             }
-        },
+        }
         ASTNode::Char(chr) => Ok(Object::Char(Char::from(*chr))),
         ASTNode::ComprehensionSet(_, _) => todo!(),
         ASTNode::If(cond, first, second) => {
