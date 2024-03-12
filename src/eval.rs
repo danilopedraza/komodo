@@ -34,42 +34,42 @@ fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, EvalError> {
     )))
 }
 
-pub fn exec(node: &ASTNode, _env: &mut Environment) -> Result<Object, EvalError> {
+pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> {
     match node {
-        ASTNode::Symbol(str) => match _env.get(str) {
+        ASTNode::Symbol(str) => match env.get(str) {
             Some(obj) => Ok(obj.clone()),
             None => Ok(Object::Symbol(Symbol::from(str.as_str()))),
         },
         ASTNode::ExtensionSet(l) => {
-            list(l, _env).map(|lst| Object::ExtensionSet(ExtensionSet::from(lst)))
+            list(l, env).map(|lst| Object::ExtensionSet(ExtensionSet::from(lst)))
         }
         ASTNode::Integer(str) => Ok(Object::Integer(Integer::from(str.as_str()))),
         ASTNode::Function(params, proc) => function(params, proc),
-        ASTNode::Infix(op, lhs, rhs) => infix(*op, exec(lhs, _env)?, exec(rhs, _env)?),
+        ASTNode::Infix(op, lhs, rhs) => infix(*op, exec(lhs, env)?, exec(rhs, env)?),
         ASTNode::Let(ident, _, node) => match *ident.clone() {
             ASTNode::Symbol(name) => {
-                let val = exec(node, _env)?;
-                _env.set(&name.clone(), val.clone());
+                let val = exec(node, env)?;
+                env.set(&name.clone(), val.clone());
 
                 Ok(val)
             }
             _ => todo!(),
         },
         ASTNode::Boolean(val) => Ok(Object::Boolean(Bool::from(*val))),
-        ASTNode::Call(func_node, args) => call(func_node, args, _env),
+        ASTNode::Call(func_node, args) => call(func_node, args, env),
         ASTNode::Char(chr) => Ok(Object::Char(Char::from(*chr))),
         ASTNode::ComprehensionSet(_, _) => todo!(),
         ASTNode::If(cond, first, second) => {
-            if truthy(exec(cond, _env)?) {
-                exec(first, _env)
+            if truthy(exec(cond, env)?) {
+                exec(first, env)
             } else {
-                exec(second, _env)
+                exec(second, env)
             }
         }
-        ASTNode::Prefix(op, node) => prefix(*op, exec(node, _env)?),
+        ASTNode::Prefix(op, node) => prefix(*op, exec(node, env)?),
         ASTNode::Signature(_, _) => todo!(),
         ASTNode::String(str) => Ok(Object::String(MyString::from(str.as_str()))),
-        ASTNode::Tuple(l) => list(l, _env).map(|lst| Object::Tuple(Tuple::from(lst))),
+        ASTNode::Tuple(l) => list(l, env).map(|lst| Object::Tuple(Tuple::from(lst))),
     }
 }
 
