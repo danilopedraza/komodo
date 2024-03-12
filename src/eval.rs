@@ -4,6 +4,7 @@ use crate::object::{Bool, Char, ExtensionSet, Function, Integer, MyString, Objec
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum EvalError {
+    NonCallableObject,
     NonExistentOperation,
 }
 
@@ -87,7 +88,7 @@ fn call(func_node: &ASTNode, args: &[ASTNode], env: &mut Environment) -> Result<
 
             res
         }
-        _ => todo!(),
+        _ => Err(EvalError::NonCallableObject),
     }
 }
 
