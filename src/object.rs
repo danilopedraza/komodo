@@ -493,7 +493,7 @@ impl From<Vec<Object>> for Tuple {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Function {
-    params: Vec<ASTNode>,
+    params: Vec<String>,
     proc: Vec<ASTNode>,
 }
 
@@ -507,7 +507,7 @@ impl fmt::Display for Function {
 }
 
 impl Function {
-    pub fn new(params: Vec<ASTNode>, proc: Vec<ASTNode>) -> Self {
+    pub fn new(params: Vec<String>, proc: Vec<ASTNode>) -> Self {
         Self { params, proc }
     }
 }

@@ -26,7 +26,7 @@ fn list(l: &Vec<ASTNode>, env: &mut Environment) -> Result<Vec<Object>, EvalErro
     Ok(objs)
 }
 
-fn function(params: &[ASTNode], proc: &[ASTNode]) -> Result<Object, EvalError> {
+fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, EvalError> {
     Ok(Object::Function(Function::new(
         params.to_owned(),
         proc.to_owned(),
@@ -467,7 +467,7 @@ mod tests {
     #[test]
     fn function() {
         let node = &ASTNode::Function(
-            vec![ASTNode::Symbol(String::from("x"))],
+            vec![String::from("x")],
             vec![ASTNode::Infix(
                 InfixOperator::Product,
                 Box::new(ASTNode::Integer(String::from("2"))),
@@ -478,7 +478,7 @@ mod tests {
         assert_eq!(
             exec(node, &mut Environment::default()),
             Ok(Object::Function(Function::new(
-                vec![ASTNode::Symbol(String::from("x")),],
+                vec![String::from("x"),],
                 vec![ASTNode::Infix(
                     InfixOperator::Product,
                     Box::new(ASTNode::Integer(String::from("2"))),
@@ -492,7 +492,7 @@ mod tests {
     fn call() {
         let node = &ASTNode::Call(
             Box::new(ASTNode::Function(
-                vec![ASTNode::Symbol(String::from("x"))],
+                vec![String::from("x")],
                 vec![ASTNode::Infix(
                     InfixOperator::Product,
                     Box::new(ASTNode::Integer(String::from("2"))),

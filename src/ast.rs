@@ -123,7 +123,7 @@ pub enum ASTNode {
     Char(char),
     ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
     ExtensionSet(Vec<ASTNode>),
-    Function(Vec<ASTNode>, Vec<ASTNode>),
+    Function(Vec<String>, Vec<ASTNode>),
     If(Box<ASTNode>, Box<ASTNode>, Box<ASTNode>),
     Infix(InfixOperator, Box<ASTNode>, Box<ASTNode>),
     Integer(String),

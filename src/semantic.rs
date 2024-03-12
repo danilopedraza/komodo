@@ -11,7 +11,7 @@ pub fn postprocess(node: ASTNode) -> ASTNode {
 
 fn function(params_node: ASTNode, proc_node: ASTNode) -> ASTNode {
     let params = match params_node {
-        ASTNode::Symbol(s) => vec![ASTNode::Symbol(s.to_string())],
+        ASTNode::Symbol(s) => vec![s.to_string()],
         _ => todo!(),
     };
 
