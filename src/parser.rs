@@ -64,7 +64,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             }
             (Some(Token::Ident(name)), Some(Token::Lparen)) => {
                 self.tokens.next();
-                self.function_with_arguments(name)
+                self.let_function_with_arguments(name)
             }
             (Some(Token::Ident(name)), _) => {
                 Ok(ASTNode::Signature(Box::new(ASTNode::Symbol(name)), None))
@@ -79,7 +79,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn function_with_arguments(&mut self, name: String) -> NodeResult {
+    fn let_function_with_arguments(&mut self, name: String) -> NodeResult {
         let args_res = self.list(Token::Rparen, None);
 
         match (args_res, self.tokens.next()) {
