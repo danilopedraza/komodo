@@ -6,6 +6,7 @@ use crate::object::{Bool, Char, ExtensionSet, Function, Integer, MyString, Objec
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum EvalError {
+    MissingFunctionArguments,
     NonCallableObject,
     NonExistentOperation,
 }
@@ -86,6 +87,10 @@ fn call(func_node: &ASTNode, args: &[ASTNode], env: &mut Environment) -> Result<
 
     match func {
         Object::Function(f) => {
+            if args.len() < f.params.len() {
+                return Err(EvalError::MissingFunctionArguments);
+            }
+
             env.push_scope();
 
             for (arg, param) in zip(func_args, f.params) {
@@ -554,6 +559,26 @@ mod tests {
         assert_eq!(
             exec(node, &mut Environment::default()),
             Ok(Object::Integer(Integer::from(3))),
+        );
+    }
+
+    #[test]
+    fn missing_args() {
+        let node = &ASTNode::Call(
+            Box::new(ASTNode::Function(
+                vec![String::from("x"), String::from("y")],
+                vec![ASTNode::Infix(
+                    InfixOperator::Sum,
+                    Box::new(ASTNode::Symbol(String::from("x"))),
+                    Box::new(ASTNode::Symbol(String::from("y"))),
+                )],
+            )),
+            vec![ASTNode::Integer(String::from("1"))],
+        );
+
+        assert_eq!(
+            exec(node, &mut Environment::default()),
+            Err(EvalError::MissingFunctionArguments)
         );
     }
 }
