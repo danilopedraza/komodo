@@ -1,3 +1,5 @@
+use std::iter::zip;
+
 use crate::ast::{ASTNode, InfixOperator, PrefixOperator};
 use crate::env::Environment;
 use crate::object::{Bool, Char, ExtensionSet, Function, Integer, MyString, Object, Symbol, Tuple};
@@ -75,12 +77,20 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
 
 fn call(func_node: &ASTNode, args: &[ASTNode], env: &mut Environment) -> Result<Object, EvalError> {
     let func = exec(func_node, env)?;
-    let arg = exec(&args[0], env)?;
+
+    let mut func_args = vec![];
+    for arg in args {
+        let func_arg = exec(arg, env)?;
+        func_args.push(func_arg);
+    }
 
     match func {
         Object::Function(f) => {
             env.push_scope();
-            env.set(&f.params[0], arg);
+
+            for (arg, param) in zip(func_args, f.params) {
+                env.set(&param, arg);
+            }
 
             let res = exec(&f.proc[0], env);
 
@@ -521,6 +531,29 @@ mod tests {
         assert_eq!(
             exec(node, &mut Environment::default()),
             Ok(Object::Integer(Integer::from(2)))
+        );
+    }
+
+    #[test]
+    fn several_params_call() {
+        let node = &ASTNode::Call(
+            Box::new(ASTNode::Function(
+                vec![String::from("x"), String::from("y")],
+                vec![ASTNode::Infix(
+                    InfixOperator::Sum,
+                    Box::new(ASTNode::Symbol(String::from("x"))),
+                    Box::new(ASTNode::Symbol(String::from("y"))),
+                )],
+            )),
+            vec![
+                ASTNode::Integer(String::from("1")),
+                ASTNode::Integer(String::from("2")),
+            ],
+        );
+
+        assert_eq!(
+            exec(node, &mut Environment::default()),
+            Ok(Object::Integer(Integer::from(3))),
         );
     }
 }
