@@ -23,6 +23,18 @@ fn call(called_node: ASTNode, args_node: ASTNode) -> ASTNode {
 fn function(params_node: ASTNode, proc_node: ASTNode) -> ASTNode {
     let params = match params_node {
         ASTNode::Symbol(s) => vec![s.to_string()],
+        ASTNode::Tuple(tuple_params) => {
+            let mut res = vec![];
+
+            for param in tuple_params {
+                match param {
+                    ASTNode::Symbol(s) => res.push(s),
+                    _ => todo!(),
+                }
+            }
+
+            res
+        }
         _ => todo!(),
     };
 
@@ -63,6 +75,26 @@ mod tests {
                 )),
                 vec![ASTNode::Integer(String::from("1"))],
             )
+        );
+    }
+
+    #[test]
+    fn several_params_function() {
+        let node = ASTNode::Infix(
+            InfixOperator::Correspondence,
+            Box::new(ASTNode::Tuple(vec![
+                ASTNode::Symbol(String::from("x")),
+                ASTNode::Symbol(String::from("y")),
+            ])),
+            Box::new(ASTNode::Symbol(String::from("x"))),
+        );
+
+        assert_eq!(
+            postprocess(node),
+            ASTNode::Function(
+                vec![String::from("x"), String::from("y"),],
+                vec![ASTNode::Symbol(String::from("x"))]
+            ),
         );
     }
 }
