@@ -1,4 +1,4 @@
-use std::iter::zip;
+use crate::object::Callable;
 
 use crate::ast::{ASTNode, InfixOperator, PrefixOperator};
 use crate::env::Environment;
@@ -93,15 +93,11 @@ fn call(func_node: &ASTNode, args: &[ASTNode], env: &mut Environment) -> Result<
 
             env.push_scope();
 
-            for (arg, param) in zip(func_args, f.params) {
-                env.set(&param, arg);
-            }
-
-            let res = exec(&f.proc[0], env);
+            let res = f.call(&func_args, env);
 
             env.pop_scope();
 
-            res
+            Ok(res)
         }
         _ => Err(EvalError::NonCallableObject),
     }

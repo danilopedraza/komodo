@@ -1,6 +1,6 @@
-use std::fmt;
+use std::{fmt, iter::zip};
 
-use crate::ast::ASTNode;
+use crate::{ast::ASTNode, env::Environment, eval::exec};
 
 macro_rules! default_infix_method {
     ($ident:ident) => {
@@ -509,5 +509,19 @@ impl fmt::Display for Function {
 impl Function {
     pub fn new(params: Vec<String>, proc: Vec<ASTNode>) -> Self {
         Self { params, proc }
+    }
+}
+
+pub trait Callable {
+    fn call(&self, args: &[Object], env: &mut Environment) -> Object;
+}
+
+impl Callable for Function {
+    fn call(&self, args: &[Object], env: &mut Environment) -> Object {
+        for (arg, param) in zip(args, self.params.clone()) {
+            env.set(&param, arg.clone());
+        }
+
+        exec(&self.proc[0], env).unwrap()
     }
 }
