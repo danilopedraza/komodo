@@ -1,6 +1,10 @@
 use std::{fmt, iter::zip};
 
-use crate::{ast::ASTNode, env::Environment, eval::{exec, EvalError}};
+use crate::{
+    ast::ASTNode,
+    env::Environment,
+    eval::{exec, EvalError},
+};
 
 macro_rules! default_infix_method {
     ($ident:ident) => {
