@@ -97,7 +97,7 @@ fn call(func_node: &ASTNode, args: &[ASTNode], env: &mut Environment) -> Result<
 
             env.pop_scope();
 
-            Ok(res)
+            res
         }
         _ => Err(EvalError::NonCallableObject),
     }

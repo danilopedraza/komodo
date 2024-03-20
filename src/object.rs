@@ -1,6 +1,6 @@
 use std::{fmt, iter::zip};
 
-use crate::{ast::ASTNode, env::Environment, eval::exec};
+use crate::{ast::ASTNode, env::Environment, eval::{exec, EvalError}};
 
 macro_rules! default_infix_method {
     ($ident:ident) => {
@@ -513,15 +513,15 @@ impl Function {
 }
 
 pub trait Callable {
-    fn call(&self, args: &[Object], env: &mut Environment) -> Object;
+    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, EvalError>;
 }
 
 impl Callable for Function {
-    fn call(&self, args: &[Object], env: &mut Environment) -> Object {
+    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, EvalError> {
         for (arg, param) in zip(args, self.params.clone()) {
             env.set(&param, arg.clone());
         }
 
-        exec(&self.proc[0], env).unwrap()
+        exec(&self.proc[0], env)
     }
 }
