@@ -31,10 +31,10 @@ fn list(l: &Vec<ASTNode>, env: &mut Environment) -> Result<Vec<Object>, EvalErro
 }
 
 fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, EvalError> {
-    Ok(Object::Function(Function::new(
+    Ok(Object::Function(Box::new(Function::new(
         params.to_owned(),
         proc.to_owned(),
-    )))
+    ))))
 }
 
 pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> {
@@ -508,14 +508,14 @@ mod tests {
 
         assert_eq!(
             exec(node, &mut Environment::default()),
-            Ok(Object::Function(Function::new(
+            Ok(Object::Function(Box::new(Function::new(
                 vec![String::from("x"),],
                 vec![ASTNode::Infix(
                     InfixOperator::Product,
                     Box::new(ASTNode::Integer(String::from("2"))),
                     Box::new(ASTNode::Symbol(String::from("x"))),
                 )],
-            ))),
+            )))),
         );
     }
 

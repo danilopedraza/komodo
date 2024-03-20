@@ -69,7 +69,7 @@ pub enum Object {
     Boolean(Bool),
     Char(Char),
     ExtensionSet(ExtensionSet),
-    Function(Function),
+    Function(Box<Function>),
     // ComprehensionSet(ComprehensionSet),
     Integer(Integer),
     String(MyString),
