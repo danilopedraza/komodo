@@ -1,8 +1,10 @@
-use crate::object::Callable;
+use crate::object::{self, Callable};
 
 use crate::ast::{ASTNode, InfixOperator, PrefixOperator};
 use crate::env::Environment;
-use crate::object::{Bool, Char, ExtensionSet, Function, Integer, MyString, Object, Symbol, Tuple};
+use crate::object::{
+    Bool, Char, DefinedFunction, ExtensionSet, Integer, MyString, Object, Symbol, Tuple,
+};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum EvalError {
@@ -31,10 +33,9 @@ fn list(l: &Vec<ASTNode>, env: &mut Environment) -> Result<Vec<Object>, EvalErro
 }
 
 fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, EvalError> {
-    Ok(Object::Function(Box::new(Function::new(
-        params.to_owned(),
-        proc.to_owned(),
-    ))))
+    Ok(Object::Function(object::Function::DefinedFunction(
+        DefinedFunction::new(params.to_owned(), proc.to_owned()),
+    )))
 }
 
 pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> {
@@ -86,19 +87,7 @@ fn call(func_node: &ASTNode, args: &[ASTNode], env: &mut Environment) -> Result<
     }
 
     match func {
-        Object::Function(f) => {
-            if args.len() < f.params.len() {
-                return Err(EvalError::MissingFunctionArguments);
-            }
-
-            env.push_scope();
-
-            let res = f.call(&func_args, env);
-
-            env.pop_scope();
-
-            res
-        }
+        Object::Function(f) => f.call(&func_args, env),
         _ => Err(EvalError::NonCallableObject),
     }
 }
@@ -504,14 +493,16 @@ mod tests {
 
         assert_eq!(
             exec(node, &mut Environment::default()),
-            Ok(Object::Function(Box::new(Function::new(
-                vec![String::from("x"),],
-                vec![ASTNode::Infix(
-                    InfixOperator::Product,
-                    Box::new(ASTNode::Integer(String::from("2"))),
-                    Box::new(ASTNode::Symbol(String::from("x"))),
-                )],
-            )))),
+            Ok(Object::Function(object::Function::DefinedFunction(
+                DefinedFunction::new(
+                    vec![String::from("x"),],
+                    vec![ASTNode::Infix(
+                        InfixOperator::Product,
+                        Box::new(ASTNode::Integer(String::from("2"))),
+                        Box::new(ASTNode::Symbol(String::from("x"))),
+                    )],
+                )
+            ))),
         );
     }
 

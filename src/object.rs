@@ -73,7 +73,7 @@ pub enum Object {
     Boolean(Bool),
     Char(Char),
     ExtensionSet(ExtensionSet),
-    Function(Box<Function>),
+    Function(Function),
     // ComprehensionSet(ComprehensionSet),
     Integer(Integer),
     String(MyString),
@@ -496,21 +496,44 @@ impl From<Vec<Object>> for Tuple {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Function {
-    pub params: Vec<String>,
-    pub proc: Vec<ASTNode>,
+pub enum Function {
+    DefinedFunction(DefinedFunction),
 }
 
 impl InfixOperable for Function {}
 impl PrefixOperable for Function {}
-
 impl fmt::Display for Function {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::DefinedFunction(func) => func.fmt(f),
+        }
+    }
+}
+
+impl Callable for Function {
+    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, EvalError> {
+        match self {
+            Self::DefinedFunction(f) => f.call(args, env),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DefinedFunction {
+    pub params: Vec<String>,
+    pub proc: Vec<ASTNode>,
+}
+
+impl InfixOperable for DefinedFunction {}
+impl PrefixOperable for DefinedFunction {}
+
+impl fmt::Display for DefinedFunction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "function")
     }
 }
 
-impl Function {
+impl DefinedFunction {
     pub fn new(params: Vec<String>, proc: Vec<ASTNode>) -> Self {
         Self { params, proc }
     }
@@ -520,12 +543,22 @@ pub trait Callable {
     fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, EvalError>;
 }
 
-impl Callable for Function {
+impl Callable for DefinedFunction {
     fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, EvalError> {
+        if args.len() < self.params.len() {
+            return Err(EvalError::MissingFunctionArguments);
+        }
+
+        env.push_scope();
+
         for (arg, param) in zip(args, self.params.clone()) {
             env.set(&param, arg.clone());
         }
 
-        exec(&self.proc[0], env)
+        let res = exec(&self.proc[0], env);
+
+        env.pop_scope();
+
+        res
     }
 }
