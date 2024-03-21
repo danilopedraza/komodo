@@ -498,14 +498,17 @@ impl From<Vec<Object>> for Tuple {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Function {
     DefinedFunction(DefinedFunction),
+    Effect(Effect),
 }
 
 impl InfixOperable for Function {}
 impl PrefixOperable for Function {}
+
 impl fmt::Display for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::DefinedFunction(func) => func.fmt(f),
+            Self::Effect(ef) => ef.fmt(f),
         }
     }
 }
@@ -514,6 +517,7 @@ impl Callable for Function {
     fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, EvalError> {
         match self {
             Self::DefinedFunction(f) => f.call(args, env),
+            Self::Effect(ef) => ef.call(args, env),
         }
     }
 }
@@ -560,5 +564,28 @@ impl Callable for DefinedFunction {
         env.pop_scope();
 
         res
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Effect {
+    pub func: fn(&[Object]) -> Object,
+}
+
+impl From<fn(&[Object]) -> Object> for Effect {
+    fn from(func: fn(&[Object]) -> Object) -> Self {
+        Self { func }
+    }
+}
+
+impl fmt::Display for Effect {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "effect")
+    }
+}
+
+impl Callable for Effect {
+    fn call(&self, args: &[Object], _env: &mut Environment) -> Result<Object, EvalError> {
+        Ok((self.func)(args))
     }
 }

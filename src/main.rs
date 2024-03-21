@@ -6,12 +6,14 @@ mod lexer;
 mod object;
 mod parser;
 mod semantic;
+mod stdlib;
 
 use eval::exec;
 use file::parse_file;
 use lexer::build_lexer;
 use parser::parser_from;
 use semantic::postprocess;
+use stdlib::standard_env;
 
 use std::io::{stdin, stdout, BufRead, Write};
 
@@ -20,7 +22,7 @@ fn eval_line(line: &str) -> String {
     let mut parser = parser_from(lexer.map(|res| res.unwrap()));
     match parser.next() {
         None => String::from(""),
-        Some(Ok(node)) => exec(&postprocess(node), &mut Default::default())
+        Some(Ok(node)) => exec(&postprocess(node), &mut standard_env())
             .unwrap()
             .to_string(),
         Some(Err(_)) => String::from("error"),
@@ -47,7 +49,7 @@ fn main() -> std::io::Result<()> {
     } else {
         let nodes = parse_file(&args[1]);
         for node in nodes {
-            let line = exec(&node, &mut Default::default()).unwrap().to_string();
+            let line = exec(&node, &mut standard_env()).unwrap().to_string();
             println!("{line}");
         }
     }
