@@ -1,4 +1,5 @@
 mod ast;
+mod builtin;
 mod env;
 mod eval;
 mod file;
@@ -6,14 +7,13 @@ mod lexer;
 mod object;
 mod parser;
 mod semantic;
-mod stdlib;
 
+use builtin::standard_env;
 use eval::exec;
 use file::parse_file;
 use lexer::build_lexer;
 use parser::parser_from;
 use semantic::postprocess;
-use stdlib::standard_env;
 
 use std::io::{stdin, stdout, BufRead, Write};
 
