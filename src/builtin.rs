@@ -1,6 +1,6 @@
 use crate::{
     env::Environment,
-    object::{self, Bool, Effect, Object},
+    object::{self, Effect, Object},
 };
 
 use std::io::{stdin, BufRead};
@@ -8,7 +8,7 @@ use std::io::{stdin, BufRead};
 fn smtc_println(args: &[Object]) -> Object {
     let str = args[0].to_string();
     println!("{str}");
-    Object::Boolean(Bool::from(true))
+    Object::Tuple(object::Tuple::from(vec![]))
 }
 
 fn smtc_getln(_args: &[Object]) -> Object {
