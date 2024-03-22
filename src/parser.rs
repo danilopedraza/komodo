@@ -137,6 +137,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             None => Err(ParserError::EOFReached),
             Some(tok) => match tok {
                 Token::Char(chr) => Ok(ASTNode::Char(chr)),
+                Token::For => self.for_(),
                 Token::If => self.if_(),
                 Token::Let => self.let_(),
                 Token::True => Ok(ASTNode::Boolean(true)),
@@ -170,6 +171,32 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
 
         Ok(expr)
+    }
+
+    fn for_(&mut self) -> NodeResult {
+        let ident = match self.tokens.next() {
+            Some(Token::Ident(s)) => Ok(s),
+            Some(tok) => Err(ParserError::UnexpectedToken(
+                vec![Token::Ident(String::from(""))],
+                tok,
+            )),
+            None => Err(ParserError::EOFExpecting(vec![Token::Ident(String::from(
+                "",
+            ))])),
+        }?;
+
+        self.consume(Token::In)?;
+
+        let iter = self.expression(Precedence::Lowest)?;
+
+        self.consume(Token::Colon)?;
+
+        let proc = match self.expression(Precedence::Lowest)? {
+            ASTNode::Tuple(v) => v,
+            node => vec![node],
+        };
+
+        Ok(ASTNode::For(ident, Box::new(iter), proc))
     }
 
     fn consume(&mut self, expected_tok: Token) -> Result<(), ParserError> {
@@ -933,6 +960,25 @@ mod tests {
                 ASTNode::Char('a'),
                 ASTNode::String(String::from('b')),
             ])))
+        );
+    }
+
+    #[test]
+    fn for_loop() {
+        let input = "for i in list: println(i)";
+
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer.map(|res| res.unwrap())).next(),
+            Some(Ok(ASTNode::For(
+                String::from("i"),
+                Box::new(ASTNode::Symbol(String::from("list"))),
+                vec![ASTNode::Call(
+                    Box::new(ASTNode::Symbol(String::from("println"))),
+                    vec![ASTNode::Symbol(String::from("i"))],
+                )]
+            )))
         );
     }
 }

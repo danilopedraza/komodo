@@ -74,6 +74,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
         ASTNode::Signature(_, _) => todo!(),
         ASTNode::String(str) => Ok(Object::String(MyString::from(str.as_str()))),
         ASTNode::Tuple(l) => list(l, env).map(|lst| Object::Tuple(Tuple::from(lst))),
+        ASTNode::For(_, _, _) => todo!(),
     }
 }
 
