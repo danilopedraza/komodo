@@ -79,7 +79,11 @@ fn if_(
     second: &ASTNode,
     env: &mut Environment,
 ) -> Result<Object, EvalError> {
-    exec(if truthy(cond) { first } else { second }, env)
+    if truthy(cond) {
+        exec(first, env)
+    } else {
+        exec(second, env)
+    }
 }
 
 fn for_(
