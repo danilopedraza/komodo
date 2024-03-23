@@ -1,4 +1,4 @@
-use crate::object::{self, Callable};
+use crate::object::{self, Callable, ComprehensionSet};
 
 use crate::ast::{ASTNode, InfixOperator, PrefixOperator};
 use crate::env::Environment;
@@ -63,7 +63,10 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
         ASTNode::Boolean(val) => Ok(Object::Boolean(Bool::from(*val))),
         ASTNode::Call(func_node, args) => call(func_node, args, env),
         ASTNode::Char(chr) => Ok(Object::Char(Char::from(*chr))),
-        ASTNode::ComprehensionSet(_, _) => todo!(),
+        ASTNode::ComprehensionSet(value, prop) => Ok(Object::ComprehensionSet(ComprehensionSet {
+            value: *value.clone(),
+            prop: *prop.clone(),
+        })),
         ASTNode::If(cond, first, second) => if_(exec(cond, env)?, first, second, env),
         ASTNode::Prefix(op, node) => prefix(*op, exec(node, env)?),
         ASTNode::Signature(_, _) => todo!(),
@@ -623,5 +626,29 @@ mod tests {
         assert_eq!(exec(node, &mut env), Ok(Object::Tuple(Tuple::from(vec![]))),);
 
         assert_eq!(env.get("a"), Some(&Object::Integer(Integer::from(6))),);
+    }
+
+    #[test]
+    fn comprehension_set() {
+        let node = &ASTNode::ComprehensionSet(
+            Box::new(ASTNode::Symbol(String::from("k"))),
+            Box::new(ASTNode::Infix(
+                InfixOperator::Greater,
+                Box::new(ASTNode::Symbol(String::from("k"))),
+                Box::new(ASTNode::Integer(String::from("1"))),
+            )),
+        );
+
+        assert_eq!(
+            exec(node, &mut Environment::default()),
+            Ok(Object::ComprehensionSet(ComprehensionSet {
+                value: ASTNode::Symbol(String::from("k")),
+                prop: ASTNode::Infix(
+                    InfixOperator::Greater,
+                    Box::new(ASTNode::Symbol(String::from("k"))),
+                    Box::new(ASTNode::Integer(String::from("1"))),
+                )
+            })),
+        );
     }
 }

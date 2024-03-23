@@ -74,7 +74,7 @@ pub enum Object {
     Char(Char),
     ExtensionSet(ExtensionSet),
     Function(Function),
-    // ComprehensionSet(ComprehensionSet),
+    ComprehensionSet(ComprehensionSet),
     Integer(Integer),
     String(MyString),
     Symbol(Symbol),
@@ -86,6 +86,7 @@ impl fmt::Display for Object {
         match self {
             Object::Boolean(boolean) => boolean.fmt(f),
             Object::Char(chr) => chr.fmt(f),
+            Object::ComprehensionSet(set) => set.fmt(f),
             Object::ExtensionSet(es) => es.fmt(f),
             Object::Function(func) => func.fmt(f),
             Object::Integer(int) => int.fmt(f),
@@ -102,6 +103,7 @@ macro_rules! derived_object_infix_trait {
             match self {
                 Self::Boolean(left) => left.$ident(other),
                 Self::Char(left) => left.$ident(other),
+                Self::ComprehensionSet(left) => left.$ident(other),
                 Self::ExtensionSet(left) => left.$ident(other),
                 Self::Function(left) => left.$ident(other),
                 Self::Integer(left) => left.$ident(other),
@@ -152,6 +154,7 @@ macro_rules! derived_object_prefix_trait {
             match self {
                 Self::Boolean(left) => left.$ident(),
                 Self::Char(left) => left.$ident(),
+                Self::ComprehensionSet(left) => left.$ident(),
                 Self::ExtensionSet(left) => left.$ident(),
                 Self::Function(left) => left.$ident(),
                 Self::Integer(left) => left.$ident(),
@@ -264,8 +267,20 @@ impl fmt::Display for ExtensionSet {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct ComprehensionSet {}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ComprehensionSet {
+    pub value: ASTNode,
+    pub prop: ASTNode,
+}
+
+impl PrefixOperable for ComprehensionSet {}
+impl InfixOperable for ComprehensionSet {}
+
+impl fmt::Display for ComprehensionSet {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "set")
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Integer {
