@@ -1,7 +1,7 @@
 mod ast;
 mod builtin;
 mod env;
-mod eval;
+mod exec;
 mod file;
 mod lexer;
 mod object;
@@ -9,7 +9,7 @@ mod parser;
 mod semantic;
 
 use builtin::standard_env;
-use eval::exec;
+use exec::exec;
 use file::parse_file;
 use lexer::build_lexer;
 use parser::parser_from;
