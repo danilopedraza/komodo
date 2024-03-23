@@ -75,21 +75,28 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
         ASTNode::Signature(_, _) => todo!(),
         ASTNode::String(str) => Ok(Object::String(MyString::from(str.as_str()))),
         ASTNode::Tuple(l) => list(l, env).map(|lst| Object::Tuple(Tuple::from(lst))),
-        ASTNode::For(symbol, iterable, proc) => {
-            let iter = match exec(iterable, env)? {
-                Object::ExtensionSet(set) => Ok(set.list.clone()),
-                _ => Err(EvalError::NonIterableObject),
-            }?;
-
-            for val in iter {
-                env.set(symbol, val.clone());
-
-                exec(&proc[0], env)?;
-            }
-
-            Ok(Object::Tuple(Tuple::from(vec![])))
-        }
+        ASTNode::For(symbol, iterable, proc) => for_(symbol, exec(iterable, env)?, proc, env),
     }
+}
+
+fn for_(
+    symbol: &str,
+    iterable_obj: Object,
+    proc: &[ASTNode],
+    env: &mut Environment,
+) -> Result<Object, EvalError> {
+    let iter = match iterable_obj {
+        Object::ExtensionSet(set) => Ok(set.list.clone()),
+        _ => Err(EvalError::NonIterableObject),
+    }?;
+
+    for val in iter {
+        env.set(symbol, val.clone());
+
+        exec(&proc[0], env)?;
+    }
+
+    Ok(Object::Tuple(Tuple::from(vec![])))
 }
 
 fn call(func_node: &ASTNode, args: &[ASTNode], env: &mut Environment) -> Result<Object, EvalError> {
