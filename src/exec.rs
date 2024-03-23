@@ -64,19 +64,22 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
         ASTNode::Call(func_node, args) => call(func_node, args, env),
         ASTNode::Char(chr) => Ok(Object::Char(Char::from(*chr))),
         ASTNode::ComprehensionSet(_, _) => todo!(),
-        ASTNode::If(cond, first, second) => {
-            if truthy(exec(cond, env)?) {
-                exec(first, env)
-            } else {
-                exec(second, env)
-            }
-        }
+        ASTNode::If(cond, first, second) => if_(exec(cond, env)?, first, second, env),
         ASTNode::Prefix(op, node) => prefix(*op, exec(node, env)?),
         ASTNode::Signature(_, _) => todo!(),
         ASTNode::String(str) => Ok(Object::String(MyString::from(str.as_str()))),
         ASTNode::Tuple(l) => list(l, env).map(|lst| Object::Tuple(Tuple::from(lst))),
         ASTNode::For(symbol, iterable, proc) => for_(symbol, exec(iterable, env)?, proc, env),
     }
+}
+
+fn if_(
+    cond: Object,
+    first: &ASTNode,
+    second: &ASTNode,
+    env: &mut Environment,
+) -> Result<Object, EvalError> {
+    exec(if truthy(cond) { first } else { second }, env)
 }
 
 fn for_(
