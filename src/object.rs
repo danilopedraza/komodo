@@ -273,6 +273,12 @@ pub struct ComprehensionSet {
     pub prop: ASTNode,
 }
 
+impl From<(ASTNode, ASTNode)> for ComprehensionSet {
+    fn from((value, prop): (ASTNode, ASTNode)) -> Self {
+        Self { value, prop }
+    }
+}
+
 impl PrefixOperable for ComprehensionSet {}
 impl InfixOperable for ComprehensionSet {}
 

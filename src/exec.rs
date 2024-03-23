@@ -63,10 +63,9 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
         ASTNode::Boolean(val) => Ok(Object::Boolean(Bool::from(*val))),
         ASTNode::Call(func_node, args) => call(func_node, args, env),
         ASTNode::Char(chr) => Ok(Object::Char(Char::from(*chr))),
-        ASTNode::ComprehensionSet(value, prop) => Ok(Object::ComprehensionSet(ComprehensionSet {
-            value: *value.clone(),
-            prop: *prop.clone(),
-        })),
+        ASTNode::ComprehensionSet(value, prop) => Ok(Object::ComprehensionSet(
+            ComprehensionSet::from((*value.clone(), *prop.clone())),
+        )),
         ASTNode::If(cond, first, second) => if_(exec(cond, env)?, first, second, env),
         ASTNode::Prefix(op, node) => prefix(*op, exec(node, env)?),
         ASTNode::Signature(_, _) => todo!(),
