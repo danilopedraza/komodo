@@ -97,4 +97,18 @@ mod tests {
             ),
         );
     }
+
+    #[test]
+    fn signature() {
+        let node = ASTNode::Signature(
+            Box::new(ASTNode::Symbol(String::from("f"))),
+            Some(Box::new(ASTNode::Infix(
+                InfixOperator::Correspondence,
+                Box::new(ASTNode::Symbol(String::from("Real"))),
+                Box::new(ASTNode::Symbol(String::from("Real"))),
+            ))),
+        );
+
+        assert_eq!(postprocess(node.clone()), node);
+    }
 }
