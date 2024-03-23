@@ -145,14 +145,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 Token::Lparen => self.parenthesis(),
                 Token::Lbrace => self.set(),
                 Token::Integer(int) => Ok(ASTNode::Integer(int)),
-                Token::Ident(literal) => match self.tokens.peek() {
-                    Some(Token::Lparen) => {
-                        self.tokens.next();
-                        self.list(Token::Rparen, None)
-                            .map(|lst| ASTNode::Call(Box::new(ASTNode::Symbol(literal)), lst))
-                    }
-                    _ => Ok(ASTNode::Symbol(literal)),
-                },
+                Token::Ident(literal) => Ok(ASTNode::Symbol(literal)),
                 Token::String(str) => Ok(ASTNode::String(str)),
                 tok if PrefixOperator::from(tok.clone()).is_some() => {
                     self.prefix(PrefixOperator::from(tok).unwrap())
@@ -878,12 +871,13 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).next(),
-            Some(Ok(ASTNode::Call(
+            Some(Ok(ASTNode::Infix(
+                InfixOperator::Call,
                 Box::new(ASTNode::Symbol(String::from("f"))),
-                vec![
+                Box::new(ASTNode::Tuple(vec![
                     ASTNode::Symbol(String::from("x")),
                     ASTNode::Symbol(String::from("y")),
-                ],
+                ])),
             ))),
         );
     }
@@ -974,9 +968,10 @@ mod tests {
             Some(Ok(ASTNode::For(
                 String::from("i"),
                 Box::new(ASTNode::Symbol(String::from("list"))),
-                vec![ASTNode::Call(
+                vec![ASTNode::Infix(
+                    InfixOperator::Call,
                     Box::new(ASTNode::Symbol(String::from("println"))),
-                    vec![ASTNode::Symbol(String::from("i"))],
+                    Box::new(ASTNode::Tuple(vec![ASTNode::Symbol(String::from("i"))])),
                 )]
             )))
         );
