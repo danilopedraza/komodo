@@ -11,6 +11,7 @@ pub enum EvalError {
     MissingFunctionArguments,
     NonCallableObject,
     NonExistentOperation,
+    NonIterableObject,
 }
 
 fn truthy(val: Object) -> bool {
@@ -74,7 +75,20 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
         ASTNode::Signature(_, _) => todo!(),
         ASTNode::String(str) => Ok(Object::String(MyString::from(str.as_str()))),
         ASTNode::Tuple(l) => list(l, env).map(|lst| Object::Tuple(Tuple::from(lst))),
-        ASTNode::For(_, _, _) => todo!(),
+        ASTNode::For(symbol, iterable, proc) => {
+            let iter = match exec(iterable, env)? {
+                Object::ExtensionSet(set) => Ok(set.list.clone()),
+                _ => Err(EvalError::NonIterableObject),
+            }?;
+
+            for val in iter {
+                env.set(symbol, val.clone());
+
+                exec(&proc[0], env)?;
+            }
+
+            Ok(Object::Tuple(Tuple::from(vec![])))
+        }
     }
 }
 
@@ -568,5 +582,32 @@ mod tests {
             exec(node, &mut Environment::default()),
             Err(EvalError::MissingFunctionArguments)
         );
+    }
+
+    #[test]
+    fn for_loop() {
+        let mut env = Environment::default();
+        env.set("a", Object::Integer(Integer::from(1)));
+
+        let node = &ASTNode::For(
+            "val".into(),
+            Box::new(ASTNode::ExtensionSet(vec![
+                ASTNode::Integer(String::from("2")),
+                ASTNode::Integer(String::from("3")),
+            ])),
+            vec![ASTNode::Let(
+                Box::new(ASTNode::Symbol(String::from("a"))),
+                vec![],
+                Box::new(ASTNode::Infix(
+                    InfixOperator::Product,
+                    Box::new(ASTNode::Symbol(String::from("a"))),
+                    Box::new(ASTNode::Symbol(String::from("val"))),
+                )),
+            )],
+        );
+
+        assert_eq!(exec(node, &mut env), Ok(Object::Tuple(Tuple::from(vec![]))),);
+
+        assert_eq!(env.get("a"), Some(&Object::Integer(Integer::from(6))),);
     }
 }
