@@ -976,4 +976,27 @@ mod tests {
             )))
         );
     }
+
+    #[test]
+    fn in_question() {
+        let input = "1 in { k : k >= 1 }";
+
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer.map(|res| res.unwrap())).next(),
+            Some(Ok(ASTNode::Infix(
+                InfixOperator::In,
+                Box::new(ASTNode::Integer(String::from("1"))),
+                Box::new(ASTNode::ComprehensionSet(
+                    Box::new(ASTNode::Symbol(String::from("k"))),
+                    Box::new(ASTNode::Infix(
+                        InfixOperator::GreaterEqual,
+                        Box::new(ASTNode::Symbol(String::from("k"))),
+                        Box::new(ASTNode::Integer(String::from("1"))),
+                    )),
+                )),
+            )))
+        );
+    }
 }

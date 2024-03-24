@@ -3,6 +3,7 @@ use crate::lexer::Token;
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Precedence {
     Lowest,
+    In,
     Correspondence,
     LogicOr,
     LogicAnd,
@@ -30,6 +31,7 @@ pub enum InfixOperator {
     Exponentiation,
     Greater,
     GreaterEqual,
+    In,
     LeftShift,
     Less,
     LessEqual,
@@ -58,6 +60,7 @@ impl InfixOperator {
             Token::LessEqual => Some(Self::LessEqual),
             Token::LogicAnd => Some(Self::LogicAnd),
             Token::LogicOr => Some(Self::LogicOr),
+            Token::In => Some(Self::In),
             Token::Mod => Some(Self::Mod),
             Token::Over => Some(Self::Division),
             Token::Plus => Some(Self::Sum),
@@ -83,6 +86,7 @@ impl InfixOperator {
             Self::Exponentiation => Precedence::Exponentiation,
             Self::Greater => Precedence::Comparison,
             Self::GreaterEqual => Precedence::Comparison,
+            Self::In => Precedence::In,
             Self::LeftShift => Precedence::Shift,
             Self::Less => Precedence::Comparison,
             Self::LessEqual => Precedence::Comparison,
