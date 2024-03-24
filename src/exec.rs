@@ -651,4 +651,26 @@ mod tests {
             })),
         );
     }
+
+    #[test]
+    #[ignore = "not yet implemented"]
+    fn comprehension_set_question() {
+        let node = &ASTNode::Infix(
+            InfixOperator::In,
+            Box::new(ASTNode::Integer(String::from("1"))),
+            Box::new(ASTNode::ComprehensionSet(
+                Box::new(ASTNode::Symbol(String::from("k"))),
+                Box::new(ASTNode::Infix(
+                    InfixOperator::GreaterEqual,
+                    Box::new(ASTNode::Symbol(String::from("k"))),
+                    Box::new(ASTNode::Integer(String::from("1"))),
+                )),
+            )),
+        );
+
+        assert_eq!(
+            exec(node, &mut Environment::default()),
+            Ok(Object::Boolean(crate::object::Bool::from(true))),
+        );
+    }
 }
