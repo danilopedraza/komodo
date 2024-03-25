@@ -322,9 +322,11 @@ mod tests {
 
     #[test]
     fn integer_in_parenthesis() {
-        let tokens = [Token::Lparen,
+        let tokens = [
+            Token::Lparen,
             Token::Integer(String::from("365")),
-            Token::Rparen];
+            Token::Rparen,
+        ];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(ASTNode::Integer(String::from("365"))))
@@ -342,9 +344,11 @@ mod tests {
 
     #[test]
     fn simple_sum() {
-        let tokens = [Token::Integer(String::from("1")),
+        let tokens = [
+            Token::Integer(String::from("1")),
             Token::Plus,
-            Token::Integer(String::from("1"))];
+            Token::Integer(String::from("1")),
+        ];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(ASTNode::Infix(
@@ -366,11 +370,13 @@ mod tests {
 
     #[test]
     fn product_and_power() {
-        let tokens = [Token::Integer(String::from("1")),
+        let tokens = [
+            Token::Integer(String::from("1")),
             Token::Times,
             Token::Integer(String::from("2")),
             Token::ToThe,
-            Token::Integer(String::from("2"))];
+            Token::Integer(String::from("2")),
+        ];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(ASTNode::Infix(
@@ -387,11 +393,13 @@ mod tests {
 
     #[test]
     fn division_and_sum() {
-        let tokens = [Token::Integer(String::from("1")),
+        let tokens = [
+            Token::Integer(String::from("1")),
             Token::Over,
             Token::Integer(String::from("1")),
             Token::Plus,
-            Token::Integer(String::from("1"))];
+            Token::Integer(String::from("1")),
+        ];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(ASTNode::Infix(
@@ -408,10 +416,12 @@ mod tests {
 
     #[test]
     fn let_statement() {
-        let tokens = [Token::Let,
+        let tokens = [
+            Token::Let,
             Token::Ident(String::from('x')),
             Token::Assign,
-            Token::Integer(String::from("1"))];
+            Token::Integer(String::from("1")),
+        ];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(ASTNode::Let(
@@ -490,12 +500,14 @@ mod tests {
 
     #[test]
     fn let_function_signature() {
-        let tokens = [Token::Let,
+        let tokens = [
+            Token::Let,
             Token::Ident(String::from('f')),
             Token::Colon,
             Token::Ident(String::from('a')),
             Token::Arrow,
-            Token::Ident(String::from('a'))];
+            Token::Ident(String::from('a')),
+        ];
 
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
@@ -553,11 +565,13 @@ mod tests {
 
     #[test]
     fn tuple() {
-        let tokens = [Token::Lparen,
+        let tokens = [
+            Token::Lparen,
             Token::Ident(String::from("Real")),
             Token::Comma,
             Token::Ident(String::from("Real")),
-            Token::Rparen];
+            Token::Rparen,
+        ];
 
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
@@ -570,12 +584,14 @@ mod tests {
 
     #[test]
     fn set_comprehension() {
-        let tokens = [Token::Lbrace,
+        let tokens = [
+            Token::Lbrace,
             Token::Ident(String::from("a")),
             Token::Colon,
             Token::Ident(String::from("a")),
             Token::Equals,
-            Token::Integer(String::from("1"))];
+            Token::Integer(String::from("1")),
+        ];
 
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
@@ -628,11 +644,13 @@ mod tests {
 
     #[test]
     fn shift_operator() {
-        let tokens = [Token::Ident(String::from('x')),
+        let tokens = [
+            Token::Ident(String::from('x')),
             Token::Minus,
             Token::Integer(String::from('1')),
             Token::LeftShift,
-            Token::Integer(String::from('1'))];
+            Token::Integer(String::from('1')),
+        ];
 
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
