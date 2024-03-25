@@ -282,7 +282,20 @@ impl From<(ASTNode, ASTNode)> for ComprehensionSet {
 }
 
 impl PrefixOperable for ComprehensionSet {}
-impl InfixOperable for ComprehensionSet {}
+
+impl InfixOperable for ComprehensionSet {
+    fn contains(&self, other: Object) -> Result<Object, ()> {
+        let symbol = match &self.value {
+            ASTNode::Symbol(s) => s,
+            _ => todo!(),
+        };
+
+        let mut env = Environment::default();
+        env.set(symbol, other);
+
+        Ok(exec(&self.prop, &mut env).unwrap())
+    }
+}
 
 impl fmt::Display for ComprehensionSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

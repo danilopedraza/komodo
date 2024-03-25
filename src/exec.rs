@@ -653,7 +653,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
+    // #[ignore = "not yet implemented"]
     fn comprehension_set_question() {
         let node = &ASTNode::Infix(
             InfixOperator::In,
