@@ -135,7 +135,7 @@ fn infix(op: InfixOperator, lhs: Object, rhs: Object) -> Result<Object, EvalErro
         InfixOperator::Exponentiation => lhs.pow(rhs),
         InfixOperator::Greater => lhs.greater(rhs),
         InfixOperator::GreaterEqual => lhs.greater_equal(rhs),
-        InfixOperator::In => lhs.in_(rhs),
+        InfixOperator::In => rhs.contains(lhs),
         InfixOperator::LeftShift => lhs.left_shift(rhs),
         InfixOperator::Less => lhs.less(rhs),
         InfixOperator::LessEqual => lhs.less_equal(rhs),
