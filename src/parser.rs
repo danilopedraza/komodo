@@ -313,7 +313,7 @@ mod tests {
 
     #[test]
     fn integer() {
-        let tokens = vec![Token::Integer(String::from("0"))];
+        let tokens = [Token::Integer(String::from("0"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(ASTNode::Integer(String::from("0"))))
@@ -322,11 +322,9 @@ mod tests {
 
     #[test]
     fn integer_in_parenthesis() {
-        let tokens = vec![
-            Token::Lparen,
+        let tokens = [Token::Lparen,
             Token::Integer(String::from("365")),
-            Token::Rparen,
-        ];
+            Token::Rparen];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(ASTNode::Integer(String::from("365"))))
@@ -335,7 +333,7 @@ mod tests {
 
     #[test]
     fn unbalanced_left_parenthesis() {
-        let tokens = vec![Token::Lparen, Token::Integer(String::from("65"))];
+        let tokens = [Token::Lparen, Token::Integer(String::from("65"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Err(ParserError::EOFExpecting(vec![Token::Rparen])))
@@ -344,11 +342,9 @@ mod tests {
 
     #[test]
     fn simple_sum() {
-        let tokens = vec![
-            Token::Integer(String::from("1")),
+        let tokens = [Token::Integer(String::from("1")),
             Token::Plus,
-            Token::Integer(String::from("1")),
-        ];
+            Token::Integer(String::from("1"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(ASTNode::Infix(
@@ -361,7 +357,7 @@ mod tests {
 
     #[test]
     fn incomplete_sum() {
-        let tokens = vec![Token::Integer(String::from("1")), Token::Plus];
+        let tokens = [Token::Integer(String::from("1")), Token::Plus];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Err(ParserError::EOFReached))
@@ -370,13 +366,11 @@ mod tests {
 
     #[test]
     fn product_and_power() {
-        let tokens = vec![
-            Token::Integer(String::from("1")),
+        let tokens = [Token::Integer(String::from("1")),
             Token::Times,
             Token::Integer(String::from("2")),
             Token::ToThe,
-            Token::Integer(String::from("2")),
-        ];
+            Token::Integer(String::from("2"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(ASTNode::Infix(
@@ -393,13 +387,11 @@ mod tests {
 
     #[test]
     fn division_and_sum() {
-        let tokens = vec![
-            Token::Integer(String::from("1")),
+        let tokens = [Token::Integer(String::from("1")),
             Token::Over,
             Token::Integer(String::from("1")),
             Token::Plus,
-            Token::Integer(String::from("1")),
-        ];
+            Token::Integer(String::from("1"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(ASTNode::Infix(
@@ -416,12 +408,10 @@ mod tests {
 
     #[test]
     fn let_statement() {
-        let tokens = vec![
-            Token::Let,
+        let tokens = [Token::Let,
             Token::Ident(String::from('x')),
             Token::Assign,
-            Token::Integer(String::from("1")),
-        ];
+            Token::Integer(String::from("1"))];
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
             Some(Ok(ASTNode::Let(
@@ -500,14 +490,12 @@ mod tests {
 
     #[test]
     fn let_function_signature() {
-        let tokens = vec![
-            Token::Let,
+        let tokens = [Token::Let,
             Token::Ident(String::from('f')),
             Token::Colon,
             Token::Ident(String::from('a')),
             Token::Arrow,
-            Token::Ident(String::from('a')),
-        ];
+            Token::Ident(String::from('a'))];
 
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
@@ -524,7 +512,7 @@ mod tests {
 
     #[test]
     fn empty_set() {
-        let tokens = vec![Token::Lbrace, Token::Rbrace];
+        let tokens = [Token::Lbrace, Token::Rbrace];
 
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
@@ -555,7 +543,7 @@ mod tests {
 
     #[test]
     fn empty_tuple() {
-        let tokens = vec![Token::Lparen, Token::Rparen];
+        let tokens = [Token::Lparen, Token::Rparen];
 
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
@@ -565,13 +553,11 @@ mod tests {
 
     #[test]
     fn tuple() {
-        let tokens = vec![
-            Token::Lparen,
+        let tokens = [Token::Lparen,
             Token::Ident(String::from("Real")),
             Token::Comma,
             Token::Ident(String::from("Real")),
-            Token::Rparen,
-        ];
+            Token::Rparen];
 
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
@@ -584,14 +570,12 @@ mod tests {
 
     #[test]
     fn set_comprehension() {
-        let tokens = vec![
-            Token::Lbrace,
+        let tokens = [Token::Lbrace,
             Token::Ident(String::from("a")),
             Token::Colon,
             Token::Ident(String::from("a")),
             Token::Equals,
-            Token::Integer(String::from("1")),
-        ];
+            Token::Integer(String::from("1"))];
 
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
@@ -644,13 +628,11 @@ mod tests {
 
     #[test]
     fn shift_operator() {
-        let tokens = vec![
-            Token::Ident(String::from('x')),
+        let tokens = [Token::Ident(String::from('x')),
             Token::Minus,
             Token::Integer(String::from('1')),
             Token::LeftShift,
-            Token::Integer(String::from('1')),
-        ];
+            Token::Integer(String::from('1'))];
 
         assert_eq!(
             parser_from(token_iter!(tokens)).next(),
