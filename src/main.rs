@@ -49,7 +49,7 @@ fn main() -> std::io::Result<()> {
     } else {
         let nodes = parse_file(&args[1]);
         for node in nodes {
-            exec(&node, &mut standard_env()).unwrap();
+            exec(&postprocess(node), &mut standard_env()).unwrap();
         }
     }
 

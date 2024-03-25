@@ -6,6 +6,11 @@ pub fn postprocess(node: ASTNode) -> ASTNode {
     match node {
         ASTNode::Infix(InfixOperator::Correspondence, params, proc) => function(*params, *proc),
         ASTNode::Infix(InfixOperator::Call, called, args) => call(*called, *args),
+        ASTNode::For(ident, iter, proc) => ASTNode::For(
+            ident,
+            Box::new(postprocess(*iter)),
+            proc.iter().map(|node| postprocess(node.clone())).collect(),
+        ),
         node => node,
     }
 }
