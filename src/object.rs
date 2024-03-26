@@ -605,7 +605,13 @@ impl Callable for DefinedFunction {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Effect {
-    pub func: fn(&[Object]) -> Object,
+    func: fn(&[Object]) -> Object,
+}
+
+impl Effect {
+    pub fn new(func: fn(&[Object]) -> Object) -> Self {
+        Self { func }
+    }
 }
 
 impl From<fn(&[Object]) -> Object> for Effect {

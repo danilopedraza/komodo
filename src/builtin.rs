@@ -25,16 +25,12 @@ pub fn standard_env() -> Environment {
 
     env.set(
         "println",
-        crate::object::Object::Function(crate::object::Function::Effect(Effect {
-            func: smtc_println,
-        })),
+        crate::object::Object::Function(crate::object::Function::Effect(Effect::new(smtc_println))),
     );
 
     env.set(
         "getln",
-        crate::object::Object::Function(crate::object::Function::Effect(Effect {
-            func: smtc_getln,
-        })),
+        crate::object::Object::Function(crate::object::Function::Effect(Effect::new(smtc_getln))),
     );
 
     env
