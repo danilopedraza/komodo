@@ -15,7 +15,7 @@ use lexer::build_lexer;
 use parser::parser_from;
 use semantic::postprocess;
 
-use std::io::{stdin, stdout, BufRead, Write};
+use std::io::{stdin, stdout, Write};
 
 fn eval_line(line: &str) -> String {
     let lexer = build_lexer(line);
@@ -30,7 +30,7 @@ fn eval_line(line: &str) -> String {
 }
 
 fn repl() -> std::io::Result<()> {
-    let mut handle = stdin().lock();
+    let handle = stdin();
     loop {
         let mut line = String::new();
         print!(">>> ");
