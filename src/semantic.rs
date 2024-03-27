@@ -2,17 +2,22 @@ use crate::ast::{ASTNode, InfixOperator};
 
 // pub enum AnalyzerError {}
 
+#[allow(clippy::boxed_local)]
+fn postprocessed_box(node: Box<ASTNode>) -> Box<ASTNode> {
+    Box::new(postprocess(*node))
+}
+
 pub fn postprocess(node: ASTNode) -> ASTNode {
     match node {
         ASTNode::Infix(InfixOperator::Correspondence, params, proc) => function(*params, *proc),
         ASTNode::Infix(InfixOperator::Call, called, args) => call(*called, *args),
         ASTNode::For(ident, iter, proc) => ASTNode::For(
             ident,
-            Box::new(postprocess(*iter)),
+            postprocessed_box(iter),
             proc.iter().map(|node| postprocess(node.clone())).collect(),
         ),
         ASTNode::ComprehensionSet(value, prop) => {
-            ASTNode::ComprehensionSet(Box::new(postprocess(*value)), Box::new(postprocess(*prop)))
+            ASTNode::ComprehensionSet(postprocessed_box(value), postprocessed_box(prop))
         }
         ASTNode::ExtensionSet(vals) => {
             ASTNode::ExtensionSet(vals.iter().map(|val| postprocess(val.clone())).collect())
@@ -22,14 +27,12 @@ pub fn postprocess(node: ASTNode) -> ASTNode {
             proc.iter().map(|step| postprocess(step.clone())).collect(),
         ),
         ASTNode::If(cond, first, second) => ASTNode::If(
-            Box::new(postprocess(*cond)),
-            Box::new(postprocess(*first)),
-            Box::new(postprocess(*second)),
+            postprocessed_box(cond),
+            postprocessed_box(first),
+            postprocessed_box(second),
         ),
-        ASTNode::Let(ident, params, val) => {
-            ASTNode::Let(ident, params, Box::new(postprocess(*val)))
-        }
-        ASTNode::Prefix(op, node) => ASTNode::Prefix(op, Box::new(postprocess(*node))),
+        ASTNode::Let(ident, params, val) => ASTNode::Let(ident, params, postprocessed_box(val)),
+        ASTNode::Prefix(op, node) => ASTNode::Prefix(op, postprocessed_box(node)),
         ASTNode::Tuple(vec) => {
             ASTNode::Tuple(vec.iter().map(|node| postprocess(node.clone())).collect())
         }
