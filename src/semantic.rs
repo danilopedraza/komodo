@@ -11,6 +11,28 @@ pub fn postprocess(node: ASTNode) -> ASTNode {
             Box::new(postprocess(*iter)),
             proc.iter().map(|node| postprocess(node.clone())).collect(),
         ),
+        ASTNode::ComprehensionSet(value, prop) => {
+            ASTNode::ComprehensionSet(Box::new(postprocess(*value)), Box::new(postprocess(*prop)))
+        }
+        ASTNode::ExtensionSet(vals) => {
+            ASTNode::ExtensionSet(vals.iter().map(|val| postprocess(val.clone())).collect())
+        }
+        ASTNode::Function(args, proc) => ASTNode::Function(
+            args,
+            proc.iter().map(|step| postprocess(step.clone())).collect(),
+        ),
+        ASTNode::If(cond, first, second) => ASTNode::If(
+            Box::new(postprocess(*cond)),
+            Box::new(postprocess(*first)),
+            Box::new(postprocess(*second)),
+        ),
+        ASTNode::Let(ident, params, val) => {
+            ASTNode::Let(ident, params, Box::new(postprocess(*val)))
+        }
+        ASTNode::Prefix(op, node) => ASTNode::Prefix(op, Box::new(postprocess(*node))),
+        ASTNode::Tuple(vec) => {
+            ASTNode::Tuple(vec.iter().map(|node| postprocess(node.clone())).collect())
+        }
         node => node,
     }
 }
