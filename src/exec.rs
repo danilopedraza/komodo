@@ -52,19 +52,9 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
         ASTNode::Function(params, proc) => function(params, proc),
         ASTNode::Infix(op, lhs, rhs) => infix(*op, exec(lhs, env)?, exec(rhs, env)?),
         ASTNode::Let(ident, _, node) => match *ident.clone() {
-            ASTNode::Symbol(name) => {
-                let val = exec(node, env)?;
-                env.set(&name.clone(), val.clone());
-
-                Ok(val)
-            }
+            ASTNode::Symbol(name) => exec_and_set(node, &name, env),
             ASTNode::Signature(ident, None) => match *ident {
-                ASTNode::Symbol(name) => {
-                    let val = exec(node, env)?;
-                    env.set(&name.clone(), val.clone());
-
-                    Ok(val)
-                }
+                ASTNode::Symbol(name) => exec_and_set(node, &name, env),
                 _ => todo!(),
             },
             _ => todo!(),
@@ -82,6 +72,12 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
         ASTNode::Tuple(l) => list(l, env).map(|lst| Object::Tuple(Tuple::from(lst))),
         ASTNode::For(symbol, iterable, proc) => for_(symbol, exec(iterable, env)?, proc, env),
     }
+}
+
+fn exec_and_set(node: &ASTNode, name: &str, env: &mut Environment) -> Result<Object, EvalError> {
+    let val = exec(node, env)?;
+    env.set(name, val.clone());
+    Ok(val)
 }
 
 fn if_(
