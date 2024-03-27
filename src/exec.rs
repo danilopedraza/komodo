@@ -58,6 +58,15 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
 
                 Ok(val)
             }
+            ASTNode::Signature(ident, None) => match *ident {
+                ASTNode::Symbol(name) => {
+                    let val = exec(node, env)?;
+                    env.set(&name.clone(), val.clone());
+
+                    Ok(val)
+                }
+                _ => todo!(),
+            },
             _ => todo!(),
         },
         ASTNode::Boolean(val) => Ok(Object::Boolean(Bool::from(*val))),
@@ -259,7 +268,10 @@ mod tests {
     #[test]
     fn let_expression() {
         let node = &ASTNode::Let(
-            Box::new(ASTNode::Symbol(String::from("x"))),
+            Box::new(ASTNode::Signature(
+                Box::new(ASTNode::Symbol(String::from("x"))),
+                None,
+            )),
             vec![],
             Box::new(ASTNode::Integer(String::from("0"))),
         );
