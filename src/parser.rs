@@ -144,6 +144,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 Token::False => Ok(ASTNode::Boolean(false)),
                 Token::Lparen => self.parenthesis(),
                 Token::Lbrace => self.set(),
+                Token::Lbrack => self.extension_list(),
                 Token::Integer(int) => Ok(ASTNode::Integer(int)),
                 Token::Ident(literal) => Ok(ASTNode::Symbol(literal)),
                 Token::String(str) => Ok(ASTNode::String(str)),
@@ -164,6 +165,10 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
 
         Ok(expr)
+    }
+
+    fn extension_list(&mut self) -> NodeResult {
+        self.list(Token::Rbrack, None).map(ASTNode::ExtensionList)
     }
 
     fn for_(&mut self) -> NodeResult {
@@ -997,6 +1002,21 @@ mod tests {
                     )),
                 )),
             )))
+        );
+    }
+
+    #[test]
+    fn list() {
+        let input = "[1, 2]";
+
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer.map(|res| res.unwrap())).next(),
+            Some(Ok(ASTNode::ExtensionList(vec![
+                ASTNode::Integer(String::from("1")),
+                ASTNode::Integer(String::from("2")),
+            ]),)),
         );
     }
 }
