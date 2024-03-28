@@ -169,6 +169,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
     fn my_list(&mut self) -> NodeResult {
         if matches!(self.tokens.peek(), Some(Token::Rbrack)) {
+            self.tokens.next();
             return Ok(ASTNode::ExtensionList(vec![]));
         }
 
@@ -183,10 +184,15 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 .map(ASTNode::ExtensionList),
             Some(Token::Rbrack) => Ok(ASTNode::ExtensionList(vec![first])),
             Some(tok) => Err(ParserError::UnexpectedToken(
-                vec![Token::Colon, Token::Comma],
+                vec![Token::Colon, Token::Comma, Token::Rbrack],
                 tok,
             )),
-            None => Err(ParserError::EOFExpecting(vec![Token::Colon, Token::Comma])),
+            None => Err(ParserError::EOFExpecting(vec![
+                Token::Colon,
+                Token::Comma,
+                Token::Comma,
+                Token::Rbrack,
+            ])),
         }
     }
 
@@ -289,25 +295,25 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             return Ok(ASTNode::ExtensionSet(vec![]));
         }
 
-        let first_res = self.expression(Precedence::Lowest);
+        let first = self.expression(Precedence::Lowest)?;
 
-        match (first_res, self.tokens.next()) {
-            (Ok(first), Some(Token::Comma) | Some(Token::Rbrace)) => self
+        match self.tokens.next() {
+            Some(Token::Comma) => self
                 .list(Token::Rbrace, Some(first))
                 .map(ASTNode::ExtensionSet),
-            (Ok(first), Some(Token::Colon)) => self
+            Some(Token::Colon) => self
                 .expression(Precedence::Lowest)
                 .map(|second| ASTNode::ComprehensionSet(Box::new(first), Box::new(second))),
-            (Ok(_), Some(tok)) => Err(ParserError::UnexpectedToken(
+            Some(Token::Rbrace) => Ok(ASTNode::ExtensionSet(vec![first])),
+            Some(tok) => Err(ParserError::UnexpectedToken(
                 vec![Token::Comma, Token::Rbrace, Token::Colon],
                 tok,
             )),
-            (Ok(_), None) => Err(ParserError::EOFExpecting(vec![
+            None => Err(ParserError::EOFExpecting(vec![
                 Token::Comma,
                 Token::Rbrace,
                 Token::Colon,
             ])),
-            (err, _) => err,
         }
     }
 }
@@ -1066,6 +1072,20 @@ mod tests {
                     Box::new(ASTNode::Integer(String::from("0"))),
                 )),
             )))
+        );
+    }
+
+    #[test]
+    fn singleton_empty_set() {
+        let input = "{{}}";
+
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer.map(|res| res.unwrap())).next(),
+            Some(Ok(ASTNode::ExtensionSet(vec![ASTNode::ExtensionSet(
+                vec![]
+            )]))),
         );
     }
 }
