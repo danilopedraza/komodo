@@ -18,9 +18,13 @@ pub fn postprocess(node: ASTNode) -> ASTNode {
         ASTNode::For(ident, iter, proc) => {
             ASTNode::For(ident, postprocessed_box(iter), postprocessed_vec(proc))
         }
+        ASTNode::ComprehensionList(value, prop) => {
+            ASTNode::ComprehensionList(postprocessed_box(value), postprocessed_box(prop))
+        }
         ASTNode::ComprehensionSet(value, prop) => {
             ASTNode::ComprehensionSet(postprocessed_box(value), postprocessed_box(prop))
         }
+        ASTNode::ExtensionList(vals) => ASTNode::ExtensionList(postprocessed_vec(vals)),
         ASTNode::ExtensionSet(vals) => ASTNode::ExtensionSet(postprocessed_vec(vals)),
         ASTNode::Function(args, proc) => ASTNode::Function(args, postprocessed_vec(proc)),
         ASTNode::If(cond, first, second) => ASTNode::If(
