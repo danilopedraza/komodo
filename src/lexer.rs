@@ -29,6 +29,7 @@ pub enum Token {
     In,
     Integer(String),
     Lbrace,
+    Lbrack,
     LeftShift,
     Less,
     LessEqual,
@@ -42,6 +43,7 @@ pub enum Token {
     Over,
     Plus,
     Rbrace,
+    Rbrack,
     RightShift,
     Rparen,
     String(String),
@@ -93,11 +95,13 @@ impl Iterator for Lexer<'_> {
                 '-' => self.fork(Token::Minus, vec![('>', Token::Arrow)]),
                 '/' => self.fork(Token::Over, vec![('=', Token::NotEqual)]),
                 '{' => Token::Lbrace,
+                '[' => Token::Lbrack,
                 '(' => Token::Lparen,
                 '%' => Token::Mod,
                 '+' => Token::Plus,
                 '*' => self.stars(),
                 '}' => Token::Rbrace,
+                ']' => Token::Rbrack,
                 ')' => Token::Rparen,
                 '~' => Token::Tilde,
                 '0'..='9' => self.integer(chr),
@@ -512,6 +516,26 @@ mod tests {
         assert_eq!(
             build_lexer(code).next(),
             Some(Ok(Token::String(String::from("abc")))),
+        );
+    }
+
+    #[test]
+    fn list() {
+        let code = "[1, 2]";
+
+        assert_eq!(
+            build_lexer(code)
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|res| res.clone().unwrap())
+                .collect::<Vec<_>>(),
+            vec![
+                Token::Lbrack,
+                Token::Integer(String::from("1")),
+                Token::Comma,
+                Token::Integer(String::from("2")),
+                Token::Rbrack,
+            ],
         );
     }
 }
