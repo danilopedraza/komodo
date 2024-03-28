@@ -126,6 +126,7 @@ pub enum ASTNode {
     Call(Box<ASTNode>, Vec<ASTNode>),
     Char(char),
     ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
+    ComprehensionList(Box<ASTNode>, Box<ASTNode>),
     ExtensionList(Vec<ASTNode>),
     ExtensionSet(Vec<ASTNode>),
     For(String, Box<ASTNode>, Vec<ASTNode>),

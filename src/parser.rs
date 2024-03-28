@@ -144,7 +144,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 Token::False => Ok(ASTNode::Boolean(false)),
                 Token::Lparen => self.parenthesis(),
                 Token::Lbrace => self.set(),
-                Token::Lbrack => self.extension_list(),
+                Token::Lbrack => self.my_list(),
                 Token::Integer(int) => Ok(ASTNode::Integer(int)),
                 Token::Ident(literal) => Ok(ASTNode::Symbol(literal)),
                 Token::String(str) => Ok(ASTNode::String(str)),
@@ -167,8 +167,26 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         Ok(expr)
     }
 
-    fn extension_list(&mut self) -> NodeResult {
-        self.list(Token::Rbrack, None).map(ASTNode::ExtensionList)
+    fn my_list(&mut self) -> NodeResult {
+        if matches!(self.tokens.peek(), Some(Token::Rbrack)) {
+            return Ok(ASTNode::ExtensionList(vec![]));
+        }
+
+        let first = self.expression(Precedence::Lowest)?;
+
+        match self.tokens.next() {
+            Some(Token::Colon) => self
+                .expression(Precedence::Lowest)
+                .map(|second| ASTNode::ComprehensionList(Box::new(first), Box::new(second))),
+            Some(Token::Comma) => self
+                .list(Token::Rbrack, Some(first))
+                .map(ASTNode::ExtensionList),
+            Some(tok) => Err(ParserError::UnexpectedToken(
+                vec![Token::Colon, Token::Comma],
+                tok,
+            )),
+            None => Err(ParserError::EOFExpecting(vec![Token::Colon, Token::Comma])),
+        }
     }
 
     fn for_(&mut self) -> NodeResult {
@@ -1017,6 +1035,36 @@ mod tests {
                 ASTNode::Integer(String::from("1")),
                 ASTNode::Integer(String::from("2")),
             ]),)),
+        );
+    }
+
+    #[test]
+    fn comprehension_list() {
+        let input = "[ k in [1, 2] : k - 1 = 0 ]";
+
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer.map(|res| res.unwrap())).next(),
+            Some(Ok(ASTNode::ComprehensionList(
+                Box::new(ASTNode::Infix(
+                    InfixOperator::In,
+                    Box::new(ASTNode::Symbol(String::from("k"))),
+                    Box::new(ASTNode::ExtensionList(vec![
+                        ASTNode::Integer(String::from("1")),
+                        ASTNode::Integer(String::from("2")),
+                    ])),
+                )),
+                Box::new(ASTNode::Infix(
+                    InfixOperator::Equality,
+                    Box::new(ASTNode::Infix(
+                        InfixOperator::Substraction,
+                        Box::new(ASTNode::Symbol(String::from("k"))),
+                        Box::new(ASTNode::Integer(String::from("1"))),
+                    )),
+                    Box::new(ASTNode::Integer(String::from("0"))),
+                )),
+            )))
         );
     }
 }

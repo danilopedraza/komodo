@@ -72,6 +72,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
         ASTNode::Tuple(l) => list(l, env).map(|lst| Object::Tuple(Tuple::from(lst))),
         ASTNode::For(symbol, iterable, proc) => for_(symbol, exec(iterable, env)?, proc, env),
         ASTNode::ExtensionList(_) => todo!(),
+        ASTNode::ComprehensionList(_, _) => todo!(),
     }
 }
 
