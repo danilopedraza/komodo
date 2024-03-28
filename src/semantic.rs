@@ -7,25 +7,22 @@ fn postprocessed_box(node: Box<ASTNode>) -> Box<ASTNode> {
     Box::new(postprocess(*node))
 }
 
+fn postprocessed_vec(vec: Vec<ASTNode>) -> Vec<ASTNode> {
+    vec.iter().map(|node| postprocess(node.clone())).collect()
+}
+
 pub fn postprocess(node: ASTNode) -> ASTNode {
     match node {
         ASTNode::Infix(InfixOperator::Correspondence, params, proc) => function(*params, *proc),
         ASTNode::Infix(InfixOperator::Call, called, args) => call(*called, *args),
-        ASTNode::For(ident, iter, proc) => ASTNode::For(
-            ident,
-            postprocessed_box(iter),
-            proc.iter().map(|node| postprocess(node.clone())).collect(),
-        ),
+        ASTNode::For(ident, iter, proc) => {
+            ASTNode::For(ident, postprocessed_box(iter), postprocessed_vec(proc))
+        }
         ASTNode::ComprehensionSet(value, prop) => {
             ASTNode::ComprehensionSet(postprocessed_box(value), postprocessed_box(prop))
         }
-        ASTNode::ExtensionSet(vals) => {
-            ASTNode::ExtensionSet(vals.iter().map(|val| postprocess(val.clone())).collect())
-        }
-        ASTNode::Function(args, proc) => ASTNode::Function(
-            args,
-            proc.iter().map(|step| postprocess(step.clone())).collect(),
-        ),
+        ASTNode::ExtensionSet(vals) => ASTNode::ExtensionSet(postprocessed_vec(vals)),
+        ASTNode::Function(args, proc) => ASTNode::Function(args, postprocessed_vec(proc)),
         ASTNode::If(cond, first, second) => ASTNode::If(
             postprocessed_box(cond),
             postprocessed_box(first),
@@ -33,9 +30,7 @@ pub fn postprocess(node: ASTNode) -> ASTNode {
         ),
         ASTNode::Let(ident, params, val) => ASTNode::Let(ident, params, postprocessed_box(val)),
         ASTNode::Prefix(op, node) => ASTNode::Prefix(op, postprocessed_box(node)),
-        ASTNode::Tuple(vec) => {
-            ASTNode::Tuple(vec.iter().map(|node| postprocess(node.clone())).collect())
-        }
+        ASTNode::Tuple(vals) => ASTNode::Tuple(postprocessed_vec(vals)),
         node => node,
     }
 }
