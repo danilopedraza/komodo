@@ -181,6 +181,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             Some(Token::Comma) => self
                 .list(Token::Rbrack, Some(first))
                 .map(ASTNode::ExtensionList),
+            Some(Token::Rbrack) => Ok(ASTNode::ExtensionList(vec![first])),
             Some(tok) => Err(ParserError::UnexpectedToken(
                 vec![Token::Colon, Token::Comma],
                 tok,
@@ -1025,14 +1026,14 @@ mod tests {
 
     #[test]
     fn list() {
-        let input = "[1, 2]";
+        let input = "[[1], 2]";
 
         let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::ExtensionList(vec![
-                ASTNode::Integer(String::from("1")),
+                ASTNode::ExtensionList(vec![ASTNode::Integer(String::from("1"))]),
                 ASTNode::Integer(String::from("2")),
             ]),)),
         );
