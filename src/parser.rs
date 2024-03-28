@@ -1032,14 +1032,14 @@ mod tests {
 
     #[test]
     fn list() {
-        let input = "[[1], 2]";
+        let input = "[[], 2]";
 
         let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::ExtensionList(vec![
-                ASTNode::ExtensionList(vec![ASTNode::Integer(String::from("1"))]),
+                ASTNode::ExtensionList(vec![]),
                 ASTNode::Integer(String::from("2")),
             ]),)),
         );
