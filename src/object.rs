@@ -73,6 +73,7 @@ default_prefix_methods!(bitwise_not, logic_not, inverse);
 pub enum Object {
     Boolean(Bool),
     Char(Char),
+    ExtensionList(ExtensionList),
     ExtensionSet(ExtensionSet),
     Function(Function),
     ComprehensionSet(ComprehensionSet),
@@ -88,6 +89,7 @@ impl fmt::Display for Object {
             Object::Boolean(boolean) => boolean.fmt(f),
             Object::Char(chr) => chr.fmt(f),
             Object::ComprehensionSet(set) => set.fmt(f),
+            Object::ExtensionList(list) => list.fmt(f),
             Object::ExtensionSet(es) => es.fmt(f),
             Object::Function(func) => func.fmt(f),
             Object::Integer(int) => int.fmt(f),
@@ -105,6 +107,7 @@ macro_rules! derived_object_infix_trait {
                 Self::Boolean(left) => left.$ident(other),
                 Self::Char(left) => left.$ident(other),
                 Self::ComprehensionSet(left) => left.$ident(other),
+                Self::ExtensionList(left) => left.$ident(other),
                 Self::ExtensionSet(left) => left.$ident(other),
                 Self::Function(left) => left.$ident(other),
                 Self::Integer(left) => left.$ident(other),
@@ -157,6 +160,7 @@ macro_rules! derived_object_prefix_trait {
                 Self::Boolean(left) => left.$ident(),
                 Self::Char(left) => left.$ident(),
                 Self::ComprehensionSet(left) => left.$ident(),
+                Self::ExtensionList(left) => left.$ident(),
                 Self::ExtensionSet(left) => left.$ident(),
                 Self::Function(left) => left.$ident(),
                 Self::Integer(left) => left.$ident(),
@@ -629,5 +633,32 @@ impl fmt::Display for Effect {
 impl Callable for Effect {
     fn call(&self, args: &[Object], _env: &mut Environment) -> Result<Object, EvalError> {
         Ok((self.func)(args))
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExtensionList {
+    list: Vec<Object>,
+}
+
+impl From<Vec<Object>> for ExtensionList {
+    fn from(list: Vec<Object>) -> Self {
+        Self { list }
+    }
+}
+
+impl InfixOperable for ExtensionList {}
+impl PrefixOperable for ExtensionList {}
+
+impl fmt::Display for ExtensionList {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let list = self
+            .list
+            .iter()
+            .map(|obj| obj.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        write!(f, "[{}]", list)
     }
 }

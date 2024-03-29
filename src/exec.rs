@@ -1,4 +1,4 @@
-use crate::object::{self, Callable, ComprehensionSet};
+use crate::object::{self, Callable, ComprehensionSet, ExtensionList};
 
 use crate::ast::{ASTNode, InfixOperator, PrefixOperator};
 use crate::env::Environment;
@@ -71,7 +71,9 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
         ASTNode::String(str) => Ok(Object::String(MyString::from(str.as_str()))),
         ASTNode::Tuple(l) => list(l, env).map(|lst| Object::Tuple(Tuple::from(lst))),
         ASTNode::For(symbol, iterable, proc) => for_(symbol, exec(iterable, env)?, proc, env),
-        ASTNode::ExtensionList(_) => todo!(),
+        ASTNode::ExtensionList(l) => {
+            list(l, env).map(|lst| Object::ExtensionList(ExtensionList::from(lst)))
+        }
         ASTNode::ComprehensionList(_, _) => todo!(),
     }
 }
@@ -681,5 +683,17 @@ mod tests {
             exec(node, &mut Environment::default()),
             Ok(Object::Boolean(crate::object::Bool::from(true))),
         );
+    }
+
+    #[test]
+    fn extension_list() {
+        let node = &ASTNode::ExtensionList(vec![ASTNode::Integer(String::from("1"))]);
+
+        assert_eq!(
+            exec(node, &mut Environment::default()),
+            Ok(Object::ExtensionList(crate::object::ExtensionList::from(
+                vec![Object::Integer(crate::object::Integer::from(1)),]
+            ))),
+        )
     }
 }
