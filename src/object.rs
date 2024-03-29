@@ -269,7 +269,7 @@ impl fmt::Display for ExtensionSet {
             .collect::<Vec<_>>()
             .join(", ");
 
-        write!(f, "[{}]", list)
+        write!(f, "{{{}}}", list)
     }
 }
 
