@@ -111,7 +111,9 @@ fn for_(
     for val in iter {
         env.set(symbol, val.clone());
 
-        exec(&proc[0], env)?;
+        for step in proc {
+            exec(step, env)?;
+        }
     }
 
     Ok(Object::Tuple(Tuple::from(vec![])))
@@ -624,20 +626,31 @@ mod tests {
                 ASTNode::Integer(String::from("2")),
                 ASTNode::Integer(String::from("3")),
             ])),
-            vec![ASTNode::Let(
-                Box::new(ASTNode::Symbol(String::from("a"))),
-                vec![],
-                Box::new(ASTNode::Infix(
-                    InfixOperator::Product,
+            vec![
+                ASTNode::Let(
                     Box::new(ASTNode::Symbol(String::from("a"))),
-                    Box::new(ASTNode::Symbol(String::from("val"))),
-                )),
-            )],
+                    vec![],
+                    Box::new(ASTNode::Infix(
+                        InfixOperator::Product,
+                        Box::new(ASTNode::Symbol(String::from("a"))),
+                        Box::new(ASTNode::Symbol(String::from("val"))),
+                    )),
+                ),
+                ASTNode::Let(
+                    Box::new(ASTNode::Symbol(String::from("a"))),
+                    vec![],
+                    Box::new(ASTNode::Infix(
+                        InfixOperator::Sum,
+                        Box::new(ASTNode::Symbol(String::from("a"))),
+                        Box::new(ASTNode::Integer(String::from("1"))),
+                    )),
+                ),
+            ],
         );
 
         assert_eq!(exec(node, &mut env), Ok(Object::Tuple(Tuple::from(vec![]))),);
 
-        assert_eq!(env.get("a"), Some(&Object::Integer(Integer::from(6))),);
+        assert_eq!(env.get("a"), Some(&Object::Integer(Integer::from(10))),);
     }
 
     #[test]
