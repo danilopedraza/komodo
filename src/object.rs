@@ -599,11 +599,15 @@ impl Callable for DefinedFunction {
             env.set(&param, arg.clone());
         }
 
-        let res = exec(&self.proc[0], env);
+        let mut res = Object::Tuple(Tuple::from(vec![]));
+
+        for step in &self.proc {
+            res = exec(step, env)?;
+        }
 
         env.pop_scope();
 
-        res
+        Ok(res)
     }
 }
 

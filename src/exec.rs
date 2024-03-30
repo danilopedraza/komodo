@@ -696,4 +696,35 @@ mod tests {
             ))),
         )
     }
+
+    #[test]
+    fn function_with_code_block() {
+        let node = &ASTNode::Call(
+            Box::new(ASTNode::Function(
+                vec![String::from("x")],
+                vec![
+                    ASTNode::Let(
+                        Box::new(ASTNode::Symbol(String::from("y"))),
+                        vec![],
+                        Box::new(ASTNode::Infix(
+                            InfixOperator::Product,
+                            Box::new(ASTNode::Integer(String::from("2"))),
+                            Box::new(ASTNode::Symbol(String::from("x"))),
+                        )),
+                    ),
+                    ASTNode::Infix(
+                        InfixOperator::Sum,
+                        Box::new(ASTNode::Symbol(String::from("y"))),
+                        Box::new(ASTNode::Integer(String::from("1"))),
+                    ),
+                ],
+            )),
+            vec![ASTNode::Integer(String::from("2"))],
+        );
+
+        assert_eq!(
+            exec(node, &mut Environment::default()),
+            Ok(Object::Integer(Integer::from(5))),
+        );
+    }
 }
