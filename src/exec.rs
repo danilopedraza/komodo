@@ -74,7 +74,25 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
         ASTNode::ExtensionList(l) => {
             list(l, env).map(|lst| Object::ExtensionList(ExtensionList::from(lst)))
         }
-        ASTNode::ComprehensionList(_, _) => todo!(),
+        ASTNode::ComprehensionList(value, prop) => match *prop.clone() {
+            ASTNode::Infix(InfixOperator::In, symbol, iterator) => match (*symbol, *iterator) {
+                (ASTNode::Symbol(s), ASTNode::ExtensionList(l)) => {
+                    let origin = list(&l, env)?;
+                    env.push_scope();
+
+                    let mut new_list = vec![];
+
+                    for val in origin {
+                        env.set(&s, val);
+                        new_list.push(exec(value, env)?);
+                    }
+
+                    Ok(Object::ExtensionList(ExtensionList::from(new_list)))
+                }
+                _ => todo!(),
+            },
+            _ => todo!(),
+        },
     }
 }
 
@@ -738,6 +756,33 @@ mod tests {
         assert_eq!(
             exec(node, &mut Environment::default()),
             Ok(Object::Integer(Integer::from(5))),
+        );
+    }
+
+    #[test]
+    fn comprehension_list() {
+        let node = &ASTNode::ComprehensionList(
+            Box::new(ASTNode::Infix(
+                InfixOperator::Sum,
+                Box::new(ASTNode::Symbol(String::from("k"))),
+                Box::new(ASTNode::Integer(String::from("1"))),
+            )),
+            Box::new(ASTNode::Infix(
+                InfixOperator::In,
+                Box::new(ASTNode::Symbol(String::from("k"))),
+                Box::new(ASTNode::ExtensionList(vec![
+                    ASTNode::Integer(String::from("0")),
+                    ASTNode::Integer(String::from("1")),
+                ])),
+            )),
+        );
+
+        assert_eq!(
+            exec(node, &mut Environment::default()),
+            Ok(Object::ExtensionList(ExtensionList::from(vec![
+                Object::Integer(Integer::from(1)),
+                Object::Integer(Integer::from(2)),
+            ])))
         );
     }
 }
