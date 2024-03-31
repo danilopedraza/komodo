@@ -74,25 +74,25 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
         ASTNode::ExtensionList(l) => {
             list(l, env).map(|lst| Object::ExtensionList(ExtensionList::from(lst)))
         }
-        ASTNode::ComprehensionList(value, prop) => match *prop.clone() {
-            ASTNode::Infix(InfixOperator::In, symbol, iterator) => match (*symbol, *iterator) {
-                (ASTNode::Symbol(s), ASTNode::ExtensionList(l)) => {
-                    let origin = list(&l, env)?;
-                    env.push_scope();
-
-                    let mut new_list = vec![];
-
-                    for val in origin {
-                        env.set(&s, val);
-                        new_list.push(exec(value, env)?);
-                    }
-
-                    Ok(Object::ExtensionList(ExtensionList::from(new_list)))
-                }
+        ASTNode::ComprehensionList(transform, prop) => {
+            let (symbol, iterator) = match *prop.clone() {
+                ASTNode::Infix(InfixOperator::In, lhs, rhs) => match (*lhs, *rhs) {
+                    (ASTNode::Symbol(ident), ASTNode::ExtensionList(l)) => (ident, list(&l, env)?),
+                    _ => todo!(),
+                },
                 _ => todo!(),
-            },
-            _ => todo!(),
-        },
+            };
+
+            let mut new_list = vec![];
+            env.push_scope();
+
+            for val in iterator {
+                env.set(&symbol, val);
+                new_list.push(exec(transform, env)?);
+            }
+
+            Ok(Object::ExtensionList(ExtensionList::from(new_list)))
+        }
     }
 }
 
