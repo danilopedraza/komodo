@@ -6,28 +6,16 @@ mod file;
 mod lexer;
 mod object;
 mod parser;
+mod repl;
 mod semantic;
 
 use builtin::standard_env;
 use exec::exec;
 use file::parse_file;
-use lexer::build_lexer;
-use parser::parser_from;
+use repl::Repl;
 use semantic::postprocess;
 
 use std::io::{stdin, stdout, Write};
-
-fn eval_line(line: &str) -> String {
-    let lexer = build_lexer(line);
-    let mut parser = parser_from(lexer.map(|res| res.unwrap()));
-    match parser.next() {
-        None => String::from(""),
-        Some(Ok(node)) => exec(&postprocess(node), &mut standard_env())
-            .unwrap()
-            .to_string(),
-        Some(Err(_)) => String::from("error"),
-    }
-}
 
 fn repl() -> std::io::Result<()> {
     let handle = stdin();
@@ -36,7 +24,7 @@ fn repl() -> std::io::Result<()> {
         print!(">>> ");
         stdout().flush().unwrap();
         handle.read_line(&mut line)?;
-        let res = eval_line(&line);
+        let res = Repl::default().eval(&line);
         println!("{res}");
     }
 }
