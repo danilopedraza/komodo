@@ -15,21 +15,26 @@ use file::parse_file;
 use repl::Repl;
 use semantic::postprocess;
 
-use std::io::{stdin, stdout, Write};
+use rustyline::error::ReadlineError;
+use rustyline::{DefaultEditor, Result};
 
-fn repl() -> std::io::Result<()> {
-    let handle = stdin();
+fn repl() -> Result<()> {
+    let mut rl = DefaultEditor::new()?;
     loop {
-        let mut line = String::new();
-        print!(">>> ");
-        stdout().flush().unwrap();
-        handle.read_line(&mut line)?;
-        let res = Repl::default().eval(&line);
-        println!("{res}");
+        let readline = rl.readline(">>> ");
+
+        match readline {
+            Ok(line) => {
+                let res = Repl::default().eval(&line);
+                println!("{res}");
+            }
+            Err(ReadlineError::Interrupted | ReadlineError::Eof) => break Ok(()),
+            _ => todo!(),
+        }
     }
 }
 
-fn main() -> std::io::Result<()> {
+fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() == 1 {
