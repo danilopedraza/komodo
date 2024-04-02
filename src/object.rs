@@ -361,6 +361,13 @@ impl InfixOperable for Integer {
         }
     }
 
+    fn equality(&self, other: Object) -> Result<Object, ()> {
+        match other {
+            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val == val))),
+            _ => Err(()),
+        }
+    }
+
     fn greater_equal(&self, other: Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val >= val))),

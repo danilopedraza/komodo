@@ -17,14 +17,16 @@ pub enum ReplResponse {
 #[derive(Default)]
 pub struct Repl {
     env: Environment,
-    // code: String,
+    code: String,
 }
 
 impl Repl {
     pub fn eval(&mut self, input: Result<String, ReadlineError>) -> (String, ReplResponse) {
         match input {
             Ok(line) => {
-                let lexer = build_lexer(&line);
+                self.code.push(' ');
+                self.code.push_str(&line);
+                let lexer = build_lexer(&self.code);
                 let mut parser = parser_from(lexer.map(|res| res.unwrap()));
 
                 match parser.next() {
@@ -107,6 +109,18 @@ mod tests {
         assert_eq!(
             repl.eval(Ok(String::from("if 1 + 1 = 2 then a"))),
             (String::from(""), ReplResponse::WaitForMore)
+        );
+    }
+
+    #[test]
+    fn eval_completed_expression() {
+        let mut repl = Repl::default();
+
+        repl.eval(Ok(String::from("if 1 + 1 = 2 then a")));
+
+        assert_eq!(
+            repl.eval(Ok(String::from("else b"))),
+            (String::from("a"), ReplResponse::Continue),
         );
     }
 }
