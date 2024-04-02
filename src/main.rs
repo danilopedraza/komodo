@@ -12,30 +12,33 @@ mod semantic;
 use builtin::standard_env;
 use exec::exec;
 use file::parse_file;
-use repl::Repl;
+use repl::{Repl, ReplResponse};
 use semantic::postprocess;
 
-use rustyline::error::ReadlineError;
-use rustyline::{DefaultEditor, Result};
+use rustyline::DefaultEditor;
 
-fn repl() -> Result<()> {
-    let mut rl = DefaultEditor::new()?;
+fn repl() -> Result<(), ()> {
+    let mut rl = DefaultEditor::new().unwrap();
     loop {
         let readline = rl.readline(">>> ");
 
-        match readline {
-            Ok(line) => {
-                let _ = rl.add_history_entry(&line);
-                let res = Repl::default().eval(&line);
-                println!("{res}");
-            }
-            Err(ReadlineError::Interrupted | ReadlineError::Eof) => break Ok(()),
-            _ => todo!(),
+        if let Ok(line) = &readline {
+            let _ = rl.add_history_entry(line);
+        }
+
+        let (line, response) = Repl::default().eval(readline);
+
+        println!("{line}");
+
+        match response {
+            ReplResponse::Break => break Ok(()),
+            ReplResponse::Continue => continue,
+            ReplResponse::Error => break Err(()),
         }
     }
 }
 
-fn main() -> Result<()> {
+fn main() -> Result<(), ()> {
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() == 1 {
