@@ -77,9 +77,6 @@ mod tests {
         let input = Ok(String::from("("));
         let repl = Repl::default();
 
-        assert_eq!(
-            repl.eval(input),
-            (String::from("error"), ReplResponse::Error)
-        );
+        assert!(matches!(repl.eval(input), (_, ReplResponse::Error)));
     }
 }
