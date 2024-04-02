@@ -1,4 +1,9 @@
-use crate::{env::Environment, exec::exec, lexer::build_lexer, parser::parser_from};
+use crate::{
+    env::Environment,
+    exec::exec,
+    lexer::build_lexer,
+    parser::{parser_from, ParserError},
+};
 use rustyline::error::ReadlineError;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -6,6 +11,7 @@ pub enum ReplResponse {
     Break,
     Continue,
     Error,
+    WaitForMore,
 }
 
 #[derive(Default)]
@@ -27,6 +33,9 @@ impl Repl {
                         _ => (String::from("error"), ReplResponse::Break),
                     },
                     None => (String::from(""), ReplResponse::Continue),
+                    Some(Err(ParserError::EOFExpecting(_))) => {
+                        (String::from(""), ReplResponse::WaitForMore)
+                    }
                     _ => (String::from("error"), ReplResponse::Error),
                 }
             }
@@ -88,6 +97,16 @@ mod tests {
         assert_eq!(
             repl.eval(Ok(String::from("x"))),
             (String::from("1"), ReplResponse::Continue)
+        );
+    }
+
+    #[test]
+    fn wait_for_completeness() {
+        let mut repl = Repl::default();
+
+        assert_eq!(
+            repl.eval(Ok(String::from("if 1 + 1 = 2 then a"))),
+            (String::from(""), ReplResponse::WaitForMore)
         );
     }
 }

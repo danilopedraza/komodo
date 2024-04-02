@@ -19,8 +19,13 @@ use rustyline::DefaultEditor;
 
 fn repl() -> Result<(), ()> {
     let mut rl = DefaultEditor::new().unwrap();
+    let mut wait_for_more = false;
+
     loop {
-        let readline = rl.readline(">>> ");
+        let readline = match wait_for_more {
+            false => rl.readline(">>> "),
+            true => rl.readline("... "),
+        };
 
         if let Ok(line) = &readline {
             let _ = rl.add_history_entry(line);
@@ -30,10 +35,13 @@ fn repl() -> Result<(), ()> {
 
         println!("{line}");
 
+        wait_for_more = response == ReplResponse::WaitForMore;
+
         match response {
             ReplResponse::Break => break Ok(()),
             ReplResponse::Continue => continue,
             ReplResponse::Error => break Err(()),
+            ReplResponse::WaitForMore => continue,
         }
     }
 }
