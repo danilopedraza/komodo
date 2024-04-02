@@ -24,14 +24,19 @@ impl Repl {
     pub fn eval(&mut self, input: Result<String, ReadlineError>) -> (String, ReplResponse) {
         match input {
             Ok(line) => {
-                self.code.push(' ');
+                if !self.code.is_empty() {
+                    self.code.push(' ');
+                }
                 self.code.push_str(&line);
                 let lexer = build_lexer(&self.code);
                 let mut parser = parser_from(lexer.map(|res| res.unwrap()));
 
                 match parser.next() {
                     Some(Ok(node)) => match exec(&node, &mut self.env) {
-                        Ok(obj) => (obj.to_string(), ReplResponse::Continue),
+                        Ok(obj) => {
+                            self.code.clear();
+                            (obj.to_string(), ReplResponse::Continue)
+                        }
                         _ => (String::from("error"), ReplResponse::Break),
                     },
                     None => (String::from(""), ReplResponse::Continue),
