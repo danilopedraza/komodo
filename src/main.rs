@@ -32,7 +32,7 @@ fn repl() -> Result<(), ()> {
             let _ = rl.add_history_entry(line);
         }
 
-        let (line, response) = repl.eval(readline);
+        let (line, response) = repl.response(readline);
 
         println!("{line}");
 

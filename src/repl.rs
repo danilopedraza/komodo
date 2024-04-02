@@ -21,7 +21,7 @@ pub struct Repl {
 }
 
 impl Repl {
-    pub fn eval(&mut self, input: Result<String, ReadlineError>) -> (String, ReplResponse) {
+    pub fn response(&mut self, input: Result<String, ReadlineError>) -> (String, ReplResponse) {
         match input {
             Ok(line) => {
                 if !self.code.is_empty() {
@@ -63,7 +63,7 @@ mod tests {
         let input = Ok(String::from(""));
         let mut repl = Repl::default();
 
-        assert_eq!(repl.eval(input), (String::from(""), ReplResponse::Continue));
+        assert_eq!(repl.response(input), (String::from(""), ReplResponse::Continue));
     }
 
     #[test]
@@ -72,7 +72,7 @@ mod tests {
         let mut repl = Repl::default();
 
         assert_eq!(
-            repl.eval(input),
+            repl.response(input),
             (String::from("0"), ReplResponse::Continue)
         );
     }
@@ -83,7 +83,7 @@ mod tests {
         let mut repl = Repl::default();
 
         assert_eq!(
-            repl.eval(input),
+            repl.response(input),
             (String::from("x"), ReplResponse::Continue)
         );
     }
@@ -93,16 +93,16 @@ mod tests {
         let input = Ok(String::from("("));
         let mut repl = Repl::default();
 
-        assert!(matches!(repl.eval(input), (_, ReplResponse::Error)));
+        assert!(matches!(repl.response(input), (_, ReplResponse::Error)));
     }
 
     #[test]
     fn memory() {
         let mut repl = Repl::default();
-        repl.eval(Ok(String::from("let x := 1")));
+        repl.response(Ok(String::from("let x := 1")));
 
         assert_eq!(
-            repl.eval(Ok(String::from("x"))),
+            repl.response(Ok(String::from("x"))),
             (String::from("1"), ReplResponse::Continue)
         );
     }
@@ -112,7 +112,7 @@ mod tests {
         let mut repl = Repl::default();
 
         assert_eq!(
-            repl.eval(Ok(String::from("if 1 + 1 = 2 then a"))),
+            repl.response(Ok(String::from("if 1 + 1 = 2 then a"))),
             (String::from(""), ReplResponse::WaitForMore)
         );
     }
@@ -121,10 +121,10 @@ mod tests {
     fn eval_completed_expression() {
         let mut repl = Repl::default();
 
-        repl.eval(Ok(String::from("if 1 + 1 = 2 then a")));
+        repl.response(Ok(String::from("if 1 + 1 = 2 then a")));
 
         assert_eq!(
-            repl.eval(Ok(String::from("else b"))),
+            repl.response(Ok(String::from("else b"))),
             (String::from("a"), ReplResponse::Continue),
         );
     }
