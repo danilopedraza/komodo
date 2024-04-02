@@ -25,6 +25,7 @@ fn repl() -> Result<()> {
 
         match readline {
             Ok(line) => {
+                let _ = rl.add_history_entry(&line);
                 let res = Repl::default().eval(&line);
                 println!("{res}");
             }
