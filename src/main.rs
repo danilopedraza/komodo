@@ -20,6 +20,7 @@ use rustyline::DefaultEditor;
 fn repl() -> Result<(), ()> {
     let mut rl = DefaultEditor::new().unwrap();
     let mut wait_for_more = false;
+    let mut repl = Repl::default();
 
     loop {
         let readline = match wait_for_more {
@@ -31,7 +32,7 @@ fn repl() -> Result<(), ()> {
             let _ = rl.add_history_entry(line);
         }
 
-        let (line, response) = Repl::default().eval(readline);
+        let (line, response) = repl.eval(readline);
 
         println!("{line}");
 
