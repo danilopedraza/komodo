@@ -1,4 +1,5 @@
 use crate::{
+    ast::ASTNode,
     env::Environment,
     exec::exec,
     lexer::build_lexer,
@@ -31,25 +32,32 @@ impl Repl {
                 let lexer = build_lexer(&self.code);
                 let mut parser = parser_from(lexer.map(|res| res.unwrap()));
 
-                match parser.next() {
-                    Some(Ok(node)) => match exec(&node, &mut self.env) {
-                        Ok(obj) => {
-                            self.code.clear();
-                            (obj.to_string(), ReplResponse::Continue)
-                        }
-                        _ => (String::from("error"), ReplResponse::Break),
-                    },
-                    None => (String::from(""), ReplResponse::Continue),
-                    Some(Err(ParserError::EOFExpecting(_))) => {
-                        (String::from(""), ReplResponse::WaitForMore)
-                    }
-                    _ => (String::from("error"), ReplResponse::Error),
-                }
+                self.ast_response(parser.next())
             }
             Err(ReadlineError::Interrupted | ReadlineError::Eof) => {
                 (String::from(""), ReplResponse::Break)
             }
             _ => todo!(),
+        }
+    }
+
+    fn ast_response(
+        &mut self,
+        res: Option<Result<ASTNode, ParserError>>,
+    ) -> (String, ReplResponse) {
+        match res {
+            Some(Ok(node)) => match exec(&node, &mut self.env) {
+                Ok(obj) => {
+                    self.code.clear();
+                    (obj.to_string(), ReplResponse::Continue)
+                }
+                _ => (String::from("error"), ReplResponse::Break),
+            },
+            None => (String::from(""), ReplResponse::Continue),
+            Some(Err(ParserError::EOFExpecting(_))) => {
+                (String::from(""), ReplResponse::WaitForMore)
+            }
+            _ => (String::from("error"), ReplResponse::Error),
         }
     }
 }
@@ -63,7 +71,10 @@ mod tests {
         let input = Ok(String::from(""));
         let mut repl = Repl::default();
 
-        assert_eq!(repl.response(input), (String::from(""), ReplResponse::Continue));
+        assert_eq!(
+            repl.response(input),
+            (String::from(""), ReplResponse::Continue)
+        );
     }
 
     #[test]
