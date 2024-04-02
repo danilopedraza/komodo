@@ -32,7 +32,10 @@ impl Repl {
                 let lexer = build_lexer(&self.code);
                 let mut parser = parser_from(lexer.map(|res| res.unwrap()));
 
-                self.ast_response(parser.next())
+                match parser.next() {
+                    None => (String::from(""), ReplResponse::Continue),
+                    Some(res) => self.ast_response(res),
+                }
             }
             Err(ReadlineError::Interrupted | ReadlineError::Eof) => {
                 (String::from(""), ReplResponse::Break)
@@ -41,22 +44,16 @@ impl Repl {
         }
     }
 
-    fn ast_response(
-        &mut self,
-        res: Option<Result<ASTNode, ParserError>>,
-    ) -> (String, ReplResponse) {
+    fn ast_response(&mut self, res: Result<ASTNode, ParserError>) -> (String, ReplResponse) {
         match res {
-            Some(Ok(node)) => match exec(&node, &mut self.env) {
+            Ok(node) => match exec(&node, &mut self.env) {
                 Ok(obj) => {
                     self.code.clear();
                     (obj.to_string(), ReplResponse::Continue)
                 }
                 _ => (String::from("error"), ReplResponse::Break),
             },
-            None => (String::from(""), ReplResponse::Continue),
-            Some(Err(ParserError::EOFExpecting(_))) => {
-                (String::from(""), ReplResponse::WaitForMore)
-            }
+            Err(ParserError::EOFExpecting(_)) => (String::from(""), ReplResponse::WaitForMore),
             _ => (String::from("error"), ReplResponse::Error),
         }
     }
