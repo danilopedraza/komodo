@@ -254,7 +254,13 @@ impl From<char> for Char {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExtensionSet {
-    pub list: Vec<Object>,
+    list: Vec<Object>,
+}
+
+impl ExtensionSet {
+    pub fn list(&self) -> &[Object] {
+        &self.list
+    }
 }
 
 impl InfixOperable for ExtensionSet {}

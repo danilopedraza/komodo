@@ -122,8 +122,8 @@ fn for_(
     proc: &[ASTNode],
     env: &mut Environment,
 ) -> Result<Object, EvalError> {
-    let iter = match iterable_obj {
-        Object::ExtensionSet(set) => Ok(set.list.clone()),
+    let iter = match &iterable_obj {
+        Object::ExtensionSet(set) => Ok(set.list()),
         _ => Err(EvalError::NonIterableObject),
     }?;
 
