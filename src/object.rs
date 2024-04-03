@@ -571,8 +571,8 @@ impl Callable for Function {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DefinedFunction {
-    pub params: Vec<String>,
-    pub proc: Vec<ASTNode>,
+    params: Vec<String>,
+    proc: Vec<ASTNode>,
 }
 
 impl InfixOperable for DefinedFunction {}
