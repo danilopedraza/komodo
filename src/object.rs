@@ -187,7 +187,13 @@ derived_object_prefix_traits!(bitwise_not, logic_not, inverse);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Bool {
-    pub val: bool,
+    val: bool,
+}
+
+impl Bool {
+    pub fn value(&self) -> bool {
+        self.val
+    }
 }
 
 impl fmt::Display for Bool {

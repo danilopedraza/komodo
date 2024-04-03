@@ -16,7 +16,7 @@ pub enum EvalError {
 
 fn truthy(val: Object) -> bool {
     match val {
-        Object::Boolean(Bool { val }) => val,
+        Object::Boolean(boolean) => boolean.value(),
         _ => false,
     }
 }
