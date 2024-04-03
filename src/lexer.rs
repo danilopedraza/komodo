@@ -53,6 +53,7 @@ pub enum Token {
     ToThe,
     True,
     Unknown,
+    Wildcard,
 }
 
 pub struct Lexer<'a> {
@@ -104,6 +105,7 @@ impl Iterator for Lexer<'_> {
                 ']' => Token::Rbrack,
                 ')' => Token::Rparen,
                 '~' => Token::Tilde,
+                '_' => Token::Wildcard,
                 '0'..='9' => self.integer(chr),
                 chr if chr.is_alphabetic() => self.identifier_or_keyword(chr),
                 _ => Token::Unknown,
@@ -535,6 +537,29 @@ mod tests {
                 Token::Comma,
                 Token::Integer(String::from("2")),
                 Token::Rbrack,
+            ],
+        );
+    }
+
+    #[test]
+    fn wildcard() {
+        let code = "f(x, _) := x";
+
+        assert_eq!(
+            build_lexer(code)
+                .collect::<Vec<_>>()
+                .iter()
+                .map(|res| res.clone().unwrap())
+                .collect::<Vec<_>>(),
+            vec![
+                Token::Ident(String::from("f")),
+                Token::Lparen,
+                Token::Ident(String::from("x")),
+                Token::Comma,
+                Token::Wildcard,
+                Token::Rparen,
+                Token::Assign,
+                Token::Ident(String::from("x")),
             ],
         );
     }
