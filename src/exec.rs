@@ -685,14 +685,14 @@ mod tests {
 
         assert_eq!(
             exec(node, &mut Environment::default()),
-            Ok(Object::ComprehensionSet(ComprehensionSet {
-                value: ASTNode::Symbol(String::from("k")),
-                prop: ASTNode::Infix(
+            Ok(Object::ComprehensionSet(ComprehensionSet::from((
+                ASTNode::Symbol(String::from("k")),
+                ASTNode::Infix(
                     InfixOperator::Greater,
                     Box::new(ASTNode::Symbol(String::from("k"))),
                     Box::new(ASTNode::Integer(String::from("1"))),
                 )
-            })),
+            )))),
         );
     }
 

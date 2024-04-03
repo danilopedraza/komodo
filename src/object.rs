@@ -287,8 +287,8 @@ impl fmt::Display for ExtensionSet {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ComprehensionSet {
-    pub value: ASTNode,
-    pub prop: ASTNode,
+    value: ASTNode,
+    prop: ASTNode,
 }
 
 impl From<(ASTNode, ASTNode)> for ComprehensionSet {
