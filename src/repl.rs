@@ -136,4 +136,17 @@ mod tests {
             (String::from("a"), ReplResponse::Continue),
         );
     }
+
+    #[test]
+    #[ignore = "not yet implemented"]
+    fn match_initial_case() {
+        let mut repl = Repl::default();
+
+        repl.response(Ok(String::from("let f(0) := 1")));
+
+        assert_eq!(
+            repl.response(Ok(String::from("f(0)"))),
+            (String::from("1"), ReplResponse::Continue),
+        );
+    }
 }
