@@ -93,6 +93,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
 
             Ok(Object::ExtensionList(ExtensionList::from(new_list)))
         }
+        ASTNode::Wildcard => todo!(),
     }
 }
 

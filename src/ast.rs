@@ -140,4 +140,5 @@ pub enum ASTNode {
     String(String),
     Symbol(String),
     Tuple(Vec<ASTNode>),
+    Wildcard,
 }

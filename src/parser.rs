@@ -148,6 +148,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 Token::Integer(int) => Ok(ASTNode::Integer(int)),
                 Token::Ident(literal) => Ok(ASTNode::Symbol(literal)),
                 Token::String(str) => Ok(ASTNode::String(str)),
+                Token::Wildcard => Ok(ASTNode::Wildcard),
                 tok if PrefixOperator::from(tok.clone()).is_some() => {
                     self.prefix(PrefixOperator::from(tok).unwrap())
                 }
@@ -1086,6 +1087,22 @@ mod tests {
             Some(Ok(ASTNode::ExtensionSet(vec![ASTNode::ExtensionSet(
                 vec![]
             )]))),
+        );
+    }
+
+    #[test]
+    fn wildcard() {
+        let input = "[a, 1, _]";
+
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer.map(|res| res.unwrap())).next(),
+            Some(Ok(ASTNode::ExtensionList(vec![
+                ASTNode::Symbol(String::from("a")),
+                ASTNode::Integer(String::from("1")),
+                ASTNode::Wildcard,
+            ]),)),
         );
     }
 }
