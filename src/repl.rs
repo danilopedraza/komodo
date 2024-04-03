@@ -51,10 +51,10 @@ impl Repl {
                     self.code.clear();
                     (obj.to_string(), ReplResponse::Continue)
                 }
-                _ => (String::from("error"), ReplResponse::Break),
+                Err(err) => (format!("{:?}", err), ReplResponse::Error),
             },
             Err(ParserError::EOFExpecting(_)) => (String::from(""), ReplResponse::WaitForMore),
-            _ => (String::from("error"), ReplResponse::Error),
+            Err(err) => (format!("{:?}", err), ReplResponse::Error),
         }
     }
 }
