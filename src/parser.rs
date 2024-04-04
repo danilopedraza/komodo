@@ -121,12 +121,12 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                     Some(Token::Comma) => continue,
                     Some(tok) if tok == terminator => break Ok(res),
                     Some(tok) => {
-                        return Err(ParserError::UnexpectedToken(
+                        break Err(ParserError::UnexpectedToken(
                             vec![Token::Comma, terminator],
                             tok,
                         ))
                     }
-                    None => return Err(ParserError::EOFExpecting(vec![Token::Comma, terminator])),
+                    None => break Err(ParserError::EOFExpecting(vec![Token::Comma, terminator])),
                 }
             },
         }
