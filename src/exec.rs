@@ -51,7 +51,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
         ASTNode::Integer(str) => Ok(Object::Integer(Integer::from(str.as_str()))),
         ASTNode::Function(params, proc) => function(params, proc),
         ASTNode::Infix(op, lhs, rhs) => infix(*op, exec(lhs, env)?, exec(rhs, env)?),
-        ASTNode::Let(ident, _, node) => match *ident.clone() {
+        ASTNode::Let(ident, params, node) if params.is_empty() => match *ident.clone() {
             ASTNode::Symbol(name) => exec_and_set(node, &name, env),
             ASTNode::Signature(ident, None) => match *ident {
                 ASTNode::Symbol(name) => exec_and_set(node, &name, env),
@@ -59,6 +59,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
             },
             _ => todo!(),
         },
+        ASTNode::Let(_, _, _) => todo!(),
         ASTNode::Boolean(val) => Ok(Object::Boolean(Bool::from(*val))),
         ASTNode::Call(func_node, args) => call(func_node, args, env),
         ASTNode::Char(chr) => Ok(Object::Char(Char::from(*chr))),
