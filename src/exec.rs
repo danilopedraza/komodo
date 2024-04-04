@@ -59,7 +59,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
             },
             _ => todo!(),
         },
-        ASTNode::Let(_, _, _) => todo!(),
+        ASTNode::Let(ident, args, value) => function_pattern(ident, args, value, env),
         ASTNode::Boolean(val) => Ok(Object::Boolean(Bool::from(*val))),
         ASTNode::Call(func_node, args) => call(func_node, args, env),
         ASTNode::Char(chr) => Ok(Object::Char(Char::from(*chr))),
@@ -96,6 +96,15 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
         }
         ASTNode::Wildcard => todo!(),
     }
+}
+
+fn function_pattern(
+    _ident: &ASTNode,
+    _args: &[ASTNode],
+    _value: &ASTNode,
+    _env: &mut Environment,
+) -> Result<Object, EvalError> {
+    todo!()
 }
 
 fn exec_and_set(node: &ASTNode, name: &str, env: &mut Environment) -> Result<Object, EvalError> {
