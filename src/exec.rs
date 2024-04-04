@@ -76,9 +76,9 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
             list(l, env).map(|lst| Object::ExtensionList(ExtensionList::from(lst)))
         }
         ASTNode::ComprehensionList(transform, prop) => {
-            let (symbol, iterator) = match *prop.clone() {
-                ASTNode::Infix(InfixOperator::In, lhs, rhs) => match (*lhs, *rhs) {
-                    (ASTNode::Symbol(ident), ASTNode::ExtensionList(l)) => (ident, list(&l, env)?),
+            let (symbol, iterator) = match &**prop {
+                ASTNode::Infix(InfixOperator::In, lhs, rhs) => match (&**lhs, &**rhs) {
+                    (ASTNode::Symbol(ident), ASTNode::ExtensionList(l)) => (ident, list(l, env)?),
                     _ => todo!(),
                 },
                 _ => todo!(),
@@ -88,7 +88,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
             env.push_scope();
 
             for val in iterator {
-                env.set(&symbol, val);
+                env.set(symbol, val);
                 new_list.push(exec(transform, env)?);
             }
 
