@@ -51,10 +51,10 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
         ASTNode::Integer(str) => Ok(Object::Integer(Integer::from(str.as_str()))),
         ASTNode::Function(params, proc) => function(params, proc),
         ASTNode::Infix(op, lhs, rhs) => infix(*op, exec(lhs, env)?, exec(rhs, env)?),
-        ASTNode::Let(ident, params, node) if params.is_empty() => match *ident.clone() {
-            ASTNode::Symbol(name) => exec_and_set(node, &name, env),
+        ASTNode::Let(ident, params, value) if params.is_empty() => match *ident.clone() {
+            ASTNode::Symbol(name) => exec_and_set(value, &name, env),
             ASTNode::Signature(ident, None) => match *ident {
-                ASTNode::Symbol(name) => exec_and_set(node, &name, env),
+                ASTNode::Symbol(name) => exec_and_set(value, &name, env),
                 _ => todo!(),
             },
             _ => todo!(),
