@@ -1,4 +1,4 @@
-use crate::object::{self, Callable, ComprehensionSet, ExtensionList};
+use crate::object::{self, Callable, ComprehensionSet, ExtensionList, Function};
 
 use crate::ast::{ASTNode, InfixOperator, PrefixOperator};
 use crate::env::Environment;
@@ -21,7 +21,7 @@ fn truthy(val: Object) -> bool {
     }
 }
 
-fn list(l: &Vec<ASTNode>, env: &mut Environment) -> Result<Vec<Object>, EvalError> {
+pub fn list(l: &Vec<ASTNode>, env: &mut Environment) -> Result<Vec<Object>, EvalError> {
     let mut objs = vec![];
 
     for node in l {
@@ -99,12 +99,37 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
 }
 
 fn function_pattern(
-    _ident: &ASTNode,
-    _args: &[ASTNode],
-    _value: &ASTNode,
-    _env: &mut Environment,
+    ident: &ASTNode,
+    args: &[ASTNode],
+    value: &ASTNode,
+    env: &mut Environment,
 ) -> Result<Object, EvalError> {
-    todo!()
+    let name = match ident {
+        ASTNode::Symbol(name) => name,
+        _ => todo!(),
+    };
+
+    let function: &mut DefinedFunction = match env.get(name) {
+        None => {
+            env.set(
+                name,
+                Object::Function(Function::DefinedFunction(DefinedFunction::default())),
+            );
+
+            match env.get(name) {
+                Some(Object::Function(Function::DefinedFunction(f))) => f,
+                _ => todo!(),
+            }
+        }
+        Some(Object::Function(Function::DefinedFunction(f))) => f,
+        _ => todo!(),
+    };
+
+    function.add_pattern(args, value);
+
+    Ok(Object::Function(Function::DefinedFunction(
+        function.clone(),
+    )))
 }
 
 fn exec_and_set(node: &ASTNode, name: &str, env: &mut Environment) -> Result<Object, EvalError> {
@@ -536,7 +561,7 @@ mod tests {
 
         assert!(exec(node, &mut env).is_ok());
 
-        assert_eq!(env.get("x"), Some(&Object::Integer(Integer::from(0))));
+        assert_eq!(env.get("x"), Some(&mut Object::Integer(Integer::from(0))));
     }
 
     #[test]
@@ -679,7 +704,7 @@ mod tests {
 
         assert_eq!(exec(node, &mut env), Ok(Object::Tuple(Tuple::from(vec![]))),);
 
-        assert_eq!(env.get("a"), Some(&Object::Integer(Integer::from(10))),);
+        assert_eq!(env.get("a"), Some(&mut Object::Integer(Integer::from(10))),);
     }
 
     #[test]

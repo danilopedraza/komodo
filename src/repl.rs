@@ -4,6 +4,7 @@ use crate::{
     exec::exec,
     lexer::build_lexer,
     parser::{parser_from, ParserError},
+    semantic::postprocess,
 };
 use rustyline::error::ReadlineError;
 
@@ -46,7 +47,7 @@ impl Repl {
 
     fn ast_response(&mut self, res: Result<ASTNode, ParserError>) -> (String, ReplResponse) {
         match res {
-            Ok(node) => match exec(&node, &mut self.env) {
+            Ok(node) => match exec(&postprocess(node), &mut self.env) {
                 Ok(obj) => {
                     self.code.clear();
                     (obj.to_string(), ReplResponse::Continue)
@@ -138,7 +139,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
+    // #[ignore = "not yet implemented"]
     fn match_initial_case() {
         let mut repl = Repl::default();
 

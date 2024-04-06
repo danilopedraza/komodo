@@ -3,7 +3,7 @@ use std::{fmt, iter::zip};
 use crate::{
     ast::ASTNode,
     env::Environment,
-    exec::{exec, EvalError},
+    exec::{exec, list, EvalError},
 };
 
 macro_rules! default_infix_method {
@@ -581,8 +581,9 @@ impl Callable for Function {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct DefinedFunction {
+    patterns: Vec<(Vec<ASTNode>, ASTNode)>,
     params: Vec<String>,
     proc: Vec<ASTNode>,
 }
@@ -598,16 +599,18 @@ impl fmt::Display for DefinedFunction {
 
 impl DefinedFunction {
     pub fn new(params: Vec<String>, proc: Vec<ASTNode>) -> Self {
-        Self { params, proc }
+        Self {
+            patterns: vec![],
+            params,
+            proc,
+        }
     }
-}
 
-pub trait Callable {
-    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, EvalError>;
-}
+    pub fn add_pattern(&mut self, args: &[ASTNode], value: &ASTNode) {
+        self.patterns.push((args.to_vec(), value.clone()))
+    }
 
-impl Callable for DefinedFunction {
-    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, EvalError> {
+    fn default_call(&self, args: &[Object], env: &mut Environment) -> Result<Object, EvalError> {
         if args.len() < self.params.len() {
             return Err(EvalError::MissingFunctionArguments);
         }
@@ -627,6 +630,22 @@ impl Callable for DefinedFunction {
         env.pop_scope();
 
         Ok(res)
+    }
+}
+
+pub trait Callable {
+    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, EvalError>;
+}
+
+impl Callable for DefinedFunction {
+    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, EvalError> {
+        for (pat_args, val) in &self.patterns {
+            if list(pat_args, env).unwrap() == args {
+                return exec(val, env);
+            }
+        }
+
+        self.default_call(args, env)
     }
 }
 

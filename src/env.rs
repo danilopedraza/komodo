@@ -8,8 +8,8 @@ pub struct Scope {
 }
 
 impl Scope {
-    fn get(&self, name: &str) -> Option<&Object> {
-        self.dict.get(name)
+    fn get(&mut self, name: &str) -> Option<&mut Object> {
+        self.dict.get_mut(name)
     }
 
     fn set(&mut self, name: &str, val: Object) {
@@ -30,8 +30,8 @@ impl Default for Environment {
 }
 
 impl Environment {
-    pub fn get(&self, name: &str) -> Option<&Object> {
-        for scope in self.scopes.iter().rev() {
+    pub fn get(&mut self, name: &str) -> Option<&mut Object> {
+        for scope in self.scopes.iter_mut().rev() {
             match scope.get(name) {
                 None => continue,
                 obj_opt => return obj_opt,
