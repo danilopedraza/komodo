@@ -149,4 +149,17 @@ mod tests {
             (String::from("1"), ReplResponse::Continue),
         );
     }
+
+    #[test]
+    #[ignore = "not yet implemented"]
+    fn match_list_prefix() {
+        let mut repl = Repl::default();
+
+        repl.response(Ok(String::from("let f([val|_]) := val")));
+
+        assert_eq!(
+            repl.response(Ok(String::from("f([55])"))),
+            (String::from("55"), ReplResponse::Continue),
+        );
+    }
 }
