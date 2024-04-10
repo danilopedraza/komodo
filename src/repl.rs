@@ -139,7 +139,6 @@ mod tests {
     }
 
     #[test]
-    // #[ignore = "not yet implemented"]
     fn match_initial_case() {
         let mut repl = Repl::default();
 
