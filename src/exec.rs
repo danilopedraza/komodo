@@ -41,64 +41,107 @@ fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, EvalError> {
 
 pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> {
     match node {
-        ASTNode::Symbol(str) => match env.get(str) {
-            Some(obj) => Ok(obj.clone()),
-            None => Ok(Object::Symbol(Symbol::from(str.as_str()))),
-        },
-        ASTNode::ExtensionSet(l) => {
-            list(l, env).map(|lst| Object::ExtensionSet(ExtensionSet::from(lst)))
-        }
-        ASTNode::Integer(str) => Ok(Object::Integer(Integer::from(str.as_str()))),
+        ASTNode::Symbol(str) => symbol(str, env),
+        ASTNode::ExtensionSet(l) => extension_set(l, env),
+        ASTNode::Integer(str) => integer(str),
         ASTNode::Function(params, proc) => function(params, proc),
         ASTNode::Infix(op, lhs, rhs) => infix(*op, exec(lhs, env)?, exec(rhs, env)?),
-        ASTNode::Let(ident, params, value) if params.is_empty() => match *ident.clone() {
-            ASTNode::Symbol(name) => exec_and_set(value, &name, env),
-            ASTNode::Signature(ident, None) => match *ident {
-                ASTNode::Symbol(name) => exec_and_set(value, &name, env),
-                _ => todo!(),
-            },
-            _ => todo!(),
-        },
-        ASTNode::Let(ident, args, value) => function_pattern(ident, args, value, env),
-        ASTNode::Boolean(val) => Ok(Object::Boolean(Bool::from(*val))),
+        ASTNode::Let(ident, params, value) if params.is_empty() => let_(ident, value, env),
+        ASTNode::Let(ident, args, value) => let_function(ident, args, value, env),
+        ASTNode::Boolean(val) => boolean(*val),
         ASTNode::Call(func_node, args) => call(func_node, args, env),
-        ASTNode::Char(chr) => Ok(Object::Char(Char::from(*chr))),
-        ASTNode::ComprehensionSet(value, prop) => Ok(Object::ComprehensionSet(
-            ComprehensionSet::from((*value.clone(), *prop.clone())),
-        )),
+        ASTNode::Char(chr) => char(*chr),
+        ASTNode::ComprehensionSet(value, prop) => comprehension_set(value, prop),
         ASTNode::If(cond, first, second) => if_(exec(cond, env)?, first, second, env),
         ASTNode::Prefix(op, node) => prefix(*op, exec(node, env)?),
         ASTNode::Signature(_, _) => todo!(),
-        ASTNode::String(str) => Ok(Object::String(MyString::from(str.as_str()))),
-        ASTNode::Tuple(l) => list(l, env).map(|lst| Object::Tuple(Tuple::from(lst))),
+        ASTNode::String(str) => string(str),
+        ASTNode::Tuple(l) => tuple(l, env),
         ASTNode::For(symbol, iterable, proc) => for_(symbol, exec(iterable, env)?, proc, env),
-        ASTNode::ExtensionList(l) => {
-            list(l, env).map(|lst| Object::ExtensionList(ExtensionList::from(lst)))
-        }
-        ASTNode::ComprehensionList(transform, prop) => {
-            let (symbol, iterator) = match &**prop {
-                ASTNode::Infix(InfixOperator::In, lhs, rhs) => match (&**lhs, &**rhs) {
-                    (ASTNode::Symbol(ident), ASTNode::ExtensionList(l)) => (ident, list(l, env)?),
-                    _ => todo!(),
-                },
-                _ => todo!(),
-            };
-
-            let mut new_list = vec![];
-            env.push_scope();
-
-            for val in iterator {
-                env.set(symbol, val);
-                new_list.push(exec(transform, env)?);
-            }
-
-            Ok(Object::ExtensionList(ExtensionList::from(new_list)))
-        }
+        ASTNode::ExtensionList(l) => extension_list(l, env),
+        ASTNode::ComprehensionList(transform, prop) => comprehension_list(transform, prop, env),
         ASTNode::Wildcard => todo!(),
     }
 }
 
-fn function_pattern(
+fn extension_list(l: &Vec<ASTNode>, env: &mut Environment) -> Result<Object, EvalError> {
+    list(l, env).map(|lst| Object::ExtensionList(ExtensionList::from(lst)))
+}
+
+fn tuple(l: &Vec<ASTNode>, env: &mut Environment) -> Result<Object, EvalError> {
+    list(l, env).map(|lst| Object::Tuple(Tuple::from(lst)))
+}
+
+fn string(str: &str) -> Result<Object, EvalError> {
+    Ok(Object::String(MyString::from(str)))
+}
+
+fn comprehension_set(value: &ASTNode, prop: &ASTNode) -> Result<Object, EvalError> {
+    Ok(Object::ComprehensionSet(ComprehensionSet::from((
+        value.clone(),
+        prop.clone(),
+    ))))
+}
+
+fn char(chr: char) -> Result<Object, EvalError> {
+    Ok(Object::Char(Char::from(chr)))
+}
+
+fn boolean(val: bool) -> Result<Object, EvalError> {
+    Ok(Object::Boolean(Bool::from(val)))
+}
+
+fn let_(ident: &ASTNode, value: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> {
+    match ident.clone() {
+        ASTNode::Symbol(name) => exec_and_set(value, &name, env),
+        ASTNode::Signature(ident, None) => match *ident {
+            ASTNode::Symbol(name) => exec_and_set(value, &name, env),
+            _ => todo!(),
+        },
+        _ => todo!(),
+    }
+}
+
+fn integer(str: &str) -> Result<Object, EvalError> {
+    Ok(Object::Integer(Integer::from(str)))
+}
+
+fn extension_set(l: &Vec<ASTNode>, env: &mut Environment) -> Result<Object, EvalError> {
+    list(l, env).map(|lst| Object::ExtensionSet(ExtensionSet::from(lst)))
+}
+
+fn symbol(str: &str, env: &mut Environment) -> Result<Object, EvalError> {
+    match env.get(str) {
+        Some(obj) => Ok(obj.clone()),
+        None => Ok(Object::Symbol(Symbol::from(str))),
+    }
+}
+
+fn comprehension_list(
+    transform: &ASTNode,
+    prop: &ASTNode,
+    env: &mut Environment,
+) -> Result<Object, EvalError> {
+    let (symbol, iterator) = match prop {
+        ASTNode::Infix(InfixOperator::In, lhs, rhs) => match (&**lhs, &**rhs) {
+            (ASTNode::Symbol(ident), ASTNode::ExtensionList(l)) => (ident, list(l, env)?),
+            _ => todo!(),
+        },
+        _ => todo!(),
+    };
+
+    let mut new_list = vec![];
+    env.push_scope();
+
+    for val in iterator {
+        env.set(symbol, val);
+        new_list.push(exec(transform, env)?);
+    }
+
+    Ok(Object::ExtensionList(ExtensionList::from(new_list)))
+}
+
+fn let_function(
     ident: &ASTNode,
     args: &[ASTNode],
     value: &ASTNode,
