@@ -21,16 +21,17 @@ fn truthy(val: Object) -> bool {
     }
 }
 
-pub fn list(l: &Vec<ASTNode>, env: &mut Environment) -> Result<Vec<Object>, EvalError> {
-    let mut objs = vec![];
+pub fn list(l: &[ASTNode], env: &mut Environment) -> Result<Vec<Object>, EvalError> {
+    l.iter().map(|node| exec(node, env)).collect()
+    // let mut objs = vec![];
 
-    for node in l {
-        let obj = exec(node, env)?;
+    // for node in l {
+    //     let obj = exec(node, env)?;
 
-        objs.push(obj);
-    }
+    //     objs.push(obj);
+    // }
 
-    Ok(objs)
+    // Ok(objs)
 }
 
 fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, EvalError> {
@@ -64,11 +65,11 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
     }
 }
 
-fn extension_list(l: &Vec<ASTNode>, env: &mut Environment) -> Result<Object, EvalError> {
+fn extension_list(l: &[ASTNode], env: &mut Environment) -> Result<Object, EvalError> {
     list(l, env).map(|lst| Object::ExtensionList(ExtensionList::from(lst)))
 }
 
-fn tuple(l: &Vec<ASTNode>, env: &mut Environment) -> Result<Object, EvalError> {
+fn tuple(l: &[ASTNode], env: &mut Environment) -> Result<Object, EvalError> {
     list(l, env).map(|lst| Object::Tuple(Tuple::from(lst)))
 }
 
@@ -106,7 +107,7 @@ fn integer(str: &str) -> Result<Object, EvalError> {
     Ok(Object::Integer(Integer::from(str)))
 }
 
-fn extension_set(l: &Vec<ASTNode>, env: &mut Environment) -> Result<Object, EvalError> {
+fn extension_set(l: &[ASTNode], env: &mut Environment) -> Result<Object, EvalError> {
     list(l, env).map(|lst| Object::ExtensionSet(ExtensionSet::from(lst)))
 }
 
