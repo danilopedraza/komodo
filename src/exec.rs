@@ -23,15 +23,6 @@ fn truthy(val: Object) -> bool {
 
 pub fn list(l: &[ASTNode], env: &mut Environment) -> Result<Vec<Object>, EvalError> {
     l.iter().map(|node| exec(node, env)).collect()
-    // let mut objs = vec![];
-
-    // for node in l {
-    //     let obj = exec(node, env)?;
-
-    //     objs.push(obj);
-    // }
-
-    // Ok(objs)
 }
 
 fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, EvalError> {
