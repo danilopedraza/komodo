@@ -15,6 +15,7 @@ pub fn postprocess(node: ASTNode) -> ASTNode {
     match node {
         ASTNode::Infix(InfixOperator::Correspondence, params, proc) => function(*params, *proc),
         ASTNode::Infix(InfixOperator::Call, called, args) => call(*called, *args),
+        ASTNode::Infix(op, lhs, rhs) => infix(op, lhs, rhs),
         ASTNode::For(ident, iter, proc) => {
             ASTNode::For(ident, postprocessed_box(iter), postprocessed_vec(proc))
         }
@@ -37,6 +38,10 @@ pub fn postprocess(node: ASTNode) -> ASTNode {
         ASTNode::Tuple(vals) => ASTNode::Tuple(postprocessed_vec(vals)),
         node => node,
     }
+}
+
+fn infix(op: InfixOperator, lhs: Box<ASTNode>, rhs: Box<ASTNode>) -> ASTNode {
+    ASTNode::Infix(op, postprocessed_box(lhs), postprocessed_box(rhs))
 }
 
 fn call(called_node: ASTNode, args_node: ASTNode) -> ASTNode {
