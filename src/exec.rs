@@ -213,7 +213,7 @@ fn for_(
         }
     }
 
-    Ok(Object::Tuple(Tuple::from(vec![])))
+    Ok(Object::empty_tuple())
 }
 
 fn call(func_node: &ASTNode, args: &[ASTNode], env: &mut Environment) -> Result<Object, EvalError> {
@@ -745,7 +745,7 @@ mod tests {
             ],
         );
 
-        assert_eq!(exec(node, &mut env), Ok(Object::Tuple(Tuple::from(vec![]))),);
+        assert_eq!(exec(node, &mut env), Ok(Object::empty_tuple()),);
 
         assert_eq!(env.get("a"), Some(&mut Object::Integer(Integer::from(10))),);
     }

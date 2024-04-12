@@ -83,6 +83,12 @@ pub enum Object {
     Tuple(Tuple),
 }
 
+impl Object {
+    pub fn empty_tuple() -> Self {
+        Self::Tuple(Tuple::from(vec![]))
+    }
+}
+
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -621,7 +627,7 @@ impl DefinedFunction {
             env.set(&param, arg.clone());
         }
 
-        let mut res = Object::Tuple(Tuple::from(vec![]));
+        let mut res = Object::empty_tuple();
 
         for step in &self.proc {
             res = exec(step, env)?;
