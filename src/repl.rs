@@ -161,4 +161,16 @@ mod tests {
             (String::from("true"), ReplResponse::Continue),
         );
     }
+
+    #[test]
+    fn match_singleton() {
+        let mut repl = Repl::default();
+
+        repl.response(Ok(String::from("let f([val]) := val")));
+
+        assert_eq!(
+            repl.response(Ok(String::from("f([x])"))),
+            (String::from("x"), ReplResponse::Continue),
+        );
+    }
 }

@@ -1,4 +1,4 @@
-use std::{fmt, iter::zip};
+use std::{fmt, iter::zip, vec};
 
 use crate::{
     ast::ASTNode,
@@ -641,12 +641,31 @@ impl DefinedFunction {
     fn matches(&self, lhs: &ASTNode, rhs: &Object) -> bool {
         match lhs {
             ASTNode::Wildcard => true,
+            ASTNode::ExtensionList(l) => self.match_list(l, rhs),
             _ => exec(lhs, &mut Environment::default()).unwrap() == *rhs,
         }
     }
 
+    fn match_list(&self, _list: &Vec<ASTNode>, _obj: &Object) -> bool {
+        true
+    }
+
     fn matches_all(&self, patterns: &[ASTNode], args: &[Object]) -> bool {
         zip(patterns, args).all(|(lhs, rhs)| self.matches(lhs, rhs))
+    }
+
+    fn set_values(&self, patterns: &[ASTNode], args: &[Object], env: &mut Environment) {
+        for (pattern, arg) in zip(patterns, args) {
+            match (pattern, arg) {
+                (ASTNode::ExtensionList(pl), Object::ExtensionList(ExtensionList{ list: al })) => {
+                    match &pl[0] {
+                        ASTNode::Symbol(s) => env.set(&s, al[0].clone()),
+                        _ => continue,
+                    }
+                },
+                _ => continue,
+            }
+        }
     }
 
     fn pattern_call(
@@ -656,7 +675,11 @@ impl DefinedFunction {
     ) -> Option<Result<Object, EvalError>> {
         for (patterns, val) in &self.patterns {
             if self.matches_all(patterns, args) {
-                return Some(exec(val, env));
+                self.set_values(patterns, args, env);
+                let res = Some(exec(val, env));
+                
+                env.pop_scope();
+                return res;
             }
         }
 
