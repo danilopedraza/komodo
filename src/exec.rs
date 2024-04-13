@@ -197,6 +197,8 @@ fn for_(
         _ => Err(EvalError::NonIterableObject),
     }?;
 
+    env.push_scope();
+
     for val in iter {
         env.set(symbol, val.clone());
 
@@ -204,6 +206,8 @@ fn for_(
             exec(step, env)?;
         }
     }
+
+    env.pop_scope();
 
     Ok(Object::empty_tuple())
 }
@@ -270,6 +274,7 @@ fn prefix(op: PrefixOperator, obj: Object) -> Result<Object, EvalError> {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Mutex;
     use std::vec;
 
     use super::*;
@@ -706,40 +711,36 @@ mod tests {
 
     #[test]
     fn for_loop() {
+        // I preferred this to test the change of state without assignments
+        static ARGS: Mutex<Vec<String>> = Mutex::new(vec![]);
+
+        fn test(args: &[Object]) -> Object {
+            ARGS.lock().unwrap().push(args[0].to_string());
+            Object::empty_tuple()
+        }
+
         let mut env = Environment::default();
-        env.set("a", Object::Integer(Integer::from(1)));
+        env.set("f", Object::Function(Function::Effect(Effect::new(test))));
 
         let node = &ASTNode::For(
             "val".into(),
             Box::new(ASTNode::ExtensionSet(vec![
+                ASTNode::Integer(String::from("1")),
                 ASTNode::Integer(String::from("2")),
                 ASTNode::Integer(String::from("3")),
             ])),
-            vec![
-                ASTNode::Let(
-                    Box::new(ASTNode::Symbol(String::from("a"))),
-                    vec![],
-                    Box::new(ASTNode::Infix(
-                        InfixOperator::Product,
-                        Box::new(ASTNode::Symbol(String::from("a"))),
-                        Box::new(ASTNode::Symbol(String::from("val"))),
-                    )),
-                ),
-                ASTNode::Let(
-                    Box::new(ASTNode::Symbol(String::from("a"))),
-                    vec![],
-                    Box::new(ASTNode::Infix(
-                        InfixOperator::Sum,
-                        Box::new(ASTNode::Symbol(String::from("a"))),
-                        Box::new(ASTNode::Integer(String::from("1"))),
-                    )),
-                ),
-            ],
+            vec![ASTNode::Call(
+                Box::new(ASTNode::Symbol(String::from("f"))),
+                vec![ASTNode::Symbol(String::from("val"))],
+            )],
         );
 
         assert_eq!(exec(node, &mut env), Ok(Object::empty_tuple()),);
 
-        assert_eq!(env.get("a"), Some(&mut Object::Integer(Integer::from(10))),);
+        assert_eq!(
+            *ARGS.lock().unwrap(),
+            vec![String::from("1"), String::from("2"), String::from("3"),]
+        );
     }
 
     #[test]
