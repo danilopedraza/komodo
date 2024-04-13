@@ -3,7 +3,7 @@ use std::{fmt, iter::zip};
 use crate::{
     ast::ASTNode,
     env::Environment,
-    exec::{exec, list, EvalError},
+    exec::{exec, EvalError},
 };
 
 macro_rules! default_infix_method {
@@ -637,6 +637,31 @@ impl DefinedFunction {
 
         Ok(res)
     }
+
+    fn matches(&self, lhs: &ASTNode, rhs: &Object) -> bool {
+        match lhs {
+            ASTNode::Wildcard => true,
+            _ => exec(lhs, &mut Environment::default()).unwrap() == *rhs,
+        }
+    }
+
+    fn matches_all(&self, patterns: &[ASTNode], args: &[Object]) -> bool {
+        zip(patterns, args).all(|(lhs, rhs)| self.matches(lhs, rhs))
+    }
+
+    fn pattern_call(
+        &self,
+        args: &[Object],
+        env: &mut Environment,
+    ) -> Option<Result<Object, EvalError>> {
+        for (patterns, val) in &self.patterns {
+            if self.matches_all(patterns, args) {
+                return Some(exec(val, env));
+            }
+        }
+
+        None
+    }
 }
 
 pub trait Callable {
@@ -645,13 +670,10 @@ pub trait Callable {
 
 impl Callable for DefinedFunction {
     fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, EvalError> {
-        for (pat_args, val) in &self.patterns {
-            if list(pat_args, env).unwrap() == args {
-                return exec(val, env);
-            }
+        match self.pattern_call(args, env) {
+            Some(res) => res,
+            None => self.default_call(args, env),
         }
-
-        self.default_call(args, env)
     }
 }
 

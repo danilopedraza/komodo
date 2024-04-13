@@ -151,15 +151,14 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn match_list_prefix() {
         let mut repl = Repl::default();
 
         repl.response(Ok(String::from("let f(_) := 0")));
 
         assert_eq!(
-            repl.response(Ok(String::from("f(1)"))),
-            repl.response(Ok(String::from("f(2)"))),
+            repl.response(Ok(String::from("f(1) = f(2) && f(1) = 0"))),
+            (String::from("true"), ReplResponse::Continue),
         );
     }
 }
