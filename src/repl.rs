@@ -151,7 +151,7 @@ mod tests {
     }
 
     #[test]
-    fn match_list_prefix() {
+    fn match_anything() {
         let mut repl = Repl::default();
 
         repl.response(Ok(String::from("let f(_) := 0")));
