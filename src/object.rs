@@ -646,7 +646,7 @@ impl DefinedFunction {
         }
     }
 
-    fn match_list(&self, _list: &Vec<ASTNode>, _obj: &Object) -> bool {
+    fn match_list(&self, _list: &[ASTNode], _obj: &Object) -> bool {
         true
     }
 
@@ -657,12 +657,12 @@ impl DefinedFunction {
     fn set_values(&self, patterns: &[ASTNode], args: &[Object], env: &mut Environment) {
         for (pattern, arg) in zip(patterns, args) {
             match (pattern, arg) {
-                (ASTNode::ExtensionList(pl), Object::ExtensionList(ExtensionList{ list: al })) => {
+                (ASTNode::ExtensionList(pl), Object::ExtensionList(ExtensionList { list: al })) => {
                     match &pl[0] {
-                        ASTNode::Symbol(s) => env.set(&s, al[0].clone()),
+                        ASTNode::Symbol(s) => env.set(s, al[0].clone()),
                         _ => continue,
                     }
-                },
+                }
                 _ => continue,
             }
         }
@@ -677,7 +677,7 @@ impl DefinedFunction {
             if self.matches_all(patterns, args) {
                 self.set_values(patterns, args, env);
                 let res = Some(exec(val, env));
-                
+
                 env.pop_scope();
                 return res;
             }
