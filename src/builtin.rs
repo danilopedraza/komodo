@@ -1,6 +1,6 @@
 use crate::{
     env::Environment,
-    object::{self, Effect, Object},
+    object::{Effect, Function, MyString, Object, Tuple},
 };
 
 use std::io::{stdin, BufRead};
@@ -8,7 +8,7 @@ use std::io::{stdin, BufRead};
 fn smtc_println(args: &[Object]) -> Object {
     let str = args[0].to_string();
     println!("{str}");
-    Object::Tuple(object::Tuple::from(vec![]))
+    Object::Tuple(Tuple::from(vec![]))
 }
 
 fn smtc_getln(_args: &[Object]) -> Object {
@@ -17,7 +17,7 @@ fn smtc_getln(_args: &[Object]) -> Object {
 
     line.pop();
 
-    Object::String(object::MyString::from(line.as_str()))
+    Object::String(MyString::from(line.as_str()))
 }
 
 pub fn standard_env() -> Environment {
@@ -25,12 +25,12 @@ pub fn standard_env() -> Environment {
 
     env.set(
         "println",
-        crate::object::Object::Function(crate::object::Function::Effect(Effect::new(smtc_println))),
+        Object::Function(Function::Effect(Effect::new(smtc_println))),
     );
 
     env.set(
         "getln",
-        crate::object::Object::Function(crate::object::Function::Effect(Effect::new(smtc_getln))),
+        Object::Function(Function::Effect(Effect::new(smtc_getln))),
     );
 
     env
