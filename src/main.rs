@@ -4,6 +4,7 @@ mod env;
 mod exec;
 mod file;
 mod lexer;
+mod matcher;
 mod object;
 mod parser;
 mod repl;

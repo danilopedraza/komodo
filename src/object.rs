@@ -4,6 +4,7 @@ use crate::{
     ast::ASTNode,
     env::Environment,
     exec::{exec, EvalError},
+    matcher::{match_and_map, MatchResult},
 };
 
 macro_rules! default_infix_method {
@@ -638,47 +639,23 @@ impl DefinedFunction {
         Ok(res)
     }
 
-    fn matches(&self, lhs: &ASTNode, rhs: &Object) -> bool {
-        match lhs {
-            ASTNode::Wildcard => true,
-            ASTNode::ExtensionList(l) => self.match_list(l, rhs),
-            _ => exec(lhs, &mut Environment::default()).unwrap() == *rhs,
-        }
-    }
-
-    fn match_list(&self, _list: &[ASTNode], _obj: &Object) -> bool {
-        true
-    }
-
-    fn matches_all(&self, patterns: &[ASTNode], args: &[Object]) -> bool {
-        zip(patterns, args).all(|(lhs, rhs)| self.matches(lhs, rhs))
-    }
-
-    fn set_values(&self, patterns: &[ASTNode], args: &[Object], env: &mut Environment) {
-        for (pattern, arg) in zip(patterns, args) {
-            match (pattern, arg) {
-                (ASTNode::ExtensionList(pl), Object::ExtensionList(ExtensionList { list: al })) => {
-                    match &pl[0] {
-                        ASTNode::Symbol(s) => env.set(s, al[0].clone()),
-                        _ => continue,
-                    }
-                }
-                _ => continue,
-            }
-        }
-    }
-
     fn pattern_call(
         &self,
         args: &[Object],
         env: &mut Environment,
     ) -> Option<Result<Object, EvalError>> {
         for (patterns, val) in &self.patterns {
-            if self.matches_all(patterns, args) {
-                self.set_values(patterns, args, env);
+            if let MatchResult::Match(v) = match_and_map(&patterns[0], &args[0]) {
+                env.push_scope();
+
+                for (name, pattern_val) in v {
+                    env.set(&name, pattern_val);
+                }
+
                 let res = Some(exec(val, env));
 
                 env.pop_scope();
+
                 return res;
             }
         }
@@ -731,7 +708,7 @@ impl Callable for Effect {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExtensionList {
-    list: Vec<Object>,
+    pub list: Vec<Object>,
 }
 
 impl From<Vec<Object>> for ExtensionList {
