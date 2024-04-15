@@ -60,7 +60,7 @@ fn match_prefix_crop(first: &ASTNode, most: &ASTNode, val: &Object) -> Match {
     match val {
         Object::ExtensionList(ExtensionList { list }) if list.len() > 0 => {
             let first_match = match_(first, &list[0]);
-            
+
             let last_list = Object::ExtensionList(ExtensionList::from(list[1..].to_owned()));
             let last_match = match_(most, &last_list);
 
@@ -70,10 +70,10 @@ fn match_prefix_crop(first: &ASTNode, most: &ASTNode, val: &Object) -> Match {
                     m.extend(m1);
                     m.extend(m2);
                     Match::Match(m)
-                },
+                }
                 _ => Match::NotAMatch,
             }
-        },
+        }
         _ => Match::NotAMatch,
     }
 }
@@ -131,7 +131,10 @@ mod tests {
             match_(&pattern, &value),
             Match::Match(vec![
                 (String::from("first"), Object::Integer(Integer::from(4))),
-                (String::from("most"), Object::ExtensionList(ExtensionList::from(vec![]))),
+                (
+                    String::from("most"),
+                    Object::ExtensionList(ExtensionList::from(vec![]))
+                ),
             ]),
         );
     }

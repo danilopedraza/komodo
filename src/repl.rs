@@ -197,4 +197,16 @@ mod tests {
             (String::from("3"), ReplResponse::Continue),
         );
     }
+
+    #[test]
+    fn match_prefix() {
+        let mut repl = Repl::default();
+
+        repl.response(Ok(String::from("let f([a|[b]]) := a*b")));
+
+        assert_eq!(
+            repl.response(Ok(String::from("f([3,2])"))),
+            (String::from("6"), ReplResponse::Continue),
+        );
+    }
 }
