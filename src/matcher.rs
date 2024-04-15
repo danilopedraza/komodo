@@ -8,30 +8,30 @@ use crate::{
 };
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum MatchResult {
+pub enum Match {
     Match(Vec<(String, Object)>),
     NotAMatch,
 }
 
-pub fn match_call(patterns: &[ASTNode], args: &[Object]) -> MatchResult {
+pub fn match_call(patterns: &[ASTNode], args: &[Object]) -> Match {
     match_list(patterns, args)
 }
 
-fn match_list(patterns: &[ASTNode], vals: &[Object]) -> MatchResult {
+fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Match {
     let mut map = vec![];
 
     for (pattern, arg) in zip(patterns, vals) {
-        if let MatchResult::Match(v) = match_and_map(pattern, arg) {
+        if let Match::Match(v) = match_and_map(pattern, arg) {
             map.extend(v);
         } else {
-            return MatchResult::NotAMatch;
+            return Match::NotAMatch;
         }
     }
 
-    MatchResult::Match(map)
+    Match::Match(map)
 }
 
-fn match_and_map(pattern: &ASTNode, val: &Object) -> MatchResult {
+fn match_and_map(pattern: &ASTNode, val: &Object) -> Match {
     match pattern {
         ASTNode::Symbol(s) => single_match(s, val),
         ASTNode::Wildcard => empty_match(),
@@ -40,26 +40,26 @@ fn match_and_map(pattern: &ASTNode, val: &Object) -> MatchResult {
     }
 }
 
-fn single_match(name: &str, val: &Object) -> MatchResult {
-    MatchResult::Match(vec![(name.to_string(), val.clone())])
+fn single_match(name: &str, val: &Object) -> Match {
+    Match::Match(vec![(name.to_string(), val.clone())])
 }
 
-fn empty_match() -> MatchResult {
-    MatchResult::Match(vec![])
+fn empty_match() -> Match {
+    Match::Match(vec![])
 }
 
-fn match_extension_list(pattern: &[ASTNode], val: &Object) -> MatchResult {
+fn match_extension_list(pattern: &[ASTNode], val: &Object) -> Match {
     match val {
         Object::ExtensionList(ExtensionList { list: al }) => match_list(pattern, al),
-        _ => MatchResult::NotAMatch,
+        _ => Match::NotAMatch,
     }
 }
 
-fn match_constant(pattern: &ASTNode, val: &Object) -> MatchResult {
+fn match_constant(pattern: &ASTNode, val: &Object) -> Match {
     if exec(pattern, &mut Environment::default()).unwrap() == *val {
         empty_match()
     } else {
-        MatchResult::NotAMatch
+        Match::NotAMatch
     }
 }
 
@@ -87,7 +87,7 @@ mod tests {
 
         assert_eq!(
             match_list(&patterns, &args),
-            MatchResult::Match(vec![
+            Match::Match(vec![
                 (String::from("a"), Object::Integer(Integer::from(1))),
                 (String::from("b"), Object::Integer(Integer::from(2)))
             ])
