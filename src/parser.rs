@@ -177,9 +177,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let first = self.expression(Precedence::Lowest)?;
 
         match self.tokens.next() {
-            Some(Token::Colon) => self
-                .expression(Precedence::Lowest)
-                .map(|second| ASTNode::ComprehensionList(Box::new(first), Box::new(second))),
+            Some(Token::Colon) => self.comprehension_list(first),
             Some(Token::Comma) => self
                 .list(Token::Rbrack, Some(first))
                 .map(ASTNode::ExtensionList),
@@ -196,6 +194,13 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 Token::Rbrack,
             ])),
         }
+    }
+
+    fn comprehension_list(&mut self, first: ASTNode) -> NodeResult {
+        let last = self.expression(Precedence::Lowest)?;
+        self.consume(Token::Rbrack)?;
+
+        Ok(ASTNode::ComprehensionList(Box::new(first), Box::new(last)))
     }
 
     fn prepend(&mut self, first: ASTNode) -> NodeResult {
@@ -1129,6 +1134,28 @@ mod tests {
                     ASTNode::Integer(String::from("3")),
                 ])),
             ))),
+        );
+    }
+
+    #[test]
+    fn consume_comprehension_list() {
+        let input = "[a : a in b] + []";
+        let lexer = build_lexer(input).map(|res| res.unwrap());
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(ASTNode::Infix(
+                InfixOperator::Sum,
+                Box::new(ASTNode::ComprehensionList(
+                    Box::new(ASTNode::Symbol(String::from("a"))),
+                    Box::new(ASTNode::Infix(
+                        InfixOperator::In,
+                        Box::new(ASTNode::Symbol(String::from("a"))),
+                        Box::new(ASTNode::Symbol(String::from("b"))),
+                    ))
+                )),
+                Box::new(ASTNode::ExtensionList(vec![])),
+            )))
         );
     }
 }
