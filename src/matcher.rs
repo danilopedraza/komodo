@@ -14,9 +14,13 @@ pub enum MatchResult {
 }
 
 pub fn match_call(patterns: &[ASTNode], args: &[Object]) -> MatchResult {
+    match_list(patterns, args)
+}
+
+fn match_list(patterns: &[ASTNode], vals: &[Object]) -> MatchResult {
     let mut map = vec![];
 
-    for (pattern, arg) in zip(patterns, args) {
+    for (pattern, arg) in zip(patterns, vals) {
         if let MatchResult::Match(v) = match_and_map(pattern, arg) {
             map.extend(v);
         } else {
@@ -31,7 +35,7 @@ fn match_and_map(pattern: &ASTNode, val: &Object) -> MatchResult {
     match pattern {
         ASTNode::Symbol(s) => MatchResult::Match(vec![(s.to_string(), val.clone())]),
         ASTNode::Wildcard => empty_match(),
-        ASTNode::ExtensionList(l) => match_list(l, val),
+        ASTNode::ExtensionList(l) => match_extension_list(l, val),
         _ => match_constant(pattern, val),
     }
 }
@@ -40,9 +44,9 @@ fn empty_match() -> MatchResult {
     MatchResult::Match(vec![])
 }
 
-fn match_list(pattern: &[ASTNode], val: &Object) -> MatchResult {
+fn match_extension_list(pattern: &[ASTNode], val: &Object) -> MatchResult {
     match val {
-        Object::ExtensionList(ExtensionList { list: al }) => match_and_map(&pattern[0], &al[0]),
+        Object::ExtensionList(ExtensionList { list: al }) => match_list(pattern, al),
         _ => MatchResult::NotAMatch,
     }
 }
@@ -78,7 +82,7 @@ mod tests {
         ];
 
         assert_eq!(
-            match_call(&patterns, &args),
+            match_list(&patterns, &args),
             MatchResult::Match(vec![
                 (String::from("a"), Object::Integer(Integer::from(1))),
                 (String::from("b"), Object::Integer(Integer::from(2)))
