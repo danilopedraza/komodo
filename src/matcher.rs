@@ -33,9 +33,10 @@ fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Match {
 
 fn match_(pattern: &ASTNode, val: &Object) -> Match {
     match pattern {
-        ASTNode::Symbol(s) => single_match(s, val),
         ASTNode::Wildcard => empty_match(),
+        ASTNode::Symbol(s) => single_match(s, val),
         ASTNode::ExtensionList(l) => match_extension_list(l, val),
+        ASTNode::Prepend(first, most) => match_prefix_crop(first, most, val),
         _ => match_constant(pattern, val),
     }
 }
@@ -51,6 +52,28 @@ fn empty_match() -> Match {
 fn match_extension_list(pattern: &[ASTNode], val: &Object) -> Match {
     match val {
         Object::ExtensionList(ExtensionList { list: al }) => match_list(pattern, al),
+        _ => Match::NotAMatch,
+    }
+}
+
+fn match_prefix_crop(first: &ASTNode, most: &ASTNode, val: &Object) -> Match {
+    match val {
+        Object::ExtensionList(ExtensionList { list }) if list.len() > 0 => {
+            let first_match = match_(first, &list[0]);
+            
+            let last_list = Object::ExtensionList(ExtensionList::from(list[1..].to_owned()));
+            let last_match = match_(most, &last_list);
+
+            match (first_match, last_match) {
+                (Match::Match(m1), Match::Match(m2)) => {
+                    let mut m = vec![];
+                    m.extend(m1);
+                    m.extend(m2);
+                    Match::Match(m)
+                },
+                _ => Match::NotAMatch,
+            }
+        },
         _ => Match::NotAMatch,
     }
 }
@@ -91,6 +114,25 @@ mod tests {
                 (String::from("a"), Object::Integer(Integer::from(1))),
                 (String::from("b"), Object::Integer(Integer::from(2)))
             ])
+        );
+    }
+
+    #[test]
+    fn list_prefix() {
+        let pattern = ASTNode::Prepend(
+            Box::new(ASTNode::Symbol(String::from("first"))),
+            Box::new(ASTNode::Symbol(String::from("most"))),
+        );
+
+        let value =
+            Object::ExtensionList(ExtensionList::from(vec![Object::Integer(Integer::from(4))]));
+
+        assert_eq!(
+            match_(&pattern, &value),
+            Match::Match(vec![
+                (String::from("first"), Object::Integer(Integer::from(4))),
+                (String::from("most"), Object::ExtensionList(ExtensionList::from(vec![]))),
+            ]),
         );
     }
 }
