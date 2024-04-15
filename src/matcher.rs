@@ -21,7 +21,7 @@ fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Match {
     let mut map = vec![];
 
     for (pattern, arg) in zip(patterns, vals) {
-        if let Match::Match(v) = match_and_map(pattern, arg) {
+        if let Match::Match(v) = match_(pattern, arg) {
             map.extend(v);
         } else {
             return Match::NotAMatch;
@@ -31,7 +31,7 @@ fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Match {
     Match::Match(map)
 }
 
-fn match_and_map(pattern: &ASTNode, val: &Object) -> Match {
+fn match_(pattern: &ASTNode, val: &Object) -> Match {
     match pattern {
         ASTNode::Symbol(s) => single_match(s, val),
         ASTNode::Wildcard => empty_match(),
