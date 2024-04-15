@@ -58,7 +58,7 @@ fn match_extension_list(pattern: &[ASTNode], val: &Object) -> Match {
 
 fn match_prefix_crop(first: &ASTNode, most: &ASTNode, val: &Object) -> Match {
     match val {
-        Object::ExtensionList(ExtensionList { list }) if list.len() > 0 => {
+        Object::ExtensionList(ExtensionList { list }) if !list.is_empty() => {
             let first_match = match_(first, &list[0]);
 
             let last_list = Object::ExtensionList(ExtensionList::from(list[1..].to_owned()));
