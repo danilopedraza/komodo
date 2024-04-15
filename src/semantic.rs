@@ -84,11 +84,7 @@ fn function(params_node: ASTNode, proc_node: ASTNode) -> ASTNode {
 mod tests {
     use std::vec;
 
-    use crate::{
-        ast::{ASTNode, InfixOperator},
-        lexer::build_lexer,
-        parser::parser_from,
-    };
+    use crate::ast::{ASTNode, InfixOperator};
 
     use super::*;
 
@@ -148,24 +144,5 @@ mod tests {
         );
 
         assert_eq!(postprocess(node.clone()), node);
-    }
-
-    #[test]
-    #[ignore = "not yet implemented"]
-    fn prepend() {
-        let code = "[1|[2,3]]";
-        let lexer = build_lexer(code).map(|res| res.unwrap());
-        let node = parser_from(lexer).next().unwrap().unwrap();
-
-        assert_eq!(
-            postprocess(node),
-            ASTNode::Prepend(
-                Box::new(ASTNode::Integer(String::from("1"))),
-                Box::new(ASTNode::ExtensionList(vec![
-                    ASTNode::Integer(String::from("2")),
-                    ASTNode::Integer(String::from("3")),
-                ])),
-            ),
-        );
     }
 }

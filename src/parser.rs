@@ -184,6 +184,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 .list(Token::Rbrack, Some(first))
                 .map(ASTNode::ExtensionList),
             Some(Token::Rbrack) => Ok(ASTNode::ExtensionList(vec![first])),
+            Some(Token::VerticalBar) => self.prepend(first),
             Some(tok) => Err(ParserError::UnexpectedToken(
                 vec![Token::Colon, Token::Comma, Token::Rbrack],
                 tok,
@@ -195,6 +196,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 Token::Rbrack,
             ])),
         }
+    }
+
+    fn prepend(&mut self, first: ASTNode) -> NodeResult {
+        let last = self.expression(Precedence::Lowest)?;
+
+        self.consume(Token::Rbrack)?;
+
+        Ok(ASTNode::Prepend(Box::new(first), Box::new(last)))
     }
 
     fn for_(&mut self) -> NodeResult {
@@ -1103,6 +1112,23 @@ mod tests {
                 ASTNode::Integer(String::from("1")),
                 ASTNode::Wildcard,
             ]),)),
+        );
+    }
+
+    #[test]
+    fn prepend() {
+        let code = "[1|[2,3]]";
+        let lexer = build_lexer(code).map(|res| res.unwrap());
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(ASTNode::Prepend(
+                Box::new(ASTNode::Integer(String::from("1"))),
+                Box::new(ASTNode::ExtensionList(vec![
+                    ASTNode::Integer(String::from("2")),
+                    ASTNode::Integer(String::from("3")),
+                ])),
+            ))),
         );
     }
 }
