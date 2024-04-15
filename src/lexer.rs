@@ -12,7 +12,7 @@ pub enum Token {
     Assign,
     Bang,
     BitwiseAnd,
-    BitwiseOr,
+    VerticalBar,
     BitwiseXor,
     Char(char),
     Colon,
@@ -83,7 +83,7 @@ impl Iterator for Lexer<'_> {
                 '.' => Token::Dot,
                 '=' => Token::Equals,
                 '&' => self.fork(Token::BitwiseAnd, vec![('&', Token::LogicAnd)]),
-                '|' => self.fork(Token::BitwiseOr, vec![('|', Token::LogicOr)]),
+                '|' => self.fork(Token::VerticalBar, vec![('|', Token::LogicOr)]),
                 ':' => self.fork(Token::Colon, vec![('=', Token::Assign)]),
                 '>' => self.fork(
                     Token::Greater,

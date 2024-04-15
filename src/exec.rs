@@ -231,7 +231,6 @@ fn call(func_node: &ASTNode, args: &[ASTNode], env: &mut Environment) -> Result<
 fn infix(op: InfixOperator, lhs: Object, rhs: Object) -> Result<Object, EvalError> {
     let res = match op {
         InfixOperator::BitwiseAnd => lhs.bitwise_and(rhs),
-        InfixOperator::BitwiseOr => lhs.bitwise_or(rhs),
         InfixOperator::BitwiseXor => lhs.bitwise_xor(rhs),
         InfixOperator::Call => todo!(),
         InfixOperator::Correspondence => todo!(),
@@ -245,7 +244,7 @@ fn infix(op: InfixOperator, lhs: Object, rhs: Object) -> Result<Object, EvalErro
         InfixOperator::Less => lhs.less(rhs),
         InfixOperator::LessEqual => lhs.less_equal(rhs),
         InfixOperator::LogicAnd => lhs.logic_and(rhs),
-        InfixOperator::LogicOr => lhs.logic_or(rhs),
+        InfixOperator::Or => lhs.or(rhs),
         InfixOperator::Mod => lhs.modulo(rhs),
         InfixOperator::NotEquality => lhs.neq(rhs),
         InfixOperator::Product => lhs.product(rhs),
@@ -384,7 +383,7 @@ mod tests {
         let node = &ASTNode::Infix(
             InfixOperator::LogicAnd,
             Box::new(ASTNode::Infix(
-                InfixOperator::LogicOr,
+                InfixOperator::Or,
                 Box::new(ASTNode::Boolean(true)),
                 Box::new(ASTNode::Boolean(false)),
             )),
@@ -466,7 +465,7 @@ mod tests {
     #[test]
     fn bitwise_and_xor_or() {
         let node = &ASTNode::Infix(
-            InfixOperator::BitwiseOr,
+            InfixOperator::Or,
             Box::new(ASTNode::Infix(
                 InfixOperator::BitwiseXor,
                 Box::new(ASTNode::Infix(

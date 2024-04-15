@@ -28,7 +28,6 @@ macro_rules! default_infix_methods {
 
 default_infix_methods!(
     bitwise_and,
-    bitwise_or,
     bitwise_xor,
     equality,
     greater,
@@ -38,7 +37,7 @@ default_infix_methods!(
     less,
     less_equal,
     logic_and,
-    logic_or,
+    or,
     modulo,
     neq,
     over,
@@ -139,7 +138,6 @@ macro_rules! derived_object_infix_traits {
 
 derived_object_infix_traits!(
     bitwise_and,
-    bitwise_or,
     bitwise_xor,
     equality,
     greater,
@@ -149,7 +147,7 @@ derived_object_infix_traits!(
     less,
     less_equal,
     logic_and,
-    logic_or,
+    or,
     modulo,
     neq,
     over,
@@ -219,7 +217,7 @@ impl InfixOperable for Bool {
         }
     }
 
-    fn logic_or(&self, other: Object) -> Result<Object, ()> {
+    fn or(&self, other: Object) -> Result<Object, ()> {
         match other {
             Object::Boolean(boolean) => Ok(Object::Boolean(Bool::from(self.val || boolean.val))),
             _ => Err(()),
@@ -359,7 +357,7 @@ impl InfixOperable for Integer {
         }
     }
 
-    fn bitwise_or(&self, other: Object) -> Result<Object, ()> {
+    fn or(&self, other: Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val | val))),
             _ => Err(()),

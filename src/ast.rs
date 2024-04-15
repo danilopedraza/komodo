@@ -8,7 +8,6 @@ pub enum Precedence {
     LogicOr,
     LogicAnd,
     Comparison,
-    BitwiseOr,
     BitwiseXor,
     BitwiseAnd,
     Shift,
@@ -22,7 +21,6 @@ pub enum Precedence {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InfixOperator {
     BitwiseAnd,
-    BitwiseOr,
     BitwiseXor,
     Call,
     Correspondence,
@@ -36,7 +34,7 @@ pub enum InfixOperator {
     Less,
     LessEqual,
     LogicAnd,
-    LogicOr,
+    Or,
     Mod,
     NotEquality,
     Product,
@@ -49,7 +47,6 @@ impl InfixOperator {
     pub fn from(tok: Token) -> Option<Self> {
         match tok {
             Token::BitwiseAnd => Some(Self::BitwiseAnd),
-            Token::BitwiseOr => Some(Self::BitwiseOr),
             Token::BitwiseXor => Some(Self::BitwiseXor),
             Token::Lparen => Some(Self::Call),
             Token::Greater => Some(Self::Greater),
@@ -59,7 +56,7 @@ impl InfixOperator {
             Token::Less => Some(Self::Less),
             Token::LessEqual => Some(Self::LessEqual),
             Token::LogicAnd => Some(Self::LogicAnd),
-            Token::LogicOr => Some(Self::LogicOr),
+            Token::LogicOr => Some(Self::Or),
             Token::In => Some(Self::In),
             Token::Mod => Some(Self::Mod),
             Token::Over => Some(Self::Division),
@@ -77,7 +74,6 @@ impl InfixOperator {
     pub fn precedence(&self) -> Precedence {
         match self {
             Self::BitwiseAnd => Precedence::BitwiseAnd,
-            Self::BitwiseOr => Precedence::BitwiseOr,
             Self::BitwiseXor => Precedence::BitwiseXor,
             Self::Call => Precedence::Call,
             Self::Correspondence => Precedence::Correspondence,
@@ -91,7 +87,7 @@ impl InfixOperator {
             Self::Less => Precedence::Comparison,
             Self::LessEqual => Precedence::Comparison,
             Self::LogicAnd => Precedence::LogicAnd,
-            Self::LogicOr => Precedence::LogicOr,
+            Self::Or => Precedence::LogicOr,
             Self::Mod => Precedence::Multiplication,
             Self::NotEquality => Precedence::Comparison,
             Self::Product => Precedence::Multiplication,

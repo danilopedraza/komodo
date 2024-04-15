@@ -717,12 +717,12 @@ mod tests {
 
     #[test]
     fn bitwise() {
-        let lexer = build_lexer("a & b | c").map(|res| res.unwrap());
+        let lexer = build_lexer("a & b || c").map(|res| res.unwrap());
 
         assert_eq!(
             parser_from(lexer).next(),
             Some(Ok(ASTNode::Infix(
-                InfixOperator::BitwiseOr,
+                InfixOperator::Or,
                 Box::new(ASTNode::Infix(
                     InfixOperator::BitwiseAnd,
                     Box::new(ASTNode::Symbol(String::from('a'))),
@@ -740,7 +740,7 @@ mod tests {
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::Infix(
-                InfixOperator::LogicOr,
+                InfixOperator::Or,
                 Box::new(ASTNode::Infix(
                     InfixOperator::LogicAnd,
                     Box::new(ASTNode::Symbol(String::from('a'))),
@@ -758,7 +758,7 @@ mod tests {
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::Infix(
-                InfixOperator::LogicOr,
+                InfixOperator::Or,
                 Box::new(ASTNode::Infix(
                     InfixOperator::Sum,
                     Box::new(ASTNode::Symbol(String::from('a'))),
@@ -779,12 +779,12 @@ mod tests {
 
     #[test]
     fn bitwise_xor() {
-        let lexer = build_lexer("a ^ b & c | d");
+        let lexer = build_lexer("a ^ b & c || d");
 
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::Infix(
-                InfixOperator::BitwiseOr,
+                InfixOperator::Or,
                 Box::new(ASTNode::Infix(
                     InfixOperator::BitwiseXor,
                     Box::new(ASTNode::Symbol(String::from('a'))),
