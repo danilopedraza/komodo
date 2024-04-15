@@ -33,11 +33,15 @@ fn match_list(patterns: &[ASTNode], vals: &[Object]) -> MatchResult {
 
 fn match_and_map(pattern: &ASTNode, val: &Object) -> MatchResult {
     match pattern {
-        ASTNode::Symbol(s) => MatchResult::Match(vec![(s.to_string(), val.clone())]),
+        ASTNode::Symbol(s) => single_match(s, val),
         ASTNode::Wildcard => empty_match(),
         ASTNode::ExtensionList(l) => match_extension_list(l, val),
         _ => match_constant(pattern, val),
     }
+}
+
+fn single_match(name: &str, val: &Object) -> MatchResult {
+    MatchResult::Match(vec![(name.to_string(), val.clone())])
 }
 
 fn empty_match() -> MatchResult {
