@@ -136,6 +136,7 @@ pub enum ASTNode {
     Integer(String),
     Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
     Prefix(PrefixOperator, Box<ASTNode>),
+    Prepend(Box<ASTNode>, Box<ASTNode>),
     Signature(Box<ASTNode>, Option<Box<ASTNode>>),
     String(String),
     Symbol(String),

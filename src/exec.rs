@@ -53,6 +53,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
         ASTNode::ExtensionList(l) => extension_list(l, env),
         ASTNode::ComprehensionList(transform, prop) => comprehension_list(transform, prop, env),
         ASTNode::Wildcard => todo!(),
+        ASTNode::Prepend(_, _) => todo!(),
     }
 }
 
