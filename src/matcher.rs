@@ -12,6 +12,7 @@ pub enum MatchResult {
 
 pub fn match_and_map(pattern: &ASTNode, val: &Object) -> MatchResult {
     match pattern {
+        ASTNode::Symbol(s) => MatchResult::Match(vec![(s.to_string(), val.clone())]),
         ASTNode::Wildcard => empty_match(),
         ASTNode::ExtensionList(l) => match_list(l, val),
         _ => match_constant(pattern, val),
@@ -24,10 +25,7 @@ fn empty_match() -> MatchResult {
 
 fn match_list(pattern: &[ASTNode], val: &Object) -> MatchResult {
     match val {
-        Object::ExtensionList(ExtensionList { list: al }) => match &pattern[0] {
-            ASTNode::Symbol(s) => MatchResult::Match(vec![(s.to_string(), al[0].clone())]),
-            _ => todo!(),
-        },
+        Object::ExtensionList(ExtensionList { list: al }) => match_and_map(&pattern[0], &al[0]),
         _ => MatchResult::NotAMatch,
     }
 }
