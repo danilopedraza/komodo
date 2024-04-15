@@ -4,7 +4,7 @@ use crate::{
     ast::ASTNode,
     env::Environment,
     exec::{exec, EvalError},
-    matcher::{match_and_map, MatchResult},
+    matcher::{match_call, MatchResult},
 };
 
 macro_rules! default_infix_method {
@@ -645,7 +645,7 @@ impl DefinedFunction {
         env: &mut Environment,
     ) -> Option<Result<Object, EvalError>> {
         for (patterns, val) in &self.patterns {
-            if let MatchResult::Match(v) = match_and_map(&patterns[0], &args[0]) {
+            if let MatchResult::Match(v) = match_call(patterns, args) {
                 env.push_scope();
 
                 for (name, pattern_val) in v {

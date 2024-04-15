@@ -173,4 +173,16 @@ mod tests {
             (String::from("x"), ReplResponse::Continue),
         );
     }
+
+    #[test]
+    fn match_two_args() {
+        let mut repl = Repl::default();
+
+        repl.response(Ok(String::from("let f([a], [b]) := a + b")));
+
+        assert_eq!(
+            repl.response(Ok(String::from("f([1], [2])"))),
+            (String::from("3"), ReplResponse::Continue),
+        );
+    }
 }
