@@ -17,18 +17,40 @@ pub fn match_call(patterns: &[ASTNode], args: &[Object]) -> Match {
     match_list(patterns, args)
 }
 
+fn join(map1: Match, map2: Match) -> Match {
+    match (map1, map2) {
+        (Match::Match(v1), Match::Match(v2)) => {
+            for (key1, val1) in &v1 {
+                for (key2, val2) in &v2 {
+                    if key1 == key2 && val1 != val2 {
+                        return Match::NotAMatch;
+                    }
+                }
+            }
+
+            let mut map = vec![];
+            map.extend(v1);
+            map.extend(v2);
+
+            Match::Match(map)
+        }
+        _ => Match::NotAMatch,
+    }
+}
+
 fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Match {
-    let mut map = vec![];
+    let mut res = Match::Match(vec![]);
 
     for (pattern, arg) in zip(patterns, vals) {
-        if let Match::Match(v) = match_(pattern, arg) {
-            map.extend(v);
-        } else {
-            return Match::NotAMatch;
+        res = join(res, match_(pattern, arg));
+
+        match res {
+            Match::Match(_) => continue,
+            Match::NotAMatch => return Match::NotAMatch,
         }
     }
 
-    Match::Match(map)
+    res
 }
 
 fn match_(pattern: &ASTNode, val: &Object) -> Match {
@@ -140,7 +162,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn unmatch_different_value() {
         let patterns = [
             ASTNode::Symbol(String::from("a")),
