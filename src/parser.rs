@@ -342,7 +342,7 @@ pub fn parser_from<T: Iterator<Item = Token>>(tokens: T) -> Parser<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lexer::{build_lexer, Token};
+    use crate::lexer::build_lexer;
     use std::{iter, vec};
 
     macro_rules! token_iter {

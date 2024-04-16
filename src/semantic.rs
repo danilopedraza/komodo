@@ -84,8 +84,6 @@ fn function(params_node: ASTNode, proc_node: ASTNode) -> ASTNode {
 mod tests {
     use std::vec;
 
-    use crate::ast::{ASTNode, InfixOperator};
-
     use super::*;
 
     #[test]

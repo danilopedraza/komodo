@@ -278,7 +278,6 @@ mod tests {
     use std::vec;
 
     use super::*;
-    use crate::ast::ASTNode;
     use crate::object::*;
 
     #[test]
