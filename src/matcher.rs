@@ -138,4 +138,20 @@ mod tests {
             ]),
         );
     }
+
+    #[test]
+    #[ignore = "not yet implemented"]
+    fn unmatch_different_value() {
+        let patterns = [
+            ASTNode::Symbol(String::from("a")),
+            ASTNode::Symbol(String::from("a")),
+        ];
+
+        let values = [
+            Object::Integer(Integer::from(1)),
+            Object::Integer(Integer::from(2)),
+        ];
+
+        assert_eq!(match_call(&patterns, &values), Match::NotAMatch);
+    }
 }
