@@ -1,5 +1,6 @@
 use crate::{
     ast::ASTNode,
+    builtin::standard_env,
     env::Environment,
     exec::exec,
     lexer::build_lexer,
@@ -20,6 +21,15 @@ pub enum ReplResponse {
 struct Repl {
     env: Environment,
     code: String,
+}
+
+impl Repl {
+    fn standard_repl() -> Self {
+        Self {
+            env: standard_env(),
+            code: String::new(),
+        }
+    }
 }
 
 impl Repl {
@@ -70,7 +80,7 @@ pub trait Cli {
 
 pub fn repl<T: Cli>(interface: &mut T) -> Result<(), ()> {
     let mut wait_for_more = false;
-    let mut repl = Repl::default();
+    let mut repl = Repl::standard_repl();
 
     loop {
         let readline = match wait_for_more {

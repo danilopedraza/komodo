@@ -20,18 +20,25 @@ fn smtc_getln(_args: &[Object]) -> Object {
     Object::String(MyString::from(line.as_str()))
 }
 
-pub fn standard_env() -> Environment {
+fn env_with(assets: Vec<(&str, Object)>) -> Environment {
     let mut env = Environment::default();
 
-    env.set(
-        "println",
-        Object::Function(Function::Effect(Effect::new(smtc_println))),
-    );
-
-    env.set(
-        "getln",
-        Object::Function(Function::Effect(Effect::new(smtc_getln))),
-    );
+    for (name, value) in assets {
+        env.set(name, value);
+    }
 
     env
+}
+
+pub fn standard_env() -> Environment {
+    env_with(vec![
+        (
+            "println",
+            Object::Function(Function::Effect(Effect::new(smtc_println))),
+        ),
+        (
+            "getln",
+            Object::Function(Function::Effect(Effect::new(smtc_getln))),
+        ),
+    ])
 }
