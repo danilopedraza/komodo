@@ -39,18 +39,11 @@ fn join(map1: Match, map2: Match) -> Match {
 }
 
 fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Match {
-    let mut res = Match::Match(vec![]);
-
-    for (pattern, arg) in zip(patterns, vals) {
-        res = join(res, match_(pattern, arg));
-
-        match res {
-            Match::Match(_) => continue,
-            Match::NotAMatch => return Match::NotAMatch,
-        }
-    }
-
-    res
+    // always pass through everything,
+    // but it is prettier than a for loop
+    zip(patterns, vals)
+        .map(|(pattern, val)| match_(pattern, val))
+        .fold(Match::Match(vec![]), join)
 }
 
 fn match_(pattern: &ASTNode, val: &Object) -> Match {
