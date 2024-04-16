@@ -17,7 +17,7 @@ pub enum ReplResponse {
 }
 
 #[derive(Default)]
-pub struct Repl {
+struct Repl {
     env: Environment,
     code: String,
 }
@@ -56,6 +56,43 @@ impl Repl {
             },
             Err(ParserError::EOFExpecting(_)) => (String::from(""), ReplResponse::WaitForMore),
             Err(err) => (format!("{:?}", err), ReplResponse::Error),
+        }
+    }
+}
+
+pub trait IOInterface {
+    fn input(&mut self, msg: &str) -> Result<String, ReadlineError>;
+
+    fn println(&self, msg: &str);
+
+    fn add_history_entry(&mut self, entry: &str);
+}
+
+pub fn repl<T: IOInterface>(interface: &mut T) -> Result<(), ()> {
+    let mut wait_for_more = false;
+    let mut repl = Repl::default();
+
+    loop {
+        let readline = match wait_for_more {
+            false => interface.input(">>> "),
+            true => interface.input("... "),
+        };
+
+        if let Ok(line) = &readline {
+            interface.add_history_entry(line);
+        }
+
+        let (line, response) = repl.response(readline);
+
+        interface.println(&line);
+
+        wait_for_more = response == ReplResponse::WaitForMore;
+
+        match response {
+            ReplResponse::Break => break Ok(()),
+            ReplResponse::Continue => continue,
+            ReplResponse::Error => break Err(()),
+            ReplResponse::WaitForMore => continue,
         }
     }
 }

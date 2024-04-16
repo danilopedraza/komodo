@@ -13,38 +13,25 @@ mod semantic;
 use builtin::standard_env;
 use exec::exec;
 use file::parse_file;
-use repl::{Repl, ReplResponse};
+use repl::{repl, IOInterface};
+use rustyline::DefaultEditor;
 use semantic::postprocess;
 
-use rustyline::DefaultEditor;
+struct MyIOInterface {
+    rl: DefaultEditor,
+}
 
-fn repl() -> Result<(), ()> {
-    let mut rl = DefaultEditor::new().unwrap();
-    let mut wait_for_more = false;
-    let mut repl = Repl::default();
+impl IOInterface for MyIOInterface {
+    fn input(&mut self, msg: &str) -> Result<String, rustyline::error::ReadlineError> {
+        self.rl.readline(msg)
+    }
 
-    loop {
-        let readline = match wait_for_more {
-            false => rl.readline(">>> "),
-            true => rl.readline("... "),
-        };
+    fn println(&self, msg: &str) {
+        println!("{msg}")
+    }
 
-        if let Ok(line) = &readline {
-            let _ = rl.add_history_entry(line);
-        }
-
-        let (line, response) = repl.response(readline);
-
-        println!("{line}");
-
-        wait_for_more = response == ReplResponse::WaitForMore;
-
-        match response {
-            ReplResponse::Break => break Ok(()),
-            ReplResponse::Continue => continue,
-            ReplResponse::Error => break Err(()),
-            ReplResponse::WaitForMore => continue,
-        }
+    fn add_history_entry(&mut self, entry: &str) {
+        let _ = self.rl.add_history_entry(entry);
     }
 }
 
@@ -52,7 +39,9 @@ fn main() -> Result<(), ()> {
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() == 1 {
-        repl()?;
+        repl(&mut MyIOInterface {
+            rl: DefaultEditor::new().unwrap(),
+        })?;
     } else {
         let nodes = parse_file(&args[1]);
         for node in nodes {
