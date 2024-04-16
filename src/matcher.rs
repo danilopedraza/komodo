@@ -86,15 +86,7 @@ fn match_prefix_crop(first: &ASTNode, most: &ASTNode, val: &Object) -> Match {
             let last_list = Object::ExtensionList(ExtensionList::from(list[1..].to_owned()));
             let last_match = match_(most, &last_list);
 
-            match (first_match, last_match) {
-                (Match::Match(m1), Match::Match(m2)) => {
-                    let mut m = vec![];
-                    m.extend(m1);
-                    m.extend(m2);
-                    Match::Match(m)
-                }
-                _ => Match::NotAMatch,
-            }
+            join(first_match, last_match)
         }
         _ => Match::NotAMatch,
     }
