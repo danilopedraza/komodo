@@ -43,7 +43,7 @@ fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Match {
     // but it is prettier than a for loop
     zip(patterns, vals)
         .map(|(pattern, val)| match_(pattern, val))
-        .fold(Match::Match(vec![]), join)
+        .fold(empty_match(), join)
 }
 
 fn match_(pattern: &ASTNode, val: &Object) -> Match {
