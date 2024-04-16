@@ -60,7 +60,7 @@ impl Repl {
     }
 }
 
-pub trait IOInterface {
+pub trait Cli {
     fn input(&mut self, msg: &str) -> Result<String, ReadlineError>;
 
     fn println(&self, msg: &str);
@@ -68,7 +68,7 @@ pub trait IOInterface {
     fn add_history_entry(&mut self, entry: &str);
 }
 
-pub fn repl<T: IOInterface>(interface: &mut T) -> Result<(), ()> {
+pub fn repl<T: Cli>(interface: &mut T) -> Result<(), ()> {
     let mut wait_for_more = false;
     let mut repl = Repl::default();
 
