@@ -81,6 +81,14 @@ impl Iterator for Lexer<'_> {
     type Item = Result<TokenInfo, LexerError>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match self.input.peek() {
+                Some(chr) if chr.is_whitespace() => self.skip_whitespace(),
+                Some('#') => self.skip_comment(),
+                _ => break,
+            }
+        }
+
         let start = self.cur_pos;
 
         match self.next_token() {
@@ -142,7 +150,7 @@ impl Lexer<'_> {
                 '(' => Token::Lparen,
                 '%' => Token::Mod,
                 '+' => Token::Plus,
-                '*' => self.stars(),
+                '*' => self.fork(Token::Times, vec![('*', Token::ToThe)]),
                 '}' => Token::Rbrace,
                 ']' => Token::Rbrack,
                 ')' => Token::Rparen,
@@ -158,7 +166,7 @@ impl Lexer<'_> {
         let mut str = String::new();
 
         loop {
-            match self.input.next() {
+            match self.next_char() {
                 Some('"') => break Ok(Token::String(str)),
                 Some(c) => str.push(c),
                 None => break Err(LexerError::UnterminatedString),
@@ -167,12 +175,12 @@ impl Lexer<'_> {
     }
 
     fn char(&mut self) -> Option<Result<Token, LexerError>> {
-        let chr = self.input.next();
+        let chr = self.next_char();
         if chr.is_none() {
             return Some(Err(LexerError::UnexpectedEOF));
         }
 
-        Some(match self.input.next() {
+        Some(match self.next_char() {
             Some('\'') => Ok(Token::Char(chr.unwrap())),
             Some(c) => Err(LexerError::UnexpectedChar(c)),
             None => Err(LexerError::UnterminatedChar),
@@ -181,6 +189,7 @@ impl Lexer<'_> {
 
     fn skip_comment(&mut self) {
         for chr in self.input.by_ref() {
+            self.cur_pos += 1;
             if chr == 0xA as char {
                 break;
             } else {
@@ -202,6 +211,7 @@ impl Lexer<'_> {
     fn identifier_or_keyword(&mut self, first: char) -> Token {
         let mut literal = String::from(first);
         while let Some(chr) = self.input.by_ref().next_if(|c| c.is_alphabetic()) {
+            self.cur_pos += 1;
             literal.push(chr);
         }
 
@@ -225,20 +235,10 @@ impl Lexer<'_> {
         }
     }
 
-    fn stars(&mut self) -> Token {
-        match self.input.peek() {
-            Some('*') => {
-                self.input.next();
-                Token::ToThe
-            }
-            _ => Token::Times,
-        }
-    }
-
     fn fork(&mut self, def: Token, alts: Vec<(char, Token)>) -> Token {
         for (chr, tok) in alts {
             if matches!(self.input.peek(), Some(c) if *c == chr) {
-                self.input.next();
+                self.next_char();
                 return tok;
             }
         }
@@ -254,6 +254,7 @@ impl Lexer<'_> {
         let mut number = String::from(first);
 
         while let Some(chr) = self.input.by_ref().next_if(|c| c.is_ascii_digit()) {
+            self.cur_pos += 1;
             number.push(chr);
         }
 
@@ -293,7 +294,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not working yet"]
     fn simple_expression() {
         assert_eq!(
             build_lexer("x + y /= a")
@@ -311,47 +311,47 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn simple_statement() {
-    //     assert_eq!(
-    //         build_lexer("let x := 1 / 2.")
-    //             .collect::<Vec<_>>()
-    //             .iter()
-    //             .map(|res| res.clone().unwrap())
-    //             .collect::<Vec<_>>(),
-    //         vec![
-    //             Token::Let,
-    //             Token::Ident(String::from('x')),
-    //             Token::Assign,
-    //             Token::Integer(String::from('1')),
-    //             Token::Over,
-    //             Token::Integer(String::from('2')),
-    //             Token::Dot
-    //         ],
-    //     );
-    // }
+    #[test]
+    fn simple_statement() {
+        assert_eq!(
+            build_lexer("let x := 1 / 2.")
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|res| res.unwrap())
+                .collect::<Vec<_>>(),
+            vec![
+                TokenInfo::new(Token::Let, Position::new(0, 3)),
+                TokenInfo::new(Token::Ident(String::from('x')), Position::new(4, 1)),
+                TokenInfo::new(Token::Assign, Position::new(6, 2)),
+                TokenInfo::new(Token::Integer(String::from('1')), Position::new(9, 1)),
+                TokenInfo::new(Token::Over, Position::new(11, 1)),
+                TokenInfo::new(Token::Integer(String::from('2')), Position::new(13, 1)),
+                TokenInfo::new(Token::Dot, Position::new(14, 1)),
+            ],
+        );
+    }
 
-    // #[test]
-    // fn complex_expression() {
-    //     assert_eq!(
-    //         build_lexer("(x * y) = 23 % 2")
-    //             .collect::<Vec<_>>()
-    //             .iter()
-    //             .map(|res| res.clone().unwrap())
-    //             .collect::<Vec<_>>(),
-    //         vec![
-    //             Token::Lparen,
-    //             Token::Ident(String::from('x')),
-    //             Token::Times,
-    //             Token::Ident(String::from('y')),
-    //             Token::Rparen,
-    //             Token::Equals,
-    //             Token::Integer(String::from("23")),
-    //             Token::Mod,
-    //             Token::Integer(String::from('2')),
-    //         ],
-    //     );
-    // }
+    #[test]
+    fn complex_expression() {
+        assert_eq!(
+            build_lexer("(x * y) = 23 % 2")
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|res| res.unwrap())
+                .collect::<Vec<_>>(),
+            vec![
+                TokenInfo::new(Token::Lparen, Position::new(0, 1)),
+                TokenInfo::new(Token::Ident(String::from('x')), Position::new(1, 1)),
+                TokenInfo::new(Token::Times, Position::new(3, 1)),
+                TokenInfo::new(Token::Ident(String::from('y')), Position::new(5, 1)),
+                TokenInfo::new(Token::Rparen, Position::new(6, 1)),
+                TokenInfo::new(Token::Equals, Position::new(8, 1)),
+                TokenInfo::new(Token::Integer(String::from("23")), Position::new(10, 2)),
+                TokenInfo::new(Token::Mod, Position::new(13, 1)),
+                TokenInfo::new(Token::Integer(String::from("2")), Position::new(15, 1)),
+            ],
+        );
+    }
 
     // #[test]
     // fn leq_comparisons() {
@@ -428,26 +428,26 @@ mod tests {
     //     );
     // }
 
-    // #[test]
-    // fn function_call() {
-    //     assert_eq!(
-    //         build_lexer("f(x,y ** 2)")
-    //             .collect::<Vec<_>>()
-    //             .iter()
-    //             .map(|res| res.clone().unwrap())
-    //             .collect::<Vec<_>>(),
-    //         vec![
-    //             Token::Ident(String::from('f')),
-    //             Token::Lparen,
-    //             Token::Ident(String::from('x')),
-    //             Token::Comma,
-    //             Token::Ident(String::from('y')),
-    //             Token::ToThe,
-    //             Token::Integer(String::from('2')),
-    //             Token::Rparen
-    //         ],
-    //     );
-    // }
+    #[test]
+    fn function_call() {
+        assert_eq!(
+            build_lexer("f(x,y ** 2)")
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|res| res.unwrap())
+                .collect::<Vec<_>>(),
+            vec![
+                TokenInfo::new(Token::Ident(String::from('f')), Position::new(0, 1)),
+                TokenInfo::new(Token::Lparen, Position::new(1, 1)),
+                TokenInfo::new(Token::Ident(String::from('x')), Position::new(2, 1)),
+                TokenInfo::new(Token::Comma, Position::new(3, 1)),
+                TokenInfo::new(Token::Ident(String::from('y')), Position::new(4, 1)),
+                TokenInfo::new(Token::ToThe, Position::new(6, 2)),
+                TokenInfo::new(Token::Integer(String::from('2')), Position::new(9, 1)),
+                TokenInfo::new(Token::Rparen, Position::new(10, 1)),
+            ],
+        );
+    }
 
     // #[test]
     // fn set() {
@@ -482,27 +482,26 @@ mod tests {
     //     );
     // }
 
-    // #[test]
-    // fn comment() {
-    //     let code = "input() # get input
-    //     print() # print";
+    #[test]
+    fn comment() {
+        let code = "input() # get input\nprint() # print";
 
-    //     assert_eq!(
-    //         build_lexer(code)
-    //             .collect::<Vec<_>>()
-    //             .iter()
-    //             .map(|res| res.clone().unwrap())
-    //             .collect::<Vec<_>>(),
-    //         vec![
-    //             Token::Ident(String::from("input")),
-    //             Token::Lparen,
-    //             Token::Rparen,
-    //             Token::Ident(String::from("print")),
-    //             Token::Lparen,
-    //             Token::Rparen,
-    //         ],
-    //     );
-    // }
+        assert_eq!(
+            build_lexer(code)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|res| res.unwrap())
+                .collect::<Vec<_>>(),
+            vec![
+                TokenInfo::new(Token::Ident(String::from("input")), Position::new(0, 5)),
+                TokenInfo::new(Token::Lparen, Position::new(5, 1)),
+                TokenInfo::new(Token::Rparen, Position::new(6, 1)),
+                TokenInfo::new(Token::Ident(String::from("print")), Position::new(20, 5)),
+                TokenInfo::new(Token::Lparen, Position::new(25, 1)),
+                TokenInfo::new(Token::Rparen, Position::new(26, 1)),
+            ],
+        );
+    }
 
     // #[test]
     // fn if_expr() {
@@ -528,12 +527,12 @@ mod tests {
     //     );
     // }
 
-    // #[test]
-    // fn character() {
-    //     let code = "'x'";
+    #[test]
+    fn character() {
+        let code = "'x'";
 
-    //     assert_eq!(build_lexer(code).next(), Some(Ok(Token::Char('x'))),);
-    // }
+        assert_eq!(build_lexer(code).next(), Some(Ok(TokenInfo::new(Token::Char('x'), Position::new(0, 3)))),);
+    }
 
     // #[test]
     // fn unexpected_char_eof() {
@@ -555,15 +554,15 @@ mod tests {
     //     );
     // }
 
-    // #[test]
-    // fn string() {
-    //     let code = "\"abc\"";
+    #[test]
+    fn string() {
+        let code = "\"abc\"";
 
-    //     assert_eq!(
-    //         build_lexer(code).next(),
-    //         Some(Ok(Token::String(String::from("abc")))),
-    //     );
-    // }
+        assert_eq!(
+            build_lexer(code).next(),
+            Some(Ok(TokenInfo::new(Token::String(String::from("abc")), Position::new(0, 5)))),
+        );
+    }
 
     // #[test]
     // fn unterminated_string() {
