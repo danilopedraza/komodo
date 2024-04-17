@@ -1,6 +1,7 @@
 mod ast;
 mod builtin;
 mod env;
+// mod error;
 mod exec;
 mod file;
 mod lexer;
