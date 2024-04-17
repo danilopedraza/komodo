@@ -7,10 +7,8 @@ enum Error {
 }
 
 struct Position {
-    row: u32,
-    col: u32,
+    start: u32,
+    length: u32,
 }
 
-struct Range(Position, Position);
-
-struct ErrorMessage(Error, Range);
+struct ErrorMessage(Error, Position);
