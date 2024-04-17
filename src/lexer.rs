@@ -5,6 +5,7 @@ pub enum LexerError {
     UnexpectedChar(char),
     UnexpectedEOF,
     UnterminatedChar,
+    UnterminatedString,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -123,7 +124,7 @@ impl Lexer<'_> {
             match self.input.next() {
                 Some('"') => break Ok(Token::String(str)),
                 Some(c) => str.push(c),
-                None => break Err(LexerError::UnexpectedEOF),
+                None => break Err(LexerError::UnterminatedString),
             }
         }
     }
@@ -519,6 +520,16 @@ mod tests {
         assert_eq!(
             build_lexer(code).next(),
             Some(Ok(Token::String(String::from("abc")))),
+        );
+    }
+
+    #[test]
+    fn unterminated_string() {
+        let code = "\"a";
+
+        assert_eq!(
+            build_lexer(code).next(),
+            Some(Err(LexerError::UnterminatedString)),
         );
     }
 
