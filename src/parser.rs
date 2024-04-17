@@ -713,7 +713,7 @@ mod tests {
 
     #[test]
     fn shift_and_comparison() {
-        let lexer = build_lexer("1 << 1 > 1").map(|res| res.unwrap());
+        let lexer = build_lexer("1 << 1 > 1").map(|res| res.unwrap().token);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -731,7 +731,7 @@ mod tests {
 
     #[test]
     fn bitwise() {
-        let lexer = build_lexer("a & b || c").map(|res| res.unwrap());
+        let lexer = build_lexer("a & b || c").map(|res| res.unwrap().token);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -752,7 +752,7 @@ mod tests {
         let lexer = build_lexer("a && b || c");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer.map(|res| res.unwrap().token)).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Or,
                 Box::new(ASTNode::Infix(
@@ -770,7 +770,7 @@ mod tests {
         let lexer = build_lexer("a + b || a & b << c");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer.map(|res| res.unwrap().token)).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Or,
                 Box::new(ASTNode::Infix(
@@ -796,7 +796,7 @@ mod tests {
         let lexer = build_lexer("a ^ b & c || d");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer.map(|res| res.unwrap().token)).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Or,
                 Box::new(ASTNode::Infix(
@@ -818,7 +818,7 @@ mod tests {
         let lexer = build_lexer("({}, 0)");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer.map(|res| res.unwrap().token)).next(),
             Some(Ok(ASTNode::Tuple(vec![
                 ASTNode::ExtensionSet(vec![]),
                 ASTNode::Integer(String::from('0'))
@@ -831,7 +831,7 @@ mod tests {
         let lexer = build_lexer("!(~1 /= -1)");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer.map(|res| res.unwrap().token)).next(),
             Some(Ok(ASTNode::Prefix(
                 PrefixOperator::LogicNot,
                 Box::new(ASTNode::Infix(
@@ -889,7 +889,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).program(),
+            parser_from(lexer.map(|res| res.unwrap().token)).program(),
             vec![
                 ASTNode::Let(
                     Box::new(ASTNode::Signature(
@@ -915,7 +915,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer.map(|res| res.unwrap().token)).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Call,
                 Box::new(ASTNode::Symbol(String::from("f"))),
@@ -934,7 +934,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer.map(|res| res.unwrap().token)).next(),
             Some(Ok(ASTNode::Tuple(vec![ASTNode::Integer(String::from(
                 "1"
             ))]))),
@@ -948,7 +948,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer.map(|res| res.unwrap().token)).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Correspondence,
                 Box::new(ASTNode::Symbol(String::from("x"))),
@@ -968,7 +968,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer.map(|res| res.unwrap().token)).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Call,
                 Box::new(ASTNode::Infix(
@@ -994,7 +994,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer.map(|res| res.unwrap().token)).next(),
             Some(Ok(ASTNode::Tuple(vec![
                 ASTNode::Char('a'),
                 ASTNode::String(String::from('b')),
@@ -1009,7 +1009,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer.map(|res| res.unwrap().token)).next(),
             Some(Ok(ASTNode::For(
                 String::from("i"),
                 Box::new(ASTNode::Symbol(String::from("list"))),
@@ -1029,7 +1029,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer.map(|res| res.unwrap().token)).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::In,
                 Box::new(ASTNode::Integer(String::from("1"))),
@@ -1052,7 +1052,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer.map(|res| res.unwrap().token)).next(),
             Some(Ok(ASTNode::ExtensionList(vec![
                 ASTNode::ExtensionList(vec![]),
                 ASTNode::Integer(String::from("2")),
@@ -1067,7 +1067,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer.map(|res| res.unwrap().token)).next(),
             Some(Ok(ASTNode::ComprehensionList(
                 Box::new(ASTNode::Infix(
                     InfixOperator::In,
@@ -1097,7 +1097,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer.map(|res| res.unwrap().token)).next(),
             Some(Ok(ASTNode::ExtensionSet(vec![ASTNode::ExtensionSet(
                 vec![]
             )]))),
@@ -1111,7 +1111,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer.map(|res| res.unwrap().token)).next(),
             Some(Ok(ASTNode::ExtensionList(vec![
                 ASTNode::Symbol(String::from("a")),
                 ASTNode::Integer(String::from("1")),
@@ -1123,7 +1123,7 @@ mod tests {
     #[test]
     fn prepend() {
         let code = "[1|[2,3]]";
-        let lexer = build_lexer(code).map(|res| res.unwrap());
+        let lexer = build_lexer(code).map(|res| res.unwrap().token);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1140,7 +1140,7 @@ mod tests {
     #[test]
     fn consume_comprehension_list() {
         let input = "[a : a in b] + []";
-        let lexer = build_lexer(input).map(|res| res.unwrap());
+        let lexer = build_lexer(input).map(|res| res.unwrap().token);
 
         assert_eq!(
             parser_from(lexer).next(),
