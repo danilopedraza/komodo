@@ -4,6 +4,7 @@ use std::{iter::Peekable, str::Chars, vec};
 pub enum LexerError {
     UnexpectedChar(char),
     UnexpectedEOF,
+    UnterminatedChar,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -136,7 +137,7 @@ impl Lexer<'_> {
         Some(match self.input.next() {
             Some('\'') => Ok(Token::Char(chr.unwrap())),
             Some(c) => Err(LexerError::UnexpectedChar(c)),
-            None => Err(LexerError::UnexpectedEOF),
+            None => Err(LexerError::UnterminatedChar),
         })
     }
 
@@ -497,7 +498,7 @@ mod tests {
 
         assert_eq!(
             build_lexer(code).next(),
-            Some(Err(LexerError::UnexpectedEOF)),
+            Some(Err(LexerError::UnterminatedChar)),
         );
     }
 
