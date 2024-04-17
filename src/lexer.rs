@@ -66,6 +66,12 @@ impl Iterator for Lexer<'_> {
     type Item = Result<Token, LexerError>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        self.next_token()
+    }
+}
+
+impl Lexer<'_> {
+    fn next_token(&mut self) -> Option<Result<Token, LexerError>> {
         match self.input.next() {
             None => None,
             Some(chr) if chr.is_whitespace() => {
@@ -114,9 +120,6 @@ impl Iterator for Lexer<'_> {
             })),
         }
     }
-}
-
-impl Lexer<'_> {
     fn string_(&mut self) -> Result<Token, LexerError> {
         let mut str = String::new();
 
