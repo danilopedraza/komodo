@@ -1,7 +1,7 @@
 use std::{iter::Peekable, vec};
 
 use crate::ast::*;
-use crate::lexer::Token;
+use crate::lexer::{Token, TokenInfo};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ParserError {
@@ -11,15 +11,15 @@ pub enum ParserError {
     EOFExpecting(Vec<Token>),
 }
 
-pub struct Parser<T: Iterator<Item = Token>> {
+pub struct Parser<T: Iterator<Item = TokenInfo>> {
     tokens: Peekable<T>,
 }
 
-impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
+impl<T: Iterator<Item = TokenInfo>> Iterator for Parser<T> {
     type Item = Result<ASTNode, ParserError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.tokens.peek() {
+        match self.peek_token() {
             None => None,
             _ => Some(self.expression(Precedence::Lowest)),
         }
@@ -28,7 +28,7 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
 
 type NodeResult = Result<ASTNode, ParserError>;
 
-impl<T: Iterator<Item = Token>> Parser<T> {
+impl<T: Iterator<Item = TokenInfo>> Parser<T> {
     pub fn program(&mut self) -> Vec<ASTNode> {
         let mut res = vec![];
 
@@ -43,7 +43,17 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn next_token(&mut self) -> Option<Token> {
-        self.tokens.next()
+        match self.tokens.next() {
+            Some(TokenInfo { token, .. }) => Some(token),
+            _ => None,
+        }
+    }
+
+    fn peek_token(&mut self) -> Option<Token> {
+        match self.tokens.peek() {
+            Some(TokenInfo { token, .. }) => Some(token.to_owned()),
+            _ => None,
+        }
     }
 
     fn let_(&mut self) -> NodeResult {
@@ -58,7 +68,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn signature(&mut self) -> NodeResult {
-        match (self.next_token(), self.tokens.peek()) {
+        match (self.next_token(), self.peek_token()) {
             (Some(Token::Ident(name)), Some(Token::Colon)) => {
                 self.next_token();
                 self.type_().map(|tp| {
@@ -110,8 +120,8 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             Some(node) => vec![node],
         };
 
-        match self.tokens.peek() {
-            Some(tok) if *tok == terminator => {
+        match self.peek_token() {
+            Some(tok) if tok == terminator => {
                 self.next_token();
                 Ok(res)
             }
@@ -172,7 +182,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn my_list(&mut self) -> NodeResult {
-        if matches!(self.tokens.peek(), Some(Token::Rbrack)) {
+        if matches!(self.peek_token(), Some(Token::Rbrack)) {
             self.next_token();
             return Ok(ASTNode::ExtensionList(vec![]));
         }
@@ -267,9 +277,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn current_infix(&mut self) -> Option<InfixOperator> {
-        self.tokens
-            .peek()
-            .and_then(|tok| InfixOperator::from(tok.clone()))
+        self.peek_token().and_then(InfixOperator::from)
     }
 
     fn prefix(&mut self, op: PrefixOperator) -> NodeResult {
@@ -278,7 +286,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn parenthesis(&mut self) -> NodeResult {
-        if matches!(self.tokens.peek(), Some(&Token::Rparen)) {
+        if matches!(self.peek_token(), Some(Token::Rparen)) {
             self.next_token();
             return Ok(ASTNode::Tuple(vec![]));
         }
@@ -308,7 +316,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn set(&mut self) -> NodeResult {
-        if matches!(self.tokens.peek(), Some(&Token::Rbrace)) {
+        if matches!(self.peek_token(), Some(Token::Rbrace)) {
             self.next_token();
             return Ok(ASTNode::ExtensionSet(vec![]));
         }
@@ -336,7 +344,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 }
 
-pub fn parser_from<T: Iterator<Item = Token>>(tokens: T) -> Parser<T> {
+pub fn parser_from<T: Iterator<Item = TokenInfo>>(tokens: T) -> Parser<T> {
     Parser {
         tokens: tokens.peekable(),
     }
@@ -345,54 +353,59 @@ pub fn parser_from<T: Iterator<Item = Token>>(tokens: T) -> Parser<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lexer::build_lexer;
-    use std::{iter, vec};
+    use crate::{error::Position, lexer::build_lexer};
+    use std::iter;
+
+    fn iter_from(v: Vec<Token>) -> impl Iterator<Item = TokenInfo> {
+        v.into_iter()
+            .map(|tok| TokenInfo::new(tok, Position::new(0, 0)))
+    }
 
     #[test]
     fn empty_expression() {
-        assert_eq!(parser_from(iter::empty::<Token>()).next(), None);
+        assert_eq!(parser_from(iter::empty::<TokenInfo>()).next(), None);
     }
 
     #[test]
     fn integer() {
-        let tokens = [Token::Integer(String::from("0"))];
+        let tokens = vec![Token::Integer(String::from("0"))];
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::Integer(String::from("0"))))
         );
     }
 
     #[test]
     fn integer_in_parenthesis() {
-        let tokens = [
+        let tokens = vec![
             Token::Lparen,
             Token::Integer(String::from("365")),
             Token::Rparen,
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::Integer(String::from("365"))))
         );
     }
 
     #[test]
     fn unbalanced_left_parenthesis() {
-        let tokens = [Token::Lparen, Token::Integer(String::from("65"))];
+        let tokens = vec![Token::Lparen, Token::Integer(String::from("65"))];
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Err(ParserError::EOFExpecting(vec![Token::Rparen])))
         );
     }
 
     #[test]
     fn simple_sum() {
-        let tokens = [
+        let tokens = vec![
             Token::Integer(String::from("1")),
             Token::Plus,
             Token::Integer(String::from("1")),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Sum,
                 Box::new(ASTNode::Integer(String::from("1"))),
@@ -403,16 +416,16 @@ mod tests {
 
     #[test]
     fn incomplete_sum() {
-        let tokens = [Token::Integer(String::from("1")), Token::Plus];
+        let tokens = vec![Token::Integer(String::from("1")), Token::Plus];
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Err(ParserError::EOFReached))
         );
     }
 
     #[test]
     fn product_and_power() {
-        let tokens = [
+        let tokens = vec![
             Token::Integer(String::from("1")),
             Token::Times,
             Token::Integer(String::from("2")),
@@ -420,7 +433,7 @@ mod tests {
             Token::Integer(String::from("2")),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Product,
                 Box::new(ASTNode::Integer(String::from("1"))),
@@ -435,7 +448,7 @@ mod tests {
 
     #[test]
     fn division_and_sum() {
-        let tokens = [
+        let tokens = vec![
             Token::Integer(String::from("1")),
             Token::Over,
             Token::Integer(String::from("1")),
@@ -443,7 +456,7 @@ mod tests {
             Token::Integer(String::from("1")),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Sum,
                 Box::new(ASTNode::Infix(
@@ -458,14 +471,14 @@ mod tests {
 
     #[test]
     fn let_statement() {
-        let tokens = [
+        let tokens = vec![
             Token::Let,
             Token::Ident(String::from('x')),
             Token::Assign,
             Token::Integer(String::from("1")),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::Let(
                 Box::new(ASTNode::Signature(
                     Box::new(ASTNode::Symbol(String::from('x'))),
@@ -490,7 +503,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::NotEquality,
                 Box::new(ASTNode::Infix(
@@ -524,7 +537,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::Let(
                 Box::new(ASTNode::Symbol(String::from('f'))),
                 vec![
@@ -542,7 +555,7 @@ mod tests {
 
     #[test]
     fn let_function_signature() {
-        let tokens = [
+        let tokens = vec![
             Token::Let,
             Token::Ident(String::from('f')),
             Token::Colon,
@@ -552,7 +565,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::Signature(
                 Box::new(ASTNode::Symbol(String::from('f'))),
                 Some(Box::new(ASTNode::Infix(
@@ -566,10 +579,10 @@ mod tests {
 
     #[test]
     fn empty_set() {
-        let tokens = [Token::Lbrace, Token::Rbrace];
+        let tokens = vec![Token::Lbrace, Token::Rbrace];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::ExtensionSet(vec![])))
         );
     }
@@ -587,7 +600,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::ExtensionSet(vec![
                 ASTNode::Boolean(true),
                 ASTNode::Boolean(false)
@@ -597,17 +610,17 @@ mod tests {
 
     #[test]
     fn empty_tuple() {
-        let tokens = [Token::Lparen, Token::Rparen];
+        let tokens = vec![Token::Lparen, Token::Rparen];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::Tuple(vec![])))
         );
     }
 
     #[test]
     fn tuple() {
-        let tokens = [
+        let tokens = vec![
             Token::Lparen,
             Token::Ident(String::from("Real")),
             Token::Comma,
@@ -616,7 +629,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::Tuple(vec![
                 ASTNode::Symbol(String::from("Real")),
                 ASTNode::Symbol(String::from("Real"))
@@ -626,7 +639,7 @@ mod tests {
 
     #[test]
     fn set_comprehension() {
-        let tokens = [
+        let tokens = vec![
             Token::Lbrace,
             Token::Ident(String::from("a")),
             Token::Colon,
@@ -636,7 +649,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::ComprehensionSet(
                 Box::new(ASTNode::Symbol(String::from("a"))),
                 Box::new(ASTNode::Infix(
@@ -664,7 +677,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::Let(
                 Box::new(ASTNode::Signature(
                     Box::new(ASTNode::Symbol(String::from("x"))),
@@ -686,7 +699,7 @@ mod tests {
 
     #[test]
     fn shift_operator() {
-        let tokens = [
+        let tokens = vec![
             Token::Ident(String::from('x')),
             Token::Minus,
             Token::Integer(String::from('1')),
@@ -695,7 +708,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::LeftShift,
                 Box::new(ASTNode::Infix(
@@ -710,7 +723,7 @@ mod tests {
 
     #[test]
     fn shift_and_comparison() {
-        let lexer = build_lexer("1 << 1 > 1").map(|res| res.unwrap().token);
+        let lexer = build_lexer("1 << 1 > 1").map(|res| res.unwrap());
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -728,7 +741,7 @@ mod tests {
 
     #[test]
     fn bitwise() {
-        let lexer = build_lexer("a & b || c").map(|res| res.unwrap().token);
+        let lexer = build_lexer("a & b || c").map(|res| res.unwrap());
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -749,7 +762,7 @@ mod tests {
         let lexer = build_lexer("a && b || c");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Or,
                 Box::new(ASTNode::Infix(
@@ -767,7 +780,7 @@ mod tests {
         let lexer = build_lexer("a + b || a & b << c");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Or,
                 Box::new(ASTNode::Infix(
@@ -793,7 +806,7 @@ mod tests {
         let lexer = build_lexer("a ^ b & c || d");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Or,
                 Box::new(ASTNode::Infix(
@@ -815,7 +828,7 @@ mod tests {
         let lexer = build_lexer("({}, 0)");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::Tuple(vec![
                 ASTNode::ExtensionSet(vec![]),
                 ASTNode::Integer(String::from('0'))
@@ -828,7 +841,7 @@ mod tests {
         let lexer = build_lexer("!(~1 /= -1)");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::Prefix(
                 PrefixOperator::LogicNot,
                 Box::new(ASTNode::Infix(
@@ -861,7 +874,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNode::If(
                 Box::new(ASTNode::Infix(
                     InfixOperator::Less,
@@ -886,7 +899,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).program(),
+            parser_from(lexer.map(|res| res.unwrap())).program(),
             vec![
                 ASTNode::Let(
                     Box::new(ASTNode::Signature(
@@ -912,7 +925,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Call,
                 Box::new(ASTNode::Symbol(String::from("f"))),
@@ -931,7 +944,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::Tuple(vec![ASTNode::Integer(String::from(
                 "1"
             ))]))),
@@ -945,7 +958,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Correspondence,
                 Box::new(ASTNode::Symbol(String::from("x"))),
@@ -965,7 +978,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Call,
                 Box::new(ASTNode::Infix(
@@ -991,7 +1004,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::Tuple(vec![
                 ASTNode::Char('a'),
                 ASTNode::String(String::from('b')),
@@ -1006,7 +1019,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::For(
                 String::from("i"),
                 Box::new(ASTNode::Symbol(String::from("list"))),
@@ -1026,7 +1039,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::In,
                 Box::new(ASTNode::Integer(String::from("1"))),
@@ -1049,7 +1062,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::ExtensionList(vec![
                 ASTNode::ExtensionList(vec![]),
                 ASTNode::Integer(String::from("2")),
@@ -1064,7 +1077,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::ComprehensionList(
                 Box::new(ASTNode::Infix(
                     InfixOperator::In,
@@ -1094,7 +1107,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::ExtensionSet(vec![ASTNode::ExtensionSet(
                 vec![]
             )]))),
@@ -1108,7 +1121,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap().token)).next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNode::ExtensionList(vec![
                 ASTNode::Symbol(String::from("a")),
                 ASTNode::Integer(String::from("1")),
@@ -1120,7 +1133,7 @@ mod tests {
     #[test]
     fn prepend() {
         let code = "[1|[2,3]]";
-        let lexer = build_lexer(code).map(|res| res.unwrap().token);
+        let lexer = build_lexer(code).map(|res| res.unwrap());
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1137,7 +1150,7 @@ mod tests {
     #[test]
     fn consume_comprehension_list() {
         let input = "[a : a in b] + []";
-        let lexer = build_lexer(input).map(|res| res.unwrap().token);
+        let lexer = build_lexer(input).map(|res| res.unwrap());
 
         assert_eq!(
             parser_from(lexer).next(),

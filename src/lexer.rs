@@ -17,7 +17,7 @@ pub struct TokenInfo {
 }
 
 impl TokenInfo {
-    fn new(token: Token, position: Position) -> Self {
+    pub fn new(token: Token, position: Position) -> Self {
         Self { token, position }
     }
 }

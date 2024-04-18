@@ -41,7 +41,7 @@ impl Repl {
                 }
                 self.code.push_str(&line);
                 let lexer = build_lexer(&self.code);
-                let mut parser = parser_from(lexer.map(|res| res.unwrap().token));
+                let mut parser = parser_from(lexer.map(|res| res.unwrap()));
 
                 match parser.next() {
                     None => (String::from(""), ReplResponse::Continue),
