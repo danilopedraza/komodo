@@ -11,19 +11,19 @@ pub enum LexerError {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct TokenInfo {
-    pub token: Token,
+pub struct Token {
+    pub token: TokenType,
     pub position: Position,
 }
 
-impl TokenInfo {
-    pub fn new(token: Token, position: Position) -> Self {
+impl Token {
+    pub fn new(token: TokenType, position: Position) -> Self {
         Self { token, position }
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Token {
+pub enum TokenType {
     Arrow,
     Assign,
     Bang,
@@ -78,7 +78,7 @@ pub struct Lexer<'a> {
 }
 
 impl Iterator for Lexer<'_> {
-    type Item = Result<TokenInfo, LexerError>;
+    type Item = Result<Token, LexerError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -92,7 +92,7 @@ impl Iterator for Lexer<'_> {
         let start = self.cur_pos;
 
         match self.next_token() {
-            Some(Ok(token)) => Some(Ok(TokenInfo::new(
+            Some(Ok(token)) => Some(Ok(Token::new(
                 token,
                 Position::new(start, self.cur_pos - start),
             ))),
@@ -102,7 +102,7 @@ impl Iterator for Lexer<'_> {
     }
 }
 
-type LexerResult = Result<Token, LexerError>;
+type LexerResult = Result<TokenType, LexerError>;
 
 impl Lexer<'_> {
     fn next_char(&mut self) -> Option<char> {
@@ -121,38 +121,38 @@ impl Lexer<'_> {
             Some('\'') => self.char(),
             Some('"') => Some(self.string_()),
             Some(chr) => Some(Ok(match chr {
-                '!' => Token::Bang,
-                '^' => Token::BitwiseXor,
-                ',' => Token::Comma,
-                '.' => Token::Dot,
-                '=' => Token::Equals,
-                '&' => self.fork(Token::BitwiseAnd, vec![('&', Token::LogicAnd)]),
-                '|' => self.fork(Token::VerticalBar, vec![('|', Token::LogicOr)]),
-                ':' => self.fork(Token::Colon, vec![('=', Token::Assign)]),
+                '!' => TokenType::Bang,
+                '^' => TokenType::BitwiseXor,
+                ',' => TokenType::Comma,
+                '.' => TokenType::Dot,
+                '=' => TokenType::Equals,
+                '&' => self.fork(TokenType::BitwiseAnd, vec![('&', TokenType::LogicAnd)]),
+                '|' => self.fork(TokenType::VerticalBar, vec![('|', TokenType::LogicOr)]),
+                ':' => self.fork(TokenType::Colon, vec![('=', TokenType::Assign)]),
                 '>' => self.fork(
-                    Token::Greater,
-                    vec![('>', Token::RightShift), ('=', Token::GreaterEqual)],
+                    TokenType::Greater,
+                    vec![('>', TokenType::RightShift), ('=', TokenType::GreaterEqual)],
                 ),
                 '<' => self.fork(
-                    Token::Less,
-                    vec![('<', Token::LeftShift), ('=', Token::LessEqual)],
+                    TokenType::Less,
+                    vec![('<', TokenType::LeftShift), ('=', TokenType::LessEqual)],
                 ),
-                '-' => self.fork(Token::Minus, vec![('>', Token::Arrow)]),
-                '/' => self.fork(Token::Over, vec![('=', Token::NotEqual)]),
-                '{' => Token::Lbrace,
-                '[' => Token::Lbrack,
-                '(' => Token::Lparen,
-                '%' => Token::Mod,
-                '+' => Token::Plus,
-                '*' => self.fork(Token::Times, vec![('*', Token::ToThe)]),
-                '}' => Token::Rbrace,
-                ']' => Token::Rbrack,
-                ')' => Token::Rparen,
-                '~' => Token::Tilde,
-                '_' => Token::Wildcard,
+                '-' => self.fork(TokenType::Minus, vec![('>', TokenType::Arrow)]),
+                '/' => self.fork(TokenType::Over, vec![('=', TokenType::NotEqual)]),
+                '{' => TokenType::Lbrace,
+                '[' => TokenType::Lbrack,
+                '(' => TokenType::Lparen,
+                '%' => TokenType::Mod,
+                '+' => TokenType::Plus,
+                '*' => self.fork(TokenType::Times, vec![('*', TokenType::ToThe)]),
+                '}' => TokenType::Rbrace,
+                ']' => TokenType::Rbrack,
+                ')' => TokenType::Rparen,
+                '~' => TokenType::Tilde,
+                '_' => TokenType::Wildcard,
                 '0'..='9' => self.integer(chr),
                 chr if chr.is_alphabetic() => self.identifier_or_keyword(chr),
-                _ => Token::Unknown,
+                _ => TokenType::Unknown,
             })),
         }
     }
@@ -161,7 +161,7 @@ impl Lexer<'_> {
 
         loop {
             match self.next_char() {
-                Some('"') => break Ok(Token::String(str)),
+                Some('"') => break Ok(TokenType::String(str)),
                 Some(c) => str.push(c),
                 None => break Err(LexerError::UnterminatedString),
             }
@@ -175,7 +175,7 @@ impl Lexer<'_> {
         }
 
         Some(match self.next_char() {
-            Some('\'') => Ok(Token::Char(chr.unwrap())),
+            Some('\'') => Ok(TokenType::Char(chr.unwrap())),
             Some(c) => Err(LexerError::UnexpectedChar(c)),
             None => Err(LexerError::UnterminatedChar),
         })
@@ -202,7 +202,7 @@ impl Lexer<'_> {
         }
     }
 
-    fn identifier_or_keyword(&mut self, first: char) -> Token {
+    fn identifier_or_keyword(&mut self, first: char) -> TokenType {
         let mut literal = String::from(first);
         while let Some(chr) = self.input.by_ref().next_if(|c| c.is_alphabetic()) {
             self.cur_pos += 1;
@@ -211,25 +211,25 @@ impl Lexer<'_> {
 
         match Self::keyword(&literal) {
             Some(tok) => tok,
-            None => Token::Ident(literal),
+            None => TokenType::Ident(literal),
         }
     }
 
-    fn keyword(literal: &str) -> Option<Token> {
+    fn keyword(literal: &str) -> Option<TokenType> {
         match literal {
-            "else" => Some(Token::Else),
-            "false" => Some(Token::False),
-            "for" => Some(Token::For),
-            "if" => Some(Token::If),
-            "in" => Some(Token::In),
-            "let" => Some(Token::Let),
-            "then" => Some(Token::Then),
-            "true" => Some(Token::True),
+            "else" => Some(TokenType::Else),
+            "false" => Some(TokenType::False),
+            "for" => Some(TokenType::For),
+            "if" => Some(TokenType::If),
+            "in" => Some(TokenType::In),
+            "let" => Some(TokenType::Let),
+            "then" => Some(TokenType::Then),
+            "true" => Some(TokenType::True),
             _ => None,
         }
     }
 
-    fn fork(&mut self, def: Token, alts: Vec<(char, Token)>) -> Token {
+    fn fork(&mut self, def: TokenType, alts: Vec<(char, TokenType)>) -> TokenType {
         for (chr, tok) in alts {
             if matches!(self.input.peek(), Some(c) if *c == chr) {
                 self.next_char();
@@ -240,9 +240,9 @@ impl Lexer<'_> {
         def
     }
 
-    fn integer(&mut self, first: char) -> Token {
+    fn integer(&mut self, first: char) -> TokenType {
         if first == '0' {
-            return Token::Integer(String::from(first));
+            return TokenType::Integer(String::from(first));
         }
 
         let mut number = String::from(first);
@@ -252,7 +252,7 @@ impl Lexer<'_> {
             number.push(chr);
         }
 
-        Token::Integer(number)
+        TokenType::Integer(number)
     }
 }
 
@@ -278,7 +278,7 @@ mod tests {
     fn plus_operator() {
         assert_eq!(
             build_lexer("+").next(),
-            Some(Ok(TokenInfo::new(Token::Plus, Position::new(0, 1))))
+            Some(Ok(Token::new(TokenType::Plus, Position::new(0, 1))))
         );
     }
 
@@ -296,11 +296,11 @@ mod tests {
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>(),
             vec![
-                TokenInfo::new(Token::Ident(String::from('x')), Position::new(0, 1)),
-                TokenInfo::new(Token::Plus, Position::new(2, 1)),
-                TokenInfo::new(Token::Ident(String::from('y')), Position::new(4, 1)),
-                TokenInfo::new(Token::NotEqual, Position::new(6, 2)),
-                TokenInfo::new(Token::Ident(String::from('a')), Position::new(9, 1)),
+                Token::new(TokenType::Ident(String::from('x')), Position::new(0, 1)),
+                Token::new(TokenType::Plus, Position::new(2, 1)),
+                Token::new(TokenType::Ident(String::from('y')), Position::new(4, 1)),
+                Token::new(TokenType::NotEqual, Position::new(6, 2)),
+                Token::new(TokenType::Ident(String::from('a')), Position::new(9, 1)),
             ],
         );
     }
@@ -314,13 +314,13 @@ mod tests {
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>(),
             vec![
-                TokenInfo::new(Token::Let, Position::new(0, 3)),
-                TokenInfo::new(Token::Ident(String::from('x')), Position::new(4, 1)),
-                TokenInfo::new(Token::Assign, Position::new(6, 2)),
-                TokenInfo::new(Token::Integer(String::from('1')), Position::new(9, 1)),
-                TokenInfo::new(Token::Over, Position::new(11, 1)),
-                TokenInfo::new(Token::Integer(String::from('2')), Position::new(13, 1)),
-                TokenInfo::new(Token::Dot, Position::new(14, 1)),
+                Token::new(TokenType::Let, Position::new(0, 3)),
+                Token::new(TokenType::Ident(String::from('x')), Position::new(4, 1)),
+                Token::new(TokenType::Assign, Position::new(6, 2)),
+                Token::new(TokenType::Integer(String::from('1')), Position::new(9, 1)),
+                Token::new(TokenType::Over, Position::new(11, 1)),
+                Token::new(TokenType::Integer(String::from('2')), Position::new(13, 1)),
+                Token::new(TokenType::Dot, Position::new(14, 1)),
             ],
         );
     }
@@ -334,15 +334,15 @@ mod tests {
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>(),
             vec![
-                TokenInfo::new(Token::Lparen, Position::new(0, 1)),
-                TokenInfo::new(Token::Ident(String::from('x')), Position::new(1, 1)),
-                TokenInfo::new(Token::Times, Position::new(3, 1)),
-                TokenInfo::new(Token::Ident(String::from('y')), Position::new(5, 1)),
-                TokenInfo::new(Token::Rparen, Position::new(6, 1)),
-                TokenInfo::new(Token::Equals, Position::new(8, 1)),
-                TokenInfo::new(Token::Integer(String::from("23")), Position::new(10, 2)),
-                TokenInfo::new(Token::Mod, Position::new(13, 1)),
-                TokenInfo::new(Token::Integer(String::from("2")), Position::new(15, 1)),
+                Token::new(TokenType::Lparen, Position::new(0, 1)),
+                Token::new(TokenType::Ident(String::from('x')), Position::new(1, 1)),
+                Token::new(TokenType::Times, Position::new(3, 1)),
+                Token::new(TokenType::Ident(String::from('y')), Position::new(5, 1)),
+                Token::new(TokenType::Rparen, Position::new(6, 1)),
+                Token::new(TokenType::Equals, Position::new(8, 1)),
+                Token::new(TokenType::Integer(String::from("23")), Position::new(10, 2)),
+                Token::new(TokenType::Mod, Position::new(13, 1)),
+                Token::new(TokenType::Integer(String::from("2")), Position::new(15, 1)),
             ],
         );
     }
@@ -356,11 +356,11 @@ mod tests {
                 .map(|res| res.unwrap().token)
                 .collect::<Vec<_>>(),
             vec![
-                Token::Ident(String::from("a")),
-                Token::Less,
-                Token::Ident(String::from("b")),
-                Token::LessEqual,
-                Token::Ident(String::from("c"))
+                TokenType::Ident(String::from("a")),
+                TokenType::Less,
+                TokenType::Ident(String::from("b")),
+                TokenType::LessEqual,
+                TokenType::Ident(String::from("c"))
             ],
         );
     }
@@ -374,11 +374,11 @@ mod tests {
                 .map(|res| res.unwrap().token)
                 .collect::<Vec<_>>(),
             vec![
-                Token::Ident(String::from("a")),
-                Token::Greater,
-                Token::Ident(String::from("b")),
-                Token::GreaterEqual,
-                Token::Ident(String::from("c"))
+                TokenType::Ident(String::from("a")),
+                TokenType::Greater,
+                TokenType::Ident(String::from("b")),
+                TokenType::GreaterEqual,
+                TokenType::Ident(String::from("c"))
             ],
         );
     }
@@ -392,12 +392,12 @@ mod tests {
                 .map(|res| res.unwrap().token)
                 .collect::<Vec<_>>(),
             vec![
-                Token::Let,
-                Token::Ident(String::from('f')),
-                Token::Colon,
-                Token::Ident(String::from('a')),
-                Token::Arrow,
-                Token::Ident(String::from('a'))
+                TokenType::Let,
+                TokenType::Ident(String::from('f')),
+                TokenType::Colon,
+                TokenType::Ident(String::from('a')),
+                TokenType::Arrow,
+                TokenType::Ident(String::from('a'))
             ],
         );
     }
@@ -411,13 +411,13 @@ mod tests {
                 .map(|res| res.unwrap().token)
                 .collect::<Vec<_>>(),
             vec![
-                Token::Lparen,
-                Token::Integer(String::from("1")),
-                Token::LeftShift,
-                Token::Integer(String::from("2")),
-                Token::Rparen,
-                Token::RightShift,
-                Token::Integer(String::from("2"))
+                TokenType::Lparen,
+                TokenType::Integer(String::from("1")),
+                TokenType::LeftShift,
+                TokenType::Integer(String::from("2")),
+                TokenType::Rparen,
+                TokenType::RightShift,
+                TokenType::Integer(String::from("2"))
             ]
         );
     }
@@ -431,14 +431,14 @@ mod tests {
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>(),
             vec![
-                TokenInfo::new(Token::Ident(String::from('f')), Position::new(0, 1)),
-                TokenInfo::new(Token::Lparen, Position::new(1, 1)),
-                TokenInfo::new(Token::Ident(String::from('x')), Position::new(2, 1)),
-                TokenInfo::new(Token::Comma, Position::new(3, 1)),
-                TokenInfo::new(Token::Ident(String::from('y')), Position::new(4, 1)),
-                TokenInfo::new(Token::ToThe, Position::new(6, 2)),
-                TokenInfo::new(Token::Integer(String::from('2')), Position::new(9, 1)),
-                TokenInfo::new(Token::Rparen, Position::new(10, 1)),
+                Token::new(TokenType::Ident(String::from('f')), Position::new(0, 1)),
+                Token::new(TokenType::Lparen, Position::new(1, 1)),
+                Token::new(TokenType::Ident(String::from('x')), Position::new(2, 1)),
+                Token::new(TokenType::Comma, Position::new(3, 1)),
+                Token::new(TokenType::Ident(String::from('y')), Position::new(4, 1)),
+                Token::new(TokenType::ToThe, Position::new(6, 2)),
+                Token::new(TokenType::Integer(String::from('2')), Position::new(9, 1)),
+                Token::new(TokenType::Rparen, Position::new(10, 1)),
             ],
         );
     }
@@ -452,11 +452,11 @@ mod tests {
                 .map(|res| res.unwrap().token)
                 .collect::<Vec<_>>(),
             vec![
-                Token::Lbrace,
-                Token::True,
-                Token::Comma,
-                Token::False,
-                Token::Rbrace
+                TokenType::Lbrace,
+                TokenType::True,
+                TokenType::Comma,
+                TokenType::False,
+                TokenType::Rbrace
             ],
         );
     }
@@ -470,8 +470,8 @@ mod tests {
                 .map(|res| res.unwrap().token)
                 .collect::<Vec<_>>(),
             vec![
-                Token::Integer(String::from('0')),
-                Token::Integer(String::from('1'))
+                TokenType::Integer(String::from('0')),
+                TokenType::Integer(String::from('1'))
             ]
         );
     }
@@ -487,12 +487,15 @@ mod tests {
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>(),
             vec![
-                TokenInfo::new(Token::Ident(String::from("input")), Position::new(0, 5)),
-                TokenInfo::new(Token::Lparen, Position::new(5, 1)),
-                TokenInfo::new(Token::Rparen, Position::new(6, 1)),
-                TokenInfo::new(Token::Ident(String::from("print")), Position::new(20, 5)),
-                TokenInfo::new(Token::Lparen, Position::new(25, 1)),
-                TokenInfo::new(Token::Rparen, Position::new(26, 1)),
+                Token::new(TokenType::Ident(String::from("input")), Position::new(0, 5)),
+                Token::new(TokenType::Lparen, Position::new(5, 1)),
+                Token::new(TokenType::Rparen, Position::new(6, 1)),
+                Token::new(
+                    TokenType::Ident(String::from("print")),
+                    Position::new(20, 5)
+                ),
+                Token::new(TokenType::Lparen, Position::new(25, 1)),
+                Token::new(TokenType::Rparen, Position::new(26, 1)),
             ],
         );
     }
@@ -508,15 +511,15 @@ mod tests {
                 .map(|res| res.unwrap().token)
                 .collect::<Vec<_>>(),
             vec![
-                Token::If,
-                Token::Ident(String::from("a")),
-                Token::Less,
-                Token::Integer(String::from("0")),
-                Token::Then,
-                Token::Minus,
-                Token::Ident(String::from("a")),
-                Token::Else,
-                Token::Ident(String::from("a")),
+                TokenType::If,
+                TokenType::Ident(String::from("a")),
+                TokenType::Less,
+                TokenType::Integer(String::from("0")),
+                TokenType::Then,
+                TokenType::Minus,
+                TokenType::Ident(String::from("a")),
+                TokenType::Else,
+                TokenType::Ident(String::from("a")),
             ]
         );
     }
@@ -527,7 +530,7 @@ mod tests {
 
         assert_eq!(
             build_lexer(code).next(),
-            Some(Ok(TokenInfo::new(Token::Char('x'), Position::new(0, 3)))),
+            Some(Ok(Token::new(TokenType::Char('x'), Position::new(0, 3)))),
         );
     }
 
@@ -557,8 +560,8 @@ mod tests {
 
         assert_eq!(
             build_lexer(code).next(),
-            Some(Ok(TokenInfo::new(
-                Token::String(String::from("abc")),
+            Some(Ok(Token::new(
+                TokenType::String(String::from("abc")),
                 Position::new(0, 5)
             ))),
         );
@@ -585,11 +588,11 @@ mod tests {
                 .map(|res| res.unwrap().token)
                 .collect::<Vec<_>>(),
             vec![
-                Token::Lbrack,
-                Token::Integer(String::from("1")),
-                Token::Comma,
-                Token::Integer(String::from("2")),
-                Token::Rbrack,
+                TokenType::Lbrack,
+                TokenType::Integer(String::from("1")),
+                TokenType::Comma,
+                TokenType::Integer(String::from("2")),
+                TokenType::Rbrack,
             ],
         );
     }
@@ -605,14 +608,14 @@ mod tests {
                 .map(|res| res.unwrap().token)
                 .collect::<Vec<_>>(),
             vec![
-                Token::Ident(String::from("f")),
-                Token::Lparen,
-                Token::Ident(String::from("x")),
-                Token::Comma,
-                Token::Wildcard,
-                Token::Rparen,
-                Token::Assign,
-                Token::Ident(String::from("x")),
+                TokenType::Ident(String::from("f")),
+                TokenType::Lparen,
+                TokenType::Ident(String::from("x")),
+                TokenType::Comma,
+                TokenType::Wildcard,
+                TokenType::Rparen,
+                TokenType::Assign,
+                TokenType::Ident(String::from("x")),
             ],
         );
     }

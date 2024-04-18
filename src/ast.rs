@@ -1,4 +1,4 @@
-use crate::lexer::Token;
+use crate::lexer::TokenType;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Precedence {
@@ -44,29 +44,29 @@ pub enum InfixOperator {
 }
 
 impl InfixOperator {
-    pub fn from(tok: Token) -> Option<Self> {
+    pub fn from(tok: TokenType) -> Option<Self> {
         match tok {
-            Token::BitwiseAnd => Some(Self::BitwiseAnd),
-            Token::BitwiseXor => Some(Self::BitwiseXor),
-            Token::Lparen => Some(Self::Call),
-            Token::Greater => Some(Self::Greater),
-            Token::GreaterEqual => Some(Self::GreaterEqual),
-            Token::LeftShift => Some(Self::LeftShift),
-            Token::RightShift => Some(Self::RightShift),
-            Token::Less => Some(Self::Less),
-            Token::LessEqual => Some(Self::LessEqual),
-            Token::LogicAnd => Some(Self::LogicAnd),
-            Token::LogicOr => Some(Self::Or),
-            Token::In => Some(Self::In),
-            Token::Mod => Some(Self::Mod),
-            Token::Over => Some(Self::Division),
-            Token::Plus => Some(Self::Sum),
-            Token::Minus => Some(Self::Substraction),
-            Token::Times => Some(Self::Product),
-            Token::ToThe => Some(Self::Exponentiation),
-            Token::Arrow => Some(Self::Correspondence),
-            Token::Equals => Some(Self::Equality),
-            Token::NotEqual => Some(Self::NotEquality),
+            TokenType::BitwiseAnd => Some(Self::BitwiseAnd),
+            TokenType::BitwiseXor => Some(Self::BitwiseXor),
+            TokenType::Lparen => Some(Self::Call),
+            TokenType::Greater => Some(Self::Greater),
+            TokenType::GreaterEqual => Some(Self::GreaterEqual),
+            TokenType::LeftShift => Some(Self::LeftShift),
+            TokenType::RightShift => Some(Self::RightShift),
+            TokenType::Less => Some(Self::Less),
+            TokenType::LessEqual => Some(Self::LessEqual),
+            TokenType::LogicAnd => Some(Self::LogicAnd),
+            TokenType::LogicOr => Some(Self::Or),
+            TokenType::In => Some(Self::In),
+            TokenType::Mod => Some(Self::Mod),
+            TokenType::Over => Some(Self::Division),
+            TokenType::Plus => Some(Self::Sum),
+            TokenType::Minus => Some(Self::Substraction),
+            TokenType::Times => Some(Self::Product),
+            TokenType::ToThe => Some(Self::Exponentiation),
+            TokenType::Arrow => Some(Self::Correspondence),
+            TokenType::Equals => Some(Self::Equality),
+            TokenType::NotEqual => Some(Self::NotEquality),
             _ => None,
         }
     }
@@ -106,11 +106,11 @@ pub enum PrefixOperator {
 }
 
 impl PrefixOperator {
-    pub fn from(tok: Token) -> Option<Self> {
+    pub fn from(tok: TokenType) -> Option<Self> {
         match tok {
-            Token::Bang => Some(Self::LogicNot),
-            Token::Minus => Some(Self::Minus),
-            Token::Tilde => Some(Self::BitwiseNot),
+            TokenType::Bang => Some(Self::LogicNot),
+            TokenType::Minus => Some(Self::Minus),
+            TokenType::Tilde => Some(Self::BitwiseNot),
             _ => None,
         }
     }
