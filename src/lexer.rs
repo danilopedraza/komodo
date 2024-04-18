@@ -116,14 +116,6 @@ impl Lexer<'_> {
     fn next_token(&mut self) -> Option<Result<Token, LexerError>> {
         match self.next_char() {
             None => None,
-            Some(chr) if chr.is_whitespace() => {
-                self.skip_whitespace();
-                self.next_token()
-            }
-            Some('#') => {
-                self.skip_comment();
-                self.next_token()
-            }
             Some('\'') => self.char(),
             Some('"') => Some(self.string_()),
             Some(chr) => Some(Ok(match chr {
