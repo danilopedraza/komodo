@@ -531,7 +531,10 @@ mod tests {
     fn character() {
         let code = "'x'";
 
-        assert_eq!(build_lexer(code).next(), Some(Ok(TokenInfo::new(Token::Char('x'), Position::new(0, 3)))),);
+        assert_eq!(
+            build_lexer(code).next(),
+            Some(Ok(TokenInfo::new(Token::Char('x'), Position::new(0, 3)))),
+        );
     }
 
     // #[test]
@@ -560,7 +563,10 @@ mod tests {
 
         assert_eq!(
             build_lexer(code).next(),
-            Some(Ok(TokenInfo::new(Token::String(String::from("abc")), Position::new(0, 5)))),
+            Some(Ok(TokenInfo::new(
+                Token::String(String::from("abc")),
+                Position::new(0, 5)
+            ))),
         );
     }
 
