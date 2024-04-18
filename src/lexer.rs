@@ -102,6 +102,8 @@ impl Iterator for Lexer<'_> {
     }
 }
 
+type LexerResult = Result<Token, LexerError>;
+
 impl Lexer<'_> {
     fn next_char(&mut self) -> Option<char> {
         match self.input.next() {
@@ -113,7 +115,7 @@ impl Lexer<'_> {
         }
     }
 
-    fn next_token(&mut self) -> Option<Result<Token, LexerError>> {
+    fn next_token(&mut self) -> Option<LexerResult> {
         match self.next_char() {
             None => None,
             Some('\'') => self.char(),
@@ -154,7 +156,7 @@ impl Lexer<'_> {
             })),
         }
     }
-    fn string_(&mut self) -> Result<Token, LexerError> {
+    fn string_(&mut self) -> LexerResult {
         let mut str = String::new();
 
         loop {
@@ -166,7 +168,7 @@ impl Lexer<'_> {
         }
     }
 
-    fn char(&mut self) -> Option<Result<Token, LexerError>> {
+    fn char(&mut self) -> Option<LexerResult> {
         let chr = self.next_char();
         if chr.is_none() {
             return Some(Err(LexerError::UnexpectedEOF));
