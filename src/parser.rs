@@ -29,7 +29,6 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
 type NodeResult = Result<ASTNode, ParserError>;
 
 impl<T: Iterator<Item = Token>> Parser<T> {
-    #[allow(unused)]
     pub fn program(&mut self) -> Vec<ASTNode> {
         let mut res = vec![];
 
