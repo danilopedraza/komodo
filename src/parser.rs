@@ -348,12 +348,6 @@ mod tests {
     use crate::lexer::build_lexer;
     use std::{iter, vec};
 
-    macro_rules! token_iter {
-        ($v:expr) => {
-            $v.iter().map(|tok| tok.clone())
-        };
-    }
-
     #[test]
     fn empty_expression() {
         assert_eq!(parser_from(iter::empty::<Token>()).next(), None);
@@ -363,7 +357,7 @@ mod tests {
     fn integer() {
         let tokens = [Token::Integer(String::from("0"))];
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::Integer(String::from("0"))))
         );
     }
@@ -376,7 +370,7 @@ mod tests {
             Token::Rparen,
         ];
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::Integer(String::from("365"))))
         );
     }
@@ -385,7 +379,7 @@ mod tests {
     fn unbalanced_left_parenthesis() {
         let tokens = [Token::Lparen, Token::Integer(String::from("65"))];
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Err(ParserError::EOFExpecting(vec![Token::Rparen])))
         );
     }
@@ -398,7 +392,7 @@ mod tests {
             Token::Integer(String::from("1")),
         ];
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Sum,
                 Box::new(ASTNode::Integer(String::from("1"))),
@@ -411,7 +405,7 @@ mod tests {
     fn incomplete_sum() {
         let tokens = [Token::Integer(String::from("1")), Token::Plus];
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Err(ParserError::EOFReached))
         );
     }
@@ -426,7 +420,7 @@ mod tests {
             Token::Integer(String::from("2")),
         ];
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Product,
                 Box::new(ASTNode::Integer(String::from("1"))),
@@ -449,7 +443,7 @@ mod tests {
             Token::Integer(String::from("1")),
         ];
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::Sum,
                 Box::new(ASTNode::Infix(
@@ -471,7 +465,7 @@ mod tests {
             Token::Integer(String::from("1")),
         ];
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::Let(
                 Box::new(ASTNode::Signature(
                     Box::new(ASTNode::Symbol(String::from('x'))),
@@ -496,7 +490,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::NotEquality,
                 Box::new(ASTNode::Infix(
@@ -530,7 +524,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::Let(
                 Box::new(ASTNode::Symbol(String::from('f'))),
                 vec![
@@ -558,7 +552,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::Signature(
                 Box::new(ASTNode::Symbol(String::from('f'))),
                 Some(Box::new(ASTNode::Infix(
@@ -575,7 +569,7 @@ mod tests {
         let tokens = [Token::Lbrace, Token::Rbrace];
 
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::ExtensionSet(vec![])))
         );
     }
@@ -593,7 +587,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::ExtensionSet(vec![
                 ASTNode::Boolean(true),
                 ASTNode::Boolean(false)
@@ -606,7 +600,7 @@ mod tests {
         let tokens = [Token::Lparen, Token::Rparen];
 
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::Tuple(vec![])))
         );
     }
@@ -622,7 +616,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::Tuple(vec![
                 ASTNode::Symbol(String::from("Real")),
                 ASTNode::Symbol(String::from("Real"))
@@ -642,7 +636,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::ComprehensionSet(
                 Box::new(ASTNode::Symbol(String::from("a"))),
                 Box::new(ASTNode::Infix(
@@ -670,7 +664,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::Let(
                 Box::new(ASTNode::Signature(
                     Box::new(ASTNode::Symbol(String::from("x"))),
@@ -701,7 +695,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::Infix(
                 InfixOperator::LeftShift,
                 Box::new(ASTNode::Infix(
@@ -867,7 +861,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(token_iter!(tokens)).next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(ASTNode::If(
                 Box::new(ASTNode::Infix(
                     InfixOperator::Less,
