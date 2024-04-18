@@ -353,80 +353,80 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn leq_comparisons() {
-    //     assert_eq!(
-    //         build_lexer("a < b <= c")
-    //             .collect::<Vec<_>>()
-    //             .iter()
-    //             .map(|res| res.clone().unwrap())
-    //             .collect::<Vec<_>>(),
-    //         vec![
-    //             Token::Ident(String::from("a")),
-    //             Token::Less,
-    //             Token::Ident(String::from("b")),
-    //             Token::LessEqual,
-    //             Token::Ident(String::from("c"))
-    //         ],
-    //     );
-    // }
+    #[test]
+    fn leq_comparisons() {
+        assert_eq!(
+            build_lexer("a < b <= c")
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|res| res.unwrap().token)
+                .collect::<Vec<_>>(),
+            vec![
+                Token::Ident(String::from("a")),
+                Token::Less,
+                Token::Ident(String::from("b")),
+                Token::LessEqual,
+                Token::Ident(String::from("c"))
+            ],
+        );
+    }
 
-    // #[test]
-    // fn geq_comparisons() {
-    //     assert_eq!(
-    //         build_lexer("a > b >= c")
-    //             .collect::<Vec<_>>()
-    //             .iter()
-    //             .map(|res| res.clone().unwrap())
-    //             .collect::<Vec<_>>(),
-    //         vec![
-    //             Token::Ident(String::from("a")),
-    //             Token::Greater,
-    //             Token::Ident(String::from("b")),
-    //             Token::GreaterEqual,
-    //             Token::Ident(String::from("c"))
-    //         ],
-    //     );
-    // }
+    #[test]
+    fn geq_comparisons() {
+        assert_eq!(
+            build_lexer("a > b >= c")
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|res| res.unwrap().token)
+                .collect::<Vec<_>>(),
+            vec![
+                Token::Ident(String::from("a")),
+                Token::Greater,
+                Token::Ident(String::from("b")),
+                Token::GreaterEqual,
+                Token::Ident(String::from("c"))
+            ],
+        );
+    }
 
-    // #[test]
-    // fn function_declaration() {
-    //     assert_eq!(
-    //         build_lexer("let f: a -> a")
-    //             .collect::<Vec<_>>()
-    //             .iter()
-    //             .map(|res| res.clone().unwrap())
-    //             .collect::<Vec<_>>(),
-    //         vec![
-    //             Token::Let,
-    //             Token::Ident(String::from('f')),
-    //             Token::Colon,
-    //             Token::Ident(String::from('a')),
-    //             Token::Arrow,
-    //             Token::Ident(String::from('a'))
-    //         ],
-    //     );
-    // }
+    #[test]
+    fn function_declaration() {
+        assert_eq!(
+            build_lexer("let f: a -> a")
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|res| res.unwrap().token)
+                .collect::<Vec<_>>(),
+            vec![
+                Token::Let,
+                Token::Ident(String::from('f')),
+                Token::Colon,
+                Token::Ident(String::from('a')),
+                Token::Arrow,
+                Token::Ident(String::from('a'))
+            ],
+        );
+    }
 
-    // #[test]
-    // fn shift_operator() {
-    //     assert_eq!(
-    //         build_lexer("(1 << 2) >> 2")
-    //             .collect::<Vec<_>>()
-    //             .iter()
-    //             .map(|res| res.clone().unwrap())
-    //             .collect::<Vec<_>>(),
-    //         vec![
-    //             Token::Lparen,
-    //             Token::Integer(String::from("1")),
-    //             Token::LeftShift,
-    //             Token::Integer(String::from("2")),
-    //             Token::Rparen,
-    //             Token::RightShift,
-    //             Token::Integer(String::from("2"))
-    //         ]
-    //     );
-    // }
+    #[test]
+    fn shift_operator() {
+        assert_eq!(
+            build_lexer("(1 << 2) >> 2")
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|res| res.unwrap().token)
+                .collect::<Vec<_>>(),
+            vec![
+                Token::Lparen,
+                Token::Integer(String::from("1")),
+                Token::LeftShift,
+                Token::Integer(String::from("2")),
+                Token::Rparen,
+                Token::RightShift,
+                Token::Integer(String::from("2"))
+            ]
+        );
+    }
 
     #[test]
     fn function_call() {
@@ -449,38 +449,38 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn set() {
-    //     assert_eq!(
-    //         build_lexer("{true, false}")
-    //             .collect::<Vec<_>>()
-    //             .iter()
-    //             .map(|res| res.clone().unwrap())
-    //             .collect::<Vec<_>>(),
-    //         vec![
-    //             Token::Lbrace,
-    //             Token::True,
-    //             Token::Comma,
-    //             Token::False,
-    //             Token::Rbrace
-    //         ],
-    //     );
-    // }
+    #[test]
+    fn set() {
+        assert_eq!(
+            build_lexer("{true, false}")
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|res| res.unwrap().token)
+                .collect::<Vec<_>>(),
+            vec![
+                Token::Lbrace,
+                Token::True,
+                Token::Comma,
+                Token::False,
+                Token::Rbrace
+            ],
+        );
+    }
 
-    // #[test]
-    // fn leading_zeros() {
-    //     assert_eq!(
-    //         build_lexer("01")
-    //             .collect::<Vec<_>>()
-    //             .iter()
-    //             .map(|res| res.clone().unwrap())
-    //             .collect::<Vec<_>>(),
-    //         vec![
-    //             Token::Integer(String::from('0')),
-    //             Token::Integer(String::from('1'))
-    //         ]
-    //     );
-    // }
+    #[test]
+    fn leading_zeros() {
+        assert_eq!(
+            build_lexer("01")
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|res| res.unwrap().token)
+                .collect::<Vec<_>>(),
+            vec![
+                Token::Integer(String::from('0')),
+                Token::Integer(String::from('1'))
+            ]
+        );
+    }
 
     #[test]
     fn comment() {
@@ -503,29 +503,29 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn if_expr() {
-    //     let code = "if a < 0 then -a else a";
+    #[test]
+    fn if_expr() {
+        let code = "if a < 0 then -a else a";
 
-    //     assert_eq!(
-    //         build_lexer(code)
-    //             .collect::<Vec<_>>()
-    //             .iter()
-    //             .map(|res| res.clone().unwrap())
-    //             .collect::<Vec<_>>(),
-    //         vec![
-    //             Token::If,
-    //             Token::Ident(String::from("a")),
-    //             Token::Less,
-    //             Token::Integer(String::from("0")),
-    //             Token::Then,
-    //             Token::Minus,
-    //             Token::Ident(String::from("a")),
-    //             Token::Else,
-    //             Token::Ident(String::from("a")),
-    //         ]
-    //     );
-    // }
+        assert_eq!(
+            build_lexer(code)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|res| res.unwrap().token)
+                .collect::<Vec<_>>(),
+            vec![
+                Token::If,
+                Token::Ident(String::from("a")),
+                Token::Less,
+                Token::Integer(String::from("0")),
+                Token::Then,
+                Token::Minus,
+                Token::Ident(String::from("a")),
+                Token::Else,
+                Token::Ident(String::from("a")),
+            ]
+        );
+    }
 
     #[test]
     fn character() {
@@ -537,25 +537,25 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn unexpected_char_eof() {
-    //     let code = "'x";
+    #[test]
+    fn unexpected_char_eof() {
+        let code = "'x";
 
-    //     assert_eq!(
-    //         build_lexer(code).next(),
-    //         Some(Err(LexerError::UnterminatedChar)),
-    //     );
-    // }
+        assert_eq!(
+            build_lexer(code).next(),
+            Some(Err(LexerError::UnterminatedChar)),
+        );
+    }
 
-    // #[test]
-    // fn bad_delimiter() {
-    //     let code = "'x)";
+    #[test]
+    fn bad_delimiter() {
+        let code = "'x)";
 
-    //     assert_eq!(
-    //         build_lexer(code).next(),
-    //         Some(Err(LexerError::UnexpectedChar(')')))
-    //     );
-    // }
+        assert_eq!(
+            build_lexer(code).next(),
+            Some(Err(LexerError::UnexpectedChar(')')))
+        );
+    }
 
     #[test]
     fn string() {
@@ -570,56 +570,56 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn unterminated_string() {
-    //     let code = "\"a";
+    #[test]
+    fn unterminated_string() {
+        let code = "\"a";
 
-    //     assert_eq!(
-    //         build_lexer(code).next(),
-    //         Some(Err(LexerError::UnterminatedString)),
-    //     );
-    // }
+        assert_eq!(
+            build_lexer(code).next(),
+            Some(Err(LexerError::UnterminatedString)),
+        );
+    }
 
-    // #[test]
-    // fn list() {
-    //     let code = "[1, 2]";
+    #[test]
+    fn list() {
+        let code = "[1, 2]";
 
-    //     assert_eq!(
-    //         build_lexer(code)
-    //             .collect::<Vec<_>>()
-    //             .iter()
-    //             .map(|res| res.clone().unwrap())
-    //             .collect::<Vec<_>>(),
-    //         vec![
-    //             Token::Lbrack,
-    //             Token::Integer(String::from("1")),
-    //             Token::Comma,
-    //             Token::Integer(String::from("2")),
-    //             Token::Rbrack,
-    //         ],
-    //     );
-    // }
+        assert_eq!(
+            build_lexer(code)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|res| res.unwrap().token)
+                .collect::<Vec<_>>(),
+            vec![
+                Token::Lbrack,
+                Token::Integer(String::from("1")),
+                Token::Comma,
+                Token::Integer(String::from("2")),
+                Token::Rbrack,
+            ],
+        );
+    }
 
-    // #[test]
-    // fn wildcard() {
-    //     let code = "f(x, _) := x";
+    #[test]
+    fn wildcard() {
+        let code = "f(x, _) := x";
 
-    //     assert_eq!(
-    //         build_lexer(code)
-    //             .collect::<Vec<_>>()
-    //             .iter()
-    //             .map(|res| res.clone().unwrap())
-    //             .collect::<Vec<_>>(),
-    //         vec![
-    //             Token::Ident(String::from("f")),
-    //             Token::Lparen,
-    //             Token::Ident(String::from("x")),
-    //             Token::Comma,
-    //             Token::Wildcard,
-    //             Token::Rparen,
-    //             Token::Assign,
-    //             Token::Ident(String::from("x")),
-    //         ],
-    //     );
-    // }
+        assert_eq!(
+            build_lexer(code)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|res| res.unwrap().token)
+                .collect::<Vec<_>>(),
+            vec![
+                Token::Ident(String::from("f")),
+                Token::Lparen,
+                Token::Ident(String::from("x")),
+                Token::Comma,
+                Token::Wildcard,
+                Token::Rparen,
+                Token::Assign,
+                Token::Ident(String::from("x")),
+            ],
+        );
+    }
 }
