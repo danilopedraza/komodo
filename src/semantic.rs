@@ -1,68 +1,70 @@
-use crate::ast::{ASTNode, InfixOperator};
+use crate::ast::{ASTNodeType, InfixOperator};
 
 // pub enum AnalyzerError {}
 
 #[allow(clippy::boxed_local)]
-fn postprocessed_box(node: Box<ASTNode>) -> Box<ASTNode> {
+fn postprocessed_box(node: Box<ASTNodeType>) -> Box<ASTNodeType> {
     Box::new(postprocess(*node))
 }
 
-fn postprocessed_vec(vec: Vec<ASTNode>) -> Vec<ASTNode> {
+fn postprocessed_vec(vec: Vec<ASTNodeType>) -> Vec<ASTNodeType> {
     vec.iter().map(|node| postprocess(node.clone())).collect()
 }
 
-pub fn postprocess(node: ASTNode) -> ASTNode {
+pub fn postprocess(node: ASTNodeType) -> ASTNodeType {
     match node {
-        ASTNode::Infix(InfixOperator::Correspondence, params, proc) => function(*params, *proc),
-        ASTNode::Infix(InfixOperator::Call, called, args) => call(*called, *args),
-        ASTNode::Infix(op, lhs, rhs) => infix(op, lhs, rhs),
-        ASTNode::For(ident, iter, proc) => {
-            ASTNode::For(ident, postprocessed_box(iter), postprocessed_vec(proc))
+        ASTNodeType::Infix(InfixOperator::Correspondence, params, proc) => function(*params, *proc),
+        ASTNodeType::Infix(InfixOperator::Call, called, args) => call(*called, *args),
+        ASTNodeType::Infix(op, lhs, rhs) => infix(op, lhs, rhs),
+        ASTNodeType::For(ident, iter, proc) => {
+            ASTNodeType::For(ident, postprocessed_box(iter), postprocessed_vec(proc))
         }
-        ASTNode::ComprehensionList(value, prop) => {
-            ASTNode::ComprehensionList(postprocessed_box(value), postprocessed_box(prop))
+        ASTNodeType::ComprehensionList(value, prop) => {
+            ASTNodeType::ComprehensionList(postprocessed_box(value), postprocessed_box(prop))
         }
-        ASTNode::ComprehensionSet(value, prop) => {
-            ASTNode::ComprehensionSet(postprocessed_box(value), postprocessed_box(prop))
+        ASTNodeType::ComprehensionSet(value, prop) => {
+            ASTNodeType::ComprehensionSet(postprocessed_box(value), postprocessed_box(prop))
         }
-        ASTNode::ExtensionList(vals) => ASTNode::ExtensionList(postprocessed_vec(vals)),
-        ASTNode::ExtensionSet(vals) => ASTNode::ExtensionSet(postprocessed_vec(vals)),
-        ASTNode::Function(args, proc) => ASTNode::Function(args, postprocessed_vec(proc)),
-        ASTNode::If(cond, first, second) => ASTNode::If(
+        ASTNodeType::ExtensionList(vals) => ASTNodeType::ExtensionList(postprocessed_vec(vals)),
+        ASTNodeType::ExtensionSet(vals) => ASTNodeType::ExtensionSet(postprocessed_vec(vals)),
+        ASTNodeType::Function(args, proc) => ASTNodeType::Function(args, postprocessed_vec(proc)),
+        ASTNodeType::If(cond, first, second) => ASTNodeType::If(
             postprocessed_box(cond),
             postprocessed_box(first),
             postprocessed_box(second),
         ),
-        ASTNode::Let(ident, params, val) => ASTNode::Let(ident, params, postprocessed_box(val)),
-        ASTNode::Prefix(op, node) => ASTNode::Prefix(op, postprocessed_box(node)),
-        ASTNode::Tuple(vals) => ASTNode::Tuple(postprocessed_vec(vals)),
+        ASTNodeType::Let(ident, params, val) => {
+            ASTNodeType::Let(ident, params, postprocessed_box(val))
+        }
+        ASTNodeType::Prefix(op, node) => ASTNodeType::Prefix(op, postprocessed_box(node)),
+        ASTNodeType::Tuple(vals) => ASTNodeType::Tuple(postprocessed_vec(vals)),
         node => node,
     }
 }
 
-fn infix(op: InfixOperator, lhs: Box<ASTNode>, rhs: Box<ASTNode>) -> ASTNode {
-    ASTNode::Infix(op, postprocessed_box(lhs), postprocessed_box(rhs))
+fn infix(op: InfixOperator, lhs: Box<ASTNodeType>, rhs: Box<ASTNodeType>) -> ASTNodeType {
+    ASTNodeType::Infix(op, postprocessed_box(lhs), postprocessed_box(rhs))
 }
 
-fn call(called_node: ASTNode, args_node: ASTNode) -> ASTNode {
+fn call(called_node: ASTNodeType, args_node: ASTNodeType) -> ASTNodeType {
     let called = postprocess(called_node);
     let args = match postprocess(args_node) {
-        ASTNode::Tuple(v) => v,
+        ASTNodeType::Tuple(v) => v,
         _ => todo!(),
     };
 
-    ASTNode::Call(Box::new(called), args)
+    ASTNodeType::Call(Box::new(called), args)
 }
 
-fn function(params_node: ASTNode, proc_node: ASTNode) -> ASTNode {
+fn function(params_node: ASTNodeType, proc_node: ASTNodeType) -> ASTNodeType {
     let params = match params_node {
-        ASTNode::Symbol(s) => vec![s.to_string()],
-        ASTNode::Tuple(tuple_params) => {
+        ASTNodeType::Symbol(s) => vec![s.to_string()],
+        ASTNodeType::Tuple(tuple_params) => {
             let mut res = vec![];
 
             for param in tuple_params {
                 match param {
-                    ASTNode::Symbol(s) => res.push(s),
+                    ASTNodeType::Symbol(s) => res.push(s),
                     _ => todo!(),
                 }
             }
@@ -73,11 +75,11 @@ fn function(params_node: ASTNode, proc_node: ASTNode) -> ASTNode {
     };
 
     let proc = match proc_node {
-        ASTNode::Tuple(v) => v.clone(),
+        ASTNodeType::Tuple(v) => v.clone(),
         node => vec![node.clone()],
     };
 
-    ASTNode::Function(params, proc)
+    ASTNodeType::Function(params, proc)
 }
 
 #[cfg(test)]
@@ -88,56 +90,58 @@ mod tests {
 
     #[test]
     fn inlined_function() {
-        let node = ASTNode::Infix(
+        let node = ASTNodeType::Infix(
             InfixOperator::Call,
-            Box::new(ASTNode::Infix(
+            Box::new(ASTNodeType::Infix(
                 InfixOperator::Correspondence,
-                Box::new(ASTNode::Symbol(String::from("x"))),
-                Box::new(ASTNode::Symbol(String::from("x"))),
+                Box::new(ASTNodeType::Symbol(String::from("x"))),
+                Box::new(ASTNodeType::Symbol(String::from("x"))),
             )),
-            Box::new(ASTNode::Tuple(vec![ASTNode::Integer(String::from("1"))])),
+            Box::new(ASTNodeType::Tuple(vec![ASTNodeType::Integer(
+                String::from("1"),
+            )])),
         );
 
         assert_eq!(
             postprocess(node),
-            ASTNode::Call(
-                Box::new(ASTNode::Function(
+            ASTNodeType::Call(
+                Box::new(ASTNodeType::Function(
                     vec![String::from("x")],
-                    vec![ASTNode::Symbol(String::from("x"))]
+                    vec![ASTNodeType::Symbol(String::from("x"))]
                 )),
-                vec![ASTNode::Integer(String::from("1"))],
+                vec![ASTNodeType::Integer(String::from("1"))],
             )
         );
     }
 
     #[test]
     fn several_params_function() {
-        let node = ASTNode::Infix(
+        let node = ASTNodeType::Infix(
             InfixOperator::Correspondence,
-            Box::new(ASTNode::Tuple(vec![
-                ASTNode::Symbol(String::from("x")),
-                ASTNode::Symbol(String::from("y")),
+            Box::new(ASTNodeType::Tuple(vec![
+                ASTNodeType::Symbol(String::from("x")),
+                ASTNodeType::Symbol(String::from("y")),
             ])),
-            Box::new(ASTNode::Symbol(String::from("x"))),
+            Box::new(ASTNodeType::Symbol(String::from("x"))),
         );
 
         assert_eq!(
             postprocess(node),
-            ASTNode::Function(
+            ASTNodeType::Function(
                 vec![String::from("x"), String::from("y"),],
-                vec![ASTNode::Symbol(String::from("x"))]
+                vec![ASTNodeType::Symbol(String::from("x"))]
             ),
         );
     }
 
     #[test]
     fn signature() {
-        let node = ASTNode::Signature(
-            Box::new(ASTNode::Symbol(String::from("f"))),
-            Some(Box::new(ASTNode::Infix(
+        let node = ASTNodeType::Signature(
+            Box::new(ASTNodeType::Symbol(String::from("f"))),
+            Some(Box::new(ASTNodeType::Infix(
                 InfixOperator::Correspondence,
-                Box::new(ASTNode::Symbol(String::from("Real"))),
-                Box::new(ASTNode::Symbol(String::from("Real"))),
+                Box::new(ASTNodeType::Symbol(String::from("Real"))),
+                Box::new(ASTNodeType::Symbol(String::from("Real"))),
             ))),
         );
 

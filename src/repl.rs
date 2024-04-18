@@ -1,5 +1,5 @@
 use crate::{
-    ast::ASTNode,
+    ast::ASTNodeType,
     builtin::standard_env,
     env::Environment,
     exec::exec,
@@ -55,7 +55,7 @@ impl Repl {
         }
     }
 
-    fn ast_response(&mut self, res: Result<ASTNode, ParserError>) -> (String, ReplResponse) {
+    fn ast_response(&mut self, res: Result<ASTNodeType, ParserError>) -> (String, ReplResponse) {
         match res {
             Ok(node) => match exec(&postprocess(node), &mut self.env) {
                 Ok(obj) => {

@@ -1,7 +1,7 @@
 use std::{fmt, iter::zip, vec};
 
 use crate::{
-    ast::ASTNode,
+    ast::ASTNodeType,
     env::Environment,
     exec::{exec, EvalError},
     matcher::{match_call, Match},
@@ -292,12 +292,12 @@ impl fmt::Display for ExtensionSet {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ComprehensionSet {
-    value: ASTNode,
-    prop: ASTNode,
+    value: ASTNodeType,
+    prop: ASTNodeType,
 }
 
-impl From<(ASTNode, ASTNode)> for ComprehensionSet {
-    fn from((value, prop): (ASTNode, ASTNode)) -> Self {
+impl From<(ASTNodeType, ASTNodeType)> for ComprehensionSet {
+    fn from((value, prop): (ASTNodeType, ASTNodeType)) -> Self {
         Self { value, prop }
     }
 }
@@ -307,7 +307,7 @@ impl PrefixOperable for ComprehensionSet {}
 impl InfixOperable for ComprehensionSet {
     fn contains(&self, other: Object) -> Result<Object, ()> {
         let symbol = match &self.value {
-            ASTNode::Symbol(s) => s,
+            ASTNodeType::Symbol(s) => s,
             _ => todo!(),
         };
 
@@ -588,9 +588,9 @@ impl Callable for Function {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct DefinedFunction {
-    patterns: Vec<(Vec<ASTNode>, ASTNode)>,
+    patterns: Vec<(Vec<ASTNodeType>, ASTNodeType)>,
     params: Vec<String>,
-    proc: Vec<ASTNode>,
+    proc: Vec<ASTNodeType>,
 }
 
 impl InfixOperable for DefinedFunction {}
@@ -603,7 +603,7 @@ impl fmt::Display for DefinedFunction {
 }
 
 impl DefinedFunction {
-    pub fn new(params: Vec<String>, proc: Vec<ASTNode>) -> Self {
+    pub fn new(params: Vec<String>, proc: Vec<ASTNodeType>) -> Self {
         Self {
             patterns: vec![],
             params,
@@ -611,7 +611,7 @@ impl DefinedFunction {
         }
     }
 
-    pub fn add_pattern(&mut self, args: &[ASTNode], value: &ASTNode) {
+    pub fn add_pattern(&mut self, args: &[ASTNodeType], value: &ASTNodeType) {
         self.patterns.push((args.to_vec(), value.clone()))
     }
 

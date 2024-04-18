@@ -117,25 +117,55 @@ impl PrefixOperator {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ASTNode {
+pub enum ASTNodeType {
     Boolean(bool),
-    Call(Box<ASTNode>, Vec<ASTNode>),
+    Call(Box<ASTNodeType>, Vec<ASTNodeType>),
     Char(char),
-    ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
-    ComprehensionList(Box<ASTNode>, Box<ASTNode>),
-    ExtensionList(Vec<ASTNode>),
-    ExtensionSet(Vec<ASTNode>),
-    For(String, Box<ASTNode>, Vec<ASTNode>),
-    Function(Vec<String>, Vec<ASTNode>),
-    If(Box<ASTNode>, Box<ASTNode>, Box<ASTNode>),
-    Infix(InfixOperator, Box<ASTNode>, Box<ASTNode>),
+    ComprehensionSet(Box<ASTNodeType>, Box<ASTNodeType>),
+    ComprehensionList(Box<ASTNodeType>, Box<ASTNodeType>),
+    ExtensionList(Vec<ASTNodeType>),
+    ExtensionSet(Vec<ASTNodeType>),
+    For(String, Box<ASTNodeType>, Vec<ASTNodeType>),
+    Function(Vec<String>, Vec<ASTNodeType>),
+    If(Box<ASTNodeType>, Box<ASTNodeType>, Box<ASTNodeType>),
+    Infix(InfixOperator, Box<ASTNodeType>, Box<ASTNodeType>),
     Integer(String),
-    Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
-    Prefix(PrefixOperator, Box<ASTNode>),
-    Prepend(Box<ASTNode>, Box<ASTNode>),
-    Signature(Box<ASTNode>, Option<Box<ASTNode>>),
+    Let(Box<ASTNodeType>, Vec<ASTNodeType>, Box<ASTNodeType>),
+    Prefix(PrefixOperator, Box<ASTNodeType>),
+    Prepend(Box<ASTNodeType>, Box<ASTNodeType>),
+    Signature(Box<ASTNodeType>, Option<Box<ASTNodeType>>),
     String(String),
     Symbol(String),
-    Tuple(Vec<ASTNode>),
+    Tuple(Vec<ASTNodeType>),
     Wildcard,
 }
+
+// #[derive(Debug, PartialEq, Eq)]
+// pub struct ASTNode {
+//     node: ASTNodeType_,
+//     position: Position,
+// }
+
+// #[derive(Debug, PartialEq, Eq)]
+// pub enum ASTNodeType_ {
+//     Boolean(bool),
+//     Call(Box<ASTNode>, Vec<ASTNode>),
+//     Char(char),
+//     ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
+//     ComprehensionList(Box<ASTNode>, Box<ASTNode>),
+//     ExtensionList(Vec<ASTNode>),
+//     ExtensionSet(Vec<ASTNode>),
+//     For(String, Box<ASTNode>, Vec<ASTNode>),
+//     Function(Vec<String>, Vec<ASTNode>),
+//     If(Box<ASTNode>, Box<ASTNode>, Box<ASTNode>),
+//     Infix(InfixOperator, Box<ASTNode>, Box<ASTNode>),
+//     Integer(String),
+//     Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
+//     Prefix(PrefixOperator, Box<ASTNode>),
+//     Prepend(Box<ASTNode>, Box<ASTNode>),
+//     Signature(Box<ASTNode>, Option<Box<ASTNode>>),
+//     String(String),
+//     Symbol(String),
+//     Tuple(Vec<ASTNode>),
+//     Wildcard,
+// }

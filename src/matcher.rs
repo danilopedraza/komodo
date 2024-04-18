@@ -1,7 +1,7 @@
 use std::iter::zip;
 
 use crate::{
-    ast::ASTNode,
+    ast::ASTNodeType,
     env::Environment,
     exec,
     object::{ExtensionList, Object},
@@ -13,7 +13,7 @@ pub enum Match {
     NotAMatch,
 }
 
-pub fn match_call(patterns: &[ASTNode], args: &[Object]) -> Match {
+pub fn match_call(patterns: &[ASTNodeType], args: &[Object]) -> Match {
     match_list(patterns, args)
 }
 
@@ -38,7 +38,7 @@ fn join(map1: Match, map2: Match) -> Match {
     }
 }
 
-fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Match {
+fn match_list(patterns: &[ASTNodeType], vals: &[Object]) -> Match {
     // always pass through everything,
     // but it is prettier than a for loop
     zip(patterns, vals)
@@ -46,12 +46,12 @@ fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Match {
         .fold(empty_match(), join)
 }
 
-fn match_(pattern: &ASTNode, val: &Object) -> Match {
+fn match_(pattern: &ASTNodeType, val: &Object) -> Match {
     match pattern {
-        ASTNode::Wildcard => empty_match(),
-        ASTNode::Symbol(s) => single_match(s, val),
-        ASTNode::ExtensionList(l) => match_extension_list(l, val),
-        ASTNode::Prepend(first, most) => match_prefix_crop(first, most, val),
+        ASTNodeType::Wildcard => empty_match(),
+        ASTNodeType::Symbol(s) => single_match(s, val),
+        ASTNodeType::ExtensionList(l) => match_extension_list(l, val),
+        ASTNodeType::Prepend(first, most) => match_prefix_crop(first, most, val),
         _ => match_constant(pattern, val),
     }
 }
@@ -64,14 +64,14 @@ fn empty_match() -> Match {
     Match::Match(vec![])
 }
 
-fn match_extension_list(pattern: &[ASTNode], val: &Object) -> Match {
+fn match_extension_list(pattern: &[ASTNodeType], val: &Object) -> Match {
     match val {
         Object::ExtensionList(ExtensionList { list: al }) => match_list(pattern, al),
         _ => Match::NotAMatch,
     }
 }
 
-fn match_prefix_crop(first: &ASTNode, most: &ASTNode, val: &Object) -> Match {
+fn match_prefix_crop(first: &ASTNodeType, most: &ASTNodeType, val: &Object) -> Match {
     match val {
         Object::ExtensionList(ExtensionList { list }) if !list.is_empty() => {
             let first_match = match_(first, &list[0]);
@@ -85,7 +85,7 @@ fn match_prefix_crop(first: &ASTNode, most: &ASTNode, val: &Object) -> Match {
     }
 }
 
-fn match_constant(pattern: &ASTNode, val: &Object) -> Match {
+fn match_constant(pattern: &ASTNodeType, val: &Object) -> Match {
     if exec(pattern, &mut Environment::default()).unwrap() == *val {
         empty_match()
     } else {
@@ -102,8 +102,8 @@ mod tests {
     #[test]
     fn two_args() {
         let patterns = [
-            ASTNode::ExtensionList(vec![ASTNode::Symbol(String::from("a"))]),
-            ASTNode::ExtensionList(vec![ASTNode::Symbol(String::from("b"))]),
+            ASTNodeType::ExtensionList(vec![ASTNodeType::Symbol(String::from("a"))]),
+            ASTNodeType::ExtensionList(vec![ASTNodeType::Symbol(String::from("b"))]),
         ];
 
         let args = [
@@ -126,9 +126,9 @@ mod tests {
 
     #[test]
     fn list_prefix() {
-        let pattern = ASTNode::Prepend(
-            Box::new(ASTNode::Symbol(String::from("first"))),
-            Box::new(ASTNode::Symbol(String::from("most"))),
+        let pattern = ASTNodeType::Prepend(
+            Box::new(ASTNodeType::Symbol(String::from("first"))),
+            Box::new(ASTNodeType::Symbol(String::from("most"))),
         );
 
         let value =
@@ -149,8 +149,8 @@ mod tests {
     #[test]
     fn unmatch_different_value() {
         let patterns = [
-            ASTNode::Symbol(String::from("a")),
-            ASTNode::Symbol(String::from("a")),
+            ASTNodeType::Symbol(String::from("a")),
+            ASTNodeType::Symbol(String::from("a")),
         ];
 
         let values = [
