@@ -30,6 +30,10 @@ fn symbol(name: String) -> ASTNodeType {
     ASTNodeType::Symbol(name)
 }
 
+fn integer(int: String) -> ASTNodeType {
+    ASTNodeType::Integer(int)
+}
+
 type NodeResult = Result<ASTNodeType, ParserError>;
 
 impl<T: Iterator<Item = Token>> Parser<T> {
@@ -166,7 +170,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 TokenType::Lparen => self.parenthesis(),
                 TokenType::Lbrace => self.set(),
                 TokenType::Lbrack => self.my_list(),
-                TokenType::Integer(int) => Ok(ASTNodeType::Integer(int)),
+                TokenType::Integer(int) => Ok(integer(int)),
                 TokenType::Ident(literal) => Ok(symbol(literal)),
                 TokenType::String(str) => Ok(ASTNodeType::String(str)),
                 TokenType::Wildcard => Ok(ASTNodeType::Wildcard),
@@ -367,7 +371,7 @@ pub fn parser_from<T: Iterator<Item = Token>>(tokens: T) -> Parser<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{error::Position, lexer::build_lexer};
+    use crate::{error::Position, lexer::build_lexer, parser::integer};
     use std::iter;
 
     fn iter_from(v: Vec<TokenType>) -> impl Iterator<Item = Token> {
@@ -381,11 +385,11 @@ mod tests {
     }
 
     #[test]
-    fn integer() {
+    fn integer_alone() {
         let tokens = vec![TokenType::Integer(String::from("0"))];
         assert_eq!(
             parser_from(iter_from(tokens)).next(),
-            Some(Ok(ASTNodeType::Integer(String::from("0"))))
+            Some(Ok(integer(String::from("0"))))
         );
     }
 
@@ -398,7 +402,7 @@ mod tests {
         ];
         assert_eq!(
             parser_from(iter_from(tokens)).next(),
-            Some(Ok(ASTNodeType::Integer(String::from("365"))))
+            Some(Ok(integer(String::from("365"))))
         );
     }
 
@@ -422,8 +426,8 @@ mod tests {
             parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNodeType::Infix(
                 InfixOperator::Sum,
-                Box::new(ASTNodeType::Integer(String::from("1"))),
-                Box::new(ASTNodeType::Integer(String::from("1")))
+                Box::new(integer(String::from("1"))),
+                Box::new(integer(String::from("1")))
             )))
         );
     }
@@ -450,11 +454,11 @@ mod tests {
             parser_from(iter_from(tokens)).next(),
             Some(Ok(ASTNodeType::Infix(
                 InfixOperator::Product,
-                Box::new(ASTNodeType::Integer(String::from("1"))),
+                Box::new(integer(String::from("1"))),
                 Box::new(ASTNodeType::Infix(
                     InfixOperator::Exponentiation,
-                    Box::new(ASTNodeType::Integer(String::from("2"))),
-                    Box::new(ASTNodeType::Integer(String::from("2"))),
+                    Box::new(integer(String::from("2"))),
+                    Box::new(integer(String::from("2"))),
                 ))
             )))
         );
@@ -475,10 +479,10 @@ mod tests {
                 InfixOperator::Sum,
                 Box::new(ASTNodeType::Infix(
                     InfixOperator::Division,
-                    Box::new(ASTNodeType::Integer(String::from("1"))),
-                    Box::new(ASTNodeType::Integer(String::from("1")))
+                    Box::new(integer(String::from("1"))),
+                    Box::new(integer(String::from("1")))
                 )),
-                Box::new(ASTNodeType::Integer(String::from("1")))
+                Box::new(integer(String::from("1")))
             ))),
         );
     }
@@ -499,7 +503,7 @@ mod tests {
                     None
                 )),
                 vec![],
-                Box::new(ASTNodeType::Integer(String::from("1")))
+                Box::new(integer(String::from("1")))
             ))),
         );
     }
@@ -522,13 +526,13 @@ mod tests {
                 InfixOperator::NotEquality,
                 Box::new(ASTNodeType::Infix(
                     InfixOperator::Sum,
-                    Box::new(ASTNodeType::Integer(String::from("1"))),
-                    Box::new(ASTNodeType::Integer(String::from("5"))),
+                    Box::new(integer(String::from("1"))),
+                    Box::new(integer(String::from("5"))),
                 )),
                 Box::new(ASTNodeType::Infix(
                     InfixOperator::Mod,
-                    Box::new(ASTNodeType::Integer(String::from("6"))),
-                    Box::new(ASTNodeType::Integer(String::from("2"))),
+                    Box::new(integer(String::from("6"))),
+                    Box::new(integer(String::from("2"))),
                 ))
             )))
         );
@@ -666,7 +670,7 @@ mod tests {
                 Box::new(ASTNodeType::Infix(
                     InfixOperator::Equality,
                     Box::new(symbol(String::from("a"))),
-                    Box::new(ASTNodeType::Integer(String::from("1")))
+                    Box::new(integer(String::from("1")))
                 ))
             )))
         );
@@ -697,11 +701,11 @@ mod tests {
                 vec![],
                 Box::new(ASTNodeType::Infix(
                     InfixOperator::Sum,
-                    Box::new(ASTNodeType::Integer(String::from("1"))),
+                    Box::new(integer(String::from("1"))),
                     Box::new(ASTNodeType::Infix(
                         InfixOperator::Mod,
-                        Box::new(ASTNodeType::Integer(String::from("0"))),
-                        Box::new(ASTNodeType::Integer(String::from("2")))
+                        Box::new(integer(String::from("0"))),
+                        Box::new(integer(String::from("2")))
                     ))
                 ))
             )))
@@ -725,9 +729,9 @@ mod tests {
                 Box::new(ASTNodeType::Infix(
                     InfixOperator::Substraction,
                     Box::new(symbol(String::from('x'))),
-                    Box::new(ASTNodeType::Integer(String::from('1')))
+                    Box::new(integer(String::from('1')))
                 )),
-                Box::new(ASTNodeType::Integer(String::from('1')))
+                Box::new(integer(String::from('1')))
             )))
         );
     }
@@ -742,10 +746,10 @@ mod tests {
                 InfixOperator::Greater,
                 Box::new(ASTNodeType::Infix(
                     InfixOperator::LeftShift,
-                    Box::new(ASTNodeType::Integer(String::from('1'))),
-                    Box::new(ASTNodeType::Integer(String::from('1')))
+                    Box::new(integer(String::from('1'))),
+                    Box::new(integer(String::from('1')))
                 )),
-                Box::new(ASTNodeType::Integer(String::from('1')))
+                Box::new(integer(String::from('1')))
             )))
         );
     }
@@ -842,7 +846,7 @@ mod tests {
             parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNodeType::Tuple(vec![
                 ASTNodeType::ExtensionSet(vec![]),
-                ASTNodeType::Integer(String::from('0'))
+                integer(String::from('0'))
             ])))
         );
     }
@@ -859,11 +863,11 @@ mod tests {
                     InfixOperator::NotEquality,
                     Box::new(ASTNodeType::Prefix(
                         PrefixOperator::BitwiseNot,
-                        Box::new(ASTNodeType::Integer(String::from("1"))),
+                        Box::new(integer(String::from("1"))),
                     )),
                     Box::new(ASTNodeType::Prefix(
                         PrefixOperator::Minus,
-                        Box::new(ASTNodeType::Integer(String::from("1"))),
+                        Box::new(integer(String::from("1"))),
                     )),
                 ))
             )))
@@ -890,7 +894,7 @@ mod tests {
                 Box::new(ASTNodeType::Infix(
                     InfixOperator::Less,
                     Box::new(symbol(String::from("a"))),
-                    Box::new(ASTNodeType::Integer(String::from("0")))
+                    Box::new(integer(String::from("0")))
                 )),
                 Box::new(ASTNodeType::Prefix(
                     PrefixOperator::Minus,
@@ -918,7 +922,7 @@ mod tests {
                         None,
                     )),
                     vec![],
-                    Box::new(ASTNodeType::Integer(String::from("5"))),
+                    Box::new(integer(String::from("5"))),
                 ),
                 ASTNodeType::Infix(
                     InfixOperator::Product,
@@ -956,9 +960,7 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).next(),
-            Some(Ok(ASTNodeType::Tuple(vec![ASTNodeType::Integer(
-                String::from("1")
-            )]))),
+            Some(Ok(ASTNodeType::Tuple(vec![integer(String::from("1"))]))),
         );
     }
 
@@ -975,7 +977,7 @@ mod tests {
                 Box::new(symbol(String::from("x"))),
                 Box::new(ASTNodeType::Infix(
                     InfixOperator::Product,
-                    Box::new(ASTNodeType::Integer(String::from("2"))),
+                    Box::new(integer(String::from("2"))),
                     Box::new(symbol(String::from("x"))),
                 ))
             )))
@@ -1001,8 +1003,8 @@ mod tests {
                     Box::new(symbol(String::from("x"))),
                 )),
                 Box::new(ASTNodeType::Tuple(vec![
-                    ASTNodeType::Integer(String::from("1")),
-                    ASTNodeType::Integer(String::from("2")),
+                    integer(String::from("1")),
+                    integer(String::from("2")),
                 ])),
             )))
         );
@@ -1053,13 +1055,13 @@ mod tests {
             parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNodeType::Infix(
                 InfixOperator::In,
-                Box::new(ASTNodeType::Integer(String::from("1"))),
+                Box::new(integer(String::from("1"))),
                 Box::new(ASTNodeType::ComprehensionSet(
                     Box::new(symbol(String::from("k"))),
                     Box::new(ASTNodeType::Infix(
                         InfixOperator::GreaterEqual,
                         Box::new(symbol(String::from("k"))),
-                        Box::new(ASTNodeType::Integer(String::from("1"))),
+                        Box::new(integer(String::from("1"))),
                     )),
                 )),
             )))
@@ -1076,7 +1078,7 @@ mod tests {
             parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNodeType::ExtensionList(vec![
                 ASTNodeType::ExtensionList(vec![]),
-                ASTNodeType::Integer(String::from("2")),
+                integer(String::from("2")),
             ]),)),
         );
     }
@@ -1094,8 +1096,8 @@ mod tests {
                     InfixOperator::In,
                     Box::new(symbol(String::from("k"))),
                     Box::new(ASTNodeType::ExtensionList(vec![
-                        ASTNodeType::Integer(String::from("1")),
-                        ASTNodeType::Integer(String::from("2")),
+                        integer(String::from("1")),
+                        integer(String::from("2")),
                     ])),
                 )),
                 Box::new(ASTNodeType::Infix(
@@ -1103,9 +1105,9 @@ mod tests {
                     Box::new(ASTNodeType::Infix(
                         InfixOperator::Substraction,
                         Box::new(symbol(String::from("k"))),
-                        Box::new(ASTNodeType::Integer(String::from("1"))),
+                        Box::new(integer(String::from("1"))),
                     )),
-                    Box::new(ASTNodeType::Integer(String::from("0"))),
+                    Box::new(integer(String::from("0"))),
                 )),
             )))
         );
@@ -1135,7 +1137,7 @@ mod tests {
             parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(ASTNodeType::ExtensionList(vec![
                 symbol(String::from("a")),
-                ASTNodeType::Integer(String::from("1")),
+                integer(String::from("1")),
                 ASTNodeType::Wildcard,
             ]),)),
         );
@@ -1149,10 +1151,10 @@ mod tests {
         assert_eq!(
             parser_from(lexer).next(),
             Some(Ok(ASTNodeType::Prepend(
-                Box::new(ASTNodeType::Integer(String::from("1"))),
+                Box::new(integer(String::from("1"))),
                 Box::new(ASTNodeType::ExtensionList(vec![
-                    ASTNodeType::Integer(String::from("2")),
-                    ASTNodeType::Integer(String::from("3")),
+                    integer(String::from("2")),
+                    integer(String::from("3")),
                 ])),
             ))),
         );
