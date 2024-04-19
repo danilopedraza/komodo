@@ -50,6 +50,10 @@ fn signature(symbol: ASTNodeType, type_: Option<ASTNodeType>) -> ASTNodeType {
     ASTNodeType::Signature(Box::new(symbol), type_.map(Box::new))
 }
 
+fn if_(cond: ASTNodeType, first_res: ASTNodeType, second_res: ASTNodeType) -> ASTNodeType {
+    ASTNodeType::If(Box::new(cond), Box::new(first_res), Box::new(second_res))
+}
+
 type NodeResult = Result<ASTNodeType, ParserError>;
 
 impl<T: Iterator<Item = Token>> Parser<T> {
@@ -293,11 +297,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
         let second_res = self.expression(Precedence::Lowest)?;
 
-        Ok(ASTNodeType::If(
-            Box::new(cond),
-            Box::new(first_res),
-            Box::new(second_res),
-        ))
+        Ok(if_(cond, first_res, second_res))
     }
 
     fn current_infix(&mut self) -> Option<InfixOperator> {
@@ -819,10 +819,10 @@ mod tests {
 
         assert_eq!(
             parser_from(iter_from(tokens)).next(),
-            Some(Ok(ASTNodeType::If(
-                Box::new(infix(InfixOperator::Less, symbol("a"), integer("0"))),
-                Box::new(prefix(PrefixOperator::Minus, symbol("a"))),
-                Box::new(symbol("a")),
+            Some(Ok(if_(
+                infix(InfixOperator::Less, symbol("a"), integer("0")),
+                prefix(PrefixOperator::Minus, symbol("a")),
+                symbol("a"),
             )))
         );
     }
