@@ -46,6 +46,10 @@ fn let_(ident: ASTNodeType, params: Vec<ASTNodeType>, val: ASTNodeType) -> ASTNo
     ASTNodeType::Let(Box::new(ident), params, Box::new(val))
 }
 
+fn signature(symbol: ASTNodeType, type_: Option<ASTNodeType>) -> ASTNodeType {
+    ASTNodeType::Signature(Box::new(symbol), type_.map(Box::new))
+}
+
 type NodeResult = Result<ASTNodeType, ParserError>;
 
 impl<T: Iterator<Item = Token>> Parser<T> {
@@ -91,16 +95,13 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         match (self.next_token(), self.peek_token()) {
             (Some(TokenType::Ident(name)), Some(TokenType::Colon)) => {
                 self.next_token();
-                self.type_()
-                    .map(|tp| ASTNodeType::Signature(Box::new(symbol(name)), Some(Box::new(tp))))
+                self.type_().map(|tp| signature(symbol(name), Some(tp)))
             }
             (Some(TokenType::Ident(name)), Some(TokenType::Lparen)) => {
                 self.next_token();
                 self.let_function_with_arguments(name)
             }
-            (Some(TokenType::Ident(name)), _) => {
-                Ok(ASTNodeType::Signature(Box::new(symbol(name)), None))
-            }
+            (Some(TokenType::Ident(name)), _) => Ok(signature(symbol(name), None)),
             (Some(tok), _) => Err(ParserError::UnexpectedToken(
                 vec![TokenType::Ident(String::from(""))],
                 tok,
@@ -505,7 +506,7 @@ mod tests {
         assert_eq!(
             parser_from(iter_from(tokens)).next(),
             Some(Ok(let_(
-                ASTNodeType::Signature(Box::new(symbol(String::from('x'))), None),
+                signature(symbol(String::from('x')), None),
                 vec![],
                 integer(String::from("1"))
             ))),
@@ -585,13 +586,13 @@ mod tests {
 
         assert_eq!(
             parser_from(iter_from(tokens)).next(),
-            Some(Ok(ASTNodeType::Signature(
-                Box::new(symbol(String::from('f'))),
-                Some(Box::new(infix(
+            Some(Ok(signature(
+                symbol(String::from('f')),
+                Some(infix(
                     InfixOperator::Correspondence,
                     symbol(String::from('a')),
                     symbol(String::from('a'))
-                )))
+                ))
             ))),
         );
     }
@@ -698,9 +699,9 @@ mod tests {
         assert_eq!(
             parser_from(iter_from(tokens)).next(),
             Some(Ok(let_(
-                ASTNodeType::Signature(
-                    Box::new(symbol(String::from("x"))),
-                    Some(Box::new(symbol(String::from("Real"))))
+                signature(
+                    symbol(String::from("x")),
+                    Some(symbol(String::from("Real")))
                 ),
                 vec![],
                 infix(
@@ -912,7 +913,7 @@ mod tests {
             parser_from(lexer.map(|res| res.unwrap())).program(),
             vec![
                 let_(
-                    ASTNodeType::Signature(Box::new(symbol(String::from("a"))), None,),
+                    signature(symbol(String::from("a")), None,),
                     vec![],
                     integer(String::from("5")),
                 ),
