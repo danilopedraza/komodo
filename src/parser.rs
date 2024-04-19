@@ -38,6 +38,10 @@ fn infix(op: InfixOperator, lhs: ASTNodeType, rhs: ASTNodeType) -> ASTNodeType {
     ASTNodeType::Infix(op, Box::new(lhs), Box::new(rhs))
 }
 
+fn prefix(op: PrefixOperator, val: ASTNodeType) -> ASTNodeType {
+    ASTNodeType::Prefix(op, Box::new(val))
+}
+
 type NodeResult = Result<ASTNodeType, ParserError>;
 
 impl<T: Iterator<Item = Token>> Parser<T> {
@@ -301,7 +305,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
     fn prefix(&mut self, op: PrefixOperator) -> NodeResult {
         self.expression(Precedence::Highest)
-            .map(|expr| ASTNodeType::Prefix(op, Box::new(expr)))
+            .map(|expr| prefix(op, expr))
     }
 
     fn parenthesis(&mut self) -> NodeResult {
@@ -860,19 +864,19 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).next(),
-            Some(Ok(ASTNodeType::Prefix(
+            Some(Ok(prefix(
                 PrefixOperator::LogicNot,
-                Box::new(infix(
+                infix(
                     InfixOperator::NotEquality,
-                    ASTNodeType::Prefix(
+                    prefix(
                         PrefixOperator::BitwiseNot,
-                        Box::new(integer(String::from("1"))),
+                        integer(String::from("1")),
                     ),
-                    ASTNodeType::Prefix(
+                    prefix(
                         PrefixOperator::Minus,
-                        Box::new(integer(String::from("1"))),
+                        integer(String::from("1")),
                     ),
-                ))
+                )
             )))
         );
     }
@@ -899,9 +903,9 @@ mod tests {
                     symbol(String::from("a")),
                     integer(String::from("0"))
                 )),
-                Box::new(ASTNodeType::Prefix(
+                Box::new(prefix(
                     PrefixOperator::Minus,
-                    Box::new(symbol(String::from("a")))
+                    symbol(String::from("a"))
                 )),
                 Box::new(symbol(String::from("a"))),
             )))
