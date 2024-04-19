@@ -42,6 +42,10 @@ fn prefix(op: PrefixOperator, val: ASTNodeType) -> ASTNodeType {
     ASTNodeType::Prefix(op, Box::new(val))
 }
 
+fn let_(ident: ASTNodeType, params: Vec<ASTNodeType>, val: ASTNodeType) -> ASTNodeType {
+    ASTNodeType::Let(Box::new(ident), params, Box::new(val))
+}
+
 type NodeResult = Result<ASTNodeType, ParserError>;
 
 impl<T: Iterator<Item = Token>> Parser<T> {
@@ -78,7 +82,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         match self.next_token() {
             Some(TokenType::Assign) => self
                 .expression(Precedence::Lowest)
-                .map(|res| ASTNodeType::Let(Box::new(sg), vec![], Box::new(res))),
+                .map(|res| let_(sg, vec![], res)),
             _ => Ok(sg),
         }
     }
@@ -112,11 +116,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
         match (args_res, self.next_token()) {
             (Ok(args), Some(TokenType::Assign)) => match self.expression(Precedence::Lowest) {
-                Ok(expr) => Ok(ASTNodeType::Let(
-                    Box::new(symbol(name)),
-                    args,
-                    Box::new(expr),
-                )),
+                Ok(expr) => Ok(let_(symbol(name), args, expr)),
                 err => err,
             },
             (Err(err), _) => Err(err),
@@ -504,13 +504,10 @@ mod tests {
         ];
         assert_eq!(
             parser_from(iter_from(tokens)).next(),
-            Some(Ok(ASTNodeType::Let(
-                Box::new(ASTNodeType::Signature(
-                    Box::new(symbol(String::from('x'))),
-                    None
-                )),
+            Some(Ok(let_(
+                ASTNodeType::Signature(Box::new(symbol(String::from('x'))), None),
                 vec![],
-                Box::new(integer(String::from("1")))
+                integer(String::from("1"))
             ))),
         );
     }
@@ -563,14 +560,14 @@ mod tests {
 
         assert_eq!(
             parser_from(iter_from(tokens)).next(),
-            Some(Ok(ASTNodeType::Let(
-                Box::new(symbol(String::from('f'))),
+            Some(Ok(let_(
+                symbol(String::from('f')),
                 vec![symbol(String::from('x')), symbol(String::from('y'))],
-                Box::new(infix(
+                infix(
                     InfixOperator::Sum,
                     symbol(String::from('x')),
                     symbol(String::from('y'))
-                ))
+                )
             ))),
         );
     }
@@ -700,13 +697,13 @@ mod tests {
 
         assert_eq!(
             parser_from(iter_from(tokens)).next(),
-            Some(Ok(ASTNodeType::Let(
-                Box::new(ASTNodeType::Signature(
+            Some(Ok(let_(
+                ASTNodeType::Signature(
                     Box::new(symbol(String::from("x"))),
                     Some(Box::new(symbol(String::from("Real"))))
-                )),
+                ),
                 vec![],
-                Box::new(infix(
+                infix(
                     InfixOperator::Sum,
                     integer(String::from("1")),
                     infix(
@@ -714,7 +711,7 @@ mod tests {
                         integer(String::from("0")),
                         integer(String::from("2"))
                     )
-                ))
+                )
             )))
         );
     }
@@ -868,14 +865,8 @@ mod tests {
                 PrefixOperator::LogicNot,
                 infix(
                     InfixOperator::NotEquality,
-                    prefix(
-                        PrefixOperator::BitwiseNot,
-                        integer(String::from("1")),
-                    ),
-                    prefix(
-                        PrefixOperator::Minus,
-                        integer(String::from("1")),
-                    ),
+                    prefix(PrefixOperator::BitwiseNot, integer(String::from("1")),),
+                    prefix(PrefixOperator::Minus, integer(String::from("1")),),
                 )
             )))
         );
@@ -903,10 +894,7 @@ mod tests {
                     symbol(String::from("a")),
                     integer(String::from("0"))
                 )),
-                Box::new(prefix(
-                    PrefixOperator::Minus,
-                    symbol(String::from("a"))
-                )),
+                Box::new(prefix(PrefixOperator::Minus, symbol(String::from("a")))),
                 Box::new(symbol(String::from("a"))),
             )))
         );
@@ -923,13 +911,10 @@ mod tests {
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).program(),
             vec![
-                ASTNodeType::Let(
-                    Box::new(ASTNodeType::Signature(
-                        Box::new(symbol(String::from("a"))),
-                        None,
-                    )),
+                let_(
+                    ASTNodeType::Signature(Box::new(symbol(String::from("a"))), None,),
                     vec![],
-                    Box::new(integer(String::from("5"))),
+                    integer(String::from("5")),
                 ),
                 infix(
                     InfixOperator::Product,
