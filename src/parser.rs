@@ -62,6 +62,10 @@ fn comprehension_set(val: ASTNodeType, prop: ASTNodeType) -> ASTNodeType {
     ASTNodeType::ComprehensionSet(Box::new(val), Box::new(prop))
 }
 
+fn comprehension_list(val: ASTNodeType, prop: ASTNodeType) -> ASTNodeType {
+    ASTNodeType::ComprehensionList(Box::new(val), Box::new(prop))
+}
+
 type NodeResult = Result<ASTNodeType, ParserError>;
 
 impl<T: Iterator<Item = Token>> Parser<T> {
@@ -246,10 +250,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let last = self.expression(Precedence::Lowest)?;
         self.consume(TokenType::Rbrack)?;
 
-        Ok(ASTNodeType::ComprehensionList(
-            Box::new(first),
-            Box::new(last),
-        ))
+        Ok(comprehension_list(first, last))
     }
 
     fn prepend(&mut self, first: ASTNodeType) -> NodeResult {
@@ -984,24 +985,24 @@ mod tests {
     }
 
     #[test]
-    fn comprehension_list() {
+    fn comprehension_list_only() {
         let input = "[ k in [1, 2] : k - 1 = 0 ]";
 
         let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).next(),
-            Some(Ok(ASTNodeType::ComprehensionList(
-                Box::new(infix(
+            Some(Ok(comprehension_list(
+                infix(
                     InfixOperator::In,
                     symbol("k"),
                     ASTNodeType::ExtensionList(vec![integer("1"), integer("2"),]),
-                )),
-                Box::new(infix(
+                ),
+                infix(
                     InfixOperator::Equality,
                     infix(InfixOperator::Substraction, symbol("k"), integer("1"),),
                     integer("0"),
-                )),
+                ),
             )))
         );
     }
@@ -1061,9 +1062,9 @@ mod tests {
             parser_from(lexer).next(),
             Some(Ok(infix(
                 InfixOperator::Sum,
-                ASTNodeType::ComprehensionList(
-                    Box::new(symbol("a")),
-                    Box::new(infix(InfixOperator::In, symbol("a"), symbol("b"),))
+                comprehension_list(
+                    symbol("a"),
+                    infix(InfixOperator::In, symbol("a"), symbol("b"),)
                 ),
                 ASTNodeType::ExtensionList(vec![]),
             )))
