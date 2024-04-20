@@ -54,6 +54,10 @@ fn if_(cond: ASTNodeType, first_res: ASTNodeType, second_res: ASTNodeType) -> AS
     ASTNodeType::If(Box::new(cond), Box::new(first_res), Box::new(second_res))
 }
 
+fn tuple(list: Vec<ASTNodeType>) -> ASTNodeType {
+    ASTNodeType::Tuple(list)
+}
+
 type NodeResult = Result<ASTNodeType, ParserError>;
 
 impl<T: Iterator<Item = Token>> Parser<T> {
@@ -312,16 +316,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     fn parenthesis(&mut self) -> NodeResult {
         if matches!(self.peek_token(), Some(TokenType::Rparen)) {
             self.next_token();
-            return Ok(ASTNodeType::Tuple(vec![]));
+            return Ok(tuple(vec![]));
         }
 
         let res = self.expression(Precedence::Lowest)?;
 
         match self.next_token() {
             Some(TokenType::Rparen) => Ok(res),
-            Some(TokenType::Comma) => self
-                .list(TokenType::Rparen, Some(res))
-                .map(ASTNodeType::Tuple),
+            Some(TokenType::Comma) => self.list(TokenType::Rparen, Some(res)).map(tuple),
             Some(tok) => Err(ParserError::UnexpectedToken(vec![TokenType::Rparen], tok)),
             None => Err(ParserError::EOFExpecting(vec![TokenType::Rparen])),
         }
@@ -330,7 +332,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     fn infix(&mut self, lhs: ASTNodeType, op: InfixOperator) -> NodeResult {
         if op == InfixOperator::Call {
             self.list(TokenType::Rparen, None)
-                .map(|args| infix(op, lhs, ASTNodeType::Tuple(args)))
+                .map(|args| infix(op, lhs, tuple(args)))
         } else {
             self.expression(op.precedence())
                 .map(|rhs| infix(op, lhs, rhs))
@@ -606,12 +608,12 @@ mod tests {
 
         assert_eq!(
             parser_from(iter_from(tokens)).next(),
-            Some(Ok(ASTNodeType::Tuple(vec![])))
+            Some(Ok(tuple(vec![])))
         );
     }
 
     #[test]
-    fn tuple() {
+    fn tuple_only() {
         let tokens = vec![
             TokenType::Lparen,
             TokenType::Ident(String::from("Real")),
@@ -622,7 +624,7 @@ mod tests {
 
         assert_eq!(
             parser_from(iter_from(tokens)).next(),
-            Some(Ok(ASTNodeType::Tuple(vec![symbol("Real"), symbol("Real")])))
+            Some(Ok(tuple(vec![symbol("Real"), symbol("Real")])))
         );
     }
 
@@ -779,7 +781,7 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).next(),
-            Some(Ok(ASTNodeType::Tuple(vec![
+            Some(Ok(tuple(vec![
                 ASTNodeType::ExtensionSet(vec![]),
                 integer("0")
             ])))
@@ -855,7 +857,7 @@ mod tests {
             Some(Ok(infix(
                 InfixOperator::Call,
                 symbol("f"),
-                ASTNodeType::Tuple(vec![symbol("x"), symbol("y"),]),
+                tuple(vec![symbol("x"), symbol("y"),]),
             ))),
         );
     }
@@ -868,7 +870,7 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).next(),
-            Some(Ok(ASTNodeType::Tuple(vec![integer("1")]))),
+            Some(Ok(tuple(vec![integer("1")]))),
         );
     }
 
@@ -900,10 +902,10 @@ mod tests {
                 InfixOperator::Call,
                 infix(
                     InfixOperator::Correspondence,
-                    ASTNodeType::Tuple(vec![symbol("x"), symbol("y"),]),
+                    tuple(vec![symbol("x"), symbol("y"),]),
                     symbol("x"),
                 ),
-                ASTNodeType::Tuple(vec![integer("1"), integer("2"),]),
+                tuple(vec![integer("1"), integer("2"),]),
             )))
         );
     }
@@ -916,7 +918,7 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).next(),
-            Some(Ok(ASTNodeType::Tuple(vec![
+            Some(Ok(tuple(vec![
                 ASTNodeType::Char('a'),
                 ASTNodeType::String(String::from('b')),
             ])))
@@ -937,7 +939,7 @@ mod tests {
                 vec![infix(
                     InfixOperator::Call,
                     symbol("println"),
-                    ASTNodeType::Tuple(vec![symbol("i")]),
+                    tuple(vec![symbol("i")]),
                 )]
             )))
         );
