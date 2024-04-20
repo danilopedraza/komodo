@@ -58,6 +58,10 @@ fn tuple(list: Vec<ASTNodeType>) -> ASTNodeType {
     ASTNodeType::Tuple(list)
 }
 
+fn comprehension_set(val: ASTNodeType, prop: ASTNodeType) -> ASTNodeType {
+    ASTNodeType::ComprehensionSet(Box::new(val), Box::new(prop))
+}
+
 type NodeResult = Result<ASTNodeType, ParserError>;
 
 impl<T: Iterator<Item = Token>> Parser<T> {
@@ -357,7 +361,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 .map(ASTNodeType::ExtensionSet),
             Some(TokenType::Colon) => self
                 .expression(Precedence::Lowest)
-                .map(|second| ASTNodeType::ComprehensionSet(Box::new(first), Box::new(second))),
+                .map(|second| comprehension_set(first, second)),
             Some(TokenType::Rbrace) => Ok(ASTNodeType::ExtensionSet(vec![first])),
             Some(tok) => Err(ParserError::UnexpectedToken(
                 vec![TokenType::Comma, TokenType::Rbrace, TokenType::Colon],
@@ -641,9 +645,9 @@ mod tests {
 
         assert_eq!(
             parser_from(iter_from(tokens)).next(),
-            Some(Ok(ASTNodeType::ComprehensionSet(
-                Box::new(symbol("a")),
-                Box::new(infix(InfixOperator::Equality, symbol("a"), integer("1")))
+            Some(Ok(comprehension_set(
+                symbol("a"),
+                infix(InfixOperator::Equality, symbol("a"), integer("1"))
             )))
         );
     }
@@ -956,13 +960,9 @@ mod tests {
             Some(Ok(infix(
                 InfixOperator::In,
                 integer("1"),
-                ASTNodeType::ComprehensionSet(
-                    Box::new(symbol("k")),
-                    Box::new(infix(
-                        InfixOperator::GreaterEqual,
-                        symbol("k"),
-                        integer("1"),
-                    )),
+                comprehension_set(
+                    symbol("k"),
+                    infix(InfixOperator::GreaterEqual, symbol("k"), integer("1"),),
                 ),
             )))
         );
