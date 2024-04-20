@@ -70,6 +70,10 @@ fn prepend(first: ASTNodeType, most: ASTNodeType) -> ASTNodeType {
     ASTNodeType::Prepend(Box::new(first), Box::new(most))
 }
 
+fn extension_list(list: Vec<ASTNodeType>) -> ASTNodeType {
+    ASTNodeType::ExtensionList(list)
+}
+
 type NodeResult = Result<ASTNodeType, ParserError>;
 
 impl<T: Iterator<Item = Token>> Parser<T> {
@@ -225,7 +229,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     fn my_list(&mut self) -> NodeResult {
         if matches!(self.peek_token(), Some(TokenType::Rbrack)) {
             self.next_token();
-            return Ok(ASTNodeType::ExtensionList(vec![]));
+            return Ok(extension_list(vec![]));
         }
 
         let first = self.expression(Precedence::Lowest)?;
@@ -234,8 +238,8 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             Some(TokenType::Colon) => self.comprehension_list(first),
             Some(TokenType::Comma) => self
                 .list(TokenType::Rbrack, Some(first))
-                .map(ASTNodeType::ExtensionList),
-            Some(TokenType::Rbrack) => Ok(ASTNodeType::ExtensionList(vec![first])),
+                .map(extension_list),
+            Some(TokenType::Rbrack) => Ok(extension_list(vec![first])),
             Some(TokenType::VerticalBar) => self.prepend(first),
             Some(tok) => Err(ParserError::UnexpectedToken(
                 vec![TokenType::Colon, TokenType::Comma, TokenType::Rbrack],
@@ -981,8 +985,8 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).next(),
-            Some(Ok(ASTNodeType::ExtensionList(vec![
-                ASTNodeType::ExtensionList(vec![]),
+            Some(Ok(extension_list(vec![
+                extension_list(vec![]),
                 integer("2"),
             ]),)),
         );
@@ -1000,7 +1004,7 @@ mod tests {
                 infix(
                     InfixOperator::In,
                     symbol("k"),
-                    ASTNodeType::ExtensionList(vec![integer("1"), integer("2"),]),
+                    extension_list(vec![integer("1"), integer("2"),]),
                 ),
                 infix(
                     InfixOperator::Equality,
@@ -1033,7 +1037,7 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).next(),
-            Some(Ok(ASTNodeType::ExtensionList(vec![
+            Some(Ok(extension_list(vec![
                 symbol("a"),
                 integer("1"),
                 ASTNodeType::Wildcard,
@@ -1050,7 +1054,7 @@ mod tests {
             parser_from(lexer).next(),
             Some(Ok(prepend(
                 integer("1"),
-                ASTNodeType::ExtensionList(vec![integer("2"), integer("3"),]),
+                extension_list(vec![integer("2"), integer("3"),]),
             ))),
         );
     }
@@ -1068,7 +1072,7 @@ mod tests {
                     symbol("a"),
                     infix(InfixOperator::In, symbol("a"), symbol("b"),)
                 ),
-                ASTNodeType::ExtensionList(vec![]),
+                extension_list(vec![]),
             )))
         );
     }
