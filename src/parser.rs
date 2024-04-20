@@ -66,6 +66,10 @@ fn comprehension_list(val: ASTNodeType, prop: ASTNodeType) -> ASTNodeType {
     ASTNodeType::ComprehensionList(Box::new(val), Box::new(prop))
 }
 
+fn prepend(first: ASTNodeType, most: ASTNodeType) -> ASTNodeType {
+    ASTNodeType::Prepend(Box::new(first), Box::new(most))
+}
+
 type NodeResult = Result<ASTNodeType, ParserError>;
 
 impl<T: Iterator<Item = Token>> Parser<T> {
@@ -258,7 +262,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
         self.consume(TokenType::Rbrack)?;
 
-        Ok(ASTNodeType::Prepend(Box::new(first), Box::new(last)))
+        Ok(prepend(first, last))
     }
 
     fn for_(&mut self) -> NodeResult {
@@ -1038,17 +1042,15 @@ mod tests {
     }
 
     #[test]
-    fn prepend() {
+    fn prepend_() {
         let code = "[1|[2,3]]";
         let lexer = build_lexer(code).map(|res| res.unwrap());
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(ASTNodeType::Prepend(
-                Box::new(integer("1")),
-                Box::new(ASTNodeType::ExtensionList(
-                    vec![integer("2"), integer("3"),]
-                )),
+            Some(Ok(prepend(
+                integer("1"),
+                ASTNodeType::ExtensionList(vec![integer("2"), integer("3"),]),
             ))),
         );
     }
