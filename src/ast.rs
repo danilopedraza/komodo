@@ -1,4 +1,4 @@
-use crate::lexer::TokenType;
+use crate::{error::Position, lexer::TokenType};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Precedence {
@@ -140,32 +140,38 @@ pub enum ASTNodeType {
     Wildcard,
 }
 
-// #[derive(Debug, PartialEq, Eq)]
-// pub struct ASTNode {
-//     node: ASTNodeType_,
-//     position: Position,
-// }
+#[derive(Debug, PartialEq, Eq)]
+pub struct ASTNode {
+    pub node: ASTNodeType_,
+    pub position: Position,
+}
 
-// #[derive(Debug, PartialEq, Eq)]
-// pub enum ASTNodeType_ {
-//     Boolean(bool),
-//     Call(Box<ASTNode>, Vec<ASTNode>),
-//     Char(char),
-//     ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
-//     ComprehensionList(Box<ASTNode>, Box<ASTNode>),
-//     ExtensionList(Vec<ASTNode>),
-//     ExtensionSet(Vec<ASTNode>),
-//     For(String, Box<ASTNode>, Vec<ASTNode>),
-//     Function(Vec<String>, Vec<ASTNode>),
-//     If(Box<ASTNode>, Box<ASTNode>, Box<ASTNode>),
-//     Infix(InfixOperator, Box<ASTNode>, Box<ASTNode>),
-//     Integer(String),
-//     Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
-//     Prefix(PrefixOperator, Box<ASTNode>),
-//     Prepend(Box<ASTNode>, Box<ASTNode>),
-//     Signature(Box<ASTNode>, Option<Box<ASTNode>>),
-//     String(String),
-//     Symbol(String),
-//     Tuple(Vec<ASTNode>),
-//     Wildcard,
-// }
+impl ASTNode {
+    pub fn new(node: ASTNodeType_, position: Position) -> Self {
+        Self { node, position }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ASTNodeType_ {
+    Boolean(bool),
+    Call(Box<ASTNode>, Vec<ASTNode>),
+    Char(char),
+    ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
+    ComprehensionList(Box<ASTNode>, Box<ASTNode>),
+    ExtensionList(Vec<ASTNode>),
+    ExtensionSet(Vec<ASTNode>),
+    For(String, Box<ASTNode>, Vec<ASTNode>),
+    Function(Vec<String>, Vec<ASTNode>),
+    If(Box<ASTNode>, Box<ASTNode>, Box<ASTNode>),
+    Infix(InfixOperator, Box<ASTNode>, Box<ASTNode>),
+    Integer(String),
+    Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
+    Prefix(PrefixOperator, Box<ASTNode>),
+    Prepend(Box<ASTNode>, Box<ASTNode>),
+    Signature(Box<ASTNode>, Option<Box<ASTNode>>),
+    String(String),
+    Symbol(String),
+    Tuple(Vec<ASTNode>),
+    Wildcard,
+}

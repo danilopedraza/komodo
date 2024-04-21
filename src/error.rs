@@ -6,10 +6,10 @@
 //     ExecError(EvalError),
 // }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Position {
-    start: u32,
-    length: u32,
+    pub start: u32,
+    pub length: u32,
 }
 
 impl Position {
