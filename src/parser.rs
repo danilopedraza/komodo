@@ -74,6 +74,10 @@ fn extension_list(list: Vec<ASTNodeType>) -> ASTNodeType {
     ASTNodeType::ExtensionList(list)
 }
 
+fn extension_set(list: Vec<ASTNodeType>) -> ASTNodeType {
+    ASTNodeType::ExtensionSet(list)
+}
+
 type NodeResult = Result<ASTNodeType, ParserError>;
 
 impl<T: Iterator<Item = Token>> Parser<T> {
@@ -359,19 +363,17 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     fn set(&mut self) -> NodeResult {
         if matches!(self.peek_token(), Some(TokenType::Rbrace)) {
             self.next_token();
-            return Ok(ASTNodeType::ExtensionSet(vec![]));
+            return Ok(extension_set(vec![]));
         }
 
         let first = self.expression(Precedence::Lowest)?;
 
         match self.next_token() {
-            Some(TokenType::Comma) => self
-                .list(TokenType::Rbrace, Some(first))
-                .map(ASTNodeType::ExtensionSet),
+            Some(TokenType::Comma) => self.list(TokenType::Rbrace, Some(first)).map(extension_set),
             Some(TokenType::Colon) => self
                 .expression(Precedence::Lowest)
                 .map(|second| comprehension_set(first, second)),
-            Some(TokenType::Rbrace) => Ok(ASTNodeType::ExtensionSet(vec![first])),
+            Some(TokenType::Rbrace) => Ok(extension_set(vec![first])),
             Some(tok) => Err(ParserError::UnexpectedToken(
                 vec![TokenType::Comma, TokenType::Rbrace, TokenType::Colon],
                 tok,
@@ -590,7 +592,7 @@ mod tests {
 
         assert_eq!(
             parser_from(iter_from(tokens)).next(),
-            Some(Ok(ASTNodeType::ExtensionSet(vec![])))
+            Some(Ok(extension_set(vec![])))
         );
     }
 
@@ -608,7 +610,7 @@ mod tests {
 
         assert_eq!(
             parser_from(iter_from(tokens)).next(),
-            Some(Ok(ASTNodeType::ExtensionSet(vec![
+            Some(Ok(extension_set(vec![
                 ASTNodeType::Boolean(true),
                 ASTNodeType::Boolean(false)
             ])))
@@ -794,10 +796,7 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).next(),
-            Some(Ok(tuple(vec![
-                ASTNodeType::ExtensionSet(vec![]),
-                integer("0")
-            ])))
+            Some(Ok(tuple(vec![extension_set(vec![]), integer("0")])))
         );
     }
 
@@ -1023,9 +1022,7 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).next(),
-            Some(Ok(ASTNodeType::ExtensionSet(vec![
-                ASTNodeType::ExtensionSet(vec![])
-            ]))),
+            Some(Ok(extension_set(vec![extension_set(vec![])]))),
         );
     }
 
