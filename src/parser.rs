@@ -714,11 +714,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
         self.consume(TokenType::Colon)?;
 
-        let proc = match self.expression_(Precedence::Lowest)? {
-            ASTNode { node, position } => match node {
-                ASTNodeType_::Tuple(v) => v,
-                node => vec![ASTNode::new(node, position)],
-            },
+        let ASTNode { node, position } = self.expression_(Precedence::Lowest)?;
+
+        let proc = match node {
+            ASTNodeType_::Tuple(v) => v,
+            node => vec![ASTNode::new(node, position)],
         };
 
         Ok(for_(&ident, iter, proc, self.start_to_cur(start)))
