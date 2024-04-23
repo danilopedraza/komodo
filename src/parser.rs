@@ -220,8 +220,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 tok if PrefixOperator::from(tok.clone()).is_some() => {
                     self.prefix_(PrefixOperator::from(tok).unwrap())
                 }
-                // tok => Err(ParserError::ExpectedExpression(tok)),
-                _ => todo!(),
+                tok => Err(ParserError::ExpectedExpression(tok)),
             },
         }?;
 
@@ -1742,6 +1741,17 @@ mod tests {
                 vec![TokenType::Rparen],
                 TokenType::Rbrack
             ))),
+        );
+    }
+
+    #[test]
+    fn expected_expression() {
+        let input = "1 + )";
+        let lexer = build_lexer(input).map(|res| res.unwrap());
+
+        assert_eq!(
+            parser_from(lexer).next_(),
+            Some(Err(ParserError::ExpectedExpression(TokenType::Rparen))),
         );
     }
 }
