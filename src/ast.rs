@@ -259,3 +259,78 @@ pub fn _signature(symbol: ASTNode, type_: Option<ASTNode>, position: Position) -
         position,
     )
 }
+
+pub fn if_(cond: ASTNodeType, first_res: ASTNodeType, second_res: ASTNodeType) -> ASTNodeType {
+    ASTNodeType::If(Box::new(cond), Box::new(first_res), Box::new(second_res))
+}
+
+pub fn _if_(cond: ASTNode, first_res: ASTNode, second_res: ASTNode, position: Position) -> ASTNode {
+    ASTNode::new(
+        ASTNodeType_::If(Box::new(cond), Box::new(first_res), Box::new(second_res)),
+        position,
+    )
+}
+
+pub fn tuple(list: Vec<ASTNodeType>) -> ASTNodeType {
+    ASTNodeType::Tuple(list)
+}
+
+pub fn _tuple(list: Vec<ASTNode>, position: Position) -> ASTNode {
+    ASTNode::new(ASTNodeType_::Tuple(list), position)
+}
+
+pub fn comprehension_set(val: ASTNodeType, prop: ASTNodeType) -> ASTNodeType {
+    ASTNodeType::ComprehensionSet(Box::new(val), Box::new(prop))
+}
+
+pub fn _comprehension_set(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
+    ASTNode::new(
+        ASTNodeType_::ComprehensionSet(Box::new(val), Box::new(prop)),
+        position,
+    )
+}
+
+pub fn comprehension_list(val: ASTNodeType, prop: ASTNodeType) -> ASTNodeType {
+    ASTNodeType::ComprehensionList(Box::new(val), Box::new(prop))
+}
+
+pub fn _comprehension_list(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
+    ASTNode::new(
+        ASTNodeType_::ComprehensionList(Box::new(val), Box::new(prop)),
+        position,
+    )
+}
+
+pub fn prepend(first: ASTNodeType, most: ASTNodeType) -> ASTNodeType {
+    ASTNodeType::Prepend(Box::new(first), Box::new(most))
+}
+
+pub fn _prepend(first: ASTNode, most: ASTNode, position: Position) -> ASTNode {
+    ASTNode::new(
+        ASTNodeType_::Prepend(Box::new(first), Box::new(most)),
+        position,
+    )
+}
+
+pub fn extension_list(list: Vec<ASTNodeType>) -> ASTNodeType {
+    ASTNodeType::ExtensionList(list)
+}
+
+pub fn _extension_list(list: Vec<ASTNode>, position: Position) -> ASTNode {
+    ASTNode::new(ASTNodeType_::ExtensionList(list), position)
+}
+
+pub fn extension_set(list: Vec<ASTNodeType>) -> ASTNodeType {
+    ASTNodeType::ExtensionSet(list)
+}
+
+pub fn _extension_set(list: Vec<ASTNode>, position: Position) -> ASTNode {
+    ASTNode::new(ASTNodeType_::ExtensionSet(list), position)
+}
+
+pub fn _for(var: &str, iter: ASTNode, block: Vec<ASTNode>, position: Position) -> ASTNode {
+    ASTNode::new(
+        ASTNodeType_::For(var.into(), Box::new(iter), block),
+        position,
+    )
+}
