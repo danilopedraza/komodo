@@ -880,7 +880,7 @@ pub fn parser_from<T: Iterator<Item = Token>>(tokens: T) -> Parser<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{error::Position, lexer::build_lexer, parser::integer};
+    use crate::{error::Position, lexer::build_lexer};
     use std::iter;
 
     fn iter_from(v: Vec<TokenType>) -> impl Iterator<Item = Token> {
