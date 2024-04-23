@@ -152,11 +152,6 @@ pub enum ASTNodeType_ {
     Wildcard,
 }
 
-#[allow(dead_code)]
-pub fn dummy_pos(nodetype: ASTNodeType_) -> ASTNode {
-    ASTNode::new(nodetype, Position::new(0, 0))
-}
-
 pub fn _pos(start: u32, length: u32) -> Position {
     Position::new(start, length)
 }

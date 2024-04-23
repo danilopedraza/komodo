@@ -283,13 +283,13 @@ mod tests {
     use crate::ast::{
         _boolean, _call, _comprehension_list, _comprehension_set, _dummy_pos, _extension_list,
         _extension_set, _for, _function, _infix, _integer, _let_, _prefix, _signature, _symbol,
-        _tuple, dummy_pos,
+        _tuple,
     };
     use crate::object::*;
 
     #[test]
     fn symbol() {
-        let node = dummy_pos(ASTNodeType_::Symbol(String::from("a")));
+        let node = _symbol("a", _dummy_pos());
         assert_eq!(
             exec(&node, &mut Default::default()),
             Ok(Object::Symbol(Symbol::from("a")))
@@ -298,10 +298,10 @@ mod tests {
 
     #[test]
     fn set_by_extension() {
-        let node = dummy_pos(ASTNodeType_::ExtensionSet(vec![
-            dummy_pos(ASTNodeType_::Symbol(String::from("a"))),
-            dummy_pos(ASTNodeType_::Symbol(String::from("a"))),
-        ]));
+        let node = _extension_set(
+            vec![_symbol("a", _dummy_pos()), _symbol("a", _dummy_pos())],
+            _dummy_pos(),
+        );
 
         assert_eq!(
             exec(&node, &mut Default::default()),
@@ -314,11 +314,12 @@ mod tests {
 
     #[test]
     fn integer_sum() {
-        let node = dummy_pos(ASTNodeType_::Infix(
+        let node = _infix(
             InfixOperator::Sum,
-            Box::new(dummy_pos(ASTNodeType_::Integer(String::from("0")))),
-            Box::new(dummy_pos(ASTNodeType_::Integer(String::from("1")))),
-        ));
+            _integer("0", _dummy_pos()),
+            _integer("1", _dummy_pos()),
+            _dummy_pos(),
+        );
 
         assert_eq!(
             exec(&node, &mut Default::default()),

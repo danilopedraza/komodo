@@ -96,7 +96,7 @@ fn match_constant(pattern: &ASTNode, val: &Object) -> Match {
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{_dummy_pos, _extension_list, _prepend, _symbol, dummy_pos},
+        ast::{_dummy_pos, _extension_list, _prepend, _symbol},
         object::Integer,
     };
 
@@ -105,14 +105,8 @@ mod tests {
     #[test]
     fn two_args() {
         let patterns = [
-            _extension_list(
-                vec![dummy_pos(ASTNodeType_::Symbol(String::from("a")))],
-                _dummy_pos(),
-            ),
-            _extension_list(
-                vec![dummy_pos(ASTNodeType_::Symbol(String::from("b")))],
-                _dummy_pos(),
-            ),
+            _extension_list(vec![_symbol("a", _dummy_pos())], _dummy_pos()),
+            _extension_list(vec![_symbol("b", _dummy_pos())], _dummy_pos()),
         ];
 
         let args = [
