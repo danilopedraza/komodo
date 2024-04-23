@@ -194,7 +194,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         if let Some(Token { position, .. }) = self.tokens.peek() {
             *position
         } else {
-            pos(0, 0)
+            self.cur_pos
         }
     }
 
