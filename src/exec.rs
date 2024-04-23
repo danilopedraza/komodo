@@ -1,6 +1,6 @@
 use crate::object::{self, Callable, ComprehensionSet, ExtensionList, Function};
 
-use crate::ast::{ASTNodeType, InfixOperator, PrefixOperator};
+use crate::ast::{ASTNode, ASTNodeType_, InfixOperator, PrefixOperator};
 use crate::env::Environment;
 use crate::object::{
     Bool, Char, DefinedFunction, ExtensionSet, Integer, MyString, Object, Symbol, Tuple,
@@ -21,47 +21,49 @@ fn truthy(val: Object) -> bool {
     }
 }
 
-pub fn list(l: &[ASTNodeType], env: &mut Environment) -> Result<Vec<Object>, EvalError> {
+pub fn list(l: &[ASTNode], env: &mut Environment) -> Result<Vec<Object>, EvalError> {
     l.iter().map(|node| exec(node, env)).collect()
 }
 
-fn function(params: &[String], proc: &[ASTNodeType]) -> Result<Object, EvalError> {
+fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, EvalError> {
     Ok(Object::Function(object::Function::DefinedFunction(
         DefinedFunction::new(params.to_owned(), proc.to_owned()),
     )))
 }
 
-pub fn exec(node: &ASTNodeType, env: &mut Environment) -> Result<Object, EvalError> {
-    match node {
-        ASTNodeType::Symbol(str) => symbol(str, env),
-        ASTNodeType::ExtensionSet(l) => extension_set(l, env),
-        ASTNodeType::Integer(str) => integer(str),
-        ASTNodeType::Function(params, proc) => function(params, proc),
-        ASTNodeType::Infix(op, lhs, rhs) => infix(*op, exec(lhs, env)?, exec(rhs, env)?),
-        ASTNodeType::Let(ident, params, value) if params.is_empty() => let_(ident, value, env),
-        ASTNodeType::Let(ident, args, value) => let_function(ident, args, value, env),
-        ASTNodeType::Boolean(val) => boolean(*val),
-        ASTNodeType::Call(func_node, args) => call(func_node, args, env),
-        ASTNodeType::Char(chr) => char(*chr),
-        ASTNodeType::ComprehensionSet(value, prop) => comprehension_set(value, prop),
-        ASTNodeType::If(cond, first, second) => if_(exec(cond, env)?, first, second, env),
-        ASTNodeType::Prefix(op, node) => prefix(*op, exec(node, env)?),
-        ASTNodeType::Signature(_, _) => todo!(),
-        ASTNodeType::String(str) => string(str),
-        ASTNodeType::Tuple(l) => tuple(l, env),
-        ASTNodeType::For(symbol, iterable, proc) => for_(symbol, exec(iterable, env)?, proc, env),
-        ASTNodeType::ExtensionList(l) => extension_list(l, env),
-        ASTNodeType::ComprehensionList(transform, prop) => comprehension_list(transform, prop, env),
-        ASTNodeType::Wildcard => todo!(),
-        ASTNodeType::Prepend(_, _) => todo!(),
+pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> {
+    match &node._type {
+        ASTNodeType_::Symbol(str) => symbol(str, env),
+        ASTNodeType_::ExtensionSet(l) => extension_set(l, env),
+        ASTNodeType_::Integer(str) => integer(str),
+        ASTNodeType_::Function(params, proc) => function(params, proc),
+        ASTNodeType_::Infix(op, lhs, rhs) => infix(*op, exec(lhs, env)?, exec(rhs, env)?),
+        ASTNodeType_::Let(ident, params, value) if params.is_empty() => let_(ident, value, env),
+        ASTNodeType_::Let(ident, args, value) => let_function(ident, args, value, env),
+        ASTNodeType_::Boolean(val) => boolean(*val),
+        ASTNodeType_::Call(func_node, args) => call(func_node, args, env),
+        ASTNodeType_::Char(chr) => char(*chr),
+        ASTNodeType_::ComprehensionSet(value, prop) => comprehension_set(value, prop),
+        ASTNodeType_::If(cond, first, second) => if_(exec(cond, env)?, first, second, env),
+        ASTNodeType_::Prefix(op, node) => prefix(*op, exec(node, env)?),
+        ASTNodeType_::Signature(_, _) => todo!(),
+        ASTNodeType_::String(str) => string(str),
+        ASTNodeType_::Tuple(l) => tuple(l, env),
+        ASTNodeType_::For(symbol, iterable, proc) => for_(symbol, exec(iterable, env)?, proc, env),
+        ASTNodeType_::ExtensionList(l) => extension_list(l, env),
+        ASTNodeType_::ComprehensionList(transform, prop) => {
+            comprehension_list(transform, prop, env)
+        }
+        ASTNodeType_::Wildcard => todo!(),
+        ASTNodeType_::Prepend(_, _) => todo!(),
     }
 }
 
-fn extension_list(l: &[ASTNodeType], env: &mut Environment) -> Result<Object, EvalError> {
+fn extension_list(l: &[ASTNode], env: &mut Environment) -> Result<Object, EvalError> {
     list(l, env).map(|lst| Object::ExtensionList(ExtensionList::from(lst)))
 }
 
-fn tuple(l: &[ASTNodeType], env: &mut Environment) -> Result<Object, EvalError> {
+fn tuple(l: &[ASTNode], env: &mut Environment) -> Result<Object, EvalError> {
     list(l, env).map(|lst| Object::Tuple(Tuple::from(lst)))
 }
 
@@ -69,7 +71,7 @@ fn string(str: &str) -> Result<Object, EvalError> {
     Ok(Object::String(MyString::from(str)))
 }
 
-fn comprehension_set(value: &ASTNodeType, prop: &ASTNodeType) -> Result<Object, EvalError> {
+fn comprehension_set(value: &ASTNode, prop: &ASTNode) -> Result<Object, EvalError> {
     Ok(Object::ComprehensionSet(ComprehensionSet::from((
         value.clone(),
         prop.clone(),
@@ -84,15 +86,11 @@ fn boolean(val: bool) -> Result<Object, EvalError> {
     Ok(Object::Boolean(Bool::from(val)))
 }
 
-fn let_(
-    ident: &ASTNodeType,
-    value: &ASTNodeType,
-    env: &mut Environment,
-) -> Result<Object, EvalError> {
-    match ident.clone() {
-        ASTNodeType::Symbol(name) => exec_and_set(value, &name, env),
-        ASTNodeType::Signature(ident, None) => match *ident {
-            ASTNodeType::Symbol(name) => exec_and_set(value, &name, env),
+fn let_(ident: &ASTNode, value: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> {
+    match &ident._type {
+        ASTNodeType_::Symbol(name) => exec_and_set(value, name, env),
+        ASTNodeType_::Signature(ident, None) => match &ident._type {
+            ASTNodeType_::Symbol(name) => exec_and_set(value, name, env),
             _ => todo!(),
         },
         _ => todo!(),
@@ -103,7 +101,7 @@ fn integer(str: &str) -> Result<Object, EvalError> {
     Ok(Object::Integer(Integer::from(str)))
 }
 
-fn extension_set(l: &[ASTNodeType], env: &mut Environment) -> Result<Object, EvalError> {
+fn extension_set(l: &[ASTNode], env: &mut Environment) -> Result<Object, EvalError> {
     list(l, env).map(|lst| Object::ExtensionSet(ExtensionSet::from(lst)))
 }
 
@@ -115,13 +113,13 @@ fn symbol(str: &str, env: &mut Environment) -> Result<Object, EvalError> {
 }
 
 fn comprehension_list(
-    transform: &ASTNodeType,
-    prop: &ASTNodeType,
+    transform: &ASTNode,
+    prop: &ASTNode,
     env: &mut Environment,
 ) -> Result<Object, EvalError> {
-    let (symbol, iterator) = match prop {
-        ASTNodeType::Infix(InfixOperator::In, lhs, rhs) => match (&**lhs, &**rhs) {
-            (ASTNodeType::Symbol(ident), ASTNodeType::ExtensionList(l)) => (ident, list(l, env)?),
+    let (symbol, iterator) = match &prop._type {
+        ASTNodeType_::Infix(InfixOperator::In, lhs, rhs) => match (&lhs._type, &rhs._type) {
+            (ASTNodeType_::Symbol(ident), ASTNodeType_::ExtensionList(l)) => (ident, list(l, env)?),
             _ => todo!(),
         },
         _ => todo!(),
@@ -139,13 +137,13 @@ fn comprehension_list(
 }
 
 fn let_function(
-    ident: &ASTNodeType,
-    args: &[ASTNodeType],
-    value: &ASTNodeType,
+    ident: &ASTNode,
+    args: &[ASTNode],
+    value: &ASTNode,
     env: &mut Environment,
 ) -> Result<Object, EvalError> {
-    let name = match ident {
-        ASTNodeType::Symbol(name) => name,
+    let name = match &ident._type {
+        ASTNodeType_::Symbol(name) => name,
         _ => todo!(),
     };
 
@@ -172,11 +170,7 @@ fn let_function(
     )))
 }
 
-fn exec_and_set(
-    node: &ASTNodeType,
-    name: &str,
-    env: &mut Environment,
-) -> Result<Object, EvalError> {
+fn exec_and_set(node: &ASTNode, name: &str, env: &mut Environment) -> Result<Object, EvalError> {
     let val = exec(node, env)?;
     env.set(name, val.clone());
     Ok(val)
@@ -184,8 +178,8 @@ fn exec_and_set(
 
 fn if_(
     cond: Object,
-    first: &ASTNodeType,
-    second: &ASTNodeType,
+    first: &ASTNode,
+    second: &ASTNode,
     env: &mut Environment,
 ) -> Result<Object, EvalError> {
     if truthy(cond) {
@@ -198,7 +192,7 @@ fn if_(
 fn for_(
     symbol: &str,
     iterable_obj: Object,
-    proc: &[ASTNodeType],
+    proc: &[ASTNode],
     env: &mut Environment,
 ) -> Result<Object, EvalError> {
     let iter = match &iterable_obj {
@@ -221,11 +215,7 @@ fn for_(
     Ok(Object::empty_tuple())
 }
 
-fn call(
-    func_node: &ASTNodeType,
-    args: &[ASTNodeType],
-    env: &mut Environment,
-) -> Result<Object, EvalError> {
+fn call(func_node: &ASTNode, args: &[ASTNode], env: &mut Environment) -> Result<Object, EvalError> {
     let func = exec(func_node, env)?;
 
     let mut func_args = vec![];
@@ -290,25 +280,31 @@ mod tests {
     use std::vec;
 
     use super::*;
+    use crate::ast::{
+        _boolean, _call, _comprehension_list, _comprehension_set, _dummy_pos, _extension_list,
+        _extension_set, _for, _function, _infix, _integer, _let_, _prefix, _signature, _symbol,
+        _tuple, dummy_pos,
+    };
     use crate::object::*;
 
     #[test]
     fn symbol() {
-        let node = &ASTNodeType::Symbol(String::from("a"));
+        let node = dummy_pos(ASTNodeType_::Symbol(String::from("a")));
         assert_eq!(
-            exec(node, &mut Default::default()),
+            exec(&node, &mut Default::default()),
             Ok(Object::Symbol(Symbol::from("a")))
         );
     }
 
     #[test]
     fn set_by_extension() {
-        let node = &ASTNodeType::ExtensionSet(vec![
-            ASTNodeType::Symbol(String::from("a")),
-            ASTNodeType::Symbol(String::from("a")),
-        ]);
+        let node = dummy_pos(ASTNodeType_::ExtensionSet(vec![
+            dummy_pos(ASTNodeType_::Symbol(String::from("a"))),
+            dummy_pos(ASTNodeType_::Symbol(String::from("a"))),
+        ]));
+
         assert_eq!(
-            exec(node, &mut Default::default()),
+            exec(&node, &mut Default::default()),
             Ok(Object::ExtensionSet(ExtensionSet::from(vec![
                 Object::Symbol(Symbol::from("a")),
                 Object::Symbol(Symbol::from("a")),
@@ -318,24 +314,25 @@ mod tests {
 
     #[test]
     fn integer_sum() {
-        let node = &ASTNodeType::Infix(
+        let node = dummy_pos(ASTNodeType_::Infix(
             InfixOperator::Sum,
-            Box::new(ASTNodeType::Integer(String::from("0"))),
-            Box::new(ASTNodeType::Integer(String::from("1"))),
-        );
+            Box::new(dummy_pos(ASTNodeType_::Integer(String::from("0")))),
+            Box::new(dummy_pos(ASTNodeType_::Integer(String::from("1")))),
+        ));
 
         assert_eq!(
-            exec(node, &mut Default::default()),
+            exec(&node, &mut Default::default()),
             Ok(Object::Integer(Integer::from("1")))
         );
     }
 
     #[test]
     fn integer_substraction() {
-        let node = &ASTNodeType::Infix(
+        let node = &_infix(
             InfixOperator::Substraction,
-            Box::new(ASTNodeType::Integer(String::from("0"))),
-            Box::new(ASTNodeType::Integer(String::from("1"))),
+            _integer("0", _dummy_pos()),
+            _integer("1", _dummy_pos()),
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -346,10 +343,11 @@ mod tests {
 
     #[test]
     fn integer_product() {
-        let node = &ASTNodeType::Infix(
+        let node = &_infix(
             InfixOperator::Product,
-            Box::new(ASTNodeType::Integer(String::from("0"))),
-            Box::new(ASTNodeType::Integer(String::from("1"))),
+            _integer("0", _dummy_pos()),
+            _integer("1", _dummy_pos()),
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -360,10 +358,11 @@ mod tests {
 
     #[test]
     fn symbol_comparison() {
-        let node = &ASTNodeType::Infix(
+        let node = &_infix(
             InfixOperator::Equality,
-            Box::new(ASTNodeType::Symbol(String::from("a"))),
-            Box::new(ASTNodeType::Symbol(String::from("b"))),
+            _symbol("a", _dummy_pos()),
+            _symbol("b", _dummy_pos()),
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -374,13 +373,11 @@ mod tests {
 
     #[test]
     fn let_expression() {
-        let node = &ASTNodeType::Let(
-            Box::new(ASTNodeType::Signature(
-                Box::new(ASTNodeType::Symbol(String::from("x"))),
-                None,
-            )),
+        let node = &_let_(
+            _signature(_symbol("x", _dummy_pos()), None, _dummy_pos()),
             vec![],
-            Box::new(ASTNodeType::Integer(String::from("0"))),
+            _integer("0", _dummy_pos()),
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -391,14 +388,16 @@ mod tests {
 
     #[test]
     fn logic_operators() {
-        let node = &ASTNodeType::Infix(
+        let node = &_infix(
             InfixOperator::LogicAnd,
-            Box::new(ASTNodeType::Infix(
+            _infix(
                 InfixOperator::Or,
-                Box::new(ASTNodeType::Boolean(true)),
-                Box::new(ASTNodeType::Boolean(false)),
-            )),
-            Box::new(ASTNodeType::Boolean(false)),
+                _boolean(true, _dummy_pos()),
+                _boolean(false, _dummy_pos()),
+                _dummy_pos(),
+            ),
+            _boolean(false, _dummy_pos()),
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -409,18 +408,21 @@ mod tests {
 
     #[test]
     fn less_leq() {
-        let node = &ASTNodeType::Infix(
+        let node = &_infix(
             InfixOperator::LogicAnd,
-            Box::new(ASTNodeType::Infix(
+            _infix(
                 InfixOperator::Less,
-                Box::new(ASTNodeType::Integer(String::from('0'))),
-                Box::new(ASTNodeType::Integer(String::from('1'))),
-            )),
-            Box::new(ASTNodeType::Infix(
+                _integer("0", _dummy_pos()),
+                _integer("1", _dummy_pos()),
+                _dummy_pos(),
+            ),
+            _infix(
                 InfixOperator::LessEqual,
-                Box::new(ASTNodeType::Integer(String::from('1'))),
-                Box::new(ASTNodeType::Integer(String::from('1'))),
-            )),
+                _integer("1", _dummy_pos()),
+                _integer("1", _dummy_pos()),
+                _dummy_pos(),
+            ),
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -431,18 +433,21 @@ mod tests {
 
     #[test]
     fn greater_geq() {
-        let node = &ASTNodeType::Infix(
+        let node = &_infix(
             InfixOperator::LogicAnd,
-            Box::new(ASTNodeType::Infix(
+            _infix(
                 InfixOperator::Greater,
-                Box::new(ASTNodeType::Integer(String::from('1'))),
-                Box::new(ASTNodeType::Integer(String::from('0'))),
-            )),
-            Box::new(ASTNodeType::Infix(
+                _integer("1", _dummy_pos()),
+                _integer("0", _dummy_pos()),
+                _dummy_pos(),
+            ),
+            _infix(
                 InfixOperator::GreaterEqual,
-                Box::new(ASTNodeType::Integer(String::from('0'))),
-                Box::new(ASTNodeType::Integer(String::from('0'))),
-            )),
+                _integer("0", _dummy_pos()),
+                _integer("0", _dummy_pos()),
+                _dummy_pos(),
+            ),
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -453,18 +458,21 @@ mod tests {
 
     #[test]
     fn neq() {
-        let node = &ASTNodeType::Infix(
+        let node = &_infix(
             InfixOperator::LogicAnd,
-            Box::new(ASTNodeType::Infix(
+            _infix(
                 InfixOperator::NotEquality,
-                Box::new(ASTNodeType::Integer(String::from('1'))),
-                Box::new(ASTNodeType::Integer(String::from('2'))),
-            )),
-            Box::new(ASTNodeType::Infix(
+                _integer("1", _dummy_pos()),
+                _integer("2", _dummy_pos()),
+                _dummy_pos(),
+            ),
+            _infix(
                 InfixOperator::NotEquality,
-                Box::new(ASTNodeType::Integer(String::from('1'))),
-                Box::new(ASTNodeType::Boolean(true)),
-            )),
+                _integer("1", _dummy_pos()),
+                _boolean(true, _dummy_pos()),
+                _dummy_pos(),
+            ),
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -475,18 +483,21 @@ mod tests {
 
     #[test]
     fn bitwise_and_xor_or() {
-        let node = &ASTNodeType::Infix(
+        let node = &_infix(
             InfixOperator::Or,
-            Box::new(ASTNodeType::Infix(
+            _infix(
                 InfixOperator::BitwiseXor,
-                Box::new(ASTNodeType::Infix(
+                _infix(
                     InfixOperator::BitwiseAnd,
-                    Box::new(ASTNodeType::Integer(String::from("7"))),
-                    Box::new(ASTNodeType::Integer(String::from("6"))),
-                )),
-                Box::new(ASTNodeType::Integer(String::from("1"))),
-            )),
-            Box::new(ASTNodeType::Integer(String::from("0"))),
+                    _integer("7", _dummy_pos()),
+                    _integer("6", _dummy_pos()),
+                    _dummy_pos(),
+                ),
+                _integer("1", _dummy_pos()),
+                _dummy_pos(),
+            ),
+            _integer("0", _dummy_pos()),
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -497,14 +508,16 @@ mod tests {
 
     #[test]
     fn shifts() {
-        let node = &ASTNodeType::Infix(
+        let node = &_infix(
             InfixOperator::LeftShift,
-            Box::new(ASTNodeType::Infix(
+            _infix(
                 InfixOperator::RightShift,
-                Box::new(ASTNodeType::Integer(String::from("256"))),
-                Box::new(ASTNodeType::Integer(String::from("4"))),
-            )),
-            Box::new(ASTNodeType::Integer(String::from("1"))),
+                _integer("256", _dummy_pos()),
+                _integer("4", _dummy_pos()),
+                _dummy_pos(),
+            ),
+            _integer("1", _dummy_pos()),
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -515,14 +528,16 @@ mod tests {
 
     #[test]
     fn power_and_division() {
-        let node = &ASTNodeType::Infix(
+        let node = &_infix(
             InfixOperator::Division,
-            Box::new(ASTNodeType::Infix(
+            _infix(
                 InfixOperator::Exponentiation,
-                Box::new(ASTNodeType::Integer(String::from("3"))),
-                Box::new(ASTNodeType::Integer(String::from("2"))),
-            )),
-            Box::new(ASTNodeType::Integer(String::from("2"))),
+                _integer("3", _dummy_pos()),
+                _integer("2", _dummy_pos()),
+                _dummy_pos(),
+            ),
+            _integer("2", _dummy_pos()),
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -533,10 +548,11 @@ mod tests {
 
     #[test]
     fn remainder() {
-        let node = &ASTNodeType::Infix(
+        let node = &_infix(
             InfixOperator::Mod,
-            Box::new(ASTNodeType::Integer(String::from("3"))),
-            Box::new(ASTNodeType::Integer(String::from("2"))),
+            _integer("3", _dummy_pos()),
+            _integer("2", _dummy_pos()),
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -547,19 +563,23 @@ mod tests {
 
     #[test]
     fn prefix() {
-        let node = &ASTNodeType::Prefix(
+        let node = &_prefix(
             PrefixOperator::LogicNot,
-            Box::new(ASTNodeType::Infix(
+            _infix(
                 InfixOperator::NotEquality,
-                Box::new(ASTNodeType::Prefix(
+                _prefix(
                     PrefixOperator::BitwiseNot,
-                    Box::new(ASTNodeType::Integer(String::from("1"))),
-                )),
-                Box::new(ASTNodeType::Prefix(
+                    _integer("1", _dummy_pos()),
+                    _dummy_pos(),
+                ),
+                _prefix(
                     PrefixOperator::Minus,
-                    Box::new(ASTNodeType::Integer(String::from("1"))),
-                )),
-            )),
+                    _integer("1", _dummy_pos()),
+                    _dummy_pos(),
+                ),
+                _dummy_pos(),
+            ),
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -573,17 +593,22 @@ mod tests {
         let mut env = Environment::default();
         env.set("a", Object::Integer(Integer::from(-5)));
 
-        let node = &ASTNodeType::If(
-            Box::new(ASTNodeType::Infix(
-                InfixOperator::Less,
-                Box::new(ASTNodeType::Symbol(String::from("a"))),
-                Box::new(ASTNodeType::Integer(String::from("0"))),
-            )),
-            Box::new(ASTNodeType::Prefix(
-                PrefixOperator::Minus,
-                Box::new(ASTNodeType::Symbol(String::from("a"))),
-            )),
-            Box::new(ASTNodeType::Symbol(String::from("a"))),
+        let node = &ASTNode::new(
+            ASTNodeType_::If(
+                Box::new(_infix(
+                    InfixOperator::Less,
+                    _symbol("a", _dummy_pos()),
+                    _integer("0", _dummy_pos()),
+                    _dummy_pos(),
+                )),
+                Box::new(_prefix(
+                    PrefixOperator::Minus,
+                    _symbol("a", _dummy_pos()),
+                    _dummy_pos(),
+                )),
+                Box::new(_symbol("a", _dummy_pos())),
+            ),
+            _dummy_pos(),
         );
 
         assert_eq!(exec(node, &mut env), Ok(Object::Integer(Integer::from(5))));
@@ -595,7 +620,7 @@ mod tests {
         env.set("x", Object::Boolean(Bool::from(true)));
         env.push_scope();
 
-        let node = &ASTNodeType::Symbol(String::from("x"));
+        let node = &_symbol("x", _dummy_pos());
 
         assert_eq!(exec(node, &mut env), Ok(Object::Boolean(Bool::from(true))));
     }
@@ -604,10 +629,11 @@ mod tests {
     fn save_value() {
         let mut env = Environment::default();
 
-        let node = &ASTNodeType::Let(
-            Box::new(ASTNodeType::Symbol(String::from("x"))),
+        let node = &_let_(
+            _symbol("x", _dummy_pos()),
             vec![],
-            Box::new(ASTNodeType::Integer(String::from("0"))),
+            _integer("0", _dummy_pos()),
+            _dummy_pos(),
         );
 
         assert!(exec(node, &mut env).is_ok());
@@ -617,10 +643,10 @@ mod tests {
 
     #[test]
     fn tuple() {
-        let node = &ASTNodeType::Tuple(vec![
-            ASTNodeType::Integer(String::from("1")),
-            ASTNodeType::Integer(String::from("2")),
-        ]);
+        let node = &_tuple(
+            vec![_integer("1", _dummy_pos()), _integer("2", _dummy_pos())],
+            _dummy_pos(),
+        );
 
         assert_eq!(
             exec(node, &mut Environment::default()),
@@ -633,13 +659,15 @@ mod tests {
 
     #[test]
     fn function() {
-        let node = &ASTNodeType::Function(
-            vec![String::from("x")],
-            vec![ASTNodeType::Infix(
+        let node = &_function(
+            vec!["x"],
+            vec![_infix(
                 InfixOperator::Product,
-                Box::new(ASTNodeType::Integer(String::from("2"))),
-                Box::new(ASTNodeType::Symbol(String::from("x"))),
+                _integer("2", _dummy_pos()),
+                _symbol("x", _dummy_pos()),
+                _dummy_pos(),
             )],
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -647,10 +675,11 @@ mod tests {
             Ok(Object::Function(object::Function::DefinedFunction(
                 DefinedFunction::new(
                     vec![String::from("x"),],
-                    vec![ASTNodeType::Infix(
+                    vec![_infix(
                         InfixOperator::Product,
-                        Box::new(ASTNodeType::Integer(String::from("2"))),
-                        Box::new(ASTNodeType::Symbol(String::from("x"))),
+                        _integer("2", _dummy_pos()),
+                        _symbol("x", _dummy_pos()),
+                        _dummy_pos()
                     )],
                 )
             ))),
@@ -659,16 +688,19 @@ mod tests {
 
     #[test]
     fn call() {
-        let node = &ASTNodeType::Call(
-            Box::new(ASTNodeType::Function(
-                vec![String::from("x")],
-                vec![ASTNodeType::Infix(
+        let node = &_call(
+            _function(
+                vec!["x"],
+                vec![_infix(
                     InfixOperator::Product,
-                    Box::new(ASTNodeType::Integer(String::from("2"))),
-                    Box::new(ASTNodeType::Symbol(String::from("x"))),
+                    _integer("2", _dummy_pos()),
+                    _symbol("x", _dummy_pos()),
+                    _dummy_pos(),
                 )],
-            )),
-            vec![ASTNodeType::Integer(String::from("1"))],
+                _dummy_pos(),
+            ),
+            vec![_integer("1", _dummy_pos())],
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -679,19 +711,19 @@ mod tests {
 
     #[test]
     fn several_params_call() {
-        let node = &ASTNodeType::Call(
-            Box::new(ASTNodeType::Function(
-                vec![String::from("x"), String::from("y")],
-                vec![ASTNodeType::Infix(
+        let node = &_call(
+            _function(
+                vec!["x", "y"],
+                vec![_infix(
                     InfixOperator::Sum,
-                    Box::new(ASTNodeType::Symbol(String::from("x"))),
-                    Box::new(ASTNodeType::Symbol(String::from("y"))),
+                    _symbol("x", _dummy_pos()),
+                    _symbol("y", _dummy_pos()),
+                    _dummy_pos(),
                 )],
-            )),
-            vec![
-                ASTNodeType::Integer(String::from("1")),
-                ASTNodeType::Integer(String::from("2")),
-            ],
+                _dummy_pos(),
+            ),
+            vec![_integer("1", _dummy_pos()), _integer("2", _dummy_pos())],
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -702,16 +734,19 @@ mod tests {
 
     #[test]
     fn missing_args() {
-        let node = &ASTNodeType::Call(
-            Box::new(ASTNodeType::Function(
-                vec![String::from("x"), String::from("y")],
-                vec![ASTNodeType::Infix(
+        let node = &_call(
+            _function(
+                vec!["x", "y"],
+                vec![_infix(
                     InfixOperator::Sum,
-                    Box::new(ASTNodeType::Symbol(String::from("x"))),
-                    Box::new(ASTNodeType::Symbol(String::from("y"))),
+                    _symbol("x", _dummy_pos()),
+                    _symbol("y", _dummy_pos()),
+                    _dummy_pos(),
                 )],
-            )),
-            vec![ASTNodeType::Integer(String::from("1"))],
+                _dummy_pos(),
+            ),
+            vec![_integer("1", _dummy_pos())],
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -722,7 +757,7 @@ mod tests {
 
     #[test]
     fn for_loop() {
-        // I preferred this to test the change of state without assignments
+        // I do this to test the change of state without assignments
         static ARGS: Mutex<Vec<String>> = Mutex::new(vec![]);
 
         fn test(args: &[Object]) -> Object {
@@ -733,17 +768,22 @@ mod tests {
         let mut env = Environment::default();
         env.set("f", Object::Function(Function::Effect(Effect::new(test))));
 
-        let node = &ASTNodeType::For(
+        let node = &_for(
             "val".into(),
-            Box::new(ASTNodeType::ExtensionSet(vec![
-                ASTNodeType::Integer(String::from("1")),
-                ASTNodeType::Integer(String::from("2")),
-                ASTNodeType::Integer(String::from("3")),
-            ])),
-            vec![ASTNodeType::Call(
-                Box::new(ASTNodeType::Symbol(String::from("f"))),
-                vec![ASTNodeType::Symbol(String::from("val"))],
+            _extension_set(
+                vec![
+                    _integer("1", _dummy_pos()),
+                    _integer("2", _dummy_pos()),
+                    _integer("3", _dummy_pos()),
+                ],
+                _dummy_pos(),
+            ),
+            vec![_call(
+                _symbol("f", _dummy_pos()),
+                vec![_symbol("val", _dummy_pos())],
+                _dummy_pos(),
             )],
+            _dummy_pos(),
         );
 
         assert_eq!(exec(node, &mut env), Ok(Object::empty_tuple()),);
@@ -756,23 +796,26 @@ mod tests {
 
     #[test]
     fn comprehension_set() {
-        let node = &ASTNodeType::ComprehensionSet(
-            Box::new(ASTNodeType::Symbol(String::from("k"))),
-            Box::new(ASTNodeType::Infix(
+        let node = &&_comprehension_set(
+            _symbol("k", _dummy_pos()),
+            _infix(
                 InfixOperator::Greater,
-                Box::new(ASTNodeType::Symbol(String::from("k"))),
-                Box::new(ASTNodeType::Integer(String::from("1"))),
-            )),
+                _symbol("k", _dummy_pos()),
+                _integer("1", _dummy_pos()),
+                _dummy_pos(),
+            ),
+            _dummy_pos(),
         );
 
         assert_eq!(
             exec(node, &mut Environment::default()),
             Ok(Object::ComprehensionSet(ComprehensionSet::from((
-                ASTNodeType::Symbol(String::from("k")),
-                ASTNodeType::Infix(
+                _symbol("k", _dummy_pos()),
+                _infix(
                     InfixOperator::Greater,
-                    Box::new(ASTNodeType::Symbol(String::from("k"))),
-                    Box::new(ASTNodeType::Integer(String::from("1"))),
+                    _symbol("k", _dummy_pos()),
+                    _integer("1", _dummy_pos()),
+                    _dummy_pos()
                 )
             )))),
         );
@@ -780,17 +823,20 @@ mod tests {
 
     #[test]
     fn comprehension_set_question() {
-        let node = &ASTNodeType::Infix(
+        let node = &_infix(
             InfixOperator::In,
-            Box::new(ASTNodeType::Integer(String::from("1"))),
-            Box::new(ASTNodeType::ComprehensionSet(
-                Box::new(ASTNodeType::Symbol(String::from("k"))),
-                Box::new(ASTNodeType::Infix(
+            _integer("1", _dummy_pos()),
+            _comprehension_set(
+                _symbol("k", _dummy_pos()),
+                _infix(
                     InfixOperator::GreaterEqual,
-                    Box::new(ASTNodeType::Symbol(String::from("k"))),
-                    Box::new(ASTNodeType::Integer(String::from("1"))),
-                )),
-            )),
+                    _symbol("k", _dummy_pos()),
+                    _integer("1", _dummy_pos()),
+                    _dummy_pos(),
+                ),
+                _dummy_pos(),
+            ),
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -801,7 +847,7 @@ mod tests {
 
     #[test]
     fn extension_list() {
-        let node = &ASTNodeType::ExtensionList(vec![ASTNodeType::Integer(String::from("1"))]);
+        let node = &_extension_list(vec![_integer("1", _dummy_pos())], _dummy_pos());
 
         assert_eq!(
             exec(node, &mut Environment::default()),
@@ -813,27 +859,32 @@ mod tests {
 
     #[test]
     fn function_with_code_block() {
-        let node = &ASTNodeType::Call(
-            Box::new(ASTNodeType::Function(
-                vec![String::from("x")],
+        let node = &_call(
+            _function(
+                vec!["x"],
                 vec![
-                    ASTNodeType::Let(
-                        Box::new(ASTNodeType::Symbol(String::from("y"))),
+                    _let_(
+                        _symbol("y", _dummy_pos()),
                         vec![],
-                        Box::new(ASTNodeType::Infix(
+                        _infix(
                             InfixOperator::Product,
-                            Box::new(ASTNodeType::Integer(String::from("2"))),
-                            Box::new(ASTNodeType::Symbol(String::from("x"))),
-                        )),
+                            _integer("2", _dummy_pos()),
+                            _symbol("x", _dummy_pos()),
+                            _dummy_pos(),
+                        ),
+                        _dummy_pos(),
                     ),
-                    ASTNodeType::Infix(
+                    _infix(
                         InfixOperator::Sum,
-                        Box::new(ASTNodeType::Symbol(String::from("y"))),
-                        Box::new(ASTNodeType::Integer(String::from("1"))),
+                        _symbol("y", _dummy_pos()),
+                        _integer("1", _dummy_pos()),
+                        _dummy_pos(),
                     ),
                 ],
-            )),
-            vec![ASTNodeType::Integer(String::from("2"))],
+                _dummy_pos(),
+            ),
+            vec![_integer("2", _dummy_pos())],
+            _dummy_pos(),
         );
 
         assert_eq!(
@@ -844,20 +895,23 @@ mod tests {
 
     #[test]
     fn comprehension_list() {
-        let node = &ASTNodeType::ComprehensionList(
-            Box::new(ASTNodeType::Infix(
+        let node = &_comprehension_list(
+            _infix(
                 InfixOperator::Sum,
-                Box::new(ASTNodeType::Symbol(String::from("k"))),
-                Box::new(ASTNodeType::Integer(String::from("1"))),
-            )),
-            Box::new(ASTNodeType::Infix(
+                _symbol("k", _dummy_pos()),
+                _integer("1", _dummy_pos()),
+                _dummy_pos(),
+            ),
+            _infix(
                 InfixOperator::In,
-                Box::new(ASTNodeType::Symbol(String::from("k"))),
-                Box::new(ASTNodeType::ExtensionList(vec![
-                    ASTNodeType::Integer(String::from("0")),
-                    ASTNodeType::Integer(String::from("1")),
-                ])),
-            )),
+                _symbol("k", _dummy_pos()),
+                _extension_list(
+                    vec![_integer("0", _dummy_pos()), _integer("1", _dummy_pos())],
+                    _dummy_pos(),
+                ),
+                _dummy_pos(),
+            ),
+            _dummy_pos(),
         );
 
         assert_eq!(
