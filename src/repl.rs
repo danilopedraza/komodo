@@ -1,5 +1,5 @@
 use crate::{
-    ast::ASTNodeType,
+    ast::ASTNode,
     builtin::standard_env,
     env::Environment,
     exec::exec,
@@ -43,7 +43,7 @@ impl Repl {
                 let lexer = build_lexer(&self.code);
                 let mut parser = parser_from(lexer.map(|res| res.unwrap()));
 
-                match parser.next() {
+                match parser._next() {
                     None => (String::from(""), ReplResponse::Continue),
                     Some(res) => self.ast_response(res),
                 }
@@ -55,7 +55,7 @@ impl Repl {
         }
     }
 
-    fn ast_response(&mut self, res: Result<ASTNodeType, ParserError>) -> (String, ReplResponse) {
+    fn ast_response(&mut self, res: Result<ASTNode, ParserError>) -> (String, ReplResponse) {
         match res {
             Ok(node) => match exec(&postprocess(node), &mut self.env) {
                 Ok(obj) => {
