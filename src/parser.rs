@@ -33,7 +33,6 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
 type NodeResult = Result<ASTNodeType, ParserError>;
 type _NodeResult = Result<ASTNode, ParserError>;
 
-#[allow(dead_code)]
 impl<T: Iterator<Item = Token>> Parser<T> {
     pub fn _next(&mut self) -> Option<_NodeResult> {
         match self.peek_token() {
@@ -265,19 +264,6 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 vec![TokenType::Rparen],
                 self.start_to_cur(start),
             )),
-        }
-    }
-
-    pub fn program(&mut self) -> Vec<ASTNodeType> {
-        let mut res = vec![];
-
-        loop {
-            let exp = self.next();
-
-            match exp {
-                Some(Ok(node)) => res.push(node),
-                _ => break res,
-            }
         }
     }
 
