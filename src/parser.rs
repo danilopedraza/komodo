@@ -409,12 +409,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rparen, Some(res))
                 .map(|lst| tuple_(lst, self.start_to_cur(start))),
-            // Some(tok) => Err(ParserError::UnexpectedToken(vec![TokenType::Rparen], tok)),
+            Some(tok) => Err(ParserError::UnexpectedToken(vec![TokenType::Rparen], tok)),
             None => Err(ParserError::EOFExpecting_(
                 vec![TokenType::Rparen],
                 self.start_to_cur(start),
             )),
-            _ => todo!(),
         }
     }
 
@@ -1729,6 +1728,20 @@ mod tests {
                 extension_list_(vec![], pos(15, 2)),
                 pos(0, 17)
             )))
+        );
+    }
+
+    #[test]
+    fn expected_rparen() {
+        let input = "(15]";
+        let lexer = build_lexer(input).map(|res| res.unwrap());
+
+        assert_eq!(
+            parser_from(lexer).next_(),
+            Some(Err(ParserError::UnexpectedToken(
+                vec![TokenType::Rparen],
+                TokenType::Rbrack
+            ))),
         );
     }
 }
