@@ -20,17 +20,16 @@ pub struct Parser<T: Iterator<Item = Token>> {
 }
 
 impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
-    type Item = Result<ASTNodeType, ParserError>;
+    type Item = Result<ASTNode, ParserError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.peek_token() {
             None => None,
-            _ => Some(self.expression(Precedence::Lowest)),
+            _ => Some(self._expression(Precedence::Lowest)),
         }
     }
 }
 
-type NodeResult = Result<ASTNodeType, ParserError>;
 type _NodeResult = Result<ASTNode, ParserError>;
 
 impl<T: Iterator<Item = Token>> Parser<T> {
@@ -297,153 +296,6 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn let_(&mut self) -> NodeResult {
-        let sg = self.signature()?;
-
-        match self.next_token() {
-            Some(TokenType::Assign) => self
-                .expression(Precedence::Lowest)
-                .map(|res| let_(sg, vec![], res)),
-            Some(TokenType::Lparen) => self.let_function_with_arguments(sg),
-            _ => Ok(sg),
-        }
-    }
-
-    fn signature(&mut self) -> NodeResult {
-        match (self.next_token(), self.peek_token()) {
-            (Some(TokenType::Ident(name)), Some(TokenType::Colon)) => {
-                self.next_token();
-                self.type_().map(|tp| signature(symbol(&name), Some(tp)))
-            }
-            (Some(TokenType::Ident(name)), _) => Ok(symbol(&name)),
-            (Some(tok), _) => Err(ParserError::UnexpectedToken(
-                vec![TokenType::Ident(String::from(""))],
-                tok,
-            )),
-            (None, _) => Err(ParserError::EOFExpecting(vec![TokenType::Ident(
-                String::from(""),
-            )])),
-        }
-    }
-
-    fn let_function_with_arguments(&mut self, name: ASTNodeType) -> NodeResult {
-        let args_res = self.list(TokenType::Rparen, None);
-
-        match (args_res, self.next_token()) {
-            (Ok(args), Some(TokenType::Assign)) => match self.expression(Precedence::Lowest) {
-                Ok(expr) => Ok(let_(name, args, expr)),
-                err => err,
-            },
-            (Err(err), _) => Err(err),
-            (_, Some(tok)) => Err(ParserError::UnexpectedToken(vec![TokenType::Assign], tok)),
-            (Ok(_), None) => Err(ParserError::EOFExpecting(vec![TokenType::Assign])),
-        }
-    }
-
-    fn list(
-        &mut self,
-        terminator: TokenType,
-        first: Option<ASTNodeType>,
-    ) -> Result<Vec<ASTNodeType>, ParserError> {
-        let mut res = match first {
-            None => vec![],
-            Some(node) => vec![node],
-        };
-
-        match self.peek_token() {
-            Some(tok) if tok == terminator => {
-                self.next_token();
-                Ok(res)
-            }
-            None => Err(ParserError::EOFReached),
-            _ => loop {
-                let expr = self.expression(Precedence::Lowest)?;
-                res.push(expr);
-
-                match self.next_token() {
-                    Some(TokenType::Comma) => continue,
-                    Some(tok) if tok == terminator => break Ok(res),
-                    Some(tok) => {
-                        break Err(ParserError::UnexpectedToken(
-                            vec![TokenType::Comma, terminator],
-                            tok,
-                        ))
-                    }
-                    None => {
-                        break Err(ParserError::EOFExpecting(vec![
-                            TokenType::Comma,
-                            terminator,
-                        ]))
-                    }
-                }
-            },
-        }
-    }
-
-    fn expression(&mut self, precedence: Precedence) -> NodeResult {
-        let mut expr = match self.next_token() {
-            None => Err(ParserError::EOFReached),
-            Some(tok) => match tok {
-                TokenType::Char(chr) => Ok(ASTNodeType::Char(chr)),
-                TokenType::For => self.for_(),
-                TokenType::If => self.if_(),
-                TokenType::Let => self.let_(),
-                TokenType::True => Ok(ASTNodeType::Boolean(true)),
-                TokenType::False => Ok(ASTNodeType::Boolean(false)),
-                TokenType::Lparen => self.parenthesis(),
-                TokenType::Lbrace => self.set(),
-                TokenType::Lbrack => self.my_list(),
-                TokenType::Integer(int) => Ok(integer(&int)),
-                TokenType::Ident(literal) => Ok(symbol(&literal)),
-                TokenType::String(str) => Ok(ASTNodeType::String(str)),
-                TokenType::Wildcard => Ok(ASTNodeType::Wildcard),
-                tok if PrefixOperator::from(tok.clone()).is_some() => {
-                    self.prefix(PrefixOperator::from(tok).unwrap())
-                }
-                tok => Err(ParserError::ExpectedExpression(tok)),
-            },
-        }?;
-
-        while let Some(op) = self.current_infix() {
-            if precedence < op.precedence() {
-                self.next_token();
-                expr = self.infix(expr, op)?;
-            } else {
-                break;
-            }
-        }
-
-        Ok(expr)
-    }
-
-    fn my_list(&mut self) -> NodeResult {
-        if matches!(self.peek_token(), Some(TokenType::Rbrack)) {
-            self.next_token();
-            return Ok(extension_list(vec![]));
-        }
-
-        let first = self.expression(Precedence::Lowest)?;
-
-        match self.next_token() {
-            Some(TokenType::Colon) => self.comprehension_list(first),
-            Some(TokenType::Comma) => self
-                .list(TokenType::Rbrack, Some(first))
-                .map(extension_list),
-            Some(TokenType::Rbrack) => Ok(extension_list(vec![first])),
-            Some(TokenType::VerticalBar) => self.prepend(first),
-            Some(tok) => Err(ParserError::UnexpectedToken(
-                vec![TokenType::Colon, TokenType::Comma, TokenType::Rbrack],
-                tok,
-            )),
-            None => Err(ParserError::EOFExpecting(vec![
-                TokenType::Colon,
-                TokenType::Comma,
-                TokenType::Comma,
-                TokenType::Rbrack,
-            ])),
-        }
-    }
-
     fn list_(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
@@ -474,26 +326,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn comprehension_list(&mut self, first: ASTNodeType) -> NodeResult {
-        let last = self.expression(Precedence::Lowest)?;
-        self.consume(TokenType::Rbrack)?;
-
-        Ok(comprehension_list(first, last))
-    }
-
     fn comprehension_list_(&mut self, first: ASTNode, start: u32) -> _NodeResult {
         let last = self._expression(Precedence::Lowest)?;
         self.consume(TokenType::Rbrack)?;
 
         Ok(_comprehension_list(first, last, self.start_to_cur(start)))
-    }
-
-    fn prepend(&mut self, first: ASTNodeType) -> NodeResult {
-        let last = self.expression(Precedence::Lowest)?;
-
-        self.consume(TokenType::Rbrack)?;
-
-        Ok(prepend(first, last))
     }
 
     fn prepend_(&mut self, first: ASTNode, start: u32) -> _NodeResult {
@@ -502,32 +339,6 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         self.consume(TokenType::Rbrack)?;
 
         Ok(_prepend(first, last, self.start_to_cur(start)))
-    }
-
-    fn for_(&mut self) -> NodeResult {
-        let ident = match self.next_token() {
-            Some(TokenType::Ident(s)) => Ok(s),
-            Some(tok) => Err(ParserError::UnexpectedToken(
-                vec![TokenType::Ident(String::from(""))],
-                tok,
-            )),
-            None => Err(ParserError::EOFExpecting(vec![TokenType::Ident(
-                String::from(""),
-            )])),
-        }?;
-
-        self.consume(TokenType::In)?;
-
-        let iter = self.expression(Precedence::Lowest)?;
-
-        self.consume(TokenType::Colon)?;
-
-        let proc = match self.expression(Precedence::Lowest)? {
-            ASTNodeType::Tuple(v) => v,
-            node => vec![node],
-        };
-
-        Ok(ASTNodeType::For(ident, Box::new(iter), proc))
     }
 
     fn for__(&mut self) -> _NodeResult {
@@ -568,20 +379,6 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn if_(&mut self) -> NodeResult {
-        let cond = self.expression(Precedence::Lowest)?;
-
-        self.consume(TokenType::Then)?;
-
-        let first_res = self.expression(Precedence::Lowest)?;
-
-        self.consume(TokenType::Else)?;
-
-        let second_res = self.expression(Precedence::Lowest)?;
-
-        Ok(if_(cond, first_res, second_res))
-    }
-
     fn if__(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
@@ -602,72 +399,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         self.peek_token().and_then(InfixOperator::from)
     }
 
-    fn prefix(&mut self, op: PrefixOperator) -> NodeResult {
-        self.expression(Precedence::Highest)
-            .map(|expr| prefix(op, expr))
-    }
-
     fn prefix_(&mut self, op: PrefixOperator) -> _NodeResult {
         let start = self.cur_pos.start;
 
         self._expression(Precedence::Highest)
             .map(|expr| _prefix(op, expr, self.start_to_cur(start)))
-    }
-
-    fn parenthesis(&mut self) -> NodeResult {
-        if matches!(self.peek_token(), Some(TokenType::Rparen)) {
-            self.next_token();
-            return Ok(tuple(vec![]));
-        }
-
-        let res = self.expression(Precedence::Lowest)?;
-
-        match self.next_token() {
-            Some(TokenType::Rparen) => Ok(res),
-            Some(TokenType::Comma) => self.list(TokenType::Rparen, Some(res)).map(tuple),
-            Some(tok) => Err(ParserError::UnexpectedToken(vec![TokenType::Rparen], tok)),
-            None => Err(ParserError::EOFExpecting(vec![TokenType::Rparen])),
-        }
-    }
-
-    fn infix(&mut self, lhs: ASTNodeType, op: InfixOperator) -> NodeResult {
-        if op == InfixOperator::Call {
-            self.list(TokenType::Rparen, None)
-                .map(|args| infix(op, lhs, tuple(args)))
-        } else {
-            self.expression(op.precedence())
-                .map(|rhs| infix(op, lhs, rhs))
-        }
-    }
-
-    fn type_(&mut self) -> NodeResult {
-        self.expression(Precedence::Lowest)
-    }
-
-    fn set(&mut self) -> NodeResult {
-        if matches!(self.peek_token(), Some(TokenType::Rbrace)) {
-            self.next_token();
-            return Ok(extension_set(vec![]));
-        }
-
-        let first = self.expression(Precedence::Lowest)?;
-
-        match self.next_token() {
-            Some(TokenType::Comma) => self.list(TokenType::Rbrace, Some(first)).map(extension_set),
-            Some(TokenType::Colon) => self
-                .expression(Precedence::Lowest)
-                .map(|second| comprehension_set(first, second)),
-            Some(TokenType::Rbrace) => Ok(extension_set(vec![first])),
-            Some(tok) => Err(ParserError::UnexpectedToken(
-                vec![TokenType::Comma, TokenType::Rbrace, TokenType::Colon],
-                tok,
-            )),
-            None => Err(ParserError::EOFExpecting(vec![
-                TokenType::Comma,
-                TokenType::Rbrace,
-                TokenType::Colon,
-            ])),
-        }
     }
 
     fn set_(&mut self) -> _NodeResult {
