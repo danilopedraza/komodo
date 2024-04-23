@@ -334,3 +334,14 @@ pub fn _for(var: &str, iter: ASTNode, block: Vec<ASTNode>, position: Position) -
         position,
     )
 }
+
+pub fn _function(params: Vec<&str>, proc: Vec<ASTNode>, position: Position) -> ASTNode {
+    ASTNode::new(
+        ASTNodeType_::Function(params.into_iter().map(|str| str.to_owned()).collect(), proc),
+        position,
+    )
+}
+
+pub fn _call(called: ASTNode, args: Vec<ASTNode>, position: Position) -> ASTNode {
+    ASTNode::new(ASTNodeType_::Call(Box::new(called), args), position)
+}
