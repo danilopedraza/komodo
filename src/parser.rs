@@ -17,7 +17,6 @@ pub enum ParserError {
 pub struct Parser<T: Iterator<Item = Token>> {
     tokens: Peekable<T>,
     cur_pos: Position,
-    pos_stack: Vec<Position>,
 }
 
 impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
@@ -31,19 +30,19 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
     }
 }
 
-fn pos(start: u32, length: u32) -> Position {
+fn _pos(start: u32, length: u32) -> Position {
     Position::new(start, length)
 }
 
-fn boolean_(val: bool, position: Position) -> ASTNode {
+fn _boolean(val: bool, position: Position) -> ASTNode {
     ASTNode::new(ASTNodeType_::Boolean(val), position)
 }
 
-fn char_(val: char, position: Position) -> ASTNode {
+fn _char(val: char, position: Position) -> ASTNode {
     ASTNode::new(ASTNodeType_::Char(val), position)
 }
 
-fn string_(str: &str, position: Position) -> ASTNode {
+fn _string(str: &str, position: Position) -> ASTNode {
     ASTNode::new(ASTNodeType_::String(str.into()), position)
 }
 
@@ -51,7 +50,7 @@ fn symbol(name: &str) -> ASTNodeType {
     ASTNodeType::Symbol(name.to_string())
 }
 
-fn symbol_(name: &str, position: Position) -> ASTNode {
+fn _symbol(name: &str, position: Position) -> ASTNode {
     ASTNode::new(ASTNodeType_::Symbol(name.into()), position)
 }
 
@@ -59,7 +58,7 @@ fn integer(int: &str) -> ASTNodeType {
     ASTNodeType::Integer(int.to_string())
 }
 
-fn integer_(int: &str, position: Position) -> ASTNode {
+fn _integer(int: &str, position: Position) -> ASTNode {
     ASTNode::new(ASTNodeType_::Integer(int.into()), position)
 }
 
@@ -67,7 +66,7 @@ fn infix(op: InfixOperator, lhs: ASTNodeType, rhs: ASTNodeType) -> ASTNodeType {
     ASTNodeType::Infix(op, Box::new(lhs), Box::new(rhs))
 }
 
-fn infix_(op: InfixOperator, lhs: ASTNode, rhs: ASTNode, position: Position) -> ASTNode {
+fn _infix(op: InfixOperator, lhs: ASTNode, rhs: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
         ASTNodeType_::Infix(op, Box::new(lhs), Box::new(rhs)),
         position,
@@ -78,7 +77,7 @@ fn prefix(op: PrefixOperator, val: ASTNodeType) -> ASTNodeType {
     ASTNodeType::Prefix(op, Box::new(val))
 }
 
-fn prefix_(op: PrefixOperator, val: ASTNode, position: Position) -> ASTNode {
+fn _prefix(op: PrefixOperator, val: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(ASTNodeType_::Prefix(op, Box::new(val)), position)
 }
 
@@ -86,7 +85,7 @@ fn let_(ident: ASTNodeType, params: Vec<ASTNodeType>, val: ASTNodeType) -> ASTNo
     ASTNodeType::Let(Box::new(ident), params, Box::new(val))
 }
 
-fn let__(ident: ASTNode, params: Vec<ASTNode>, val: ASTNode, position: Position) -> ASTNode {
+fn _let_(ident: ASTNode, params: Vec<ASTNode>, val: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
         ASTNodeType_::Let(Box::new(ident), params, Box::new(val)),
         position,
@@ -97,7 +96,7 @@ fn signature(symbol: ASTNodeType, type_: Option<ASTNodeType>) -> ASTNodeType {
     ASTNodeType::Signature(Box::new(symbol), type_.map(Box::new))
 }
 
-fn signature_(symbol: ASTNode, type_: Option<ASTNode>, position: Position) -> ASTNode {
+fn _signature(symbol: ASTNode, type_: Option<ASTNode>, position: Position) -> ASTNode {
     ASTNode::new(
         ASTNodeType_::Signature(Box::new(symbol), type_.map(Box::new)),
         position,
@@ -108,7 +107,7 @@ fn if_(cond: ASTNodeType, first_res: ASTNodeType, second_res: ASTNodeType) -> AS
     ASTNodeType::If(Box::new(cond), Box::new(first_res), Box::new(second_res))
 }
 
-fn if__(cond: ASTNode, first_res: ASTNode, second_res: ASTNode, position: Position) -> ASTNode {
+fn _if_(cond: ASTNode, first_res: ASTNode, second_res: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
         ASTNodeType_::If(Box::new(cond), Box::new(first_res), Box::new(second_res)),
         position,
@@ -119,7 +118,7 @@ fn tuple(list: Vec<ASTNodeType>) -> ASTNodeType {
     ASTNodeType::Tuple(list)
 }
 
-fn tuple_(list: Vec<ASTNode>, position: Position) -> ASTNode {
+fn _tuple(list: Vec<ASTNode>, position: Position) -> ASTNode {
     ASTNode::new(ASTNodeType_::Tuple(list), position)
 }
 
@@ -127,7 +126,7 @@ fn comprehension_set(val: ASTNodeType, prop: ASTNodeType) -> ASTNodeType {
     ASTNodeType::ComprehensionSet(Box::new(val), Box::new(prop))
 }
 
-fn comprehension_set_(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
+fn _comprehension_set(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
         ASTNodeType_::ComprehensionSet(Box::new(val), Box::new(prop)),
         position,
@@ -138,7 +137,7 @@ fn comprehension_list(val: ASTNodeType, prop: ASTNodeType) -> ASTNodeType {
     ASTNodeType::ComprehensionList(Box::new(val), Box::new(prop))
 }
 
-fn comprehension_list_(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
+fn _comprehension_list(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
         ASTNodeType_::ComprehensionList(Box::new(val), Box::new(prop)),
         position,
@@ -149,7 +148,7 @@ fn prepend(first: ASTNodeType, most: ASTNodeType) -> ASTNodeType {
     ASTNodeType::Prepend(Box::new(first), Box::new(most))
 }
 
-fn prepend_(first: ASTNode, most: ASTNode, position: Position) -> ASTNode {
+fn _prepend(first: ASTNode, most: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
         ASTNodeType_::Prepend(Box::new(first), Box::new(most)),
         position,
@@ -160,7 +159,7 @@ fn extension_list(list: Vec<ASTNodeType>) -> ASTNodeType {
     ASTNodeType::ExtensionList(list)
 }
 
-fn extension_list_(list: Vec<ASTNode>, position: Position) -> ASTNode {
+fn _extension_list(list: Vec<ASTNode>, position: Position) -> ASTNode {
     ASTNode::new(ASTNodeType_::ExtensionList(list), position)
 }
 
@@ -168,11 +167,11 @@ fn extension_set(list: Vec<ASTNodeType>) -> ASTNodeType {
     ASTNodeType::ExtensionSet(list)
 }
 
-fn extension_set_(list: Vec<ASTNode>, position: Position) -> ASTNode {
+fn _extension_set(list: Vec<ASTNode>, position: Position) -> ASTNode {
     ASTNode::new(ASTNodeType_::ExtensionSet(list), position)
 }
 
-fn for_(var: &str, iter: ASTNode, block: Vec<ASTNode>, position: Position) -> ASTNode {
+fn _for(var: &str, iter: ASTNode, block: Vec<ASTNode>, position: Position) -> ASTNode {
     ASTNode::new(
         ASTNodeType_::For(var.into(), Box::new(iter), block),
         position,
@@ -180,17 +179,18 @@ fn for_(var: &str, iter: ASTNode, block: Vec<ASTNode>, position: Position) -> AS
 }
 
 type NodeResult = Result<ASTNodeType, ParserError>;
-type NodeResult_ = Result<ASTNode, ParserError>;
+type _NodeResult = Result<ASTNode, ParserError>;
 
+#[allow(dead_code)]
 impl<T: Iterator<Item = Token>> Parser<T> {
-    fn next_(&mut self) -> Option<NodeResult_> {
+    fn _next(&mut self) -> Option<_NodeResult> {
         match self.peek_token() {
             None => None,
-            _ => Some(self.expression_(Precedence::Lowest)),
+            _ => Some(self._expression(Precedence::Lowest)),
         }
     }
 
-    fn peek_pos(&mut self) -> Position {
+    fn _peek_pos(&mut self) -> Position {
         if let Some(Token { position, .. }) = self.tokens.peek() {
             *position
         } else {
@@ -198,8 +198,8 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn expression_(&mut self, precedence: Precedence) -> NodeResult_ {
-        let start = self.peek_pos().start;
+    fn _expression(&mut self, precedence: Precedence) -> _NodeResult {
+        let start = self._peek_pos().start;
 
         let mut expr = match self.next_token() {
             None => Err(ParserError::EOFReached),
@@ -236,43 +236,43 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         Ok(expr)
     }
 
-    fn wildcard(&self) -> NodeResult_ {
+    fn wildcard(&self) -> _NodeResult {
         self.node_with_cur(ASTNodeType_::Wildcard)
     }
 
-    fn char(&self, chr: char) -> NodeResult_ {
+    fn char(&self, chr: char) -> _NodeResult {
         self.node_with_cur(ASTNodeType_::Char(chr))
     }
 
-    fn string(&self, str: String) -> NodeResult_ {
+    fn string(&self, str: String) -> _NodeResult {
         self.node_with_cur(ASTNodeType_::String(str))
     }
 
-    fn boolean(&self, val: bool) -> NodeResult_ {
+    fn boolean(&self, val: bool) -> _NodeResult {
         self.node_with_cur(ASTNodeType_::Boolean(val))
     }
 
-    fn node_with_cur(&self, node: ASTNodeType_) -> NodeResult_ {
+    fn node_with_cur(&self, node: ASTNodeType_) -> _NodeResult {
         Ok(ASTNode::new(node, self.cur_pos))
     }
 
-    fn symbol(&self, literal: String) -> NodeResult_ {
+    fn symbol(&self, literal: String) -> _NodeResult {
         self.node_with_cur(ASTNodeType_::Symbol(literal))
     }
 
-    fn let__(&mut self) -> NodeResult_ {
+    fn let__(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
         let sg = self.signature_()?;
 
         match self.next_token() {
             Some(TokenType::Assign) => self
-                .expression_(Precedence::Lowest)
-                .map(|res| let__(sg, vec![], res, self.start_to_cur(start))),
+                ._expression(Precedence::Lowest)
+                .map(|res| _let_(sg, vec![], res, self.start_to_cur(start))),
             Some(TokenType::Lparen) => {
                 let (sg, params, val) = self.let_function_with_arguments_(sg)?;
 
-                Ok(let__(sg, params, val, self.start_to_cur(start)))
+                Ok(_let_(sg, params, val, self.start_to_cur(start)))
             }
             _ => Ok(sg),
         }
@@ -285,7 +285,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let args_res = self.sequence(TokenType::Rparen, None);
 
         match (args_res, self.next_token()) {
-            (Ok(args), Some(TokenType::Assign)) => match self.expression_(Precedence::Lowest) {
+            (Ok(args), Some(TokenType::Assign)) => match self._expression(Precedence::Lowest) {
                 Ok(expr) => Ok((name, args, expr)),
                 Err(err) => Err(err),
             },
@@ -312,7 +312,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             }
             None => Err(ParserError::EOFReached),
             _ => loop {
-                let expr = self.expression_(Precedence::Lowest)?;
+                let expr = self._expression(Precedence::Lowest)?;
                 res.push(expr);
 
                 match self.next_token() {
@@ -335,20 +335,20 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn signature_(&mut self) -> NodeResult_ {
+    fn signature_(&mut self) -> _NodeResult {
         match (self.next_token(), self.peek_token()) {
             (Some(TokenType::Ident(name)), Some(TokenType::Colon)) => {
                 let symbol_pos = self.cur_pos;
                 self.next_token();
                 self.type__().map(|tp| {
-                    signature_(
-                        symbol_(&name, symbol_pos),
+                    _signature(
+                        _symbol(&name, symbol_pos),
                         Some(tp),
                         self.start_to_cur(symbol_pos.start),
                     )
                 })
             }
-            (Some(TokenType::Ident(name)), _) => Ok(symbol_(&name, self.cur_pos)),
+            (Some(TokenType::Ident(name)), _) => Ok(_symbol(&name, self.cur_pos)),
             (Some(tok), _) => Err(ParserError::UnexpectedToken(
                 vec![TokenType::Ident(String::from(""))],
                 tok,
@@ -359,28 +359,28 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn type__(&mut self) -> NodeResult_ {
-        self.expression_(Precedence::Lowest)
+    fn type__(&mut self) -> _NodeResult {
+        self._expression(Precedence::Lowest)
     }
 
     fn start_to_cur(&self, start: u32) -> Position {
         Position::new(start, self.cur_pos.start + self.cur_pos.length - start)
     }
 
-    fn infix_(&mut self, lhs: ASTNode, op: InfixOperator, start: u32) -> NodeResult_ {
+    fn infix_(&mut self, lhs: ASTNode, op: InfixOperator, start: u32) -> _NodeResult {
         if op == InfixOperator::Call {
             let tuple_start = self.cur_pos.start;
 
             self.sequence(TokenType::Rparen, None).map(|args| {
-                infix_(
+                _infix(
                     op,
                     lhs,
-                    tuple_(args, self.start_to_cur(tuple_start)),
+                    _tuple(args, self.start_to_cur(tuple_start)),
                     self.start_to_cur(start),
                 )
             })
         } else {
-            self.expression_(op.precedence()).map(|rhs| {
+            self._expression(op.precedence()).map(|rhs| {
                 ASTNode::new(
                     ASTNodeType_::Infix(op, Box::new(lhs), Box::new(rhs)),
                     self.start_to_cur(start),
@@ -389,25 +389,25 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn integer(&self, int: String) -> NodeResult_ {
+    fn integer(&self, int: String) -> _NodeResult {
         self.node_with_cur(ASTNodeType_::Integer(int))
     }
 
-    fn parenthesis_(&mut self) -> NodeResult_ {
+    fn parenthesis_(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
         if matches!(self.peek_token(), Some(TokenType::Rparen)) {
             self.next_token();
-            return Ok(tuple_(vec![], self.start_to_cur(start)));
+            return Ok(_tuple(vec![], self.start_to_cur(start)));
         }
 
-        let res = self.expression_(Precedence::Lowest)?;
+        let res = self._expression(Precedence::Lowest)?;
 
         match self.next_token() {
             Some(TokenType::Rparen) => Ok(res),
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rparen, Some(res))
-                .map(|lst| tuple_(lst, self.start_to_cur(start))),
+                .map(|lst| _tuple(lst, self.start_to_cur(start))),
             Some(tok) => Err(ParserError::UnexpectedToken(vec![TokenType::Rparen], tok)),
             None => Err(ParserError::EOFExpecting_(
                 vec![TokenType::Rparen],
@@ -433,7 +433,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let mut res = vec![];
 
         loop {
-            let exp = self.next_();
+            let exp = self._next();
 
             match exp {
                 Some(Ok(node)) => res.push(node),
@@ -606,22 +606,22 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn list_(&mut self) -> NodeResult_ {
+    fn list_(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
         if matches!(self.peek_token(), Some(TokenType::Rbrack)) {
             self.next_token();
-            return Ok(extension_list_(vec![], self.start_to_cur(start)));
+            return Ok(_extension_list(vec![], self.start_to_cur(start)));
         }
 
-        let first = self.expression_(Precedence::Lowest)?;
+        let first = self._expression(Precedence::Lowest)?;
 
         match self.next_token() {
             Some(TokenType::Colon) => self.comprehension_list_(first, start),
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rbrack, Some(first))
-                .map(|lst| extension_list_(lst, self.start_to_cur(start))),
-            Some(TokenType::Rbrack) => Ok(extension_list_(vec![first], self.start_to_cur(start))),
+                .map(|lst| _extension_list(lst, self.start_to_cur(start))),
+            Some(TokenType::Rbrack) => Ok(_extension_list(vec![first], self.start_to_cur(start))),
             Some(TokenType::VerticalBar) => self.prepend_(first, start),
             Some(tok) => Err(ParserError::UnexpectedToken(
                 vec![TokenType::Colon, TokenType::Comma, TokenType::Rbrack],
@@ -643,11 +643,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         Ok(comprehension_list(first, last))
     }
 
-    fn comprehension_list_(&mut self, first: ASTNode, start: u32) -> NodeResult_ {
-        let last = self.expression_(Precedence::Lowest)?;
+    fn comprehension_list_(&mut self, first: ASTNode, start: u32) -> _NodeResult {
+        let last = self._expression(Precedence::Lowest)?;
         self.consume(TokenType::Rbrack)?;
 
-        Ok(comprehension_list_(first, last, self.start_to_cur(start)))
+        Ok(_comprehension_list(first, last, self.start_to_cur(start)))
     }
 
     fn prepend(&mut self, first: ASTNodeType) -> NodeResult {
@@ -658,12 +658,12 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         Ok(prepend(first, last))
     }
 
-    fn prepend_(&mut self, first: ASTNode, start: u32) -> NodeResult_ {
-        let last = self.expression_(Precedence::Lowest)?;
+    fn prepend_(&mut self, first: ASTNode, start: u32) -> _NodeResult {
+        let last = self._expression(Precedence::Lowest)?;
 
         self.consume(TokenType::Rbrack)?;
 
-        Ok(prepend_(first, last, self.start_to_cur(start)))
+        Ok(_prepend(first, last, self.start_to_cur(start)))
     }
 
     fn for_(&mut self) -> NodeResult {
@@ -692,7 +692,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         Ok(ASTNodeType::For(ident, Box::new(iter), proc))
     }
 
-    fn for__(&mut self) -> NodeResult_ {
+    fn for__(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
         let ident = match self.next_token() {
@@ -708,18 +708,18 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
         self.consume(TokenType::In)?;
 
-        let iter = self.expression_(Precedence::Lowest)?;
+        let iter = self._expression(Precedence::Lowest)?;
 
         self.consume(TokenType::Colon)?;
 
-        let ASTNode { node, position } = self.expression_(Precedence::Lowest)?;
+        let ASTNode { node, position } = self._expression(Precedence::Lowest)?;
 
         let proc = match node {
             ASTNodeType_::Tuple(v) => v,
             node => vec![ASTNode::new(node, position)],
         };
 
-        Ok(for_(&ident, iter, proc, self.start_to_cur(start)))
+        Ok(_for(&ident, iter, proc, self.start_to_cur(start)))
     }
 
     fn consume(&mut self, expected_tok: TokenType) -> Result<(), ParserError> {
@@ -744,20 +744,20 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         Ok(if_(cond, first_res, second_res))
     }
 
-    fn if__(&mut self) -> NodeResult_ {
+    fn if__(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
-        let cond = self.expression_(Precedence::Lowest)?;
+        let cond = self._expression(Precedence::Lowest)?;
 
         self.consume(TokenType::Then)?;
 
-        let first_res = self.expression_(Precedence::Lowest)?;
+        let first_res = self._expression(Precedence::Lowest)?;
 
         self.consume(TokenType::Else)?;
 
-        let second_res = self.expression_(Precedence::Lowest)?;
+        let second_res = self._expression(Precedence::Lowest)?;
 
-        Ok(if__(cond, first_res, second_res, self.start_to_cur(start)))
+        Ok(_if_(cond, first_res, second_res, self.start_to_cur(start)))
     }
 
     fn current_infix(&mut self) -> Option<InfixOperator> {
@@ -769,11 +769,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             .map(|expr| prefix(op, expr))
     }
 
-    fn prefix_(&mut self, op: PrefixOperator) -> NodeResult_ {
+    fn prefix_(&mut self, op: PrefixOperator) -> _NodeResult {
         let start = self.cur_pos.start;
 
-        self.expression_(Precedence::Highest)
-            .map(|expr| prefix_(op, expr, self.start_to_cur(start)))
+        self._expression(Precedence::Highest)
+            .map(|expr| _prefix(op, expr, self.start_to_cur(start)))
     }
 
     fn parenthesis(&mut self) -> NodeResult {
@@ -832,28 +832,28 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn set_(&mut self) -> NodeResult_ {
+    fn set_(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
         if matches!(self.peek_token(), Some(TokenType::Rbrace)) {
             self.next_token();
-            return Ok(extension_set_(vec![], self.start_to_cur(start)));
+            return Ok(_extension_set(vec![], self.start_to_cur(start)));
         }
 
-        let first = self.expression_(Precedence::Lowest)?;
+        let first = self._expression(Precedence::Lowest)?;
 
         match self.next_token() {
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rbrace, Some(first))
-                .map(|lst| extension_set_(lst, self.start_to_cur(start))),
+                .map(|lst| _extension_set(lst, self.start_to_cur(start))),
             Some(TokenType::Colon) => {
-                let second = self.expression_(Precedence::Lowest)?;
+                let second = self._expression(Precedence::Lowest)?;
 
                 self.consume(TokenType::Rbrace)?;
 
-                Ok(comprehension_set_(first, second, self.start_to_cur(start)))
+                Ok(_comprehension_set(first, second, self.start_to_cur(start)))
             }
-            Some(TokenType::Rbrace) => Ok(extension_set_(vec![first], self.start_to_cur(start))),
+            Some(TokenType::Rbrace) => Ok(_extension_set(vec![first], self.start_to_cur(start))),
             Some(tok) => Err(ParserError::UnexpectedToken(
                 vec![TokenType::Comma, TokenType::Rbrace, TokenType::Colon],
                 tok,
@@ -871,7 +871,6 @@ pub fn parser_from<T: Iterator<Item = Token>>(tokens: T) -> Parser<T> {
     Parser {
         tokens: tokens.peekable(),
         cur_pos: Position::new(0, 0),
-        pos_stack: vec![],
     }
 }
 
@@ -881,49 +880,47 @@ mod tests {
     use crate::{error::Position, lexer::build_lexer};
     use std::iter;
 
-    fn iter_from(v: Vec<TokenType>) -> impl Iterator<Item = Token> {
-        v.into_iter()
-            .map(|tok| Token::new(tok, Position::new(0, 0)))
-    }
-
     #[test]
     fn empty_expression() {
-        assert_eq!(parser_from(iter::empty::<Token>()).next_(), None);
+        assert_eq!(parser_from(iter::empty::<Token>())._next(), None);
     }
 
     #[test]
     fn integer_alone() {
-        let tokens = vec![Token::new(TokenType::Integer(String::from("0")), pos(0, 1))];
+        let tokens = vec![Token::new(
+            TokenType::Integer(String::from("0")),
+            _pos(0, 1),
+        )];
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
-            Some(Ok(integer_("0", pos(0, 1))))
+            parser_from(tokens.into_iter())._next(),
+            Some(Ok(_integer("0", _pos(0, 1))))
         );
     }
 
     #[test]
     fn integer_in_parenthesis() {
         let tokens = vec![
-            Token::new(TokenType::Lparen, pos(0, 1)),
-            Token::new(TokenType::Integer(String::from("365")), pos(1, 3)),
-            Token::new(TokenType::Rparen, pos(4, 1)),
+            Token::new(TokenType::Lparen, _pos(0, 1)),
+            Token::new(TokenType::Integer(String::from("365")), _pos(1, 3)),
+            Token::new(TokenType::Rparen, _pos(4, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
-            Some(Ok(integer_("365", pos(1, 3)))),
+            parser_from(tokens.into_iter())._next(),
+            Some(Ok(_integer("365", _pos(1, 3)))),
         );
     }
 
     #[test]
     fn unbalanced_left_parenthesis() {
         let tokens = vec![
-            Token::new(TokenType::Lparen, pos(0, 1)),
-            Token::new(TokenType::Integer(String::from("65")), pos(1, 2)),
+            Token::new(TokenType::Lparen, _pos(0, 1)),
+            Token::new(TokenType::Integer(String::from("65")), _pos(1, 2)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
+            parser_from(tokens.into_iter())._next(),
             Some(Err(ParserError::EOFExpecting_(
                 vec![TokenType::Rparen,],
-                pos(0, 3)
+                _pos(0, 3)
             )))
         );
     }
@@ -931,17 +928,17 @@ mod tests {
     #[test]
     fn simple_sum() {
         let tokens = vec![
-            Token::new(TokenType::Integer(String::from("1")), pos(0, 1)),
-            Token::new(TokenType::Plus, pos(2, 1)),
-            Token::new(TokenType::Integer(String::from("1")), pos(4, 1)),
+            Token::new(TokenType::Integer(String::from("1")), _pos(0, 1)),
+            Token::new(TokenType::Plus, _pos(2, 1)),
+            Token::new(TokenType::Integer(String::from("1")), _pos(4, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
-            Some(Ok(infix_(
+            parser_from(tokens.into_iter())._next(),
+            Some(Ok(_infix(
                 InfixOperator::Sum,
-                integer_("1", pos(0, 1)),
-                integer_("1", pos(4, 1)),
-                pos(0, 5)
+                _integer("1", _pos(0, 1)),
+                _integer("1", _pos(4, 1)),
+                _pos(0, 5)
             )))
         );
     }
@@ -949,11 +946,11 @@ mod tests {
     #[test]
     fn incomplete_sum() {
         let tokens = vec![
-            Token::new(TokenType::Integer(String::from("1")), pos(0, 1)),
-            Token::new(TokenType::Plus, pos(1, 1)),
+            Token::new(TokenType::Integer(String::from("1")), _pos(0, 1)),
+            Token::new(TokenType::Plus, _pos(1, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
+            parser_from(tokens.into_iter())._next(),
             Some(Err(ParserError::EOFReached))
         );
     }
@@ -961,24 +958,24 @@ mod tests {
     #[test]
     fn product_and_power() {
         let tokens = vec![
-            Token::new(TokenType::Integer(String::from("1")), pos(0, 1)),
-            Token::new(TokenType::Times, pos(1, 1)),
-            Token::new(TokenType::Integer(String::from("2")), pos(2, 1)),
-            Token::new(TokenType::ToThe, pos(4, 2)),
-            Token::new(TokenType::Integer(String::from("2")), pos(7, 1)),
+            Token::new(TokenType::Integer(String::from("1")), _pos(0, 1)),
+            Token::new(TokenType::Times, _pos(1, 1)),
+            Token::new(TokenType::Integer(String::from("2")), _pos(2, 1)),
+            Token::new(TokenType::ToThe, _pos(4, 2)),
+            Token::new(TokenType::Integer(String::from("2")), _pos(7, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
-            Some(Ok(infix_(
+            parser_from(tokens.into_iter())._next(),
+            Some(Ok(_infix(
                 InfixOperator::Product,
-                integer_("1", pos(0, 1)),
-                infix_(
+                _integer("1", _pos(0, 1)),
+                _infix(
                     InfixOperator::Exponentiation,
-                    integer_("2", pos(2, 1)),
-                    integer_("2", pos(7, 1)),
-                    pos(2, 6),
+                    _integer("2", _pos(2, 1)),
+                    _integer("2", _pos(7, 1)),
+                    _pos(2, 6),
                 ),
-                pos(0, 8)
+                _pos(0, 8)
             )))
         );
     }
@@ -986,24 +983,24 @@ mod tests {
     #[test]
     fn division_and_sum() {
         let tokens = vec![
-            Token::new(TokenType::Integer(String::from("1")), pos(0, 1)),
-            Token::new(TokenType::Over, pos(1, 1)),
-            Token::new(TokenType::Integer(String::from("1")), pos(2, 1)),
-            Token::new(TokenType::Plus, pos(4, 1)),
-            Token::new(TokenType::Integer(String::from("1")), pos(6, 1)),
+            Token::new(TokenType::Integer(String::from("1")), _pos(0, 1)),
+            Token::new(TokenType::Over, _pos(1, 1)),
+            Token::new(TokenType::Integer(String::from("1")), _pos(2, 1)),
+            Token::new(TokenType::Plus, _pos(4, 1)),
+            Token::new(TokenType::Integer(String::from("1")), _pos(6, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
-            Some(Ok(infix_(
+            parser_from(tokens.into_iter())._next(),
+            Some(Ok(_infix(
                 InfixOperator::Sum,
-                infix_(
+                _infix(
                     InfixOperator::Division,
-                    integer_("1", pos(0, 1)),
-                    integer_("1", pos(2, 1)),
-                    pos(0, 3)
+                    _integer("1", _pos(0, 1)),
+                    _integer("1", _pos(2, 1)),
+                    _pos(0, 3)
                 ),
-                integer_("1", pos(6, 1)),
-                pos(0, 7),
+                _integer("1", _pos(6, 1)),
+                _pos(0, 7),
             )))
         );
     }
@@ -1017,12 +1014,12 @@ mod tests {
             Token::new(TokenType::Integer(String::from("1")), Position::new(9, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
-            Some(Ok(let__(
-                symbol_("x", pos(4, 1)),
+            parser_from(tokens.into_iter())._next(),
+            Some(Ok(_let_(
+                _symbol("x", _pos(4, 1)),
                 vec![],
-                integer_("1", pos(9, 1)),
-                pos(0, 10)
+                _integer("1", _pos(9, 1)),
+                _pos(0, 10)
             )))
         );
     }
@@ -1030,32 +1027,32 @@ mod tests {
     #[test]
     fn comparison_precedence() {
         let tokens = vec![
-            Token::new(TokenType::Integer(String::from("1")), pos(0, 1)),
-            Token::new(TokenType::Plus, pos(2, 1)),
-            Token::new(TokenType::Integer(String::from("5")), pos(4, 1)),
-            Token::new(TokenType::NotEqual, pos(6, 2)),
-            Token::new(TokenType::Integer(String::from("6")), pos(9, 1)),
-            Token::new(TokenType::Mod, pos(11, 1)),
-            Token::new(TokenType::Integer(String::from("2")), pos(13, 1)),
+            Token::new(TokenType::Integer(String::from("1")), _pos(0, 1)),
+            Token::new(TokenType::Plus, _pos(2, 1)),
+            Token::new(TokenType::Integer(String::from("5")), _pos(4, 1)),
+            Token::new(TokenType::NotEqual, _pos(6, 2)),
+            Token::new(TokenType::Integer(String::from("6")), _pos(9, 1)),
+            Token::new(TokenType::Mod, _pos(11, 1)),
+            Token::new(TokenType::Integer(String::from("2")), _pos(13, 1)),
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
-            Some(Ok(infix_(
+            parser_from(tokens.into_iter())._next(),
+            Some(Ok(_infix(
                 InfixOperator::NotEquality,
-                infix_(
+                _infix(
                     InfixOperator::Sum,
-                    integer_("1", pos(0, 1)),
-                    integer_("5", pos(4, 1)),
-                    pos(0, 5)
+                    _integer("1", _pos(0, 1)),
+                    _integer("5", _pos(4, 1)),
+                    _pos(0, 5)
                 ),
-                infix_(
+                _infix(
                     InfixOperator::Mod,
-                    integer_("6", pos(9, 1)),
-                    integer_("2", pos(13, 1)),
-                    pos(9, 5)
+                    _integer("6", _pos(9, 1)),
+                    _integer("2", _pos(13, 1)),
+                    _pos(9, 5)
                 ),
-                pos(0, 14)
+                _pos(0, 14)
             )))
         );
     }
@@ -1063,31 +1060,31 @@ mod tests {
     #[test]
     fn let_function_statement() {
         let tokens = vec![
-            Token::new(TokenType::Let, pos(0, 3)),
-            Token::new(TokenType::Ident(String::from('f')), pos(4, 1)),
-            Token::new(TokenType::Lparen, pos(5, 1)),
-            Token::new(TokenType::Ident(String::from('x')), pos(6, 1)),
-            Token::new(TokenType::Comma, pos(7, 1)),
-            Token::new(TokenType::Ident(String::from('y')), pos(9, 1)),
-            Token::new(TokenType::Rparen, pos(10, 1)),
-            Token::new(TokenType::Assign, pos(12, 2)),
-            Token::new(TokenType::Ident(String::from('x')), pos(15, 1)),
-            Token::new(TokenType::Plus, pos(17, 1)),
-            Token::new(TokenType::Ident(String::from('y')), pos(19, 1)),
+            Token::new(TokenType::Let, _pos(0, 3)),
+            Token::new(TokenType::Ident(String::from('f')), _pos(4, 1)),
+            Token::new(TokenType::Lparen, _pos(5, 1)),
+            Token::new(TokenType::Ident(String::from('x')), _pos(6, 1)),
+            Token::new(TokenType::Comma, _pos(7, 1)),
+            Token::new(TokenType::Ident(String::from('y')), _pos(9, 1)),
+            Token::new(TokenType::Rparen, _pos(10, 1)),
+            Token::new(TokenType::Assign, _pos(12, 2)),
+            Token::new(TokenType::Ident(String::from('x')), _pos(15, 1)),
+            Token::new(TokenType::Plus, _pos(17, 1)),
+            Token::new(TokenType::Ident(String::from('y')), _pos(19, 1)),
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
-            Some(Ok(let__(
-                symbol_("f", pos(4, 1)),
-                vec![symbol_("x", pos(6, 1)), symbol_("y", pos(9, 1))],
-                infix_(
+            parser_from(tokens.into_iter())._next(),
+            Some(Ok(_let_(
+                _symbol("f", _pos(4, 1)),
+                vec![_symbol("x", _pos(6, 1)), _symbol("y", _pos(9, 1))],
+                _infix(
                     InfixOperator::Sum,
-                    symbol_("x", pos(15, 1)),
-                    symbol_("y", pos(19, 1)),
-                    pos(15, 5)
+                    _symbol("x", _pos(15, 1)),
+                    _symbol("y", _pos(19, 1)),
+                    _pos(15, 5)
                 ),
-                pos(0, 20),
+                _pos(0, 20),
             ))),
         );
     }
@@ -1100,8 +1097,8 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
-            Some(Ok(extension_set_(vec![], pos(0, 2))))
+            parser_from(tokens.into_iter())._next(),
+            Some(Ok(_extension_set(vec![], _pos(0, 2))))
         );
     }
 
@@ -1118,10 +1115,10 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
-            Some(Ok(extension_set_(
-                vec![boolean_(true, pos(2, 4)), boolean_(false, pos(9, 4)),],
-                pos(0, 14)
+            parser_from(tokens.into_iter())._next(),
+            Some(Ok(_extension_set(
+                vec![_boolean(true, _pos(2, 4)), _boolean(false, _pos(9, 4)),],
+                _pos(0, 14)
             )))
         );
     }
@@ -1134,8 +1131,8 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
-            Some(Ok(tuple_(vec![], pos(0, 2))))
+            parser_from(tokens.into_iter())._next(),
+            Some(Ok(_tuple(vec![], _pos(0, 2))))
         );
     }
 
@@ -1150,10 +1147,10 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
-            Some(Ok(tuple_(
-                vec![symbol_("Real", pos(1, 4)), symbol_("Real", pos(7, 4))],
-                pos(0, 12)
+            parser_from(tokens.into_iter())._next(),
+            Some(Ok(_tuple(
+                vec![_symbol("Real", _pos(1, 4)), _symbol("Real", _pos(7, 4))],
+                _pos(0, 12)
             )))
         );
     }
@@ -1161,26 +1158,26 @@ mod tests {
     #[test]
     fn set_comprehension() {
         let tokens = vec![
-            Token::new(TokenType::Lbrace, pos(0, 1)),
-            Token::new(TokenType::Ident(String::from("a")), pos(1, 1)),
-            Token::new(TokenType::Colon, pos(3, 1)),
-            Token::new(TokenType::Ident(String::from("a")), pos(5, 1)),
-            Token::new(TokenType::Equals, pos(7, 1)),
-            Token::new(TokenType::Integer(String::from("1")), pos(9, 1)),
-            Token::new(TokenType::Rbrace, pos(10, 1)),
+            Token::new(TokenType::Lbrace, _pos(0, 1)),
+            Token::new(TokenType::Ident(String::from("a")), _pos(1, 1)),
+            Token::new(TokenType::Colon, _pos(3, 1)),
+            Token::new(TokenType::Ident(String::from("a")), _pos(5, 1)),
+            Token::new(TokenType::Equals, _pos(7, 1)),
+            Token::new(TokenType::Integer(String::from("1")), _pos(9, 1)),
+            Token::new(TokenType::Rbrace, _pos(10, 1)),
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
-            Some(Ok(comprehension_set_(
-                symbol_("a", pos(1, 1)),
-                infix_(
+            parser_from(tokens.into_iter())._next(),
+            Some(Ok(_comprehension_set(
+                _symbol("a", _pos(1, 1)),
+                _infix(
                     InfixOperator::Equality,
-                    symbol_("a", pos(5, 1)),
-                    integer_("1", pos(9, 1)),
-                    pos(5, 5)
+                    _symbol("a", _pos(5, 1)),
+                    _integer("1", _pos(9, 1)),
+                    _pos(5, 5)
                 ),
-                pos(0, 11),
+                _pos(0, 11),
             )))
         );
     }
@@ -1188,39 +1185,39 @@ mod tests {
     #[test]
     fn typed_let() {
         let tokens = vec![
-            Token::new(TokenType::Let, pos(0, 3)),
-            Token::new(TokenType::Ident(String::from("x")), pos(4, 1)),
-            Token::new(TokenType::Colon, pos(6, 1)),
-            Token::new(TokenType::Ident(String::from("Real")), pos(8, 4)),
-            Token::new(TokenType::Assign, pos(13, 2)),
-            Token::new(TokenType::Integer(String::from("1")), pos(16, 1)),
-            Token::new(TokenType::Plus, pos(18, 1)),
-            Token::new(TokenType::Integer(String::from("0")), pos(20, 1)),
-            Token::new(TokenType::Mod, pos(22, 1)),
-            Token::new(TokenType::Integer(String::from("2")), pos(24, 1)),
+            Token::new(TokenType::Let, _pos(0, 3)),
+            Token::new(TokenType::Ident(String::from("x")), _pos(4, 1)),
+            Token::new(TokenType::Colon, _pos(6, 1)),
+            Token::new(TokenType::Ident(String::from("Real")), _pos(8, 4)),
+            Token::new(TokenType::Assign, _pos(13, 2)),
+            Token::new(TokenType::Integer(String::from("1")), _pos(16, 1)),
+            Token::new(TokenType::Plus, _pos(18, 1)),
+            Token::new(TokenType::Integer(String::from("0")), _pos(20, 1)),
+            Token::new(TokenType::Mod, _pos(22, 1)),
+            Token::new(TokenType::Integer(String::from("2")), _pos(24, 1)),
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
-            Some(Ok(let__(
-                signature_(
-                    symbol_("x", pos(4, 1)),
-                    Some(symbol_("Real", pos(8, 4))),
-                    pos(4, 8)
+            parser_from(tokens.into_iter())._next(),
+            Some(Ok(_let_(
+                _signature(
+                    _symbol("x", _pos(4, 1)),
+                    Some(_symbol("Real", _pos(8, 4))),
+                    _pos(4, 8)
                 ),
                 vec![],
-                infix_(
+                _infix(
                     InfixOperator::Sum,
-                    integer_("1", pos(16, 1)),
-                    infix_(
+                    _integer("1", _pos(16, 1)),
+                    _infix(
                         InfixOperator::Mod,
-                        integer_("0", pos(20, 1)),
-                        integer_("2", pos(24, 1)),
-                        pos(20, 5)
+                        _integer("0", _pos(20, 1)),
+                        _integer("2", _pos(24, 1)),
+                        _pos(20, 5)
                     ),
-                    pos(16, 9),
+                    _pos(16, 9),
                 ),
-                pos(0, 25),
+                _pos(0, 25),
             )))
         );
     }
@@ -1228,25 +1225,25 @@ mod tests {
     #[test]
     fn shift_operator() {
         let tokens = vec![
-            Token::new(TokenType::Ident(String::from('x')), pos(0, 1)),
-            Token::new(TokenType::Minus, pos(2, 1)),
-            Token::new(TokenType::Integer(String::from('1')), pos(4, 1)),
-            Token::new(TokenType::LeftShift, pos(6, 2)),
-            Token::new(TokenType::Integer(String::from('1')), pos(9, 1)),
+            Token::new(TokenType::Ident(String::from('x')), _pos(0, 1)),
+            Token::new(TokenType::Minus, _pos(2, 1)),
+            Token::new(TokenType::Integer(String::from('1')), _pos(4, 1)),
+            Token::new(TokenType::LeftShift, _pos(6, 2)),
+            Token::new(TokenType::Integer(String::from('1')), _pos(9, 1)),
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
-            Some(Ok(infix_(
+            parser_from(tokens.into_iter())._next(),
+            Some(Ok(_infix(
                 InfixOperator::LeftShift,
-                infix_(
+                _infix(
                     InfixOperator::Substraction,
-                    symbol_("x", pos(0, 1)),
-                    integer_("1", pos(4, 1)),
-                    pos(0, 5)
+                    _symbol("x", _pos(0, 1)),
+                    _integer("1", _pos(4, 1)),
+                    _pos(0, 5)
                 ),
-                integer_("1", pos(9, 1)),
-                pos(0, 10),
+                _integer("1", _pos(9, 1)),
+                _pos(0, 10),
             )))
         );
     }
@@ -1256,17 +1253,17 @@ mod tests {
         let lexer = build_lexer("1 << 1 > 1").map(|res| res.unwrap());
 
         assert_eq!(
-            parser_from(lexer).next_(),
-            Some(Ok(infix_(
+            parser_from(lexer)._next(),
+            Some(Ok(_infix(
                 InfixOperator::Greater,
-                infix_(
+                _infix(
                     InfixOperator::LeftShift,
-                    integer_("1", pos(0, 1)),
-                    integer_("1", pos(5, 1)),
-                    pos(0, 6)
+                    _integer("1", _pos(0, 1)),
+                    _integer("1", _pos(5, 1)),
+                    _pos(0, 6)
                 ),
-                integer_("1", pos(9, 1)),
-                pos(0, 10)
+                _integer("1", _pos(9, 1)),
+                _pos(0, 10)
             )))
         );
     }
@@ -1276,17 +1273,17 @@ mod tests {
         let lexer = build_lexer("a & b || c").map(|res| res.unwrap());
 
         assert_eq!(
-            parser_from(lexer).next_(),
-            Some(Ok(infix_(
+            parser_from(lexer)._next(),
+            Some(Ok(_infix(
                 InfixOperator::Or,
-                infix_(
+                _infix(
                     InfixOperator::BitwiseAnd,
-                    symbol_("a", pos(0, 1)),
-                    symbol_("b", pos(4, 1)),
-                    pos(0, 5)
+                    _symbol("a", _pos(0, 1)),
+                    _symbol("b", _pos(4, 1)),
+                    _pos(0, 5)
                 ),
-                symbol_("c", pos(9, 1)),
-                pos(0, 10),
+                _symbol("c", _pos(9, 1)),
+                _pos(0, 10),
             )))
         );
     }
@@ -1296,17 +1293,17 @@ mod tests {
         let lexer = build_lexer("a && b || c");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next_(),
-            Some(Ok(infix_(
+            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            Some(Ok(_infix(
                 InfixOperator::Or,
-                infix_(
+                _infix(
                     InfixOperator::LogicAnd,
-                    symbol_("a", pos(0, 1)),
-                    symbol_("b", pos(5, 1)),
-                    pos(0, 6)
+                    _symbol("a", _pos(0, 1)),
+                    _symbol("b", _pos(5, 1)),
+                    _pos(0, 6)
                 ),
-                symbol_("c", pos(10, 1)),
-                pos(0, 11),
+                _symbol("c", _pos(10, 1)),
+                _pos(0, 11),
             )))
         );
     }
@@ -1316,27 +1313,27 @@ mod tests {
         let lexer = build_lexer("  a + b || a & b << c");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next_(),
-            Some(Ok(infix_(
+            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            Some(Ok(_infix(
                 InfixOperator::Or,
-                infix_(
+                _infix(
                     InfixOperator::Sum,
-                    symbol_("a", pos(2, 1)),
-                    symbol_("b", pos(6, 1)),
-                    pos(2, 5)
+                    _symbol("a", _pos(2, 1)),
+                    _symbol("b", _pos(6, 1)),
+                    _pos(2, 5)
                 ),
-                infix_(
+                _infix(
                     InfixOperator::BitwiseAnd,
-                    symbol_("a", pos(11, 1)),
-                    infix_(
+                    _symbol("a", _pos(11, 1)),
+                    _infix(
                         InfixOperator::LeftShift,
-                        symbol_("b", pos(15, 1)),
-                        symbol_("c", pos(20, 1)),
-                        pos(15, 6)
+                        _symbol("b", _pos(15, 1)),
+                        _symbol("c", _pos(20, 1)),
+                        _pos(15, 6)
                     ),
-                    pos(11, 10),
+                    _pos(11, 10),
                 ),
-                pos(2, 19)
+                _pos(2, 19)
             )))
         );
     }
@@ -1346,22 +1343,22 @@ mod tests {
         let lexer = build_lexer("a ^ b & c || d");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next_(),
-            Some(Ok(infix_(
+            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            Some(Ok(_infix(
                 InfixOperator::Or,
-                infix_(
+                _infix(
                     InfixOperator::BitwiseXor,
-                    symbol_("a", pos(0, 1)),
-                    infix_(
+                    _symbol("a", _pos(0, 1)),
+                    _infix(
                         InfixOperator::BitwiseAnd,
-                        symbol_("b", pos(4, 1)),
-                        symbol_("c", pos(8, 1)),
-                        pos(4, 5)
+                        _symbol("b", _pos(4, 1)),
+                        _symbol("c", _pos(8, 1)),
+                        _pos(4, 5)
                     ),
-                    pos(0, 9),
+                    _pos(0, 9),
                 ),
-                symbol_("d", pos(13, 1)),
-                pos(0, 14)
+                _symbol("d", _pos(13, 1)),
+                _pos(0, 14)
             )))
         );
     }
@@ -1371,10 +1368,13 @@ mod tests {
         let lexer = build_lexer("({}, 0)");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next_(),
-            Some(Ok(tuple_(
-                vec![extension_set_(vec![], pos(1, 2)), integer_("0", pos(5, 1))],
-                pos(0, 7)
+            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            Some(Ok(_tuple(
+                vec![
+                    _extension_set(vec![], _pos(1, 2)),
+                    _integer("0", _pos(5, 1))
+                ],
+                _pos(0, 7)
             )))
         );
     }
@@ -1384,20 +1384,20 @@ mod tests {
         let lexer = build_lexer("!(~1 /= -1)");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next_(),
-            Some(Ok(prefix_(
+            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            Some(Ok(_prefix(
                 PrefixOperator::LogicNot,
-                infix_(
+                _infix(
                     InfixOperator::NotEquality,
-                    prefix_(
+                    _prefix(
                         PrefixOperator::BitwiseNot,
-                        integer_("1", pos(3, 1)),
-                        pos(2, 2)
+                        _integer("1", _pos(3, 1)),
+                        _pos(2, 2)
                     ),
-                    prefix_(PrefixOperator::Minus, integer_("1", pos(9, 1)), pos(8, 2)),
-                    pos(2, 8),
+                    _prefix(PrefixOperator::Minus, _integer("1", _pos(9, 1)), _pos(8, 2)),
+                    _pos(2, 8),
                 ),
-                pos(0, 11),
+                _pos(0, 11),
             )))
         );
     }
@@ -1405,29 +1405,33 @@ mod tests {
     #[test]
     fn if_expr() {
         let tokens = vec![
-            Token::new(TokenType::If, pos(0, 2)),
-            Token::new(TokenType::Ident(String::from("a")), pos(3, 1)),
-            Token::new(TokenType::Less, pos(5, 1)),
-            Token::new(TokenType::Integer(String::from("0")), pos(7, 1)),
-            Token::new(TokenType::Then, pos(9, 4)),
-            Token::new(TokenType::Minus, pos(14, 1)),
-            Token::new(TokenType::Ident(String::from("a")), pos(15, 1)),
-            Token::new(TokenType::Else, pos(17, 4)),
-            Token::new(TokenType::Ident(String::from("a")), pos(22, 1)),
+            Token::new(TokenType::If, _pos(0, 2)),
+            Token::new(TokenType::Ident(String::from("a")), _pos(3, 1)),
+            Token::new(TokenType::Less, _pos(5, 1)),
+            Token::new(TokenType::Integer(String::from("0")), _pos(7, 1)),
+            Token::new(TokenType::Then, _pos(9, 4)),
+            Token::new(TokenType::Minus, _pos(14, 1)),
+            Token::new(TokenType::Ident(String::from("a")), _pos(15, 1)),
+            Token::new(TokenType::Else, _pos(17, 4)),
+            Token::new(TokenType::Ident(String::from("a")), _pos(22, 1)),
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next_(),
-            Some(Ok(if__(
-                infix_(
+            parser_from(tokens.into_iter())._next(),
+            Some(Ok(_if_(
+                _infix(
                     InfixOperator::Less,
-                    symbol_("a", pos(3, 1)),
-                    integer_("0", pos(7, 1)),
-                    pos(3, 5)
+                    _symbol("a", _pos(3, 1)),
+                    _integer("0", _pos(7, 1)),
+                    _pos(3, 5)
                 ),
-                prefix_(PrefixOperator::Minus, symbol_("a", pos(15, 1)), pos(14, 2)),
-                symbol_("a", pos(22, 1)),
-                pos(0, 23),
+                _prefix(
+                    PrefixOperator::Minus,
+                    _symbol("a", _pos(15, 1)),
+                    _pos(14, 2)
+                ),
+                _symbol("a", _pos(22, 1)),
+                _pos(0, 23),
             )))
         );
     }
@@ -1443,17 +1447,17 @@ mod tests {
         assert_eq!(
             parser_from(lexer.map(|res| res.unwrap())).program_(),
             vec![
-                let__(
-                    symbol_("a", pos(4, 1)),
+                _let_(
+                    _symbol("a", _pos(4, 1)),
                     vec![],
-                    integer_("5", pos(9, 1)),
-                    pos(0, 10)
+                    _integer("5", _pos(9, 1)),
+                    _pos(0, 10)
                 ),
-                infix_(
+                _infix(
                     InfixOperator::Product,
-                    symbol_("a", pos(19, 1)),
-                    symbol_("a", pos(23, 1)),
-                    pos(19, 5)
+                    _symbol("a", _pos(19, 1)),
+                    _symbol("a", _pos(23, 1)),
+                    _pos(19, 5)
                 )
             ],
         );
@@ -1466,15 +1470,15 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next_(),
-            Some(Ok(infix_(
+            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            Some(Ok(_infix(
                 InfixOperator::Call,
-                symbol_("f", pos(0, 1)),
-                tuple_(
-                    vec![symbol_("x", pos(2, 1)), symbol_("y", pos(5, 1)),],
-                    pos(1, 6)
+                _symbol("f", _pos(0, 1)),
+                _tuple(
+                    vec![_symbol("x", _pos(2, 1)), _symbol("y", _pos(5, 1)),],
+                    _pos(1, 6)
                 ),
-                pos(0, 7),
+                _pos(0, 7),
             ))),
         );
     }
@@ -1486,8 +1490,8 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next_(),
-            Some(Ok(tuple_(vec![integer_("1", pos(1, 1))], pos(0, 4)))),
+            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            Some(Ok(_tuple(vec![_integer("1", _pos(1, 1))], _pos(0, 4)))),
         );
     }
 
@@ -1498,17 +1502,17 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next_(),
-            Some(Ok(infix_(
+            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            Some(Ok(_infix(
                 InfixOperator::Correspondence,
-                symbol_("x", pos(0, 1)),
-                infix_(
+                _symbol("x", _pos(0, 1)),
+                _infix(
                     InfixOperator::Product,
-                    integer_("2", pos(5, 1)),
-                    symbol_("x", pos(7, 1)),
-                    pos(5, 3)
+                    _integer("2", _pos(5, 1)),
+                    _symbol("x", _pos(7, 1)),
+                    _pos(5, 3)
                 ),
-                pos(0, 8),
+                _pos(0, 8),
             )))
         );
     }
@@ -1520,23 +1524,23 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next_(),
-            Some(Ok(infix_(
+            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            Some(Ok(_infix(
                 InfixOperator::Call,
-                infix_(
+                _infix(
                     InfixOperator::Correspondence,
-                    tuple_(
-                        vec![symbol_("x", pos(2, 1)), symbol_("y", pos(5, 1)),],
-                        pos(1, 6)
+                    _tuple(
+                        vec![_symbol("x", _pos(2, 1)), _symbol("y", _pos(5, 1)),],
+                        _pos(1, 6)
                     ),
-                    symbol_("x", pos(11, 1)),
-                    pos(1, 11),
+                    _symbol("x", _pos(11, 1)),
+                    _pos(1, 11),
                 ),
-                tuple_(
-                    vec![integer_("1", pos(14, 1)), integer_("2", pos(17, 1)),],
-                    pos(13, 6)
+                _tuple(
+                    vec![_integer("1", _pos(14, 1)), _integer("2", _pos(17, 1)),],
+                    _pos(13, 6)
                 ),
-                pos(0, 19)
+                _pos(0, 19)
             )))
         );
     }
@@ -1548,10 +1552,10 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next_(),
-            Some(Ok(tuple_(
-                vec![char_('a', pos(1, 3)), string_("b", pos(6, 3)),],
-                pos(0, 10),
+            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            Some(Ok(_tuple(
+                vec![_char('a', _pos(1, 3)), _string("b", _pos(6, 3)),],
+                _pos(0, 10),
             )))
         );
     }
@@ -1563,17 +1567,17 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next_(),
-            Some(Ok(for_(
+            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            Some(Ok(_for(
                 "i",
-                symbol_("list", pos(9, 4)),
-                vec![infix_(
+                _symbol("list", _pos(9, 4)),
+                vec![_infix(
                     InfixOperator::Call,
-                    symbol_("println", pos(15, 7)),
-                    tuple_(vec![symbol_("i", pos(23, 1))], pos(22, 3)),
-                    pos(15, 10)
+                    _symbol("println", _pos(15, 7)),
+                    _tuple(vec![_symbol("i", _pos(23, 1))], _pos(22, 3)),
+                    _pos(15, 10)
                 )],
-                pos(0, 25)
+                _pos(0, 25)
             )))
         );
     }
@@ -1585,21 +1589,21 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next_(),
-            Some(Ok(infix_(
+            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            Some(Ok(_infix(
                 InfixOperator::In,
-                integer_("1", pos(0, 1)),
-                comprehension_set_(
-                    symbol_("k", pos(7, 1)),
-                    infix_(
+                _integer("1", _pos(0, 1)),
+                _comprehension_set(
+                    _symbol("k", _pos(7, 1)),
+                    _infix(
                         InfixOperator::GreaterEqual,
-                        symbol_("k", pos(11, 1)),
-                        integer_("1", pos(16, 1)),
-                        pos(11, 6)
+                        _symbol("k", _pos(11, 1)),
+                        _integer("1", _pos(16, 1)),
+                        _pos(11, 6)
                     ),
-                    pos(5, 14),
+                    _pos(5, 14),
                 ),
-                pos(0, 19),
+                _pos(0, 19),
             )))
         );
     }
@@ -1611,10 +1615,13 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next_(),
-            Some(Ok(extension_list_(
-                vec![extension_list_(vec![], pos(1, 2)), integer_("2", pos(5, 1)),],
-                pos(0, 7),
+            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            Some(Ok(_extension_list(
+                vec![
+                    _extension_list(vec![], _pos(1, 2)),
+                    _integer("2", _pos(5, 1)),
+                ],
+                _pos(0, 7),
             ))),
         );
     }
@@ -1626,29 +1633,29 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next_(),
-            Some(Ok(comprehension_list_(
-                infix_(
+            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            Some(Ok(_comprehension_list(
+                _infix(
                     InfixOperator::In,
-                    symbol_("k", pos(2, 1)),
-                    extension_list_(
-                        vec![integer_("1", pos(8, 1)), integer_("2", pos(11, 1)),],
-                        pos(7, 6)
+                    _symbol("k", _pos(2, 1)),
+                    _extension_list(
+                        vec![_integer("1", _pos(8, 1)), _integer("2", _pos(11, 1)),],
+                        _pos(7, 6)
                     ),
-                    pos(2, 11)
+                    _pos(2, 11)
                 ),
-                infix_(
+                _infix(
                     InfixOperator::Equality,
-                    infix_(
+                    _infix(
                         InfixOperator::Substraction,
-                        symbol_("k", pos(16, 1)),
-                        integer_("1", pos(20, 1)),
-                        pos(16, 5)
+                        _symbol("k", _pos(16, 1)),
+                        _integer("1", _pos(20, 1)),
+                        _pos(16, 5)
                     ),
-                    integer_("0", pos(24, 1)),
-                    pos(16, 9)
+                    _integer("0", _pos(24, 1)),
+                    _pos(16, 9)
                 ),
-                pos(0, 27)
+                _pos(0, 27)
             )))
         );
     }
@@ -1660,10 +1667,10 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next_(),
-            Some(Ok(extension_set_(
-                vec![extension_set_(vec![], pos(1, 2))],
-                pos(0, 4)
+            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            Some(Ok(_extension_set(
+                vec![_extension_set(vec![], _pos(1, 2))],
+                _pos(0, 4)
             ))),
         );
     }
@@ -1675,14 +1682,14 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next_(),
-            Some(Ok(extension_list_(
+            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            Some(Ok(_extension_list(
                 vec![
-                    symbol_("a", pos(1, 1)),
-                    integer_("1", pos(4, 1)),
-                    ASTNode::new(ASTNodeType_::Wildcard, pos(7, 1)),
+                    _symbol("a", _pos(1, 1)),
+                    _integer("1", _pos(4, 1)),
+                    ASTNode::new(ASTNodeType_::Wildcard, _pos(7, 1)),
                 ],
-                pos(0, 9)
+                _pos(0, 9)
             ),)),
         );
     }
@@ -1693,14 +1700,14 @@ mod tests {
         let lexer = build_lexer(code).map(|res| res.unwrap());
 
         assert_eq!(
-            parser_from(lexer).next_(),
-            Some(Ok(prepend_(
-                integer_("1", pos(1, 1)),
-                extension_list_(
-                    vec![integer_("2", pos(4, 1)), integer_("3", pos(6, 1)),],
-                    pos(3, 5)
+            parser_from(lexer)._next(),
+            Some(Ok(_prepend(
+                _integer("1", _pos(1, 1)),
+                _extension_list(
+                    vec![_integer("2", _pos(4, 1)), _integer("3", _pos(6, 1)),],
+                    _pos(3, 5)
                 ),
-                pos(0, 9)
+                _pos(0, 9)
             ))),
         );
     }
@@ -1711,21 +1718,21 @@ mod tests {
         let lexer = build_lexer(input).map(|res| res.unwrap());
 
         assert_eq!(
-            parser_from(lexer).next_(),
-            Some(Ok(infix_(
+            parser_from(lexer)._next(),
+            Some(Ok(_infix(
                 InfixOperator::Sum,
-                comprehension_list_(
-                    symbol_("a", pos(1, 1)),
-                    infix_(
+                _comprehension_list(
+                    _symbol("a", _pos(1, 1)),
+                    _infix(
                         InfixOperator::In,
-                        symbol_("a", pos(5, 1)),
-                        symbol_("b", pos(10, 1)),
-                        pos(5, 6)
+                        _symbol("a", _pos(5, 1)),
+                        _symbol("b", _pos(10, 1)),
+                        _pos(5, 6)
                     ),
-                    pos(0, 12)
+                    _pos(0, 12)
                 ),
-                extension_list_(vec![], pos(15, 2)),
-                pos(0, 17)
+                _extension_list(vec![], _pos(15, 2)),
+                _pos(0, 17)
             )))
         );
     }
@@ -1736,7 +1743,7 @@ mod tests {
         let lexer = build_lexer(input).map(|res| res.unwrap());
 
         assert_eq!(
-            parser_from(lexer).next_(),
+            parser_from(lexer)._next(),
             Some(Err(ParserError::UnexpectedToken(
                 vec![TokenType::Rparen],
                 TokenType::Rbrack
@@ -1750,7 +1757,7 @@ mod tests {
         let lexer = build_lexer(input).map(|res| res.unwrap());
 
         assert_eq!(
-            parser_from(lexer).next_(),
+            parser_from(lexer)._next(),
             Some(Err(ParserError::ExpectedExpression(TokenType::Rparen))),
         );
     }

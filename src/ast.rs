@@ -146,12 +146,14 @@ pub struct ASTNode {
     pub position: Position,
 }
 
+#[allow(dead_code)]
 impl ASTNode {
     pub fn new(node: ASTNodeType_, position: Position) -> Self {
         Self { node, position }
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum ASTNodeType_ {
     Boolean(bool),
