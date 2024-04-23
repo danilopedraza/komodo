@@ -769,7 +769,7 @@ mod tests {
         env.set("f", Object::Function(Function::Effect(Effect::new(test))));
 
         let node = &_for(
-            "val".into(),
+            "val",
             _extension_set(
                 vec![
                     _integer("1", _dummy_pos()),

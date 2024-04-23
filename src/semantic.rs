@@ -20,7 +20,7 @@ pub fn postprocess(node: ASTNode) -> ASTNode {
             function(*params, *proc, position)
         }
         ASTNodeType_::Infix(InfixOperator::Call, called, args) => call(*called, *args, position),
-        ASTNodeType_::Infix(op, lhs, rhs) => infix(op, lhs, rhs, position),
+        ASTNodeType_::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs, position),
         ASTNodeType_::For(ident, iter, proc) => _for(
             &ident,
             postprocess(*iter),
@@ -52,8 +52,8 @@ pub fn postprocess(node: ASTNode) -> ASTNode {
     }
 }
 
-fn infix(op: InfixOperator, lhs: Box<ASTNode>, rhs: Box<ASTNode>, position: Position) -> ASTNode {
-    _infix(op, postprocess(*lhs), postprocess(*rhs), position)
+fn infix(op: InfixOperator, lhs: ASTNode, rhs: ASTNode, position: Position) -> ASTNode {
+    _infix(op, postprocess(lhs), postprocess(rhs), position)
 }
 
 fn call(called_node: ASTNode, args_node: ASTNode, position: Position) -> ASTNode {
