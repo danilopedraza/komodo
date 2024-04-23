@@ -30,79 +30,6 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
     }
 }
 
-fn _pos(start: u32, length: u32) -> Position {
-    Position::new(start, length)
-}
-
-fn _boolean(val: bool, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType_::Boolean(val), position)
-}
-
-fn _char(val: char, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType_::Char(val), position)
-}
-
-fn _string(str: &str, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType_::String(str.into()), position)
-}
-
-fn symbol(name: &str) -> ASTNodeType {
-    ASTNodeType::Symbol(name.to_string())
-}
-
-fn _symbol(name: &str, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType_::Symbol(name.into()), position)
-}
-
-fn integer(int: &str) -> ASTNodeType {
-    ASTNodeType::Integer(int.to_string())
-}
-
-fn _integer(int: &str, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType_::Integer(int.into()), position)
-}
-
-fn infix(op: InfixOperator, lhs: ASTNodeType, rhs: ASTNodeType) -> ASTNodeType {
-    ASTNodeType::Infix(op, Box::new(lhs), Box::new(rhs))
-}
-
-fn _infix(op: InfixOperator, lhs: ASTNode, rhs: ASTNode, position: Position) -> ASTNode {
-    ASTNode::new(
-        ASTNodeType_::Infix(op, Box::new(lhs), Box::new(rhs)),
-        position,
-    )
-}
-
-fn prefix(op: PrefixOperator, val: ASTNodeType) -> ASTNodeType {
-    ASTNodeType::Prefix(op, Box::new(val))
-}
-
-fn _prefix(op: PrefixOperator, val: ASTNode, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType_::Prefix(op, Box::new(val)), position)
-}
-
-fn let_(ident: ASTNodeType, params: Vec<ASTNodeType>, val: ASTNodeType) -> ASTNodeType {
-    ASTNodeType::Let(Box::new(ident), params, Box::new(val))
-}
-
-fn _let_(ident: ASTNode, params: Vec<ASTNode>, val: ASTNode, position: Position) -> ASTNode {
-    ASTNode::new(
-        ASTNodeType_::Let(Box::new(ident), params, Box::new(val)),
-        position,
-    )
-}
-
-fn signature(symbol: ASTNodeType, type_: Option<ASTNodeType>) -> ASTNodeType {
-    ASTNodeType::Signature(Box::new(symbol), type_.map(Box::new))
-}
-
-fn _signature(symbol: ASTNode, type_: Option<ASTNode>, position: Position) -> ASTNode {
-    ASTNode::new(
-        ASTNodeType_::Signature(Box::new(symbol), type_.map(Box::new)),
-        position,
-    )
-}
-
 fn if_(cond: ASTNodeType, first_res: ASTNodeType, second_res: ASTNodeType) -> ASTNodeType {
     ASTNodeType::If(Box::new(cond), Box::new(first_res), Box::new(second_res))
 }
@@ -183,7 +110,7 @@ type _NodeResult = Result<ASTNode, ParserError>;
 
 #[allow(dead_code)]
 impl<T: Iterator<Item = Token>> Parser<T> {
-    fn _next(&mut self) -> Option<_NodeResult> {
+    pub fn _next(&mut self) -> Option<_NodeResult> {
         match self.peek_token() {
             None => None,
             _ => Some(self._expression(Precedence::Lowest)),

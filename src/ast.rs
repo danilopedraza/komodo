@@ -140,7 +140,7 @@ pub enum ASTNodeType {
     Wildcard,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ASTNode {
     pub _type: ASTNodeType_,
     pub position: Position,
@@ -149,15 +149,12 @@ pub struct ASTNode {
 #[allow(dead_code)]
 impl ASTNode {
     pub fn new(_type: ASTNodeType_, position: Position) -> Self {
-        Self {
-            _type,
-            position,
-        }
+        Self { _type, position }
     }
 }
 
 #[allow(dead_code)]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ASTNodeType_ {
     Boolean(bool),
     Call(Box<ASTNode>, Vec<ASTNode>),
@@ -179,4 +176,86 @@ pub enum ASTNodeType_ {
     Symbol(String),
     Tuple(Vec<ASTNode>),
     Wildcard,
+}
+
+#[allow(dead_code)]
+pub fn dummy_pos(nodetype: ASTNodeType_) -> ASTNode {
+    ASTNode::new(nodetype, Position::new(0, 0))
+}
+
+pub fn _pos(start: u32, length: u32) -> Position {
+    Position::new(start, length)
+}
+
+pub fn _dummy_pos() -> Position {
+    Position::new(0, 0)
+}
+
+pub fn _boolean(val: bool, position: Position) -> ASTNode {
+    ASTNode::new(ASTNodeType_::Boolean(val), position)
+}
+
+pub fn _char(val: char, position: Position) -> ASTNode {
+    ASTNode::new(ASTNodeType_::Char(val), position)
+}
+
+pub fn _string(str: &str, position: Position) -> ASTNode {
+    ASTNode::new(ASTNodeType_::String(str.into()), position)
+}
+
+pub fn symbol(name: &str) -> ASTNodeType {
+    ASTNodeType::Symbol(name.to_string())
+}
+
+pub fn _symbol(name: &str, position: Position) -> ASTNode {
+    ASTNode::new(ASTNodeType_::Symbol(name.into()), position)
+}
+
+pub fn integer(int: &str) -> ASTNodeType {
+    ASTNodeType::Integer(int.to_string())
+}
+
+pub fn _integer(int: &str, position: Position) -> ASTNode {
+    ASTNode::new(ASTNodeType_::Integer(int.into()), position)
+}
+
+pub fn infix(op: InfixOperator, lhs: ASTNodeType, rhs: ASTNodeType) -> ASTNodeType {
+    ASTNodeType::Infix(op, Box::new(lhs), Box::new(rhs))
+}
+
+pub fn _infix(op: InfixOperator, lhs: ASTNode, rhs: ASTNode, position: Position) -> ASTNode {
+    ASTNode::new(
+        ASTNodeType_::Infix(op, Box::new(lhs), Box::new(rhs)),
+        position,
+    )
+}
+
+pub fn prefix(op: PrefixOperator, val: ASTNodeType) -> ASTNodeType {
+    ASTNodeType::Prefix(op, Box::new(val))
+}
+
+pub fn _prefix(op: PrefixOperator, val: ASTNode, position: Position) -> ASTNode {
+    ASTNode::new(ASTNodeType_::Prefix(op, Box::new(val)), position)
+}
+
+pub fn let_(ident: ASTNodeType, params: Vec<ASTNodeType>, val: ASTNodeType) -> ASTNodeType {
+    ASTNodeType::Let(Box::new(ident), params, Box::new(val))
+}
+
+pub fn _let_(ident: ASTNode, params: Vec<ASTNode>, val: ASTNode, position: Position) -> ASTNode {
+    ASTNode::new(
+        ASTNodeType_::Let(Box::new(ident), params, Box::new(val)),
+        position,
+    )
+}
+
+pub fn signature(symbol: ASTNodeType, type_: Option<ASTNodeType>) -> ASTNodeType {
+    ASTNodeType::Signature(Box::new(symbol), type_.map(Box::new))
+}
+
+pub fn _signature(symbol: ASTNode, type_: Option<ASTNode>, position: Position) -> ASTNode {
+    ASTNode::new(
+        ASTNodeType_::Signature(Box::new(symbol), type_.map(Box::new)),
+        position,
+    )
 }
