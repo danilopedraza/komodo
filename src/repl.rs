@@ -113,14 +113,14 @@ mod tests {
 
     struct CliMock {
         input_index: usize,
-        inputs: Vec<String>,
+        inputs: Vec<Result<String, ReadlineError>>,
         lines_printed: Vec<String>,
         prompt_messages: Vec<String>,
         history: Vec<String>,
     }
 
     impl CliMock {
-        fn _new(inputs: Vec<String>) -> Self {
+        fn _new(inputs: Vec<Result<String, ReadlineError>>) -> Self {
             Self {
                 input_index: 0,
                 inputs,
@@ -134,10 +134,15 @@ mod tests {
     impl Cli for CliMock {
         fn input(&mut self, msg: &str) -> Result<String, ReadlineError> {
             self.prompt_messages.push(msg.to_owned());
-            let res = Ok(self.inputs[self.input_index].to_owned());
+            let res = &self.inputs[self.input_index];
             self.input_index += 1;
 
-            res
+            // I'm just cloning here
+            match res {
+                Err(ReadlineError::Interrupted) => Err(ReadlineError::Interrupted),
+                Ok(str) => Ok(str.to_owned()),
+                _ => todo!(),
+            }
         }
 
         fn println(&mut self, msg: &str) {
@@ -293,5 +298,13 @@ mod tests {
             repl.response(Ok(String::from("f([3,2])"))),
             (String::from("6"), ReplResponse::Continue),
         );
+    }
+
+    #[test]
+    fn empty_response() {
+        let mut cli = CliMock::_new(vec![Ok("".into()), Err(ReadlineError::Interrupted)]);
+        let res = repl(&mut cli);
+
+        assert_eq!(res, Ok(()));
     }
 }
