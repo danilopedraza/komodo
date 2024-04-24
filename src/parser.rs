@@ -25,7 +25,7 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.peek_token() {
             None => None,
-            _ => Some(self._expression(Precedence::Lowest)),
+            _ => Some(self.expression(Precedence::Lowest)),
         }
     }
 }
@@ -33,14 +33,7 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
 type _NodeResult = Result<ASTNode, ParserError>;
 
 impl<T: Iterator<Item = Token>> Parser<T> {
-    pub fn _next(&mut self) -> Option<_NodeResult> {
-        match self.peek_token() {
-            None => None,
-            _ => Some(self._expression(Precedence::Lowest)),
-        }
-    }
-
-    fn _peek_pos(&mut self) -> Position {
+    fn peek_pos(&mut self) -> Position {
         if let Some(Token { position, .. }) = self.tokens.peek() {
             *position
         } else {
@@ -48,27 +41,27 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn _expression(&mut self, precedence: Precedence) -> _NodeResult {
-        let start = self._peek_pos().start;
+    fn expression(&mut self, precedence: Precedence) -> _NodeResult {
+        let start = self.peek_pos().start;
 
         let mut expr = match self.next_token() {
             None => Err(ParserError::EOFReached),
             Some(tok) => match tok {
                 TokenType::Char(chr) => self.char(chr),
-                TokenType::For => self.for__(),
-                TokenType::If => self.if__(),
-                TokenType::Let => self.let__(),
+                TokenType::For => self.for_(),
+                TokenType::If => self.if_(),
+                TokenType::Let => self.let_(),
                 TokenType::True => self.boolean(true),
                 TokenType::False => self.boolean(false),
-                TokenType::Lparen => self.parenthesis_(),
-                TokenType::Lbrace => self.set_(),
-                TokenType::Lbrack => self.list_(),
+                TokenType::Lparen => self.parenthesis(),
+                TokenType::Lbrace => self.set(),
+                TokenType::Lbrack => self.list(),
                 TokenType::Integer(int) => self.integer(int),
                 TokenType::Ident(literal) => self.symbol(literal),
                 TokenType::String(str) => self.string(str),
                 TokenType::Wildcard => self.wildcard(),
                 tok if PrefixOperator::from(tok.clone()).is_some() => {
-                    self.prefix_(PrefixOperator::from(tok).unwrap())
+                    self.prefix(PrefixOperator::from(tok).unwrap())
                 }
                 tok => Err(ParserError::ExpectedExpression(tok)),
             },
@@ -77,7 +70,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         while let Some(op) = self.current_infix() {
             if precedence < op.precedence() {
                 self.next_token();
-                expr = self.infix_(expr, op, start)?;
+                expr = self.infix(expr, op, start)?;
             } else {
                 break;
             }
@@ -110,14 +103,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         self.node_with_cur(ASTNodeType_::Symbol(literal))
     }
 
-    fn let__(&mut self) -> _NodeResult {
+    fn let_(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
-        let sg = self.signature_()?;
+        let sg = self.signature()?;
 
         match self.next_token() {
             Some(TokenType::Assign) => self
-                ._expression(Precedence::Lowest)
+                .expression(Precedence::Lowest)
                 .map(|res| _let_(sg, vec![], res, self.start_to_cur(start))),
             Some(TokenType::Lparen) => {
                 let (sg, params, val) = self.let_function_with_arguments_(sg)?;
@@ -135,7 +128,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let args_res = self.sequence(TokenType::Rparen, None);
 
         match (args_res, self.next_token()) {
-            (Ok(args), Some(TokenType::Assign)) => match self._expression(Precedence::Lowest) {
+            (Ok(args), Some(TokenType::Assign)) => match self.expression(Precedence::Lowest) {
                 Ok(expr) => Ok((name, args, expr)),
                 Err(err) => Err(err),
             },
@@ -162,7 +155,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             }
             None => Err(ParserError::EOFReached),
             _ => loop {
-                let expr = self._expression(Precedence::Lowest)?;
+                let expr = self.expression(Precedence::Lowest)?;
                 res.push(expr);
 
                 match self.next_token() {
@@ -185,7 +178,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn signature_(&mut self) -> _NodeResult {
+    fn signature(&mut self) -> _NodeResult {
         match (self.next_token(), self.peek_token()) {
             (Some(TokenType::Ident(name)), Some(TokenType::Colon)) => {
                 let symbol_pos = self.cur_pos;
@@ -210,14 +203,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn type__(&mut self) -> _NodeResult {
-        self._expression(Precedence::Lowest)
+        self.expression(Precedence::Lowest)
     }
 
     fn start_to_cur(&self, start: u32) -> Position {
         Position::new(start, self.cur_pos.start + self.cur_pos.length - start)
     }
 
-    fn infix_(&mut self, lhs: ASTNode, op: InfixOperator, start: u32) -> _NodeResult {
+    fn infix(&mut self, lhs: ASTNode, op: InfixOperator, start: u32) -> _NodeResult {
         if op == InfixOperator::Call {
             let tuple_start = self.cur_pos.start;
 
@@ -230,7 +223,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 )
             })
         } else {
-            self._expression(op.precedence()).map(|rhs| {
+            self.expression(op.precedence()).map(|rhs| {
                 ASTNode::new(
                     ASTNodeType_::Infix(op, Box::new(lhs), Box::new(rhs)),
                     self.start_to_cur(start),
@@ -243,7 +236,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         self.node_with_cur(ASTNodeType_::Integer(int))
     }
 
-    fn parenthesis_(&mut self) -> _NodeResult {
+    fn parenthesis(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
         if matches!(self.peek_token(), Some(TokenType::Rparen)) {
@@ -251,7 +244,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             return Ok(_tuple(vec![], self.start_to_cur(start)));
         }
 
-        let res = self._expression(Precedence::Lowest)?;
+        let res = self.expression(Precedence::Lowest)?;
 
         match self.next_token() {
             Some(TokenType::Rparen) => Ok(res),
@@ -270,7 +263,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let mut res = vec![];
 
         loop {
-            let exp = self._next();
+            let exp = self.next();
 
             match exp {
                 Some(Ok(node)) => res.push(node),
@@ -296,7 +289,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn list_(&mut self) -> _NodeResult {
+    fn list(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
         if matches!(self.peek_token(), Some(TokenType::Rbrack)) {
@@ -304,7 +297,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             return Ok(_extension_list(vec![], self.start_to_cur(start)));
         }
 
-        let first = self._expression(Precedence::Lowest)?;
+        let first = self.expression(Precedence::Lowest)?;
 
         match self.next_token() {
             Some(TokenType::Colon) => self.comprehension_list_(first, start),
@@ -327,21 +320,21 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn comprehension_list_(&mut self, first: ASTNode, start: u32) -> _NodeResult {
-        let last = self._expression(Precedence::Lowest)?;
+        let last = self.expression(Precedence::Lowest)?;
         self.consume(TokenType::Rbrack)?;
 
         Ok(_comprehension_list(first, last, self.start_to_cur(start)))
     }
 
     fn prepend_(&mut self, first: ASTNode, start: u32) -> _NodeResult {
-        let last = self._expression(Precedence::Lowest)?;
+        let last = self.expression(Precedence::Lowest)?;
 
         self.consume(TokenType::Rbrack)?;
 
         Ok(_prepend(first, last, self.start_to_cur(start)))
     }
 
-    fn for__(&mut self) -> _NodeResult {
+    fn for_(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
         let ident = match self.next_token() {
@@ -357,11 +350,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
         self.consume(TokenType::In)?;
 
-        let iter = self._expression(Precedence::Lowest)?;
+        let iter = self.expression(Precedence::Lowest)?;
 
         self.consume(TokenType::Colon)?;
 
-        let ASTNode { _type, position } = self._expression(Precedence::Lowest)?;
+        let ASTNode { _type, position } = self.expression(Precedence::Lowest)?;
 
         let proc = match _type {
             ASTNodeType_::Tuple(v) => v,
@@ -379,18 +372,18 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn if__(&mut self) -> _NodeResult {
+    fn if_(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
-        let cond = self._expression(Precedence::Lowest)?;
+        let cond = self.expression(Precedence::Lowest)?;
 
         self.consume(TokenType::Then)?;
 
-        let first_res = self._expression(Precedence::Lowest)?;
+        let first_res = self.expression(Precedence::Lowest)?;
 
         self.consume(TokenType::Else)?;
 
-        let second_res = self._expression(Precedence::Lowest)?;
+        let second_res = self.expression(Precedence::Lowest)?;
 
         Ok(_if_(cond, first_res, second_res, self.start_to_cur(start)))
     }
@@ -399,14 +392,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         self.peek_token().and_then(InfixOperator::from)
     }
 
-    fn prefix_(&mut self, op: PrefixOperator) -> _NodeResult {
+    fn prefix(&mut self, op: PrefixOperator) -> _NodeResult {
         let start = self.cur_pos.start;
 
-        self._expression(Precedence::Highest)
+        self.expression(Precedence::Highest)
             .map(|expr| _prefix(op, expr, self.start_to_cur(start)))
     }
 
-    fn set_(&mut self) -> _NodeResult {
+    fn set(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
         if matches!(self.peek_token(), Some(TokenType::Rbrace)) {
@@ -414,14 +407,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             return Ok(_extension_set(vec![], self.start_to_cur(start)));
         }
 
-        let first = self._expression(Precedence::Lowest)?;
+        let first = self.expression(Precedence::Lowest)?;
 
         match self.next_token() {
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rbrace, Some(first))
                 .map(|lst| _extension_set(lst, self.start_to_cur(start))),
             Some(TokenType::Colon) => {
-                let second = self._expression(Precedence::Lowest)?;
+                let second = self.expression(Precedence::Lowest)?;
 
                 self.consume(TokenType::Rbrace)?;
 
@@ -456,7 +449,7 @@ mod tests {
 
     #[test]
     fn empty_expression() {
-        assert_eq!(parser_from(iter::empty::<Token>())._next(), None);
+        assert_eq!(parser_from(iter::empty::<Token>()).next(), None);
     }
 
     #[test]
@@ -466,7 +459,7 @@ mod tests {
             _pos(0, 1),
         )];
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(_integer("0", _pos(0, 1))))
         );
     }
@@ -479,7 +472,7 @@ mod tests {
             Token::new(TokenType::Rparen, _pos(4, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(_integer("365", _pos(1, 3)))),
         );
     }
@@ -491,7 +484,7 @@ mod tests {
             Token::new(TokenType::Integer(String::from("65")), _pos(1, 2)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Err(ParserError::EOFExpecting_(
                 vec![TokenType::Rparen,],
                 _pos(0, 3)
@@ -507,7 +500,7 @@ mod tests {
             Token::new(TokenType::Integer(String::from("1")), _pos(4, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(_infix(
                 InfixOperator::Sum,
                 _integer("1", _pos(0, 1)),
@@ -524,7 +517,7 @@ mod tests {
             Token::new(TokenType::Plus, _pos(1, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Err(ParserError::EOFReached))
         );
     }
@@ -539,7 +532,7 @@ mod tests {
             Token::new(TokenType::Integer(String::from("2")), _pos(7, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(_infix(
                 InfixOperator::Product,
                 _integer("1", _pos(0, 1)),
@@ -564,7 +557,7 @@ mod tests {
             Token::new(TokenType::Integer(String::from("1")), _pos(6, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(_infix(
                 InfixOperator::Sum,
                 _infix(
@@ -588,7 +581,7 @@ mod tests {
             Token::new(TokenType::Integer(String::from("1")), Position::new(9, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(_let_(
                 _symbol("x", _pos(4, 1)),
                 vec![],
@@ -611,7 +604,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(_infix(
                 InfixOperator::NotEquality,
                 _infix(
@@ -648,7 +641,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(_let_(
                 _symbol("f", _pos(4, 1)),
                 vec![_symbol("x", _pos(6, 1)), _symbol("y", _pos(9, 1))],
@@ -671,7 +664,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(_extension_set(vec![], _pos(0, 2))))
         );
     }
@@ -689,7 +682,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(_extension_set(
                 vec![_boolean(true, _pos(2, 4)), _boolean(false, _pos(9, 4)),],
                 _pos(0, 14)
@@ -705,7 +698,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(_tuple(vec![], _pos(0, 2))))
         );
     }
@@ -721,7 +714,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(_tuple(
                 vec![_symbol("Real", _pos(1, 4)), _symbol("Real", _pos(7, 4))],
                 _pos(0, 12)
@@ -742,7 +735,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(_comprehension_set(
                 _symbol("a", _pos(1, 1)),
                 _infix(
@@ -772,7 +765,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(_let_(
                 _signature(
                     _symbol("x", _pos(4, 1)),
@@ -807,7 +800,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(_infix(
                 InfixOperator::LeftShift,
                 _infix(
@@ -827,7 +820,7 @@ mod tests {
         let lexer = build_lexer("1 << 1 > 1").map(|res| res.unwrap());
 
         assert_eq!(
-            parser_from(lexer)._next(),
+            parser_from(lexer).next(),
             Some(Ok(_infix(
                 InfixOperator::Greater,
                 _infix(
@@ -847,7 +840,7 @@ mod tests {
         let lexer = build_lexer("a & b || c").map(|res| res.unwrap());
 
         assert_eq!(
-            parser_from(lexer)._next(),
+            parser_from(lexer).next(),
             Some(Ok(_infix(
                 InfixOperator::Or,
                 _infix(
@@ -867,7 +860,7 @@ mod tests {
         let lexer = build_lexer("a && b || c");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(_infix(
                 InfixOperator::Or,
                 _infix(
@@ -887,7 +880,7 @@ mod tests {
         let lexer = build_lexer("  a + b || a & b << c");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(_infix(
                 InfixOperator::Or,
                 _infix(
@@ -917,7 +910,7 @@ mod tests {
         let lexer = build_lexer("a ^ b & c || d");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(_infix(
                 InfixOperator::Or,
                 _infix(
@@ -942,7 +935,7 @@ mod tests {
         let lexer = build_lexer("({}, 0)");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(_tuple(
                 vec![
                     _extension_set(vec![], _pos(1, 2)),
@@ -958,7 +951,7 @@ mod tests {
         let lexer = build_lexer("!(~1 /= -1)");
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(_prefix(
                 PrefixOperator::LogicNot,
                 _infix(
@@ -991,7 +984,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter())._next(),
+            parser_from(tokens.into_iter()).next(),
             Some(Ok(_if_(
                 _infix(
                     InfixOperator::Less,
@@ -1044,7 +1037,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(_infix(
                 InfixOperator::Call,
                 _symbol("f", _pos(0, 1)),
@@ -1064,7 +1057,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(_tuple(vec![_integer("1", _pos(1, 1))], _pos(0, 4)))),
         );
     }
@@ -1076,7 +1069,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(_infix(
                 InfixOperator::Correspondence,
                 _symbol("x", _pos(0, 1)),
@@ -1098,7 +1091,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(_infix(
                 InfixOperator::Call,
                 _infix(
@@ -1126,7 +1119,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(_tuple(
                 vec![_char('a', _pos(1, 3)), _string("b", _pos(6, 3)),],
                 _pos(0, 10),
@@ -1141,7 +1134,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(_for(
                 "i",
                 _symbol("list", _pos(9, 4)),
@@ -1163,7 +1156,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(_infix(
                 InfixOperator::In,
                 _integer("1", _pos(0, 1)),
@@ -1189,7 +1182,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(_extension_list(
                 vec![
                     _extension_list(vec![], _pos(1, 2)),
@@ -1207,7 +1200,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(_comprehension_list(
                 _infix(
                     InfixOperator::In,
@@ -1241,7 +1234,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(_extension_set(
                 vec![_extension_set(vec![], _pos(1, 2))],
                 _pos(0, 4)
@@ -1256,7 +1249,7 @@ mod tests {
         let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap()))._next(),
+            parser_from(lexer.map(|res| res.unwrap())).next(),
             Some(Ok(_extension_list(
                 vec![
                     _symbol("a", _pos(1, 1)),
@@ -1274,7 +1267,7 @@ mod tests {
         let lexer = build_lexer(code).map(|res| res.unwrap());
 
         assert_eq!(
-            parser_from(lexer)._next(),
+            parser_from(lexer).next(),
             Some(Ok(_prepend(
                 _integer("1", _pos(1, 1)),
                 _extension_list(
@@ -1292,7 +1285,7 @@ mod tests {
         let lexer = build_lexer(input).map(|res| res.unwrap());
 
         assert_eq!(
-            parser_from(lexer)._next(),
+            parser_from(lexer).next(),
             Some(Ok(_infix(
                 InfixOperator::Sum,
                 _comprehension_list(
@@ -1317,7 +1310,7 @@ mod tests {
         let lexer = build_lexer(input).map(|res| res.unwrap());
 
         assert_eq!(
-            parser_from(lexer)._next(),
+            parser_from(lexer).next(),
             Some(Err(ParserError::UnexpectedToken(
                 vec![TokenType::Rparen],
                 TokenType::Rbrack
@@ -1331,7 +1324,7 @@ mod tests {
         let lexer = build_lexer(input).map(|res| res.unwrap());
 
         assert_eq!(
-            parser_from(lexer)._next(),
+            parser_from(lexer).next(),
             Some(Err(ParserError::ExpectedExpression(TokenType::Rparen))),
         );
     }
