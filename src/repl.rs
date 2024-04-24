@@ -94,7 +94,9 @@ pub fn repl<T: Cli>(interface: &mut T) -> Result<(), ()> {
 
         let (line, response) = repl.response(readline);
 
-        interface.println(&line);
+        if !line.is_empty() {
+            interface.println(&line);
+        }
 
         wait_for_more = response == ReplResponse::WaitForMore;
 
@@ -306,5 +308,13 @@ mod tests {
         let res = repl(&mut cli);
 
         assert_eq!(res, Ok(()));
+    }
+
+    #[test]
+    fn not_printing_empty_response() {
+        let mut cli = CliMock::_new(vec![Ok("".into()), Err(ReadlineError::Interrupted)]);
+        let _ = repl(&mut cli);
+
+        assert_eq!(cli.lines_printed, Vec::<String>::new());
     }
 }
