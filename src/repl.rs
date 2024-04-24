@@ -73,7 +73,7 @@ impl Repl {
 pub trait Cli {
     fn input(&mut self, msg: &str) -> Result<String, ReadlineError>;
 
-    fn println(&self, msg: &str);
+    fn println(&mut self, msg: &str);
 
     fn add_history_entry(&mut self, entry: &str);
 }
@@ -110,6 +110,44 @@ pub fn repl<T: Cli>(interface: &mut T) -> Result<(), ()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct CliMock {
+        input_index: usize,
+        inputs: Vec<String>,
+        lines_printed: Vec<String>,
+        prompt_messages: Vec<String>,
+        history: Vec<String>,
+    }
+
+    impl CliMock {
+        fn _new(inputs: Vec<String>) -> Self {
+            Self {
+                input_index: 0,
+                inputs,
+                lines_printed: vec![],
+                prompt_messages: vec![],
+                history: vec![],
+            }
+        }
+    }
+
+    impl Cli for CliMock {
+        fn input(&mut self, msg: &str) -> Result<String, ReadlineError> {
+            self.prompt_messages.push(msg.to_owned());
+            let res = Ok(self.inputs[self.input_index].to_owned());
+            self.input_index += 1;
+
+            res
+        }
+
+        fn println(&mut self, msg: &str) {
+            self.lines_printed.push(msg.to_owned());
+        }
+
+        fn add_history_entry(&mut self, entry: &str) {
+            self.history.push(entry.to_owned());
+        }
+    }
 
     #[test]
     fn empty_string() {

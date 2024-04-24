@@ -27,7 +27,7 @@ impl Cli for MyCLI {
         self.rl.readline(msg)
     }
 
-    fn println(&self, msg: &str) {
+    fn println(&mut self, msg: &str) {
         println!("{msg}")
     }
 
