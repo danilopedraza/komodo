@@ -302,7 +302,7 @@ mod tests {
 
     #[test]
     fn empty_response() {
-        let mut cli = CliMock::_new(vec![Ok("".into()), Err(ReadlineError::Interrupted)]);
+        let mut cli = CliMock::_new(vec![Err(ReadlineError::Interrupted)]);
         let res = repl(&mut cli);
 
         assert_eq!(res, Ok(()));
