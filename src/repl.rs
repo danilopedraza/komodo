@@ -315,6 +315,6 @@ mod tests {
         let mut cli = CliMock::_new(vec![Ok("".into()), Err(ReadlineError::Interrupted)]);
         let _ = repl(&mut cli);
 
-        assert_eq!(cli.lines_printed, Vec::<String>::new());
+        assert!(cli.lines_printed.is_empty());
     }
 }
