@@ -103,7 +103,7 @@ pub fn repl<T: Cli>(interface: &mut T) -> Result<(), ()> {
         match response {
             ReplResponse::Break => break Ok(()),
             ReplResponse::Continue => continue,
-            ReplResponse::Error => break Err(()),
+            ReplResponse::Error => continue,
             ReplResponse::WaitForMore => continue,
         }
     }
@@ -117,7 +117,7 @@ mod tests {
         input_index: usize,
         inputs: Vec<Result<String, ReadlineError>>,
         lines_printed: Vec<String>,
-        prompt_messages: Vec<String>,
+        prompt_prefixes: Vec<String>,
         history: Vec<String>,
     }
 
@@ -127,7 +127,7 @@ mod tests {
                 input_index: 0,
                 inputs,
                 lines_printed: vec![],
-                prompt_messages: vec![],
+                prompt_prefixes: vec![],
                 history: vec![],
             }
         }
@@ -135,7 +135,7 @@ mod tests {
 
     impl Cli for CliMock {
         fn input(&mut self, msg: &str) -> Result<String, ReadlineError> {
-            self.prompt_messages.push(msg.to_owned());
+            self.prompt_prefixes.push(msg.to_owned());
             let res = &self.inputs[self.input_index];
             self.input_index += 1;
 
@@ -316,5 +316,11 @@ mod tests {
         let _ = repl(&mut cli);
 
         assert!(cli.lines_printed.is_empty());
+    }
+
+    #[test]
+    fn language_error_contained() {
+        let mut cli = CliMock::_new(vec![Ok("let a :=".into()), Err(ReadlineError::Interrupted)]);
+        assert!(repl(&mut cli).is_ok());
     }
 }
