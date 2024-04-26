@@ -1,6 +1,8 @@
 // use crate::{exec::EvalError, lexer::LexerError, parser::ParserError};
 
-// enum Error {
+// struct Error(ErrorType, Position);
+
+// enum ErrorType {
 //     LexerError(LexerError),
 //     ParserError(ParserError),
 //     ExecError(EvalError),
@@ -19,3 +21,7 @@ impl Position {
 }
 
 // struct ErrorMessage(Error, Position);
+
+// #[cfg(test)]
+// mod tests {
+// }
