@@ -60,10 +60,13 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 TokenType::Ident(literal) => self.symbol(literal),
                 TokenType::String(str) => self.string(str),
                 TokenType::Wildcard => self.wildcard(),
-                tok if PrefixOperator::from(tok.clone()).is_some() => {
-                    self.prefix(PrefixOperator::from(tok).unwrap())
+                tok => {
+                    if let Some(op) = PrefixOperator::from(&tok) {
+                        self.prefix(op)
+                    } else {
+                        Err(ParserError::ExpectedExpression(tok))
+                    }
                 }
-                tok => Err(ParserError::ExpectedExpression(tok)),
             },
         }?;
 

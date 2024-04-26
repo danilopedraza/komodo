@@ -106,7 +106,7 @@ pub enum PrefixOperator {
 }
 
 impl PrefixOperator {
-    pub fn from(tok: TokenType) -> Option<Self> {
+    pub fn from(tok: &TokenType) -> Option<Self> {
         match tok {
             TokenType::Bang => Some(Self::LogicNot),
             TokenType::Minus => Some(Self::Minus),
