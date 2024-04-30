@@ -1,4 +1,4 @@
-name: Rust
+name: Interpreter Unit Tests
 
 on:
   push:
@@ -23,5 +23,5 @@ jobs:
       run: cargo clippy --all-targets --all-features
     - name: Build
       run: cargo build --verbose
-    - name: Run tests
+    - name: Test
       run: cargo test --verbose
