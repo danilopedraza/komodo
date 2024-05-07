@@ -2,6 +2,7 @@ use crate::{
     ast::ASTNode,
     builtin::standard_env,
     env::Environment,
+    error::{error_msg, ErrorMessage},
     exec::exec,
     lexer::build_lexer,
     parser::{parser_from, ParserError},
@@ -65,7 +66,10 @@ impl Repl {
                 Err(err) => (format!("{:?}", err), ReplResponse::Error),
             },
             Err(ParserError::EOFExpecting(_)) => (String::from(""), ReplResponse::WaitForMore),
-            Err(err) => (format!("{:?}", err), ReplResponse::Error),
+            Err(err) => {
+                let ErrorMessage(msg, _) = error_msg(err.into());
+                (msg, ReplResponse::Error)
+            }
         }
     }
 }

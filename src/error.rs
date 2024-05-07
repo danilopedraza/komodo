@@ -1,11 +1,17 @@
-use crate::{exec::EvalError, lexer::LexerError, parser::ParserError};
+use crate::{ast::_dummy_pos, exec::EvalError, lexer::LexerError, parser::ParserError};
 
 // struct Error(ErrorType, Position);
 
-enum Error {
-    LexerError(LexerError),
-    ParserError(ParserError),
-    ExecError(EvalError),
+pub enum Error {
+    _Lexer(LexerError),
+    Parser(ParserError),
+    _Exec(EvalError),
+}
+
+impl From<ParserError> for Error {
+    fn from(err: ParserError) -> Self {
+        Self::Parser(err)
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -20,10 +26,10 @@ impl Position {
     }
 }
 
-fn error_msg(err: Error) -> ErrorMessage {
+pub fn error_msg(err: Error) -> ErrorMessage {
     match err {
-        Error::ParserError(err) => parser_error_msg(err),
-        _ => todo!(),
+        Error::Parser(err) => parser_error_msg(err),
+        _ => ErrorMessage("Unknown error".into(), _dummy_pos()),
     }
 }
 
@@ -32,12 +38,12 @@ fn parser_error_msg(err: ParserError) -> ErrorMessage {
         ParserError::ExpectedExpression(_, pos) => {
             ErrorMessage("Expected an expression, but got a ')'".into(), pos)
         }
-        _ => todo!(),
+        _ => ErrorMessage("Unknown parser error".into(), _dummy_pos()),
     }
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct ErrorMessage(String, Position);
+pub struct ErrorMessage(pub String, pub Position);
 
 #[cfg(test)]
 mod tests {
@@ -47,7 +53,7 @@ mod tests {
     #[test]
     fn expected_expression() {
         assert_eq!(
-            error_msg(Error::ParserError(ParserError::ExpectedExpression(
+            error_msg(Error::Parser(ParserError::ExpectedExpression(
                 TokenType::Rparen,
                 Position::new(3, 1)
             ))),
