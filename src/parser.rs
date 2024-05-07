@@ -6,7 +6,7 @@ use crate::lexer::{Token, TokenType};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ParserError {
-    ExpectedExpression(TokenType),
+    ExpectedExpression(TokenType, Position),
     UnexpectedToken(Vec<TokenType>, TokenType),
     EOFReached,
     // EOFReached_(Position),
@@ -64,7 +64,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                     if let Some(op) = PrefixOperator::from(&tok) {
                         self.prefix(op)
                     } else {
-                        Err(ParserError::ExpectedExpression(tok))
+                        Err(ParserError::ExpectedExpression(tok, self.cur_pos))
                     }
                 }
             },
@@ -1328,7 +1328,10 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Err(ParserError::ExpectedExpression(TokenType::Rparen))),
+            Some(Err(ParserError::ExpectedExpression(
+                TokenType::Rparen,
+                Position::new(4, 1)
+            ))),
         );
     }
 }
