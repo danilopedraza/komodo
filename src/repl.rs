@@ -68,6 +68,7 @@ impl Repl {
             Err(ParserError::EOFExpecting(_)) => (String::from(""), ReplResponse::WaitForMore),
             Err(err) => {
                 let ErrorMessage(msg, _) = error_msg(err.into());
+                self.code.clear();
                 (msg, ReplResponse::Error)
             }
         }
@@ -326,5 +327,12 @@ mod tests {
     fn language_error_contained() {
         let mut cli = CliMock::_new(vec![Ok("let a :=".into()), Err(ReadlineError::Interrupted)]);
         assert!(repl(&mut cli).is_ok());
+    }
+
+    #[test]
+    fn clear_autocomplete_after_error() {
+        let mut repl = Repl::standard_repl();
+        repl.response(Ok("1 + )".into()));
+        assert!(repl.code.is_empty());
     }
 }
