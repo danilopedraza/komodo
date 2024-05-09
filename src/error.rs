@@ -36,7 +36,7 @@ pub fn error_msg(err: Error) -> ErrorMessage {
 fn parser_error_msg(err: ParserError) -> ErrorMessage {
     match err {
         ParserError::ExpectedExpression(_, pos) => {
-            ErrorMessage("Expected an expression, but got a ')'".into(), pos)
+            ErrorMessage("Expected an expression, but found a `)`".into(), pos)
         }
         _ => ErrorMessage("Unknown parser error".into(), _dummy_pos()),
     }
@@ -58,7 +58,7 @@ mod tests {
                 Position::new(3, 1)
             ))),
             ErrorMessage(
-                String::from("Expected an expression, but got a ')'"),
+                String::from("Expected an expression, but found a `)`"),
                 Position::new(3, 1),
             ),
         );
