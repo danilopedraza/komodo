@@ -1,14 +1,22 @@
 use crate::{ast::_dummy_pos, exec::EvalError, lexer::LexerError, parser::ParserError};
 
-// struct Error(ErrorType, Position);
+#[derive(Debug, PartialEq, Eq)]
+pub struct Error(pub ErrorType, pub Position);
 
-pub enum Error {
+impl Error {
+    pub fn new(err: ErrorType, pos: Position) -> Self {
+        Self(err, pos)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ErrorType {
     _Lexer(LexerError),
     Parser(ParserError),
     _Exec(EvalError),
 }
 
-impl From<ParserError> for Error {
+impl From<ParserError> for ErrorType {
     fn from(err: ParserError) -> Self {
         Self::Parser(err)
     }
@@ -26,9 +34,9 @@ impl Position {
     }
 }
 
-pub fn error_msg(err: Error) -> ErrorMessage {
+pub fn error_msg(Error(err, _pos): Error) -> ErrorMessage {
     match err {
-        Error::Parser(err) => parser_error_msg(err),
+        ErrorType::Parser(err) => parser_error_msg(err),
         _ => ErrorMessage("Unknown error".into(), _dummy_pos()),
     }
 }
@@ -53,10 +61,10 @@ mod tests {
     #[test]
     fn expected_expression() {
         assert_eq!(
-            error_msg(Error::Parser(ParserError::ExpectedExpression(
-                TokenType::Rparen,
+            error_msg(Error::new(
+                ParserError::ExpectedExpression(TokenType::Rparen, Position::new(3, 1)).into(),
                 Position::new(3, 1)
-            ))),
+            )),
             ErrorMessage(
                 String::from("Expected an expression, but found a `)`"),
                 Position::new(3, 1),

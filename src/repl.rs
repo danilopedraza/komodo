@@ -2,7 +2,7 @@ use crate::{
     ast::ASTNode,
     builtin::standard_env,
     env::Environment,
-    error::{error_msg, ErrorMessage},
+    error::{error_msg, Error, ErrorMessage, ErrorType},
     exec::exec,
     lexer::build_lexer,
     parser::{parser_from, ParserError},
@@ -56,7 +56,7 @@ impl Repl {
         }
     }
 
-    fn ast_response(&mut self, res: Result<ASTNode, ParserError>) -> (String, ReplResponse) {
+    fn ast_response(&mut self, res: Result<ASTNode, Error>) -> (String, ReplResponse) {
         match res {
             Ok(node) => match exec(&postprocess(node), &mut self.env) {
                 Ok(obj) => {
@@ -65,9 +65,11 @@ impl Repl {
                 }
                 Err(err) => (format!("{:?}", err), ReplResponse::Error),
             },
-            Err(ParserError::EOFExpecting(_)) => (String::from(""), ReplResponse::WaitForMore),
+            Err(Error(ErrorType::Parser(ParserError::EOFExpecting(_)), _)) => {
+                (String::from(""), ReplResponse::WaitForMore)
+            }
             Err(err) => {
-                let ErrorMessage(msg, _) = error_msg(err.into());
+                let ErrorMessage(msg, _) = error_msg(err);
                 self.code.clear();
                 (msg, ReplResponse::Error)
             }

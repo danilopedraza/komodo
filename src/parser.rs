@@ -1,7 +1,7 @@
 use std::{iter::Peekable, vec};
 
 use crate::ast::*;
-use crate::error::Position;
+use crate::error::{Error, Position};
 use crate::lexer::{Token, TokenType};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -20,7 +20,7 @@ pub struct Parser<T: Iterator<Item = Token>> {
 }
 
 impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
-    type Item = Result<ASTNode, ParserError>;
+    type Item = Result<ASTNode, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.peek_token() {
@@ -30,7 +30,7 @@ impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
     }
 }
 
-type _NodeResult = Result<ASTNode, ParserError>;
+type _NodeResult = Result<ASTNode, Error>;
 
 impl<T: Iterator<Item = Token>> Parser<T> {
     fn peek_pos(&mut self) -> Position {
@@ -45,7 +45,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         let start = self.peek_pos().start;
 
         let mut expr = match self.next_token() {
-            None => Err(ParserError::EOFReached),
+            None => self.err_with_cur(ParserError::EOFReached),
             Some(tok) => match tok {
                 TokenType::Char(chr) => self.char(chr),
                 TokenType::For => self.for_(),
@@ -64,7 +64,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                     if let Some(op) = PrefixOperator::from(&tok) {
                         self.prefix(op)
                     } else {
-                        Err(ParserError::ExpectedExpression(tok, self.cur_pos))
+                        self.err_with_cur(ParserError::ExpectedExpression(tok, self.cur_pos))
                     }
                 }
             },
@@ -102,6 +102,10 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         Ok(ASTNode::new(node, self.cur_pos))
     }
 
+    fn err_with_cur(&self, err: ParserError) -> _NodeResult {
+        Err(Error::new(err.into(), self.cur_pos))
+    }
+
     fn symbol(&self, literal: String) -> _NodeResult {
         self.node_with_cur(ASTNodeType_::Symbol(literal))
     }
@@ -127,7 +131,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     fn let_function_with_arguments_(
         &mut self,
         name: ASTNode,
-    ) -> Result<(ASTNode, Vec<ASTNode>, ASTNode), ParserError> {
+    ) -> Result<(ASTNode, Vec<ASTNode>, ASTNode), Error> {
         let args_res = self.sequence(TokenType::Rparen, None);
 
         match (args_res, self.next_token()) {
@@ -136,8 +140,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 Err(err) => Err(err),
             },
             (Err(err), _) => Err(err),
-            (_, Some(tok)) => Err(ParserError::UnexpectedToken(vec![TokenType::Assign], tok)),
-            (Ok(_), None) => Err(ParserError::EOFExpecting(vec![TokenType::Assign])),
+            (_, Some(tok)) => Err(Error::new(
+                ParserError::UnexpectedToken(vec![TokenType::Assign], tok).into(),
+                self.cur_pos,
+            )),
+            (Ok(_), None) => Err(Error::new(
+                ParserError::EOFExpecting(vec![TokenType::Assign]).into(),
+                self.cur_pos,
+            )),
         }
     }
 
@@ -145,7 +155,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         &mut self,
         terminator: TokenType,
         first: Option<ASTNode>,
-    ) -> Result<Vec<ASTNode>, ParserError> {
+    ) -> Result<Vec<ASTNode>, Error> {
         let mut res = match first {
             None => vec![],
             Some(node) => vec![node],
@@ -156,7 +166,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 self.next_token();
                 Ok(res)
             }
-            None => Err(ParserError::EOFReached),
+            None => Err(Error::new(ParserError::EOFReached.into(), self.cur_pos)),
             _ => loop {
                 let expr = self.expression(Precedence::Lowest)?;
                 res.push(expr);
@@ -165,16 +175,17 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                     Some(TokenType::Comma) => continue,
                     Some(tok) if tok == terminator => break Ok(res),
                     Some(tok) => {
-                        break Err(ParserError::UnexpectedToken(
-                            vec![TokenType::Comma, terminator],
-                            tok,
+                        break Err(Error::new(
+                            ParserError::UnexpectedToken(vec![TokenType::Comma, terminator], tok)
+                                .into(),
+                            self.cur_pos,
                         ))
                     }
                     None => {
-                        break Err(ParserError::EOFExpecting(vec![
-                            TokenType::Comma,
-                            terminator,
-                        ]))
+                        break Err(Error::new(
+                            ParserError::EOFExpecting(vec![TokenType::Comma, terminator]).into(),
+                            self.cur_pos,
+                        ))
                     }
                 }
             },
@@ -195,11 +206,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 })
             }
             (Some(TokenType::Ident(name)), _) => Ok(_symbol(&name, self.cur_pos)),
-            (Some(tok), _) => Err(ParserError::UnexpectedToken(
+            (Some(tok), _) => self.err_with_cur(ParserError::UnexpectedToken(
                 vec![TokenType::Ident(String::from(""))],
                 tok,
             )),
-            (None, _) => Err(ParserError::EOFExpecting(vec![TokenType::Ident(
+            (None, _) => self.err_with_cur(ParserError::EOFExpecting(vec![TokenType::Ident(
                 String::from(""),
             )])),
         }
@@ -254,8 +265,10 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rparen, Some(res))
                 .map(|lst| _tuple(lst, self.start_to_cur(start))),
-            Some(tok) => Err(ParserError::UnexpectedToken(vec![TokenType::Rparen], tok)),
-            None => Err(ParserError::EOFExpecting_(
+            Some(tok) => {
+                self.err_with_cur(ParserError::UnexpectedToken(vec![TokenType::Rparen], tok))
+            }
+            None => self.err_with_cur(ParserError::EOFExpecting_(
                 vec![TokenType::Rparen],
                 self.start_to_cur(start),
             )),
@@ -309,11 +322,11 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 .map(|lst| _extension_list(lst, self.start_to_cur(start))),
             Some(TokenType::Rbrack) => Ok(_extension_list(vec![first], self.start_to_cur(start))),
             Some(TokenType::VerticalBar) => self.prepend_(first, start),
-            Some(tok) => Err(ParserError::UnexpectedToken(
+            Some(tok) => self.err_with_cur(ParserError::UnexpectedToken(
                 vec![TokenType::Colon, TokenType::Comma, TokenType::Rbrack],
                 tok,
             )),
-            None => Err(ParserError::EOFExpecting(vec![
+            None => self.err_with_cur(ParserError::EOFExpecting(vec![
                 TokenType::Colon,
                 TokenType::Comma,
                 TokenType::Comma,
@@ -342,13 +355,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
         let ident = match self.next_token() {
             Some(TokenType::Ident(s)) => Ok(s),
-            Some(tok) => Err(ParserError::UnexpectedToken(
-                vec![TokenType::Ident(String::from(""))],
-                tok,
+            Some(tok) => Err(Error::new(
+                ParserError::UnexpectedToken(vec![TokenType::Ident(String::from(""))], tok).into(),
+                self.cur_pos,
             )),
-            None => Err(ParserError::EOFExpecting(vec![TokenType::Ident(
-                String::from(""),
-            )])),
+            None => Err(Error::new(
+                ParserError::EOFExpecting(vec![TokenType::Ident(String::from(""))]).into(),
+                self.cur_pos,
+            )),
         }?;
 
         self.consume(TokenType::In)?;
@@ -367,11 +381,17 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         Ok(_for(&ident, iter, proc, self.start_to_cur(start)))
     }
 
-    fn consume(&mut self, expected_tok: TokenType) -> Result<(), ParserError> {
+    fn consume(&mut self, expected_tok: TokenType) -> Result<(), Error> {
         match self.next_token() {
             Some(tok) if tok == expected_tok => Ok(()),
-            Some(tok) => Err(ParserError::UnexpectedToken(vec![expected_tok], tok)),
-            None => Err(ParserError::EOFExpecting(vec![expected_tok])),
+            Some(tok) => Err(Error::new(
+                ParserError::UnexpectedToken(vec![expected_tok], tok).into(),
+                self.cur_pos,
+            )),
+            None => Err(Error::new(
+                ParserError::EOFExpecting(vec![expected_tok]).into(),
+                self.cur_pos,
+            )),
         }
     }
 
@@ -424,15 +444,23 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 Ok(_comprehension_set(first, second, self.start_to_cur(start)))
             }
             Some(TokenType::Rbrace) => Ok(_extension_set(vec![first], self.start_to_cur(start))),
-            Some(tok) => Err(ParserError::UnexpectedToken(
-                vec![TokenType::Comma, TokenType::Rbrace, TokenType::Colon],
-                tok,
+            Some(tok) => Err(Error::new(
+                ParserError::UnexpectedToken(
+                    vec![TokenType::Comma, TokenType::Rbrace, TokenType::Colon],
+                    tok,
+                )
+                .into(),
+                self.cur_pos,
             )),
-            None => Err(ParserError::EOFExpecting(vec![
-                TokenType::Comma,
-                TokenType::Rbrace,
-                TokenType::Colon,
-            ])),
+            None => Err(Error::new(
+                ParserError::EOFExpecting(vec![
+                    TokenType::Comma,
+                    TokenType::Rbrace,
+                    TokenType::Colon,
+                ])
+                .into(),
+                self.cur_pos,
+            )),
         }
     }
 }
@@ -488,9 +516,9 @@ mod tests {
         ];
         assert_eq!(
             parser_from(tokens.into_iter()).next(),
-            Some(Err(ParserError::EOFExpecting_(
-                vec![TokenType::Rparen,],
-                _pos(0, 3)
+            Some(Err(Error::new(
+                ParserError::EOFExpecting_(vec![TokenType::Rparen,], _pos(0, 3)).into(),
+                _pos(1, 2),
             )))
         );
     }
@@ -521,7 +549,7 @@ mod tests {
         ];
         assert_eq!(
             parser_from(tokens.into_iter()).next(),
-            Some(Err(ParserError::EOFReached))
+            Some(Err(Error::new(ParserError::EOFReached.into(), _pos(1, 1),)))
         );
     }
 
@@ -1314,9 +1342,9 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Err(ParserError::UnexpectedToken(
-                vec![TokenType::Rparen],
-                TokenType::Rbrack
+            Some(Err(Error::new(
+                ParserError::UnexpectedToken(vec![TokenType::Rparen], TokenType::Rbrack).into(),
+                _pos(3, 1),
             ))),
         );
     }
@@ -1328,9 +1356,9 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Err(ParserError::ExpectedExpression(
-                TokenType::Rparen,
-                Position::new(4, 1)
+            Some(Err(Error::new(
+                ParserError::ExpectedExpression(TokenType::Rparen, Position::new(4, 1)).into(),
+                _pos(4, 1)
             ))),
         );
     }
