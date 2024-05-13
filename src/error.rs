@@ -1,5 +1,4 @@
 use crate::{
-    ast::_dummy_pos,
     exec::EvalError,
     lexer::{LexerError, TokenType},
     parser::ParserError,
@@ -42,7 +41,8 @@ impl Position {
 pub fn error_msg(Error(err, _pos): Error) -> ErrorMessage {
     match err {
         ErrorType::Parser(err) => parser_error_msg(err),
-        _ => ErrorMessage("Unknown error".into(), _dummy_pos()),
+        ErrorType::_Lexer(err) => lexer_error_msg(err),
+        ErrorType::_Exec(err) => exec_error_msg(err),
     }
 }
 
@@ -103,7 +103,28 @@ fn parser_error_msg(err: ParserError) -> ErrorMessage {
             let tok_str = found_a(tok);
             ErrorMessage(format!("Expected an expression, but found {tok_str}"), pos)
         }
-        _ => ErrorMessage("Unknown parser error".into(), _dummy_pos()),
+        ParserError::UnexpectedToken(_, _) => todo!(),
+        ParserError::EOFReached => todo!(),
+        ParserError::EOFExpecting(_) => todo!(),
+        ParserError::EOFExpecting_(_, _) => todo!(),
+    }
+}
+
+fn lexer_error_msg(err: LexerError) -> ErrorMessage {
+    match err {
+        LexerError::UnexpectedChar(_) => todo!(),
+        LexerError::UnexpectedEOF => todo!(),
+        LexerError::UnterminatedChar => todo!(),
+        LexerError::UnterminatedString => todo!(),
+    }
+}
+
+fn exec_error_msg(err: EvalError) -> ErrorMessage {
+    match err {
+        EvalError::MissingFunctionArguments => todo!(),
+        EvalError::NonCallableObject => todo!(),
+        EvalError::NonExistentOperation => todo!(),
+        EvalError::NonIterableObject => todo!(),
     }
 }
 

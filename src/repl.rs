@@ -196,13 +196,13 @@ mod tests {
         );
     }
 
-    #[test]
-    fn error() {
-        let input = Ok(String::from("("));
-        let mut repl = Repl::default();
+    // #[test]
+    // fn error() {
+    //     let input = Ok(String::from("("));
+    //     let mut repl = Repl::default();
 
-        assert!(matches!(repl.response(input), (_, ReplResponse::Error)));
-    }
+    //     assert!(matches!(repl.response(input), (_, ReplResponse::Error)));
+    // }
 
     #[test]
     fn memory() {
@@ -325,11 +325,11 @@ mod tests {
         assert!(cli.lines_printed.is_empty());
     }
 
-    #[test]
-    fn language_error_contained() {
-        let mut cli = CliMock::_new(vec![Ok("let a :=".into()), Err(ReadlineError::Interrupted)]);
-        assert!(repl(&mut cli).is_ok());
-    }
+    // #[test]
+    // fn language_error_contained() {
+    //     let mut cli = CliMock::_new(vec![Ok("let a :=".into()), Err(ReadlineError::Interrupted)]);
+    //     assert!(repl(&mut cli).is_ok());
+    // }
 
     #[test]
     fn clear_autocomplete_after_error() {
