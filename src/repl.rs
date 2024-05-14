@@ -1,5 +1,5 @@
 use crate::{
-    ast::ASTNode,
+    ast::{ASTNode, _dummy_pos},
     builtin::standard_env,
     env::Environment,
     error::{error_msg, Error, ErrorMessage, ErrorType},
@@ -42,7 +42,10 @@ impl Repl {
                 }
                 self.code.push_str(&line);
                 let lexer = build_lexer(&self.code);
-                let mut parser = parser_from(lexer.map(|res| res.unwrap()));
+                let mut parser = parser_from(lexer.map(|res| match res {
+                    Ok(val) => Ok(val),
+                    Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+                }));
 
                 match parser.next() {
                     None => (String::from(""), ReplResponse::Continue),

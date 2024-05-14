@@ -4,7 +4,7 @@ use crate::{
     parser::ParserError,
 };
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Error(pub ErrorType, pub Position);
 
 impl Error {
@@ -13,11 +13,17 @@ impl Error {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ErrorType {
     _Lexer(LexerError),
     Parser(ParserError),
     _Exec(EvalError),
+}
+
+impl From<LexerError> for ErrorType {
+    fn from(err: LexerError) -> Self {
+        Self::_Lexer(err)
+    }
 }
 
 impl From<ParserError> for ErrorType {

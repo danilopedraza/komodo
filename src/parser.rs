@@ -4,7 +4,7 @@ use crate::ast::*;
 use crate::error::{Error, Position};
 use crate::lexer::{Token, TokenType};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParserError {
     ExpectedExpression(TokenType, Position),
     UnexpectedToken(Vec<TokenType>, TokenType),
@@ -14,27 +14,28 @@ pub enum ParserError {
     EOFExpecting_(Vec<TokenType>, Position),
 }
 
-pub struct Parser<T: Iterator<Item = Token>> {
+pub struct Parser<T: Iterator<Item = Result<Token, Error>>> {
     tokens: Peekable<T>,
     cur_pos: Position,
 }
 
-impl<T: Iterator<Item = Token>> Iterator for Parser<T> {
+impl<T: Iterator<Item = Result<Token, Error>>> Iterator for Parser<T> {
     type Item = Result<ASTNode, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.peek_token() {
-            None => None,
-            _ => Some(self.expression(Precedence::Lowest)),
+            Ok(None) => None,
+            Ok(Some(_)) => Some(self.expression(Precedence::Lowest)),
+            Err(err) => Some(Err(err)),
         }
     }
 }
 
 type _NodeResult = Result<ASTNode, Error>;
 
-impl<T: Iterator<Item = Token>> Parser<T> {
+impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     fn peek_pos(&mut self) -> Position {
-        if let Some(Token { position, .. }) = self.tokens.peek() {
+        if let Some(Ok(Token { position, .. })) = self.tokens.peek() {
             *position
         } else {
             self.cur_pos
@@ -44,7 +45,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     fn expression(&mut self, precedence: Precedence) -> _NodeResult {
         let start = self.peek_pos().start;
 
-        let mut expr = match self.next_token() {
+        let mut expr = match self.next_token()? {
             None => self.err_with_cur(ParserError::EOFReached),
             Some(tok) => match tok {
                 TokenType::Char(chr) => self.char(chr),
@@ -72,7 +73,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
         while let Some(op) = self.current_infix() {
             if precedence < op.precedence() {
-                self.next_token();
+                self.next_token()?;
                 expr = self.infix(expr, op, start)?;
             } else {
                 break;
@@ -115,7 +116,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
 
         let sg = self.signature()?;
 
-        match self.next_token() {
+        match self.next_token()? {
             Some(TokenType::Assign) => self
                 .expression(Precedence::Lowest)
                 .map(|res| _let_(sg, vec![], res, self.start_to_cur(start))),
@@ -134,7 +135,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     ) -> Result<(ASTNode, Vec<ASTNode>, ASTNode), Error> {
         let args_res = self.sequence(TokenType::Rparen, None);
 
-        match (args_res, self.next_token()) {
+        match (args_res, self.next_token()?) {
             (Ok(args), Some(TokenType::Assign)) => match self.expression(Precedence::Lowest) {
                 Ok(expr) => Ok((name, args, expr)),
                 Err(err) => Err(err),
@@ -161,9 +162,9 @@ impl<T: Iterator<Item = Token>> Parser<T> {
             Some(node) => vec![node],
         };
 
-        match self.peek_token() {
+        match self.peek_token()? {
             Some(tok) if tok == terminator => {
-                self.next_token();
+                self.next_token()?;
                 Ok(res)
             }
             None => Err(Error::new(ParserError::EOFReached.into(), self.cur_pos)),
@@ -171,7 +172,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
                 let expr = self.expression(Precedence::Lowest)?;
                 res.push(expr);
 
-                match self.next_token() {
+                match self.next_token()? {
                     Some(TokenType::Comma) => continue,
                     Some(tok) if tok == terminator => break Ok(res),
                     Some(tok) => {
@@ -193,10 +194,10 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn signature(&mut self) -> _NodeResult {
-        match (self.next_token(), self.peek_token()) {
+        match (self.next_token()?, self.peek_token()?) {
             (Some(TokenType::Ident(name)), Some(TokenType::Colon)) => {
                 let symbol_pos = self.cur_pos;
-                self.next_token();
+                self.next_token()?;
                 self.type__().map(|tp| {
                     _signature(
                         _symbol(&name, symbol_pos),
@@ -253,14 +254,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     fn parenthesis(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
-        if matches!(self.peek_token(), Some(TokenType::Rparen)) {
-            self.next_token();
+        if matches!(self.peek_token()?, Some(TokenType::Rparen)) {
+            self.next_token()?;
             return Ok(_tuple(vec![], self.start_to_cur(start)));
         }
 
         let res = self.expression(Precedence::Lowest)?;
 
-        match self.next_token() {
+        match self.next_token()? {
             Some(TokenType::Rparen) => Ok(res),
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rparen, Some(res))
@@ -288,34 +289,36 @@ impl<T: Iterator<Item = Token>> Parser<T> {
         }
     }
 
-    fn next_token(&mut self) -> Option<TokenType> {
+    fn next_token(&mut self) -> Result<Option<TokenType>, Error> {
         match self.tokens.next() {
-            Some(Token { token, position }) => {
+            Some(Ok(Token { token, position })) => {
                 self.cur_pos = position;
-                Some(token)
+                Ok(Some(token))
             }
-            _ => None,
+            Some(Err(err)) => Err(err),
+            None => Ok(None),
         }
     }
 
-    fn peek_token(&mut self) -> Option<TokenType> {
+    fn peek_token(&mut self) -> Result<Option<TokenType>, Error> {
         match self.tokens.peek() {
-            Some(Token { token, .. }) => Some(token.to_owned()),
-            _ => None,
+            Some(Ok(Token { token, .. })) => Ok(Some(token.to_owned())),
+            Some(Err(err)) => Err(err.to_owned()),
+            None => Ok(None),
         }
     }
 
     fn list(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
-        if matches!(self.peek_token(), Some(TokenType::Rbrack)) {
-            self.next_token();
+        if matches!(self.peek_token()?, Some(TokenType::Rbrack)) {
+            self.next_token()?;
             return Ok(_extension_list(vec![], self.start_to_cur(start)));
         }
 
         let first = self.expression(Precedence::Lowest)?;
 
-        match self.next_token() {
+        match self.next_token()? {
             Some(TokenType::Colon) => self.comprehension_list_(first, start),
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rbrack, Some(first))
@@ -353,7 +356,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     fn for_(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
-        let ident = match self.next_token() {
+        let ident = match self.next_token()? {
             Some(TokenType::Ident(s)) => Ok(s),
             Some(tok) => Err(Error::new(
                 ParserError::UnexpectedToken(vec![TokenType::Ident(String::from(""))], tok).into(),
@@ -382,7 +385,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn consume(&mut self, expected_tok: TokenType) -> Result<(), Error> {
-        match self.next_token() {
+        match self.next_token()? {
             Some(tok) if tok == expected_tok => Ok(()),
             Some(tok) => Err(Error::new(
                 ParserError::UnexpectedToken(vec![expected_tok], tok).into(),
@@ -412,7 +415,10 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 
     fn current_infix(&mut self) -> Option<InfixOperator> {
-        self.peek_token().and_then(InfixOperator::from)
+        match self.peek_token() {
+            Ok(opt) => opt.and_then(InfixOperator::from),
+            _ => None,
+        }
     }
 
     fn prefix(&mut self, op: PrefixOperator) -> _NodeResult {
@@ -425,14 +431,14 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     fn set(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
-        if matches!(self.peek_token(), Some(TokenType::Rbrace)) {
-            self.next_token();
+        if matches!(self.peek_token()?, Some(TokenType::Rbrace)) {
+            self.next_token()?;
             return Ok(_extension_set(vec![], self.start_to_cur(start)));
         }
 
         let first = self.expression(Precedence::Lowest)?;
 
-        match self.next_token() {
+        match self.next_token()? {
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rbrace, Some(first))
                 .map(|lst| _extension_set(lst, self.start_to_cur(start))),
@@ -465,7 +471,7 @@ impl<T: Iterator<Item = Token>> Parser<T> {
     }
 }
 
-pub fn parser_from<T: Iterator<Item = Token>>(tokens: T) -> Parser<T> {
+pub fn parser_from<T: Iterator<Item = Result<Token, Error>>>(tokens: T) -> Parser<T> {
     Parser {
         tokens: tokens.peekable(),
         cur_pos: Position::new(0, 0),
@@ -480,7 +486,10 @@ mod tests {
 
     #[test]
     fn empty_expression() {
-        assert_eq!(parser_from(iter::empty::<Token>()).next(), None);
+        assert_eq!(
+            parser_from(iter::empty::<Result<Token, Error>>()).next(),
+            None
+        );
     }
 
     #[test]
@@ -490,7 +499,7 @@ mod tests {
             _pos(0, 1),
         )];
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_integer("0", _pos(0, 1))))
         );
     }
@@ -503,7 +512,7 @@ mod tests {
             Token::new(TokenType::Rparen, _pos(4, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_integer("365", _pos(1, 3)))),
         );
     }
@@ -515,7 +524,7 @@ mod tests {
             Token::new(TokenType::Integer(String::from("65")), _pos(1, 2)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Err(Error::new(
                 ParserError::EOFExpecting_(vec![TokenType::Rparen,], _pos(0, 3)).into(),
                 _pos(1, 2),
@@ -531,7 +540,7 @@ mod tests {
             Token::new(TokenType::Integer(String::from("1")), _pos(4, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_infix(
                 InfixOperator::Sum,
                 _integer("1", _pos(0, 1)),
@@ -548,7 +557,7 @@ mod tests {
             Token::new(TokenType::Plus, _pos(1, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Err(Error::new(ParserError::EOFReached.into(), _pos(1, 1),)))
         );
     }
@@ -563,7 +572,7 @@ mod tests {
             Token::new(TokenType::Integer(String::from("2")), _pos(7, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_infix(
                 InfixOperator::Product,
                 _integer("1", _pos(0, 1)),
@@ -588,7 +597,7 @@ mod tests {
             Token::new(TokenType::Integer(String::from("1")), _pos(6, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_infix(
                 InfixOperator::Sum,
                 _infix(
@@ -612,7 +621,7 @@ mod tests {
             Token::new(TokenType::Integer(String::from("1")), Position::new(9, 1)),
         ];
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_let_(
                 _symbol("x", _pos(4, 1)),
                 vec![],
@@ -635,7 +644,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_infix(
                 InfixOperator::NotEquality,
                 _infix(
@@ -672,7 +681,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_let_(
                 _symbol("f", _pos(4, 1)),
                 vec![_symbol("x", _pos(6, 1)), _symbol("y", _pos(9, 1))],
@@ -695,7 +704,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_extension_set(vec![], _pos(0, 2))))
         );
     }
@@ -713,7 +722,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_extension_set(
                 vec![_boolean(true, _pos(2, 4)), _boolean(false, _pos(9, 4)),],
                 _pos(0, 14)
@@ -729,7 +738,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_tuple(vec![], _pos(0, 2))))
         );
     }
@@ -745,7 +754,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_tuple(
                 vec![_symbol("Real", _pos(1, 4)), _symbol("Real", _pos(7, 4))],
                 _pos(0, 12)
@@ -766,7 +775,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_comprehension_set(
                 _symbol("a", _pos(1, 1)),
                 _infix(
@@ -796,7 +805,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_let_(
                 _signature(
                     _symbol("x", _pos(4, 1)),
@@ -831,7 +840,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_infix(
                 InfixOperator::LeftShift,
                 _infix(
@@ -848,7 +857,10 @@ mod tests {
 
     #[test]
     fn shift_and_comparison() {
-        let lexer = build_lexer("1 << 1 > 1").map(|res| res.unwrap());
+        let lexer = build_lexer("1 << 1 > 1").map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -868,7 +880,10 @@ mod tests {
 
     #[test]
     fn bitwise() {
-        let lexer = build_lexer("a & b || c").map(|res| res.unwrap());
+        let lexer = build_lexer("a & b || c").map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -888,10 +903,13 @@ mod tests {
 
     #[test]
     fn logic_infix_operators() {
-        let lexer = build_lexer("a && b || c");
+        let lexer = build_lexer("a && b || c").map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer).next(),
             Some(Ok(_infix(
                 InfixOperator::Or,
                 _infix(
@@ -908,10 +926,13 @@ mod tests {
 
     #[test]
     fn complex_precedence() {
-        let lexer = build_lexer("  a + b || a & b << c");
+        let lexer = build_lexer("  a + b || a & b << c").map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer).next(),
             Some(Ok(_infix(
                 InfixOperator::Or,
                 _infix(
@@ -938,10 +959,13 @@ mod tests {
 
     #[test]
     fn bitwise_xor() {
-        let lexer = build_lexer("a ^ b & c || d");
+        let lexer = build_lexer("a ^ b & c || d").map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer).next(),
             Some(Ok(_infix(
                 InfixOperator::Or,
                 _infix(
@@ -963,10 +987,13 @@ mod tests {
 
     #[test]
     fn something_after_empty_set() {
-        let lexer = build_lexer("({}, 0)");
+        let lexer = build_lexer("({}, 0)").map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer).next(),
             Some(Ok(_tuple(
                 vec![
                     _extension_set(vec![], _pos(1, 2)),
@@ -979,10 +1006,13 @@ mod tests {
 
     #[test]
     fn prefixes() {
-        let lexer = build_lexer("!(~1 /= -1)");
+        let lexer = build_lexer("!(~1 /= -1)").map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer).next(),
             Some(Ok(_prefix(
                 PrefixOperator::LogicNot,
                 _infix(
@@ -1015,7 +1045,7 @@ mod tests {
         ];
 
         assert_eq!(
-            parser_from(tokens.into_iter()).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_if_(
                 _infix(
                     InfixOperator::Less,
@@ -1040,10 +1070,13 @@ mod tests {
         a * a
         ";
 
-        let lexer = build_lexer(input);
+        let lexer = build_lexer(input).map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).program_(),
+            parser_from(lexer).program_(),
             vec![
                 _let_(
                     _symbol("a", _pos(4, 1)),
@@ -1065,10 +1098,13 @@ mod tests {
     fn function_call() {
         let input = "f(x, y)";
 
-        let lexer = build_lexer(input);
+        let lexer = build_lexer(input).map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer).next(),
             Some(Ok(_infix(
                 InfixOperator::Call,
                 _symbol("f", _pos(0, 1)),
@@ -1085,10 +1121,13 @@ mod tests {
     fn comma_last_item() {
         let input = "(1,)";
 
-        let lexer = build_lexer(input);
+        let lexer = build_lexer(input).map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer).next(),
             Some(Ok(_tuple(vec![_integer("1", _pos(1, 1))], _pos(0, 4)))),
         );
     }
@@ -1097,10 +1136,13 @@ mod tests {
     fn anon_function() {
         let input = "x -> 2*x";
 
-        let lexer = build_lexer(input);
+        let lexer = build_lexer(input).map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer).next(),
             Some(Ok(_infix(
                 InfixOperator::Correspondence,
                 _symbol("x", _pos(0, 1)),
@@ -1119,10 +1161,13 @@ mod tests {
     fn anon_function_call() {
         let input = "((x, y) -> x)(1, 2)";
 
-        let lexer = build_lexer(input);
+        let lexer = build_lexer(input).map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer).next(),
             Some(Ok(_infix(
                 InfixOperator::Call,
                 _infix(
@@ -1147,10 +1192,13 @@ mod tests {
     fn char_and_string() {
         let input = "('a', \"b\")";
 
-        let lexer = build_lexer(input);
+        let lexer = build_lexer(input).map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer).next(),
             Some(Ok(_tuple(
                 vec![_char('a', _pos(1, 3)), _string("b", _pos(6, 3)),],
                 _pos(0, 10),
@@ -1162,10 +1210,13 @@ mod tests {
     fn for_loop() {
         let input = "for i in list: println(i)";
 
-        let lexer = build_lexer(input);
+        let lexer = build_lexer(input).map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer).next(),
             Some(Ok(_for(
                 "i",
                 _symbol("list", _pos(9, 4)),
@@ -1184,10 +1235,13 @@ mod tests {
     fn in_question() {
         let input = "1 in { k : k >= 1 }";
 
-        let lexer = build_lexer(input);
+        let lexer = build_lexer(input).map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer).next(),
             Some(Ok(_infix(
                 InfixOperator::In,
                 _integer("1", _pos(0, 1)),
@@ -1210,10 +1264,13 @@ mod tests {
     fn list() {
         let input = "[[], 2]";
 
-        let lexer = build_lexer(input);
+        let lexer = build_lexer(input).map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer).next(),
             Some(Ok(_extension_list(
                 vec![
                     _extension_list(vec![], _pos(1, 2)),
@@ -1228,10 +1285,13 @@ mod tests {
     fn comprehension_list_only() {
         let input = "[ k in [1, 2] : k - 1 = 0 ]";
 
-        let lexer = build_lexer(input);
+        let lexer = build_lexer(input).map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer).next(),
             Some(Ok(_comprehension_list(
                 _infix(
                     InfixOperator::In,
@@ -1262,10 +1322,13 @@ mod tests {
     fn singleton_empty_set() {
         let input = "{{}}";
 
-        let lexer = build_lexer(input);
+        let lexer = build_lexer(input).map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer).next(),
             Some(Ok(_extension_set(
                 vec![_extension_set(vec![], _pos(1, 2))],
                 _pos(0, 4)
@@ -1277,10 +1340,13 @@ mod tests {
     fn wildcard() {
         let input = "[a, 1, _]";
 
-        let lexer = build_lexer(input);
+        let lexer = build_lexer(input).map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
-            parser_from(lexer.map(|res| res.unwrap())).next(),
+            parser_from(lexer).next(),
             Some(Ok(_extension_list(
                 vec![
                     _symbol("a", _pos(1, 1)),
@@ -1295,7 +1361,10 @@ mod tests {
     #[test]
     fn prepend_only() {
         let code = "[1|[2,3]]";
-        let lexer = build_lexer(code).map(|res| res.unwrap());
+        let lexer = build_lexer(code).map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1313,7 +1382,10 @@ mod tests {
     #[test]
     fn consume_comprehension_list() {
         let input = "[a : a in b] + []";
-        let lexer = build_lexer(input).map(|res| res.unwrap());
+        let lexer = build_lexer(input).map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1338,7 +1410,10 @@ mod tests {
     #[test]
     fn expected_rparen() {
         let input = "(15]";
-        let lexer = build_lexer(input).map(|res| res.unwrap());
+        let lexer = build_lexer(input).map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1352,7 +1427,10 @@ mod tests {
     #[test]
     fn expected_expression() {
         let input = "1 + )";
-        let lexer = build_lexer(input).map(|res| res.unwrap());
+        let lexer = build_lexer(input).map(|res| match res {
+            Ok(val) => Ok(val),
+            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
+        });
 
         assert_eq!(
             parser_from(lexer).next(),
