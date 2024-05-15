@@ -17,7 +17,7 @@ impl Error {
 pub enum ErrorType {
     Lexer(LexerError),
     Parser(ParserError),
-    _Exec(EvalError),
+    Exec(EvalError),
 }
 
 impl From<LexerError> for ErrorType {
@@ -34,7 +34,7 @@ impl From<ParserError> for ErrorType {
 
 impl From<EvalError> for ErrorType {
     fn from(err: EvalError) -> Self {
-        Self::_Exec(err)
+        Self::Exec(err)
     }
 }
 
@@ -54,7 +54,7 @@ pub fn error_msg(Error(err, _pos): Error) -> ErrorMessage {
     match err {
         ErrorType::Parser(err) => parser_error_msg(err),
         ErrorType::Lexer(err) => lexer_error_msg(err),
-        ErrorType::_Exec(err) => exec_error_msg(err),
+        ErrorType::Exec(err) => exec_error_msg(err),
     }
 }
 
