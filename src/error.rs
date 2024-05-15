@@ -32,6 +32,12 @@ impl From<ParserError> for ErrorType {
     }
 }
 
+impl From<EvalError> for ErrorType {
+    fn from(err: EvalError) -> Self {
+        Self::_Exec(err)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Position {
     pub start: u32,

@@ -1,8 +1,9 @@
 use std::{fmt, iter::zip, vec};
 
 use crate::{
-    ast::{ASTNode, ASTNodeType_},
+    ast::{ASTNode, ASTNodeType_, _dummy_pos},
     env::Environment,
+    error::Error,
     exec::{exec, EvalError},
     matcher::{match_call, Match},
 };
@@ -578,7 +579,7 @@ impl fmt::Display for Function {
 }
 
 impl Callable for Function {
-    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, EvalError> {
+    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error> {
         match self {
             Self::DefinedFunction(f) => f.call(args, env),
             Self::Effect(ef) => ef.call(args, env),
@@ -615,9 +616,12 @@ impl DefinedFunction {
         self.patterns.push((args.to_vec(), value.clone()))
     }
 
-    fn default_call(&self, args: &[Object], env: &mut Environment) -> Result<Object, EvalError> {
+    fn default_call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error> {
         if args.len() < self.params.len() {
-            return Err(EvalError::MissingFunctionArguments);
+            return Err(Error(
+                EvalError::MissingFunctionArguments.into(),
+                _dummy_pos(),
+            ));
         }
 
         env.push_scope();
@@ -641,7 +645,7 @@ impl DefinedFunction {
         &self,
         args: &[Object],
         env: &mut Environment,
-    ) -> Option<Result<Object, EvalError>> {
+    ) -> Option<Result<Object, Error>> {
         for (patterns, val) in &self.patterns {
             if let Match::Match(v) = match_call(patterns, args) {
                 env.push_scope();
@@ -663,11 +667,11 @@ impl DefinedFunction {
 }
 
 pub trait Callable {
-    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, EvalError>;
+    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error>;
 }
 
 impl Callable for DefinedFunction {
-    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, EvalError> {
+    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error> {
         match self.pattern_call(args, env) {
             Some(res) => res,
             None => self.default_call(args, env),
@@ -699,7 +703,7 @@ impl fmt::Display for Effect {
 }
 
 impl Callable for Effect {
-    fn call(&self, args: &[Object], _env: &mut Environment) -> Result<Object, EvalError> {
+    fn call(&self, args: &[Object], _env: &mut Environment) -> Result<Object, Error> {
         Ok((self.func)(args))
     }
 }

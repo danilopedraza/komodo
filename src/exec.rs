@@ -1,6 +1,7 @@
+use crate::error::Error;
 use crate::object::{self, Callable, ComprehensionSet, ExtensionList, Function};
 
-use crate::ast::{ASTNode, ASTNodeType_, InfixOperator, PrefixOperator};
+use crate::ast::{ASTNode, ASTNodeType_, InfixOperator, PrefixOperator, _dummy_pos};
 use crate::env::Environment;
 use crate::object::{
     Bool, Char, DefinedFunction, ExtensionSet, Integer, MyString, Object, Symbol, Tuple,
@@ -21,17 +22,17 @@ fn truthy(val: Object) -> bool {
     }
 }
 
-pub fn list(l: &[ASTNode], env: &mut Environment) -> Result<Vec<Object>, EvalError> {
+pub fn list(l: &[ASTNode], env: &mut Environment) -> Result<Vec<Object>, Error> {
     l.iter().map(|node| exec(node, env)).collect()
 }
 
-fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, EvalError> {
+fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, Error> {
     Ok(Object::Function(object::Function::DefinedFunction(
         DefinedFunction::new(params.to_owned(), proc.to_owned()),
     )))
 }
 
-pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> {
+pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     match &node._type {
         ASTNodeType_::Symbol(str) => symbol(str, env),
         ASTNodeType_::ExtensionSet(l) => extension_set(l, env),
@@ -59,34 +60,34 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> 
     }
 }
 
-fn extension_list(l: &[ASTNode], env: &mut Environment) -> Result<Object, EvalError> {
+fn extension_list(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
     list(l, env).map(|lst| Object::ExtensionList(ExtensionList::from(lst)))
 }
 
-fn tuple(l: &[ASTNode], env: &mut Environment) -> Result<Object, EvalError> {
+fn tuple(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
     list(l, env).map(|lst| Object::Tuple(Tuple::from(lst)))
 }
 
-fn string(str: &str) -> Result<Object, EvalError> {
+fn string(str: &str) -> Result<Object, Error> {
     Ok(Object::String(MyString::from(str)))
 }
 
-fn comprehension_set(value: &ASTNode, prop: &ASTNode) -> Result<Object, EvalError> {
+fn comprehension_set(value: &ASTNode, prop: &ASTNode) -> Result<Object, Error> {
     Ok(Object::ComprehensionSet(ComprehensionSet::from((
         value.clone(),
         prop.clone(),
     ))))
 }
 
-fn char(chr: char) -> Result<Object, EvalError> {
+fn char(chr: char) -> Result<Object, Error> {
     Ok(Object::Char(Char::from(chr)))
 }
 
-fn boolean(val: bool) -> Result<Object, EvalError> {
+fn boolean(val: bool) -> Result<Object, Error> {
     Ok(Object::Boolean(Bool::from(val)))
 }
 
-fn let_(ident: &ASTNode, value: &ASTNode, env: &mut Environment) -> Result<Object, EvalError> {
+fn let_(ident: &ASTNode, value: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     match &ident._type {
         ASTNodeType_::Symbol(name) => exec_and_set(value, name, env),
         ASTNodeType_::Signature(ident, None) => match &ident._type {
@@ -97,15 +98,15 @@ fn let_(ident: &ASTNode, value: &ASTNode, env: &mut Environment) -> Result<Objec
     }
 }
 
-fn integer(str: &str) -> Result<Object, EvalError> {
+fn integer(str: &str) -> Result<Object, Error> {
     Ok(Object::Integer(Integer::from(str)))
 }
 
-fn extension_set(l: &[ASTNode], env: &mut Environment) -> Result<Object, EvalError> {
+fn extension_set(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
     list(l, env).map(|lst| Object::ExtensionSet(ExtensionSet::from(lst)))
 }
 
-fn symbol(str: &str, env: &mut Environment) -> Result<Object, EvalError> {
+fn symbol(str: &str, env: &mut Environment) -> Result<Object, Error> {
     match env.get(str) {
         Some(obj) => Ok(obj.clone()),
         None => Ok(Object::Symbol(Symbol::from(str))),
@@ -116,7 +117,7 @@ fn comprehension_list(
     transform: &ASTNode,
     prop: &ASTNode,
     env: &mut Environment,
-) -> Result<Object, EvalError> {
+) -> Result<Object, Error> {
     let (symbol, iterator) = match &prop._type {
         ASTNodeType_::Infix(InfixOperator::In, lhs, rhs) => match (&lhs._type, &rhs._type) {
             (ASTNodeType_::Symbol(ident), ASTNodeType_::ExtensionList(l)) => (ident, list(l, env)?),
@@ -141,7 +142,7 @@ fn let_function(
     args: &[ASTNode],
     value: &ASTNode,
     env: &mut Environment,
-) -> Result<Object, EvalError> {
+) -> Result<Object, Error> {
     let name = match &ident._type {
         ASTNodeType_::Symbol(name) => name,
         _ => todo!(),
@@ -170,7 +171,7 @@ fn let_function(
     )))
 }
 
-fn exec_and_set(node: &ASTNode, name: &str, env: &mut Environment) -> Result<Object, EvalError> {
+fn exec_and_set(node: &ASTNode, name: &str, env: &mut Environment) -> Result<Object, Error> {
     let val = exec(node, env)?;
     env.set(name, val.clone());
     Ok(val)
@@ -181,7 +182,7 @@ fn if_(
     first: &ASTNode,
     second: &ASTNode,
     env: &mut Environment,
-) -> Result<Object, EvalError> {
+) -> Result<Object, Error> {
     if truthy(cond) {
         exec(first, env)
     } else {
@@ -194,10 +195,10 @@ fn for_(
     iterable_obj: Object,
     proc: &[ASTNode],
     env: &mut Environment,
-) -> Result<Object, EvalError> {
+) -> Result<Object, Error> {
     let iter = match &iterable_obj {
         Object::ExtensionSet(set) => Ok(set.list()),
-        _ => Err(EvalError::NonIterableObject),
+        _ => Err(Error(EvalError::NonIterableObject.into(), _dummy_pos())),
     }?;
 
     env.push_scope();
@@ -215,7 +216,7 @@ fn for_(
     Ok(Object::empty_tuple())
 }
 
-fn call(func_node: &ASTNode, args: &[ASTNode], env: &mut Environment) -> Result<Object, EvalError> {
+fn call(func_node: &ASTNode, args: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
     let func = exec(func_node, env)?;
 
     let mut func_args = vec![];
@@ -226,11 +227,11 @@ fn call(func_node: &ASTNode, args: &[ASTNode], env: &mut Environment) -> Result<
 
     match func {
         Object::Function(f) => f.call(&func_args, env),
-        _ => Err(EvalError::NonCallableObject),
+        _ => Err(Error(EvalError::NonCallableObject.into(), _dummy_pos())),
     }
 }
 
-fn infix(op: InfixOperator, lhs: Object, rhs: Object) -> Result<Object, EvalError> {
+fn infix(op: InfixOperator, lhs: Object, rhs: Object) -> Result<Object, Error> {
     let res = match op {
         InfixOperator::BitwiseAnd => lhs.bitwise_and(rhs),
         InfixOperator::BitwiseXor => lhs.bitwise_xor(rhs),
@@ -256,12 +257,12 @@ fn infix(op: InfixOperator, lhs: Object, rhs: Object) -> Result<Object, EvalErro
     };
 
     match res {
-        Err(()) => Err(EvalError::NonExistentOperation),
+        Err(()) => Err(Error(EvalError::NonExistentOperation.into(), _dummy_pos())),
         Ok(obj) => Ok(obj),
     }
 }
 
-fn prefix(op: PrefixOperator, obj: Object) -> Result<Object, EvalError> {
+fn prefix(op: PrefixOperator, obj: Object) -> Result<Object, Error> {
     let res = match op {
         PrefixOperator::BitwiseNot => obj.bitwise_not(),
         PrefixOperator::LogicNot => obj.logic_not(),
@@ -269,7 +270,7 @@ fn prefix(op: PrefixOperator, obj: Object) -> Result<Object, EvalError> {
     };
 
     match res {
-        Err(()) => Err(EvalError::NonExistentOperation),
+        Err(()) => Err(Error(EvalError::NonExistentOperation.into(), _dummy_pos())),
         Ok(obj) => Ok(obj),
     }
 }
@@ -752,7 +753,10 @@ mod tests {
 
         assert_eq!(
             exec(node, &mut Environment::default()),
-            Err(EvalError::MissingFunctionArguments)
+            Err(Error(
+                EvalError::MissingFunctionArguments.into(),
+                _dummy_pos()
+            ))
         );
     }
 
