@@ -1,6 +1,6 @@
 use std::{iter::Peekable, str::Chars, vec};
 
-use crate::error::Position;
+use crate::error::{Error, Position};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LexerError {
@@ -78,7 +78,7 @@ pub struct Lexer<'a> {
 }
 
 impl Iterator for Lexer<'_> {
-    type Item = Result<Token, LexerError>;
+    type Item = Result<Token, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -96,7 +96,10 @@ impl Iterator for Lexer<'_> {
                 token,
                 Position::new(start, self.cur_pos - start),
             ))),
-            Some(Err(err)) => Some(Err(err)),
+            Some(Err(err)) => Some(Err(Error::new(
+                err.into(),
+                Position::new(start, self.cur_pos - start),
+            ))),
             None => None,
         }
     }
@@ -266,6 +269,8 @@ pub fn build_lexer(input: &str) -> Lexer {
 #[cfg(test)]
 mod tests {
     use std::vec;
+
+    use crate::ast::_pos;
 
     use super::*;
 
@@ -540,7 +545,10 @@ mod tests {
 
         assert_eq!(
             build_lexer(code).next(),
-            Some(Err(LexerError::UnterminatedChar)),
+            Some(Err(Error::new(
+                LexerError::UnterminatedChar.into(),
+                _pos(0, 2)
+            ))),
         );
     }
 
@@ -550,7 +558,10 @@ mod tests {
 
         assert_eq!(
             build_lexer(code).next(),
-            Some(Err(LexerError::UnexpectedChar(')')))
+            Some(Err(Error::new(
+                LexerError::UnexpectedChar(')').into(),
+                _pos(0, 3)
+            )))
         );
     }
 
@@ -573,7 +584,10 @@ mod tests {
 
         assert_eq!(
             build_lexer(code).next(),
-            Some(Err(LexerError::UnterminatedString)),
+            Some(Err(Error::new(
+                LexerError::UnterminatedString.into(),
+                _pos(0, 2)
+            ))),
         );
     }
 

@@ -857,10 +857,7 @@ mod tests {
 
     #[test]
     fn shift_and_comparison() {
-        let lexer = build_lexer("1 << 1 > 1").map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer("1 << 1 > 1");
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -880,10 +877,7 @@ mod tests {
 
     #[test]
     fn bitwise() {
-        let lexer = build_lexer("a & b || c").map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer("a & b || c");
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -903,10 +897,7 @@ mod tests {
 
     #[test]
     fn logic_infix_operators() {
-        let lexer = build_lexer("a && b || c").map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer("a && b || c");
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -926,10 +917,7 @@ mod tests {
 
     #[test]
     fn complex_precedence() {
-        let lexer = build_lexer("  a + b || a & b << c").map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer("  a + b || a & b << c");
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -959,10 +947,7 @@ mod tests {
 
     #[test]
     fn bitwise_xor() {
-        let lexer = build_lexer("a ^ b & c || d").map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer("a ^ b & c || d");
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -987,10 +972,7 @@ mod tests {
 
     #[test]
     fn something_after_empty_set() {
-        let lexer = build_lexer("({}, 0)").map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer("({}, 0)");
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1006,10 +988,7 @@ mod tests {
 
     #[test]
     fn prefixes() {
-        let lexer = build_lexer("!(~1 /= -1)").map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer("!(~1 /= -1)");
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1070,10 +1049,7 @@ mod tests {
         a * a
         ";
 
-        let lexer = build_lexer(input).map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer).program_(),
@@ -1098,10 +1074,7 @@ mod tests {
     fn function_call() {
         let input = "f(x, y)";
 
-        let lexer = build_lexer(input).map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1121,10 +1094,7 @@ mod tests {
     fn comma_last_item() {
         let input = "(1,)";
 
-        let lexer = build_lexer(input).map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1136,10 +1106,7 @@ mod tests {
     fn anon_function() {
         let input = "x -> 2*x";
 
-        let lexer = build_lexer(input).map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1161,10 +1128,7 @@ mod tests {
     fn anon_function_call() {
         let input = "((x, y) -> x)(1, 2)";
 
-        let lexer = build_lexer(input).map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1192,10 +1156,7 @@ mod tests {
     fn char_and_string() {
         let input = "('a', \"b\")";
 
-        let lexer = build_lexer(input).map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1210,10 +1171,7 @@ mod tests {
     fn for_loop() {
         let input = "for i in list: println(i)";
 
-        let lexer = build_lexer(input).map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1235,10 +1193,7 @@ mod tests {
     fn in_question() {
         let input = "1 in { k : k >= 1 }";
 
-        let lexer = build_lexer(input).map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1264,10 +1219,7 @@ mod tests {
     fn list() {
         let input = "[[], 2]";
 
-        let lexer = build_lexer(input).map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1285,10 +1237,7 @@ mod tests {
     fn comprehension_list_only() {
         let input = "[ k in [1, 2] : k - 1 = 0 ]";
 
-        let lexer = build_lexer(input).map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1322,10 +1271,7 @@ mod tests {
     fn singleton_empty_set() {
         let input = "{{}}";
 
-        let lexer = build_lexer(input).map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1340,10 +1286,7 @@ mod tests {
     fn wildcard() {
         let input = "[a, 1, _]";
 
-        let lexer = build_lexer(input).map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1361,10 +1304,7 @@ mod tests {
     #[test]
     fn prepend_only() {
         let code = "[1|[2,3]]";
-        let lexer = build_lexer(code).map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer(code);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1382,10 +1322,7 @@ mod tests {
     #[test]
     fn consume_comprehension_list() {
         let input = "[a : a in b] + []";
-        let lexer = build_lexer(input).map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1410,10 +1347,7 @@ mod tests {
     #[test]
     fn expected_rparen() {
         let input = "(15]";
-        let lexer = build_lexer(input).map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer).next(),
@@ -1427,10 +1361,7 @@ mod tests {
     #[test]
     fn expected_expression() {
         let input = "1 + )";
-        let lexer = build_lexer(input).map(|res| match res {
-            Ok(val) => Ok(val),
-            Err(err) => Err(Error::new(err.into(), _dummy_pos())),
-        });
+        let lexer = build_lexer(input);
 
         assert_eq!(
             parser_from(lexer).next(),
