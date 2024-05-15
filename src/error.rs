@@ -15,14 +15,14 @@ impl Error {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ErrorType {
-    _Lexer(LexerError),
+    Lexer(LexerError),
     Parser(ParserError),
     _Exec(EvalError),
 }
 
 impl From<LexerError> for ErrorType {
     fn from(err: LexerError) -> Self {
-        Self::_Lexer(err)
+        Self::Lexer(err)
     }
 }
 
@@ -47,7 +47,7 @@ impl Position {
 pub fn error_msg(Error(err, _pos): Error) -> ErrorMessage {
     match err {
         ErrorType::Parser(err) => parser_error_msg(err),
-        ErrorType::_Lexer(err) => lexer_error_msg(err),
+        ErrorType::Lexer(err) => lexer_error_msg(err),
         ErrorType::_Exec(err) => exec_error_msg(err),
     }
 }
