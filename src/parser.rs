@@ -9,7 +9,6 @@ pub enum ParserError {
     ExpectedExpression(TokenType, Position),
     UnexpectedToken(Vec<TokenType>, TokenType),
     EOFReached,
-    // EOFReached_(Position),
     EOFExpecting(Vec<TokenType>),
     EOFExpecting_(Vec<TokenType>, Position),
 }
