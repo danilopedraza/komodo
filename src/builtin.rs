@@ -34,11 +34,11 @@ pub fn standard_env() -> Environment {
     env_with(vec![
         (
             "println",
-            Object::Function(Function::Effect(Effect::new(smtc_println))),
+            Object::Function(Function::Effect(Effect::new(smtc_println, 1))),
         ),
         (
             "getln",
-            Object::Function(Function::Effect(Effect::new(smtc_getln))),
+            Object::Function(Function::Effect(Effect::new(smtc_getln, 1))),
         ),
     ])
 }

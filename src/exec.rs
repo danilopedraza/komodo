@@ -1,4 +1,4 @@
-use crate::error::Error;
+use crate::error::{Error, Position};
 use crate::object::{self, Callable, ComprehensionSet, ExtensionList, Function};
 
 use crate::ast::{ASTNode, ASTNodeType_, InfixOperator, PrefixOperator, _dummy_pos};
@@ -42,7 +42,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType_::Let(ident, params, value) if params.is_empty() => let_(ident, value, env),
         ASTNodeType_::Let(ident, args, value) => let_function(ident, args, value, env),
         ASTNodeType_::Boolean(val) => boolean(*val),
-        ASTNodeType_::Call(func_node, args) => call(func_node, args, env),
+        ASTNodeType_::Call(func_node, args) => call(func_node, args, env, node.position),
         ASTNodeType_::Char(chr) => char(*chr),
         ASTNodeType_::ComprehensionSet(value, prop) => comprehension_set(value, prop),
         ASTNodeType_::If(cond, first, second) => if_(exec(cond, env)?, first, second, env),
@@ -216,8 +216,18 @@ fn for_(
     Ok(Object::empty_tuple())
 }
 
-fn call(func_node: &ASTNode, args: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
+fn call(
+    func_node: &ASTNode,
+    args: &[ASTNode],
+    env: &mut Environment,
+    call_pos: Position,
+) -> Result<Object, Error> {
     let func = exec(func_node, env)?;
+    if let Object::Function(ref f) = func {
+        if args.len() < f.param_number() {
+            return Err(Error(EvalError::MissingFunctionArguments.into(), call_pos));
+        }
+    }
 
     let mut func_args = vec![];
     for arg in args {
@@ -283,8 +293,8 @@ mod tests {
     use super::*;
     use crate::ast::{
         _boolean, _call, _comprehension_list, _comprehension_set, _dummy_pos, _extension_list,
-        _extension_set, _for, _function, _infix, _integer, _let_, _prefix, _signature, _symbol,
-        _tuple,
+        _extension_set, _for, _function, _infix, _integer, _let_, _pos, _prefix, _signature,
+        _symbol, _tuple,
     };
     use crate::object::*;
 
@@ -748,14 +758,14 @@ mod tests {
                 _dummy_pos(),
             ),
             vec![_integer("1", _dummy_pos())],
-            _dummy_pos(),
+            _pos(0, 5),
         );
 
         assert_eq!(
             exec(node, &mut Environment::default()),
             Err(Error(
                 EvalError::MissingFunctionArguments.into(),
-                _dummy_pos()
+                _pos(0, 5),
             ))
         );
     }
@@ -771,7 +781,10 @@ mod tests {
         }
 
         let mut env = Environment::default();
-        env.set("f", Object::Function(Function::Effect(Effect::new(test))));
+        env.set(
+            "f",
+            Object::Function(Function::Effect(Effect::new(test, 1))),
+        );
 
         let node = &_for(
             "val",

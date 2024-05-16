@@ -1,10 +1,10 @@
 use std::{fmt, iter::zip, vec};
 
 use crate::{
-    ast::{ASTNode, ASTNodeType_, _dummy_pos},
+    ast::{ASTNode, ASTNodeType_},
     env::Environment,
     error::Error,
-    exec::{exec, EvalError},
+    exec::exec,
     matcher::{match_call, Match},
 };
 
@@ -585,6 +585,13 @@ impl Callable for Function {
             Self::Effect(ef) => ef.call(args, env),
         }
     }
+
+    fn param_number(&self) -> usize {
+        match self {
+            Self::DefinedFunction(f) => f.param_number(),
+            Self::Effect(f) => f.param_number(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -617,13 +624,6 @@ impl DefinedFunction {
     }
 
     fn default_call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error> {
-        if args.len() < self.params.len() {
-            return Err(Error(
-                EvalError::MissingFunctionArguments.into(),
-                _dummy_pos(),
-            ));
-        }
-
         env.push_scope();
 
         for (arg, param) in zip(args, self.params.clone()) {
@@ -668,6 +668,7 @@ impl DefinedFunction {
 
 pub trait Callable {
     fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error>;
+    fn param_number(&self) -> usize;
 }
 
 impl Callable for DefinedFunction {
@@ -677,22 +678,21 @@ impl Callable for DefinedFunction {
             None => self.default_call(args, env),
         }
     }
+
+    fn param_number(&self) -> usize {
+        self.params.len()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Effect {
     func: fn(&[Object]) -> Object,
+    param_number: usize,
 }
 
 impl Effect {
-    pub fn new(func: fn(&[Object]) -> Object) -> Self {
-        Self { func }
-    }
-}
-
-impl From<fn(&[Object]) -> Object> for Effect {
-    fn from(func: fn(&[Object]) -> Object) -> Self {
-        Self { func }
+    pub fn new(func: fn(&[Object]) -> Object, param_number: usize) -> Self {
+        Self { func, param_number }
     }
 }
 
@@ -705,6 +705,10 @@ impl fmt::Display for Effect {
 impl Callable for Effect {
     fn call(&self, args: &[Object], _env: &mut Environment) -> Result<Object, Error> {
         Ok((self.func)(args))
+    }
+
+    fn param_number(&self) -> usize {
+        self.param_number
     }
 }
 
