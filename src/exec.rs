@@ -237,7 +237,10 @@ fn call(
 
     match func {
         Object::Function(f) => f.call(&func_args, env),
-        _ => Err(Error(EvalError::NonCallableObject.into(), _dummy_pos())),
+        _ => Err(Error(
+            EvalError::NonCallableObject.into(),
+            func_node.position,
+        )),
     }
 }
 
