@@ -1,7 +1,7 @@
 use crate::error::{Error, Position};
 use crate::object::{self, Callable, ComprehensionSet, ExtensionList, Function};
 
-use crate::ast::{ASTNode, ASTNodeType_, InfixOperator, PrefixOperator, _dummy_pos};
+use crate::ast::{ASTNode, ASTNodeType_, InfixOperator, PrefixOperator};
 use crate::env::Environment;
 use crate::object::{
     Bool, Char, DefinedFunction, ExtensionSet, Integer, MyString, Object, Symbol, Tuple,
@@ -38,7 +38,9 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType_::ExtensionSet(l) => extension_set(l, env),
         ASTNodeType_::Integer(str) => integer(str),
         ASTNodeType_::Function(params, proc) => function(params, proc),
-        ASTNodeType_::Infix(op, lhs, rhs) => infix(*op, exec(lhs, env)?, exec(rhs, env)?),
+        ASTNodeType_::Infix(op, lhs, rhs) => {
+            infix(*op, exec(lhs, env)?, exec(rhs, env)?, node.position)
+        }
         ASTNodeType_::Let(ident, params, value) if params.is_empty() => let_(ident, value, env),
         ASTNodeType_::Let(ident, args, value) => let_function(ident, args, value, env),
         ASTNodeType_::Boolean(val) => boolean(*val),
@@ -46,11 +48,11 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType_::Char(chr) => char(*chr),
         ASTNodeType_::ComprehensionSet(value, prop) => comprehension_set(value, prop),
         ASTNodeType_::If(cond, first, second) => if_(exec(cond, env)?, first, second, env),
-        ASTNodeType_::Prefix(op, node) => prefix(*op, exec(node, env)?),
+        ASTNodeType_::Prefix(op, node) => prefix(*op, exec(node, env)?, node.position),
         ASTNodeType_::Signature(_, _) => todo!(),
         ASTNodeType_::String(str) => string(str),
         ASTNodeType_::Tuple(l) => tuple(l, env),
-        ASTNodeType_::For(symbol, iterable, proc) => for_(symbol, exec(iterable, env)?, proc, env),
+        ASTNodeType_::For(symbol, iterable, proc) => for_(symbol, iterable, proc, env),
         ASTNodeType_::ExtensionList(l) => extension_list(l, env),
         ASTNodeType_::ComprehensionList(transform, prop) => {
             comprehension_list(transform, prop, env)
@@ -192,13 +194,18 @@ fn if_(
 
 fn for_(
     symbol: &str,
-    iterable_obj: Object,
+    iterable: &ASTNode,
     proc: &[ASTNode],
     env: &mut Environment,
 ) -> Result<Object, Error> {
-    let iter = match &iterable_obj {
+    let obj = exec(iterable, env)?;
+
+    let iter = match &obj {
         Object::ExtensionSet(set) => Ok(set.list()),
-        _ => Err(Error(EvalError::NonIterableObject.into(), _dummy_pos())),
+        _ => Err(Error(
+            EvalError::NonIterableObject.into(),
+            iterable.position,
+        )),
     }?;
 
     env.push_scope();
@@ -244,7 +251,12 @@ fn call(
     }
 }
 
-fn infix(op: InfixOperator, lhs: Object, rhs: Object) -> Result<Object, Error> {
+fn infix(
+    op: InfixOperator,
+    lhs: Object,
+    rhs: Object,
+    infix_pos: Position,
+) -> Result<Object, Error> {
     let res = match op {
         InfixOperator::BitwiseAnd => lhs.bitwise_and(rhs),
         InfixOperator::BitwiseXor => lhs.bitwise_xor(rhs),
@@ -270,12 +282,12 @@ fn infix(op: InfixOperator, lhs: Object, rhs: Object) -> Result<Object, Error> {
     };
 
     match res {
-        Err(()) => Err(Error(EvalError::NonExistentOperation.into(), _dummy_pos())),
+        Err(()) => Err(Error(EvalError::NonExistentOperation.into(), infix_pos)),
         Ok(obj) => Ok(obj),
     }
 }
 
-fn prefix(op: PrefixOperator, obj: Object) -> Result<Object, Error> {
+fn prefix(op: PrefixOperator, obj: Object, prefix_pos: Position) -> Result<Object, Error> {
     let res = match op {
         PrefixOperator::BitwiseNot => obj.bitwise_not(),
         PrefixOperator::LogicNot => obj.logic_not(),
@@ -283,7 +295,7 @@ fn prefix(op: PrefixOperator, obj: Object) -> Result<Object, Error> {
     };
 
     match res {
-        Err(()) => Err(Error(EvalError::NonExistentOperation.into(), _dummy_pos())),
+        Err(()) => Err(Error(EvalError::NonExistentOperation.into(), prefix_pos)),
         Ok(obj) => Ok(obj),
     }
 }
