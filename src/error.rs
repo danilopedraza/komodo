@@ -113,35 +113,33 @@ fn found_a(tok: &TokenType) -> String {
 
 fn parser_error_msg(err: &ParserError) -> String {
     match err {
-        ParserError::ExpectedExpression(tok) => expected_expression(tok),
+        ParserError::ExpectedExpression(tok) => expected_expression(found_a(tok)),
         ParserError::UnexpectedToken(expected_vec, actual) => {
-            unexpected_token(expected_vec, actual)
+            unexpected_token(expected_vec.iter().map(found_a).collect(), found_a(actual))
         }
         ParserError::EOFReached => todo!(),
         ParserError::EOFExpecting(_) => todo!(),
     }
 }
 
-fn expected_expression(tok: &TokenType) -> String {
-    let tok_str = found_a(tok);
-    format!("Expected an expression, but found {tok_str}")
+fn expected_expression(tok_msg: String) -> String {
+    format!("Expected an expression, but found {tok_msg}")
 }
 
-fn unexpected_token(expected_vec: &[TokenType], actual: &TokenType) -> String {
-    let actual_str = found_a(actual);
-    let mut expected_str = found_a(&expected_vec[0]);
+fn unexpected_token(expected_msgs: Vec<String>, actual_msg: String) -> String {
+    let mut expected_str = expected_msgs[0].to_owned();
 
-    for expected_tok in expected_vec.iter().take(expected_vec.len() - 1).skip(1) {
+    for expected_msg in expected_msgs.iter().take(expected_msgs.len() - 1).skip(1) {
         expected_str.push_str(", ");
-        expected_str.push_str(&found_a(expected_tok));
+        expected_str.push_str(expected_msg);
     }
 
-    if expected_vec.len() > 1 {
+    if expected_msgs.len() > 1 {
         expected_str.push_str(" or ");
-        expected_str.push_str(&found_a(expected_vec.last().unwrap()));
+        expected_str.push_str(expected_msgs.last().unwrap());
     }
 
-    format!("Expected {expected_str}, but found {actual_str}")
+    format!("Expected {expected_str}, but found {actual_msg}")
 }
 
 fn lexer_error_msg(err: &LexerError) -> String {
@@ -168,72 +166,52 @@ pub struct ErrorMessage(pub String, pub Position);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ast::_dummy_pos, lexer::TokenType};
 
     #[test]
-    fn expected_expression() {
+    fn expected_expression_() {
         assert_eq!(
-            error_msg(&Error::new(
-                ParserError::ExpectedExpression(TokenType::Rparen).into(),
-                Position::new(3, 1)
-            )),
-            ErrorMessage(
-                String::from("Expected an expression, but found a left parenthesis: `)`"),
-                Position::new(3, 1),
-            ),
+            expected_expression("a left parenthesis: `)`".into()),
+            String::from("Expected an expression, but found a left parenthesis: `)`"),
         );
     }
 
     #[test]
     fn unexpected_token_single_expected() {
         assert_eq!(
-            error_msg(&Error::new(
-                ParserError::UnexpectedToken(vec![TokenType::Colon], TokenType::Assign).into(),
-                _dummy_pos(),
-            )),
-            ErrorMessage(
-                String::from("Expected a colon: `:`, but found an assignment symbol: `:=`"),
-                _dummy_pos(),
-            )
+            unexpected_token(
+                vec!["a colon: `:`".into()],
+                "an assignment symbol: `:=`".into()
+            ),
+            String::from("Expected a colon: `:`, but found an assignment symbol: `:=`"),
         );
     }
 
     #[test]
     fn unexpected_token_two_expected() {
         assert_eq!(
-            error_msg(&Error::new(
-                ParserError::UnexpectedToken(
-                    vec![TokenType::Colon, TokenType::Comma],
-                    TokenType::Assign
-                )
-                .into(),
-                _dummy_pos(),
-            )),
-            ErrorMessage(
-                String::from(
-                    "Expected a colon: `:` or a comma: `,`, but found an assignment symbol: `:=`"
-                ),
-                _dummy_pos(),
-            )
+            unexpected_token(
+                vec!["a colon: `:`".into(), "a comma: `,`".into()],
+                "an assignment symbol: `:=`".into()
+            ),
+            String::from(
+                "Expected a colon: `:` or a comma: `,`, but found an assignment symbol: `:=`"
+            ),
         );
     }
 
     #[test]
     fn unexpected_token_three_expected() {
         assert_eq!(
-            error_msg(&Error::new(
-                ParserError::UnexpectedToken(
-                    vec![TokenType::Dot, TokenType::Bang, TokenType::Comma],
-                    TokenType::Ident("foo".into())
-                )
-                .into(),
-                _dummy_pos(),
-            )),
-            ErrorMessage(
-                String::from(
-                    "Expected a dot: `.`, a bang: `!` or a comma: `,`, but found a symbol: `foo`"
-                ),
-                _dummy_pos(),
+            unexpected_token(
+                vec![
+                    "a dot: `.`".into(),
+                    "a bang: `!`".into(),
+                    "a comma: `,`".into()
+                ],
+                "a symbol: `foo`".into()
+            ),
+            String::from(
+                "Expected a dot: `.`, a bang: `!` or a comma: `,`, but found a symbol: `foo`"
             ),
         );
     }
