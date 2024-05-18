@@ -72,7 +72,7 @@ impl Repl {
                 (String::from(""), ReplResponse::WaitForMore)
             }
             Err(err) => {
-                let ErrorMessage(msg, _) = error_msg(err);
+                let ErrorMessage(msg, _) = error_msg(&err);
                 self.code.clear();
                 (msg, ReplResponse::Error)
             }
