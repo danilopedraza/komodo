@@ -118,8 +118,15 @@ fn parser_error_msg(err: &ParserError) -> String {
             unexpected_token(expected_vec.iter().map(found_a).collect(), found_a(actual))
         }
         ParserError::EOFReached => eof_reached(),
-        ParserError::EOFExpecting(_) => todo!(),
+        ParserError::EOFExpecting(expected) => {
+            eof_expecting(expected.iter().map(found_a).collect())
+        }
     }
+}
+
+fn eof_expecting(expected_msgs: Vec<String>) -> String {
+    let expected_str = disjunction(expected_msgs);
+    format!("The end of the program was reached while expecting {expected_str}")
 }
 
 fn eof_reached() -> String {
@@ -130,19 +137,24 @@ fn expected_expression(tok_msg: String) -> String {
     format!("Expected an expression, but found {tok_msg}")
 }
 
+fn disjunction(msgs: Vec<String>) -> String {
+    let mut res = msgs[0].to_owned();
+
+    for msg in msgs.iter().take(msgs.len() - 1).skip(1) {
+        res.push_str(", ");
+        res.push_str(msg);
+    }
+
+    if msgs.len() > 1 {
+        res.push_str(" or ");
+        res.push_str(msgs.last().unwrap());
+    }
+
+    res
+}
+
 fn unexpected_token(expected_msgs: Vec<String>, actual_msg: String) -> String {
-    let mut expected_str = expected_msgs[0].to_owned();
-
-    for expected_msg in expected_msgs.iter().take(expected_msgs.len() - 1).skip(1) {
-        expected_str.push_str(", ");
-        expected_str.push_str(expected_msg);
-    }
-
-    if expected_msgs.len() > 1 {
-        expected_str.push_str(" or ");
-        expected_str.push_str(expected_msgs.last().unwrap());
-    }
-
+    let expected_str = disjunction(expected_msgs);
     format!("Expected {expected_str}, but found {actual_msg}")
 }
 
@@ -229,6 +241,19 @@ mod tests {
             ErrorMessage(
                 "The end of the program was reached while reading an expression".into(),
                 _dummy_pos()
+            ),
+        );
+    }
+
+    #[test]
+    fn eof_expecting_() {
+        assert_eq!(
+            eof_expecting(vec![
+                String::from("a dot: `.`"),
+                String::from("a comma: `,`")
+            ]),
+            String::from(
+                "The end of the program was reached while expecting a dot: `.` or a comma: `,`"
             ),
         );
     }
