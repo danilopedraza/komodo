@@ -50,11 +50,11 @@ impl Position {
     }
 }
 
-pub fn error_msg(Error(err, _pos): Error) -> ErrorMessage {
+pub fn error_msg(Error(err, pos): Error) -> ErrorMessage {
     match err {
-        ErrorType::Parser(err) => parser_error_msg(err),
-        ErrorType::Lexer(err) => lexer_error_msg(err),
-        ErrorType::Exec(err) => exec_error_msg(err),
+        ErrorType::Parser(err) => parser_error_msg(err, pos),
+        ErrorType::Lexer(err) => lexer_error_msg(err, pos),
+        ErrorType::Exec(err) => exec_error_msg(err, pos),
     }
 }
 
@@ -109,9 +109,9 @@ fn found_a(tok: TokenType) -> String {
     }
 }
 
-fn parser_error_msg(err: ParserError) -> ErrorMessage {
+fn parser_error_msg(err: ParserError, pos: Position) -> ErrorMessage {
     match err {
-        ParserError::ExpectedExpression(tok, pos) => {
+        ParserError::ExpectedExpression(tok) => {
             let tok_str = found_a(tok);
             ErrorMessage(format!("Expected an expression, but found {tok_str}"), pos)
         }
@@ -122,7 +122,7 @@ fn parser_error_msg(err: ParserError) -> ErrorMessage {
     }
 }
 
-fn lexer_error_msg(err: LexerError) -> ErrorMessage {
+fn lexer_error_msg(err: LexerError, _pos: Position) -> ErrorMessage {
     match err {
         LexerError::UnexpectedChar(_) => todo!(),
         LexerError::UnexpectedEOF => todo!(),
@@ -131,7 +131,7 @@ fn lexer_error_msg(err: LexerError) -> ErrorMessage {
     }
 }
 
-fn exec_error_msg(err: EvalError) -> ErrorMessage {
+fn exec_error_msg(err: EvalError, _pos: Position) -> ErrorMessage {
     match err {
         EvalError::MissingFunctionArguments => todo!(),
         EvalError::NonCallableObject => todo!(),
@@ -152,7 +152,7 @@ mod tests {
     fn expected_expression() {
         assert_eq!(
             error_msg(Error::new(
-                ParserError::ExpectedExpression(TokenType::Rparen, Position::new(3, 1)).into(),
+                ParserError::ExpectedExpression(TokenType::Rparen).into(),
                 Position::new(3, 1)
             )),
             ErrorMessage(
