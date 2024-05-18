@@ -10,7 +10,7 @@ pub enum ParserError {
     UnexpectedToken(Vec<TokenType>, TokenType),
     EOFReached,
     EOFExpecting(Vec<TokenType>),
-    EOFExpecting_(Vec<TokenType>, Position),
+    // EOFExpecting_(Vec<TokenType>, Position),
 }
 
 pub struct Parser<T: Iterator<Item = Result<Token, Error>>> {
@@ -268,10 +268,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             Some(tok) => {
                 self.err_with_cur(ParserError::UnexpectedToken(vec![TokenType::Rparen], tok))
             }
-            None => self.err_with_cur(ParserError::EOFExpecting_(
-                vec![TokenType::Rparen],
-                self.start_to_cur(start),
-            )),
+            None => self.err_with_cur(ParserError::EOFExpecting(vec![TokenType::Rparen])),
         }
     }
 
@@ -525,7 +522,7 @@ mod tests {
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Err(Error::new(
-                ParserError::EOFExpecting_(vec![TokenType::Rparen,], _pos(0, 3)).into(),
+                ParserError::EOFExpecting(vec![TokenType::Rparen,]).into(),
                 _pos(1, 2),
             )))
         );

@@ -118,7 +118,6 @@ fn parser_error_msg(err: ParserError, pos: Position) -> ErrorMessage {
         ParserError::UnexpectedToken(_, _) => todo!(),
         ParserError::EOFReached => todo!(),
         ParserError::EOFExpecting(_) => todo!(),
-        ParserError::EOFExpecting_(_, _) => todo!(),
     }
 }
 
