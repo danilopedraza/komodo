@@ -117,9 +117,13 @@ fn parser_error_msg(err: &ParserError) -> String {
         ParserError::UnexpectedToken(expected_vec, actual) => {
             unexpected_token(expected_vec.iter().map(found_a).collect(), found_a(actual))
         }
-        ParserError::EOFReached => todo!(),
+        ParserError::EOFReached => eof_reached(),
         ParserError::EOFExpecting(_) => todo!(),
     }
+}
+
+fn eof_reached() -> String {
+    "The end of the program was reached while reading an expression".into()
 }
 
 fn expected_expression(tok_msg: String) -> String {
@@ -165,6 +169,8 @@ pub struct ErrorMessage(pub String, pub Position);
 
 #[cfg(test)]
 mod tests {
+    use crate::ast::_dummy_pos;
+
     use super::*;
 
     #[test]
@@ -212,6 +218,17 @@ mod tests {
             ),
             String::from(
                 "Expected a dot: `.`, a bang: `!` or a comma: `,`, but found a symbol: `foo`"
+            ),
+        );
+    }
+
+    #[test]
+    fn eof_reached() {
+        assert_eq!(
+            error_msg(&Error(ParserError::EOFReached.into(), _dummy_pos())),
+            ErrorMessage(
+                "The end of the program was reached while reading an expression".into(),
+                _dummy_pos()
             ),
         );
     }
