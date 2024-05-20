@@ -145,7 +145,6 @@ fn exec_error_msg(err: &EvalError) -> String {
         EvalError::NonExistentOperation => todo!(),
         EvalError::NonIterableObject(kind) => non_iterable_object(kind),
         EvalError::NonPrependableObject => todo!(),
-        EvalError::NonAssignableExpression => todo!(),
     }
 }
 
