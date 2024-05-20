@@ -118,18 +118,18 @@ impl PrefixOperator {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ASTNode {
-    pub _type: ASTNodeType_,
+    pub _type: ASTNodeType,
     pub position: Position,
 }
 
 impl ASTNode {
-    pub fn new(_type: ASTNodeType_, position: Position) -> Self {
+    pub fn new(_type: ASTNodeType, position: Position) -> Self {
         Self { _type, position }
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ASTNodeType_ {
+pub enum ASTNodeType {
     Boolean(bool),
     Call(Box<ASTNode>, Vec<ASTNode>),
     Char(char),
@@ -161,104 +161,104 @@ pub fn _dummy_pos() -> Position {
 }
 
 pub fn _boolean(val: bool, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType_::Boolean(val), position)
+    ASTNode::new(ASTNodeType::Boolean(val), position)
 }
 
 pub fn _char(val: char, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType_::Char(val), position)
+    ASTNode::new(ASTNodeType::Char(val), position)
 }
 
 pub fn _string(str: &str, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType_::String(str.into()), position)
+    ASTNode::new(ASTNodeType::String(str.into()), position)
 }
 
 pub fn _symbol(name: &str, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType_::Symbol(name.into()), position)
+    ASTNode::new(ASTNodeType::Symbol(name.into()), position)
 }
 
 pub fn _integer(int: &str, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType_::Integer(int.into()), position)
+    ASTNode::new(ASTNodeType::Integer(int.into()), position)
 }
 
 pub fn _infix(op: InfixOperator, lhs: ASTNode, rhs: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
-        ASTNodeType_::Infix(op, Box::new(lhs), Box::new(rhs)),
+        ASTNodeType::Infix(op, Box::new(lhs), Box::new(rhs)),
         position,
     )
 }
 
 pub fn _prefix(op: PrefixOperator, val: ASTNode, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType_::Prefix(op, Box::new(val)), position)
+    ASTNode::new(ASTNodeType::Prefix(op, Box::new(val)), position)
 }
 
 pub fn _let_(ident: ASTNode, params: Vec<ASTNode>, val: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
-        ASTNodeType_::Let(Box::new(ident), params, Box::new(val)),
+        ASTNodeType::Let(Box::new(ident), params, Box::new(val)),
         position,
     )
 }
 
 pub fn _signature(symbol: ASTNode, type_: Option<ASTNode>, position: Position) -> ASTNode {
     ASTNode::new(
-        ASTNodeType_::Signature(Box::new(symbol), type_.map(Box::new)),
+        ASTNodeType::Signature(Box::new(symbol), type_.map(Box::new)),
         position,
     )
 }
 
 pub fn _if_(cond: ASTNode, first_res: ASTNode, second_res: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
-        ASTNodeType_::If(Box::new(cond), Box::new(first_res), Box::new(second_res)),
+        ASTNodeType::If(Box::new(cond), Box::new(first_res), Box::new(second_res)),
         position,
     )
 }
 
 pub fn _tuple(list: Vec<ASTNode>, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType_::Tuple(list), position)
+    ASTNode::new(ASTNodeType::Tuple(list), position)
 }
 
 pub fn _comprehension_set(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
-        ASTNodeType_::ComprehensionSet(Box::new(val), Box::new(prop)),
+        ASTNodeType::ComprehensionSet(Box::new(val), Box::new(prop)),
         position,
     )
 }
 
 pub fn _comprehension_list(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
-        ASTNodeType_::ComprehensionList(Box::new(val), Box::new(prop)),
+        ASTNodeType::ComprehensionList(Box::new(val), Box::new(prop)),
         position,
     )
 }
 
 pub fn _prepend(first: ASTNode, most: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
-        ASTNodeType_::Prepend(Box::new(first), Box::new(most)),
+        ASTNodeType::Prepend(Box::new(first), Box::new(most)),
         position,
     )
 }
 
 pub fn _extension_list(list: Vec<ASTNode>, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType_::ExtensionList(list), position)
+    ASTNode::new(ASTNodeType::ExtensionList(list), position)
 }
 
 pub fn _extension_set(list: Vec<ASTNode>, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType_::ExtensionSet(list), position)
+    ASTNode::new(ASTNodeType::ExtensionSet(list), position)
 }
 
 pub fn _for(var: &str, iter: ASTNode, block: Vec<ASTNode>, position: Position) -> ASTNode {
     ASTNode::new(
-        ASTNodeType_::For(var.into(), Box::new(iter), block),
+        ASTNodeType::For(var.into(), Box::new(iter), block),
         position,
     )
 }
 
 pub fn _function(params: Vec<&str>, proc: Vec<ASTNode>, position: Position) -> ASTNode {
     ASTNode::new(
-        ASTNodeType_::Function(params.into_iter().map(|str| str.to_owned()).collect(), proc),
+        ASTNodeType::Function(params.into_iter().map(|str| str.to_owned()).collect(), proc),
         position,
     )
 }
 
 pub fn _call(called: ASTNode, args: Vec<ASTNode>, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType_::Call(Box::new(called), args), position)
+    ASTNode::new(ASTNodeType::Call(Box::new(called), args), position)
 }

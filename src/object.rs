@@ -1,7 +1,7 @@
 use std::{fmt, iter::zip, vec};
 
 use crate::{
-    ast::{ASTNode, ASTNodeType_},
+    ast::{ASTNode, ASTNodeType},
     env::Environment,
     error::Error,
     exec::exec,
@@ -308,7 +308,7 @@ impl PrefixOperable for ComprehensionSet {}
 impl InfixOperable for ComprehensionSet {
     fn contains(&self, other: Object) -> Result<Object, ()> {
         let symbol = match &self.value._type {
-            ASTNodeType_::Symbol(s) => s,
+            ASTNodeType::Symbol(s) => s,
             _ => unimplemented!(),
         };
 

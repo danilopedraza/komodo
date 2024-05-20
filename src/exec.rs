@@ -1,7 +1,7 @@
 use crate::error::{Error, Position};
 use crate::object::{self, Callable, ComprehensionSet, ExtensionList, Function};
 
-use crate::ast::{ASTNode, ASTNodeType_, InfixOperator, PrefixOperator};
+use crate::ast::{ASTNode, ASTNodeType, InfixOperator, PrefixOperator};
 use crate::env::Environment;
 use crate::object::{
     Bool, Char, DefinedFunction, ExtensionSet, Integer, MyString, Object, Symbol, Tuple,
@@ -36,31 +36,29 @@ fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, Error> {
 
 pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     match &node._type {
-        ASTNodeType_::Symbol(str) => symbol(str, env),
-        ASTNodeType_::ExtensionSet(l) => extension_set(l, env),
-        ASTNodeType_::Integer(str) => integer(str),
-        ASTNodeType_::Function(params, proc) => function(params, proc),
-        ASTNodeType_::Infix(op, lhs, rhs) => {
+        ASTNodeType::Symbol(str) => symbol(str, env),
+        ASTNodeType::ExtensionSet(l) => extension_set(l, env),
+        ASTNodeType::Integer(str) => integer(str),
+        ASTNodeType::Function(params, proc) => function(params, proc),
+        ASTNodeType::Infix(op, lhs, rhs) => {
             infix(*op, exec(lhs, env)?, exec(rhs, env)?, node.position)
         }
-        ASTNodeType_::Let(ident, params, value) if params.is_empty() => let_(ident, value, env),
-        ASTNodeType_::Let(ident, args, value) => let_function(ident, args, value, env),
-        ASTNodeType_::Boolean(val) => boolean(*val),
-        ASTNodeType_::Call(func_node, args) => call(func_node, args, env, node.position),
-        ASTNodeType_::Char(chr) => char(*chr),
-        ASTNodeType_::ComprehensionSet(value, prop) => comprehension_set(value, prop),
-        ASTNodeType_::If(cond, first, second) => if_(exec(cond, env)?, first, second, env),
-        ASTNodeType_::Prefix(op, node) => prefix(*op, exec(node, env)?, node.position),
-        ASTNodeType_::Signature(_, _) => unimplemented!(),
-        ASTNodeType_::String(str) => string(str),
-        ASTNodeType_::Tuple(l) => tuple(l, env),
-        ASTNodeType_::For(symbol, iterable, proc) => for_(symbol, iterable, proc, env),
-        ASTNodeType_::ExtensionList(l) => extension_list(l, env),
-        ASTNodeType_::ComprehensionList(transform, prop) => {
-            comprehension_list(transform, prop, env)
-        }
-        ASTNodeType_::Wildcard => unimplemented!(),
-        ASTNodeType_::Prepend(first, most) => prepend(exec(first, env)?, most, env),
+        ASTNodeType::Let(ident, params, value) if params.is_empty() => let_(ident, value, env),
+        ASTNodeType::Let(ident, args, value) => let_function(ident, args, value, env),
+        ASTNodeType::Boolean(val) => boolean(*val),
+        ASTNodeType::Call(func_node, args) => call(func_node, args, env, node.position),
+        ASTNodeType::Char(chr) => char(*chr),
+        ASTNodeType::ComprehensionSet(value, prop) => comprehension_set(value, prop),
+        ASTNodeType::If(cond, first, second) => if_(exec(cond, env)?, first, second, env),
+        ASTNodeType::Prefix(op, node) => prefix(*op, exec(node, env)?, node.position),
+        ASTNodeType::Signature(_, _) => unimplemented!(),
+        ASTNodeType::String(str) => string(str),
+        ASTNodeType::Tuple(l) => tuple(l, env),
+        ASTNodeType::For(symbol, iterable, proc) => for_(symbol, iterable, proc, env),
+        ASTNodeType::ExtensionList(l) => extension_list(l, env),
+        ASTNodeType::ComprehensionList(transform, prop) => comprehension_list(transform, prop, env),
+        ASTNodeType::Wildcard => unimplemented!(),
+        ASTNodeType::Prepend(first, most) => prepend(exec(first, env)?, most, env),
     }
 }
 
@@ -107,9 +105,9 @@ fn boolean(val: bool) -> Result<Object, Error> {
 
 fn let_(ident: &ASTNode, value: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     match &ident._type {
-        ASTNodeType_::Symbol(name) => exec_and_set(value, name, env),
-        ASTNodeType_::Signature(ident, None) => match &ident._type {
-            ASTNodeType_::Symbol(name) => exec_and_set(value, name, env),
+        ASTNodeType::Symbol(name) => exec_and_set(value, name, env),
+        ASTNodeType::Signature(ident, None) => match &ident._type {
+            ASTNodeType::Symbol(name) => exec_and_set(value, name, env),
             _ => todo!(),
         },
         _ => Err(Error(
@@ -140,8 +138,8 @@ fn comprehension_list(
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let (symbol, iterator) = match &prop._type {
-        ASTNodeType_::Infix(InfixOperator::In, lhs, rhs) => match (&lhs._type, &rhs._type) {
-            (ASTNodeType_::Symbol(ident), ASTNodeType_::ExtensionList(l)) => (ident, list(l, env)?),
+        ASTNodeType::Infix(InfixOperator::In, lhs, rhs) => match (&lhs._type, &rhs._type) {
+            (ASTNodeType::Symbol(ident), ASTNodeType::ExtensionList(l)) => (ident, list(l, env)?),
             _ => todo!(),
         },
         _ => todo!(),
@@ -165,7 +163,7 @@ fn let_function(
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let name = match &ident._type {
-        ASTNodeType_::Symbol(name) => name,
+        ASTNodeType::Symbol(name) => name,
         _ => todo!(),
     };
 
@@ -640,7 +638,7 @@ mod tests {
         env.set("a", Object::Integer(Integer::from(-5)));
 
         let node = &ASTNode::new(
-            ASTNodeType_::If(
+            ASTNodeType::If(
                 Box::new(_infix(
                     InfixOperator::Less,
                     _symbol("a", _dummy_pos()),

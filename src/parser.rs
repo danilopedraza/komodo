@@ -83,22 +83,22 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn wildcard(&self) -> _NodeResult {
-        self.node_with_cur(ASTNodeType_::Wildcard)
+        self.node_with_cur(ASTNodeType::Wildcard)
     }
 
     fn char(&self, chr: char) -> _NodeResult {
-        self.node_with_cur(ASTNodeType_::Char(chr))
+        self.node_with_cur(ASTNodeType::Char(chr))
     }
 
     fn string(&self, str: String) -> _NodeResult {
-        self.node_with_cur(ASTNodeType_::String(str))
+        self.node_with_cur(ASTNodeType::String(str))
     }
 
     fn boolean(&self, val: bool) -> _NodeResult {
-        self.node_with_cur(ASTNodeType_::Boolean(val))
+        self.node_with_cur(ASTNodeType::Boolean(val))
     }
 
-    fn node_with_cur(&self, node: ASTNodeType_) -> _NodeResult {
+    fn node_with_cur(&self, node: ASTNodeType) -> _NodeResult {
         Ok(ASTNode::new(node, self.cur_pos))
     }
 
@@ -107,7 +107,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn symbol(&self, literal: String) -> _NodeResult {
-        self.node_with_cur(ASTNodeType_::Symbol(literal))
+        self.node_with_cur(ASTNodeType::Symbol(literal))
     }
 
     fn let_(&mut self) -> _NodeResult {
@@ -239,7 +239,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         } else {
             self.expression(op.precedence()).map(|rhs| {
                 ASTNode::new(
-                    ASTNodeType_::Infix(op, Box::new(lhs), Box::new(rhs)),
+                    ASTNodeType::Infix(op, Box::new(lhs), Box::new(rhs)),
                     self.start_to_cur(start),
                 )
             })
@@ -247,7 +247,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn integer(&self, int: String) -> _NodeResult {
-        self.node_with_cur(ASTNodeType_::Integer(int))
+        self.node_with_cur(ASTNodeType::Integer(int))
     }
 
     fn parenthesis(&mut self) -> _NodeResult {
@@ -373,7 +373,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         let ASTNode { _type, position } = self.expression(Precedence::Lowest)?;
 
         let proc = match _type {
-            ASTNodeType_::Tuple(v) => v,
+            ASTNodeType::Tuple(v) => v,
             node => vec![ASTNode::new(node, position)],
         };
 
@@ -1290,7 +1290,7 @@ mod tests {
                 vec![
                     _symbol("a", _pos(1, 1)),
                     _integer("1", _pos(4, 1)),
-                    ASTNode::new(ASTNodeType_::Wildcard, _pos(7, 1)),
+                    ASTNode::new(ASTNodeType::Wildcard, _pos(7, 1)),
                 ],
                 _pos(0, 9)
             ),)),

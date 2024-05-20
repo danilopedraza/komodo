@@ -1,7 +1,7 @@
 use std::iter::zip;
 
 use crate::{
-    ast::{ASTNode, ASTNodeType_},
+    ast::{ASTNode, ASTNodeType},
     env::Environment,
     exec,
     object::{ExtensionList, Object},
@@ -48,10 +48,10 @@ fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Match {
 
 fn match_(pattern: &ASTNode, val: &Object) -> Match {
     match &pattern._type {
-        ASTNodeType_::Wildcard => empty_match(),
-        ASTNodeType_::Symbol(s) => single_match(s, val),
-        ASTNodeType_::ExtensionList(l) => match_extension_list(l, val),
-        ASTNodeType_::Prepend(first, most) => match_prefix_crop(first, most, val),
+        ASTNodeType::Wildcard => empty_match(),
+        ASTNodeType::Symbol(s) => single_match(s, val),
+        ASTNodeType::ExtensionList(l) => match_extension_list(l, val),
+        ASTNodeType::Prepend(first, most) => match_prefix_crop(first, most, val),
         _ => match_constant(pattern, val),
     }
 }
