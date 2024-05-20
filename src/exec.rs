@@ -24,7 +24,7 @@ pub enum EvalError {
         rhs: String,
     },
     NonIterableObject(String),
-    NonPrependableObject,
+    NonPrependableObject(String),
 }
 
 fn truthy(val: Object) -> bool {
@@ -73,16 +73,20 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
 }
 
 fn prepend(first: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
-    if let Object::ExtensionList(lst) = exec(most, env)? {
-        let mut res = vec![first];
+    match exec(most, env)? {
+        Object::ExtensionList(lst) => {
+            let mut res = vec![first];
 
-        for obj in lst.list {
-            res.push(obj.clone());
+            for obj in lst.list {
+                res.push(obj.clone());
+            }
+
+            Ok(Object::ExtensionList(res.into()))
         }
-
-        Ok(Object::ExtensionList(res.into()))
-    } else {
-        Err(Error(EvalError::NonPrependableObject.into(), most.position))
+        obj => Err(Error(
+            EvalError::NonPrependableObject(obj.kind()).into(),
+            most.position,
+        )),
     }
 }
 

@@ -143,10 +143,14 @@ fn exec_error_msg(err: &EvalError) -> String {
         }
         EvalError::NonCallableObject(kind) => non_callable_object(kind),
         EvalError::NonIterableObject(kind) => non_iterable_object(kind),
-        EvalError::NonPrependableObject => todo!(),
+        EvalError::NonPrependableObject(kind) => non_prependable_object(kind),
         EvalError::NonExistentPrefixOperation { op, rhs } => non_existent_prefix(op, rhs),
         EvalError::NonExistentInfixOperation { op, lhs, rhs } => non_existent_infix(op, lhs, rhs),
     }
+}
+
+fn non_prependable_object(kind: &str) -> String {
+    format!("Cannot prepend elements to `{kind}`")
 }
 
 fn non_existent_infix(op: &str, lhs: &str, rhs: &str) -> String {
@@ -326,6 +330,14 @@ mod tests {
         assert_eq!(
             non_existent_infix("bitwise AND", "integer", "set"),
             String::from("The bitwise AND operation does not exist for `integer` and `set`")
+        );
+    }
+
+    #[test]
+    fn non_prependable_obj() {
+        assert_eq!(
+            non_prependable_object("integer"),
+            String::from("Cannot prepend elements to `integer`")
         );
     }
 }
