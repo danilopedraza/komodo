@@ -66,7 +66,10 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
 fn prepend(first: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     if let Object::ExtensionList(lst) = exec(most, env)? {
         let mut res = vec![first];
-        res.append(&mut lst.list.clone());
+
+        for obj in lst.list {
+            res.push(obj.clone());
+        }
 
         Ok(Object::ExtensionList(res.into()))
     } else {
