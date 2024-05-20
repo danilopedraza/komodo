@@ -6,7 +6,7 @@ use crate::{
     exec::exec,
     lexer::build_lexer,
     parser::{parser_from, ParserError},
-    semantic::postprocess,
+    weeder::postprocess,
 };
 use rustyline::error::ReadlineError;
 

@@ -9,14 +9,14 @@ mod matcher;
 mod object;
 mod parser;
 mod repl;
-mod semantic;
+mod weeder;
 
 use builtin::standard_env;
 use exec::exec;
 use file::parse_file;
 use repl::{repl, Cli};
 use rustyline::DefaultEditor;
-use semantic::postprocess;
+use weeder::postprocess;
 
 struct MyCLI {
     rl: DefaultEditor,
