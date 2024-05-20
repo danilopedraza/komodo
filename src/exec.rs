@@ -13,7 +13,7 @@ pub enum EvalError {
     NonAssignableExpression,
     NonCallableObject(String),
     NonExistentOperation,
-    NonIterableObject,
+    NonIterableObject(String),
     NonPrependableObject,
 }
 
@@ -219,8 +219,8 @@ fn for_(
 
     let iter = match &obj {
         Object::ExtensionSet(set) => Ok(set.list()),
-        _ => Err(Error(
-            EvalError::NonIterableObject.into(),
+        obj => Err(Error(
+            EvalError::NonIterableObject(obj.kind()).into(),
             iterable.position,
         )),
     }?;

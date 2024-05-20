@@ -143,10 +143,14 @@ fn exec_error_msg(err: &EvalError) -> String {
         }
         EvalError::NonCallableObject(kind) => non_callable_object(kind),
         EvalError::NonExistentOperation => todo!(),
-        EvalError::NonIterableObject => todo!(),
+        EvalError::NonIterableObject(kind) => non_iterable_object(kind),
         EvalError::NonPrependableObject => todo!(),
         EvalError::NonAssignableExpression => todo!(),
     }
+}
+
+fn non_iterable_object(kind: &str) -> String {
+    format!("`{kind}` cannot be iterated through")
 }
 
 fn missing_func_arguments(expected: usize, actual: usize) -> String {
@@ -290,6 +294,14 @@ mod tests {
         assert_eq!(
             missing_func_arguments(3, 1),
             String::from("Expected 3 arguments for this function call, but found 1"),
+        );
+    }
+
+    #[test]
+    fn non_iterable_object_() {
+        assert_eq!(
+            non_iterable_object("foo"),
+            String::from("`foo` cannot be iterated through")
         );
     }
 }
