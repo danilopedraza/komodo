@@ -111,6 +111,15 @@ fn found_a(tok: &TokenType) -> String {
     }
 }
 
+fn lexer_error_msg(err: &LexerError) -> String {
+    match err {
+        LexerError::UnexpectedChar(_) => todo!(),
+        LexerError::UnexpectedEOF => todo!(),
+        LexerError::UnterminatedChar => todo!(),
+        LexerError::UnterminatedString => todo!(),
+    }
+}
+
 fn parser_error_msg(err: &ParserError) -> String {
     match err {
         ParserError::ExpectedExpression(tok) => expected_expression(found_a(tok)),
@@ -121,6 +130,20 @@ fn parser_error_msg(err: &ParserError) -> String {
         ParserError::EOFExpecting(expected) => {
             eof_expecting(expected.iter().map(found_a).collect())
         }
+    }
+}
+
+fn exec_error_msg(err: &EvalError) -> String {
+    match err {
+        EvalError::MissingFunctionArguments {
+            expected: _,
+            actual: _,
+        } => todo!(),
+        EvalError::NonCallableObject => todo!(),
+        EvalError::NonExistentOperation => todo!(),
+        EvalError::NonIterableObject => todo!(),
+        EvalError::NonPrependableObject => todo!(),
+        EvalError::NonAssignableExpression => todo!(),
     }
 }
 
@@ -156,29 +179,6 @@ fn disjunction(msgs: Vec<String>) -> String {
 fn unexpected_token(expected_msgs: Vec<String>, actual_msg: String) -> String {
     let expected_str = disjunction(expected_msgs);
     format!("Expected {expected_str}, but found {actual_msg}")
-}
-
-fn lexer_error_msg(err: &LexerError) -> String {
-    match err {
-        LexerError::UnexpectedChar(_) => todo!(),
-        LexerError::UnexpectedEOF => todo!(),
-        LexerError::UnterminatedChar => todo!(),
-        LexerError::UnterminatedString => todo!(),
-    }
-}
-
-fn exec_error_msg(err: &EvalError) -> String {
-    match err {
-        EvalError::MissingFunctionArguments {
-            expected: _,
-            actual: _,
-        } => todo!(),
-        EvalError::NonCallableObject => todo!(),
-        EvalError::NonExistentOperation => todo!(),
-        EvalError::NonIterableObject => todo!(),
-        EvalError::NonPrependableObject => todo!(),
-        EvalError::NonAssignableExpression => todo!(),
-    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
