@@ -173,6 +173,7 @@ fn exec_error_msg(err: &EvalError) -> String {
         EvalError::NonCallableObject => todo!(),
         EvalError::NonExistentOperation => todo!(),
         EvalError::NonIterableObject => todo!(),
+        EvalError::NonPrependableObject => todo!(),
     }
 }
 

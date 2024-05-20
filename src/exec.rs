@@ -13,6 +13,7 @@ pub enum EvalError {
     NonCallableObject,
     NonExistentOperation,
     NonIterableObject,
+    NonPrependableObject,
 }
 
 fn truthy(val: Object) -> bool {
@@ -58,7 +59,18 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             comprehension_list(transform, prop, env)
         }
         ASTNodeType_::Wildcard => todo!(),
-        ASTNodeType_::Prepend(_, _) => todo!(),
+        ASTNodeType_::Prepend(first, most) => prepend(exec(first, env)?, most, env),
+    }
+}
+
+fn prepend(first: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
+    if let Object::ExtensionList(lst) = exec(most, env)? {
+        let mut res = vec![first];
+        res.append(&mut lst.list.clone());
+
+        Ok(Object::ExtensionList(res.into()))
+    } else {
+        Err(Error(EvalError::NonPrependableObject.into(), most.position))
     }
 }
 
@@ -308,8 +320,8 @@ mod tests {
     use super::*;
     use crate::ast::{
         _boolean, _call, _comprehension_list, _comprehension_set, _dummy_pos, _extension_list,
-        _extension_set, _for, _function, _infix, _integer, _let_, _pos, _prefix, _signature,
-        _symbol, _tuple,
+        _extension_set, _for, _function, _infix, _integer, _let_, _pos, _prefix, _prepend,
+        _signature, _symbol, _tuple,
     };
     use crate::object::*;
 
@@ -954,5 +966,24 @@ mod tests {
                 Object::Integer(Integer::from(2)),
             ])))
         );
+    }
+
+    #[test]
+    fn prepend() {
+        let node = _prepend(
+            _integer("1", _dummy_pos()),
+            _extension_list(vec![_symbol("s", _dummy_pos())], _dummy_pos()),
+            _dummy_pos(),
+        );
+
+        let obj = Object::ExtensionList(
+            vec![
+                Object::Integer(Integer::from(1)),
+                Object::Symbol(Symbol::from("s")),
+            ]
+            .into(),
+        );
+
+        assert_eq!(exec(&node, &mut Environment::default()), Ok(obj));
     }
 }
