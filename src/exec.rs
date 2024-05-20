@@ -1,5 +1,5 @@
 use crate::error::{Error, Position};
-use crate::object::{self, Callable, ComprehensionSet, ExtensionList, Function};
+use crate::object::{self, Callable, ComprehensionSet, ExtensionList, Function, Kind};
 
 use crate::ast::{ASTNode, ASTNodeType, InfixOperator, PrefixOperator};
 use crate::env::Environment;
@@ -11,7 +11,7 @@ use crate::object::{
 pub enum EvalError {
     MissingFunctionArguments { expected: usize, actual: usize },
     NonAssignableExpression,
-    NonCallableObject,
+    NonCallableObject(String),
     NonExistentOperation,
     NonIterableObject,
     NonPrependableObject,
@@ -268,8 +268,8 @@ fn call(
 
     match func {
         Object::Function(f) => f.call(&func_args, env),
-        _ => Err(Error(
-            EvalError::NonCallableObject.into(),
+        obj => Err(Error(
+            EvalError::NonCallableObject(obj.kind()).into(),
             func_node.position,
         )),
     }

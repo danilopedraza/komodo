@@ -107,6 +107,28 @@ impl fmt::Display for Object {
     }
 }
 
+pub trait Kind {
+    fn kind(&self) -> String;
+}
+
+impl Kind for Object {
+    fn kind(&self) -> String {
+        match self {
+            Object::Boolean(_) => "boolean",
+            Object::Char(_) => "character",
+            Object::ComprehensionSet(_) => "comprehension set",
+            Object::ExtensionList(_) => "extension list",
+            Object::ExtensionSet(_) => "extension set",
+            Object::Function(_) => "function",
+            Object::Integer(_) => "integer",
+            Object::String(_) => "string",
+            Object::Symbol(_) => "symbol",
+            Object::Tuple(_) => "tuple",
+        }
+        .into()
+    }
+}
+
 macro_rules! derived_object_infix_trait {
     ($ident:ident) => {
         pub fn $ident(&self, other: Object) -> Result<Object, ()> {
@@ -715,6 +737,12 @@ impl Callable for Effect {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExtensionList {
     pub list: Vec<Object>,
+}
+
+impl Kind for ExtensionList {
+    fn kind(&self) -> String {
+        "extension list".into()
+    }
 }
 
 impl From<Vec<Object>> for ExtensionList {

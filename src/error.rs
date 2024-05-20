@@ -142,12 +142,16 @@ fn exec_error_msg(err: &EvalError) -> String {
             expected: _,
             actual: _,
         } => todo!(),
-        EvalError::NonCallableObject => todo!(),
+        EvalError::NonCallableObject(kind) => non_callable_object(kind),
         EvalError::NonExistentOperation => todo!(),
         EvalError::NonIterableObject => todo!(),
         EvalError::NonPrependableObject => todo!(),
         EvalError::NonAssignableExpression => todo!(),
     }
+}
+
+fn non_callable_object(kind: &str) -> String {
+    format!("`{kind}` cannot be called like a function")
 }
 
 fn unexpected_char(chr: char) -> String {
@@ -267,6 +271,14 @@ mod tests {
             String::from(
                 "The end of the program was reached while expecting a dot: `.` or a comma: `,`"
             ),
+        );
+    }
+
+    #[test]
+    fn non_callable_object_() {
+        assert_eq!(
+            non_callable_object("extension set"),
+            String::from("`extension set` cannot be called like a function")
         );
     }
 }
