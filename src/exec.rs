@@ -10,6 +10,7 @@ use crate::object::{
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvalError {
     MissingFunctionArguments,
+    NonAssignableExpression,
     NonCallableObject,
     NonExistentOperation,
     NonIterableObject,
@@ -111,7 +112,10 @@ fn let_(ident: &ASTNode, value: &ASTNode, env: &mut Environment) -> Result<Objec
             ASTNodeType_::Symbol(name) => exec_and_set(value, name, env),
             _ => todo!(),
         },
-        _ => todo!(),
+        _ => Err(Error(
+            EvalError::NonAssignableExpression.into(),
+            ident.position,
+        )),
     }
 }
 
