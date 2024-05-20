@@ -9,7 +9,7 @@ use crate::object::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvalError {
-    MissingFunctionArguments,
+    MissingFunctionArguments { expected: usize, actual: usize },
     NonAssignableExpression,
     NonCallableObject,
     NonExistentOperation,
@@ -249,7 +249,14 @@ fn call(
     let func = exec(func_node, env)?;
     if let Object::Function(ref f) = func {
         if args.len() < f.param_number() {
-            return Err(Error(EvalError::MissingFunctionArguments.into(), call_pos));
+            return Err(Error(
+                EvalError::MissingFunctionArguments {
+                    expected: f.param_number(),
+                    actual: args.len(),
+                }
+                .into(),
+                call_pos,
+            ));
         }
     }
 
@@ -796,7 +803,11 @@ mod tests {
         assert_eq!(
             exec(node, &mut Environment::default()),
             Err(Error(
-                EvalError::MissingFunctionArguments.into(),
+                EvalError::MissingFunctionArguments {
+                    expected: 2,
+                    actual: 1,
+                }
+                .into(),
                 _pos(0, 5),
             ))
         );

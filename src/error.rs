@@ -169,7 +169,10 @@ fn lexer_error_msg(err: &LexerError) -> String {
 
 fn exec_error_msg(err: &EvalError) -> String {
     match err {
-        EvalError::MissingFunctionArguments => todo!(),
+        EvalError::MissingFunctionArguments {
+            expected: _,
+            actual: _,
+        } => todo!(),
         EvalError::NonCallableObject => todo!(),
         EvalError::NonExistentOperation => todo!(),
         EvalError::NonIterableObject => todo!(),
