@@ -138,16 +138,19 @@ fn parser_error_msg(err: &ParserError) -> String {
 
 fn exec_error_msg(err: &EvalError) -> String {
     match err {
-        EvalError::MissingFunctionArguments {
-            expected: _,
-            actual: _,
-        } => todo!(),
+        EvalError::MissingFunctionArguments { expected, actual } => {
+            missing_func_arguments(*expected, *actual)
+        }
         EvalError::NonCallableObject(kind) => non_callable_object(kind),
         EvalError::NonExistentOperation => todo!(),
         EvalError::NonIterableObject => todo!(),
         EvalError::NonPrependableObject => todo!(),
         EvalError::NonAssignableExpression => todo!(),
     }
+}
+
+fn missing_func_arguments(expected: usize, actual: usize) -> String {
+    format!("Expected {expected} arguments for this function call, but found {actual}")
 }
 
 fn non_callable_object(kind: &str) -> String {
@@ -279,6 +282,14 @@ mod tests {
         assert_eq!(
             non_callable_object("extension set"),
             String::from("`extension set` cannot be called like a function")
+        );
+    }
+
+    #[test]
+    fn missing_func_arguments_() {
+        assert_eq!(
+            missing_func_arguments(3, 1),
+            String::from("Expected 3 arguments for this function call, but found 1"),
         );
     }
 }
