@@ -50,7 +50,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType_::ComprehensionSet(value, prop) => comprehension_set(value, prop),
         ASTNodeType_::If(cond, first, second) => if_(exec(cond, env)?, first, second, env),
         ASTNodeType_::Prefix(op, node) => prefix(*op, exec(node, env)?, node.position),
-        ASTNodeType_::Signature(_, _) => todo!(),
+        ASTNodeType_::Signature(_, _) => unimplemented!(),
         ASTNodeType_::String(str) => string(str),
         ASTNodeType_::Tuple(l) => tuple(l, env),
         ASTNodeType_::For(symbol, iterable, proc) => for_(symbol, iterable, proc, env),
@@ -58,7 +58,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType_::ComprehensionList(transform, prop) => {
             comprehension_list(transform, prop, env)
         }
-        ASTNodeType_::Wildcard => todo!(),
+        ASTNodeType_::Wildcard => unimplemented!(),
         ASTNodeType_::Prepend(first, most) => prepend(exec(first, env)?, most, env),
     }
 }
