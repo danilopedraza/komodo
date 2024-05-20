@@ -164,7 +164,7 @@ fn let_function(
 ) -> Result<Object, Error> {
     let name = match &ident._type {
         ASTNodeType::Symbol(name) => name,
-        _ => todo!(),
+        _ => unimplemented!(),
     };
 
     let function: &mut DefinedFunction = match env.get(name) {
@@ -176,11 +176,11 @@ fn let_function(
 
             match env.get(name) {
                 Some(Object::Function(Function::DefinedFunction(f))) => f,
-                _ => todo!(),
+                _ => unimplemented!(),
             }
         }
         Some(Object::Function(Function::DefinedFunction(f))) => f,
-        _ => todo!(),
+        _ => unimplemented!(),
     };
 
     function.add_pattern(args, value);
@@ -277,8 +277,8 @@ fn infix(
     let res = match op {
         InfixOperator::BitwiseAnd => lhs.bitwise_and(rhs),
         InfixOperator::BitwiseXor => lhs.bitwise_xor(rhs),
-        InfixOperator::Call => todo!(),
-        InfixOperator::Correspondence => todo!(),
+        InfixOperator::Call => unimplemented!(),
+        InfixOperator::Correspondence => unimplemented!(),
         InfixOperator::Division => lhs.over(rhs),
         InfixOperator::Equality => lhs.equality(rhs),
         InfixOperator::Exponentiation => lhs.pow(rhs),
