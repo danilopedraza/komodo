@@ -309,7 +309,7 @@ impl InfixOperable for ComprehensionSet {
     fn contains(&self, other: Object) -> Result<Object, ()> {
         let symbol = match &self.value._type {
             ASTNodeType_::Symbol(s) => s,
-            _ => todo!(),
+            _ => unimplemented!(),
         };
 
         let mut env = Environment::default();

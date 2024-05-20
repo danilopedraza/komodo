@@ -153,7 +153,7 @@ mod tests {
             match res {
                 Err(ReadlineError::Interrupted) => Err(ReadlineError::Interrupted),
                 Ok(str) => Ok(str.to_owned()),
-                _ => todo!(),
+                _ => unimplemented!(),
             }
         }
 
