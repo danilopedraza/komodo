@@ -96,6 +96,33 @@ impl InfixOperator {
             Self::Sum => Precedence::Addition,
         }
     }
+
+    pub fn ident(&self) -> String {
+        match self {
+            InfixOperator::BitwiseAnd => "bitwise AND",
+            InfixOperator::BitwiseXor => "bitwise XOR",
+            InfixOperator::Call => unimplemented!(),
+            InfixOperator::Correspondence => unimplemented!(),
+            InfixOperator::Division => "division",
+            InfixOperator::Equality => "equality",
+            InfixOperator::Exponentiation => "exponentiation",
+            InfixOperator::Greater => "greater",
+            InfixOperator::GreaterEqual => "greater-or-equal",
+            InfixOperator::In => "membership",
+            InfixOperator::LeftShift => "left shift",
+            InfixOperator::Less => "less",
+            InfixOperator::LessEqual => "less-or-equal",
+            InfixOperator::LogicAnd => "logic AND",
+            InfixOperator::Or => "OR",
+            InfixOperator::Mod => "modulo",
+            InfixOperator::NotEquality => "non-equality",
+            InfixOperator::Product => "multiplication",
+            InfixOperator::RightShift => "right shift",
+            InfixOperator::Substraction => "substraction",
+            InfixOperator::Sum => "addition",
+        }
+        .into()
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -113,6 +140,15 @@ impl PrefixOperator {
             TokenType::Tilde => Some(Self::BitwiseNot),
             _ => None,
         }
+    }
+
+    pub fn ident(&self) -> String {
+        match self {
+            PrefixOperator::BitwiseNot => "bitwise negation",
+            PrefixOperator::LogicNot => "logic negation",
+            PrefixOperator::Minus => "additive inversion",
+        }
+        .into()
     }
 }
 

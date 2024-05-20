@@ -9,9 +9,20 @@ use crate::object::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvalError {
-    MissingFunctionArguments { expected: usize, actual: usize },
+    MissingFunctionArguments {
+        expected: usize,
+        actual: usize,
+    },
     NonCallableObject(String),
-    NonExistentOperation,
+    NonExistentPrefixOperation {
+        op: String,
+        rhs: String,
+    },
+    NonExistentInfixOperation {
+        op: String,
+        lhs: String,
+        rhs: String,
+    },
     NonIterableObject(String),
     NonPrependableObject,
 }
@@ -277,6 +288,9 @@ fn infix(
     rhs: Object,
     infix_pos: Position,
 ) -> Result<Object, Error> {
+    let lhs_kind = lhs.kind();
+    let rhs_kind = rhs.kind();
+
     let res = match op {
         InfixOperator::BitwiseAnd => lhs.bitwise_and(rhs),
         InfixOperator::BitwiseXor => lhs.bitwise_xor(rhs),
@@ -302,7 +316,15 @@ fn infix(
     };
 
     match res {
-        Err(()) => Err(Error(EvalError::NonExistentOperation.into(), infix_pos)),
+        Err(()) => Err(Error(
+            EvalError::NonExistentInfixOperation {
+                op: op.ident(),
+                lhs: lhs_kind,
+                rhs: rhs_kind,
+            }
+            .into(),
+            infix_pos,
+        )),
         Ok(obj) => Ok(obj),
     }
 }
@@ -315,7 +337,14 @@ fn prefix(op: PrefixOperator, obj: Object, prefix_pos: Position) -> Result<Objec
     };
 
     match res {
-        Err(()) => Err(Error(EvalError::NonExistentOperation.into(), prefix_pos)),
+        Err(()) => Err(Error(
+            EvalError::NonExistentPrefixOperation {
+                op: op.ident(),
+                rhs: obj.kind(),
+            }
+            .into(),
+            prefix_pos,
+        )),
         Ok(obj) => Ok(obj),
     }
 }
