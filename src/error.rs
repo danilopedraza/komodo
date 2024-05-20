@@ -113,10 +113,13 @@ fn found_a(tok: &TokenType) -> String {
 
 fn lexer_error_msg(err: &LexerError) -> String {
     match err {
-        LexerError::UnexpectedChar(_) => todo!(),
-        LexerError::UnexpectedEOF => todo!(),
-        LexerError::UnterminatedChar => todo!(),
-        LexerError::UnterminatedString => todo!(),
+        LexerError::UnexpectedChar(chr) => unexpected_char(*chr),
+        LexerError::UnterminatedChar => {
+            "The end of the program was reached while reading a character".into()
+        }
+        LexerError::UnterminatedString => {
+            "The end of the program was reached while reading a string".into()
+        }
     }
 }
 
@@ -145,6 +148,10 @@ fn exec_error_msg(err: &EvalError) -> String {
         EvalError::NonPrependableObject => todo!(),
         EvalError::NonAssignableExpression => todo!(),
     }
+}
+
+fn unexpected_char(chr: char) -> String {
+    format!("Expected a `'` to close the character, but found `{chr}`")
 }
 
 fn eof_expecting(expected_msgs: Vec<String>) -> String {

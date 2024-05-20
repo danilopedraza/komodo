@@ -5,7 +5,6 @@ use crate::error::{Error, Position};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LexerError {
     UnexpectedChar(char),
-    UnexpectedEOF,
     UnterminatedChar,
     UnterminatedString,
 }
@@ -174,7 +173,7 @@ impl Lexer<'_> {
     fn char(&mut self) -> Option<LexerResult> {
         let chr = self.next_char();
         if chr.is_none() {
-            return Some(Err(LexerError::UnexpectedEOF));
+            return Some(Err(LexerError::UnterminatedChar));
         }
 
         Some(match self.next_char() {
