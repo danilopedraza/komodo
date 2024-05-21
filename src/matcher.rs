@@ -39,11 +39,13 @@ fn join(map1: Match, map2: Match) -> Match {
 }
 
 fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Match {
-    // always pass through everything,
-    // but it is prettier than a for loop
-    zip(patterns, vals)
-        .map(|(pattern, val)| match_(pattern, val))
-        .fold(empty_match(), join)
+    if patterns.len() != vals.len() {
+        Match::NotAMatch
+    } else {
+        zip(patterns, vals)
+            .map(|(pattern, val)| match_(pattern, val))
+            .fold(empty_match(), join)
+    }
 }
 
 fn match_(pattern: &ASTNode, val: &Object) -> Match {
