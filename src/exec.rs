@@ -364,6 +364,7 @@ mod tests {
         _extension_set, _for, _function, _infix, _integer, _let_, _pos, _prefix, _prepend,
         _signature, _symbol, _tuple,
     };
+    use crate::error::ErrorType;
     use crate::object::*;
 
     #[test]
@@ -1030,5 +1031,32 @@ mod tests {
         );
 
         assert_eq!(exec(&node, &mut Environment::default()), Ok(obj));
+    }
+
+    #[test]
+    #[ignore = "not yet implemented"]
+    fn missing_args_2() {
+        let mut env = Environment::default();
+        let func = _let_(
+            _symbol("f", _dummy_pos()),
+            vec![_symbol("x", _dummy_pos())],
+            _symbol("x", _dummy_pos()),
+            _dummy_pos(),
+        );
+
+        let _ = exec(&func, &mut env);
+        
+        let call = _call(_symbol("f", _dummy_pos()), vec![], _dummy_pos());
+
+        assert_eq!(
+            exec(&call, &mut env),
+            Err(Error(
+                ErrorType::Exec(EvalError::MissingFunctionArguments {
+                    expected: 1,
+                    actual: 0
+                }),
+                _dummy_pos()
+            ))
+        );
     }
 }
