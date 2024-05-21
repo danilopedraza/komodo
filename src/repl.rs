@@ -46,7 +46,7 @@ impl Repl {
 
                 match parser.next() {
                     None => (String::from(""), ReplResponse::Continue),
-                    Some(res) => self.ast_response(res),
+                    Some(res) => self.exec_response(res),
                 }
             }
             Err(ReadlineError::Interrupted | ReadlineError::Eof) => {
@@ -56,7 +56,7 @@ impl Repl {
         }
     }
 
-    fn ast_response(&mut self, res: Result<ASTNode, Error>) -> (String, ReplResponse) {
+    fn exec_response(&mut self, res: Result<ASTNode, Error>) -> (String, ReplResponse) {
         match res {
             Ok(node) => match exec(&postprocess(node), &mut self.env) {
                 Ok(obj) => {
@@ -67,7 +67,7 @@ impl Repl {
                     self.code.clear();
                     let ErrorMessage(msg, _) = error_msg(&err);
                     (msg, ReplResponse::Error)
-                },
+                }
             },
             Err(Error(ErrorType::Parser(ParserError::EOFExpecting(_)), _)) => {
                 (String::from(""), ReplResponse::WaitForMore)
