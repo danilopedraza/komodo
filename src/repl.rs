@@ -3,10 +3,10 @@ use crate::{
     builtin::standard_env,
     env::Environment,
     error::{error_msg, Error, ErrorMessage, ErrorType},
-    exec::exec,
     lexer::build_lexer,
+    object::Object,
     parser::{parser_from, ParserError},
-    weeder::postprocess,
+    run,
 };
 use rustyline::error::ReadlineError;
 
@@ -57,18 +57,11 @@ impl Repl {
     }
 
     fn exec_response(&mut self, res: Result<ASTNode, Error>) -> (String, ReplResponse) {
-        match res {
-            Ok(node) => match exec(&postprocess(node), &mut self.env) {
-                Ok(obj) => {
-                    self.code.clear();
-                    (obj.to_string(), ReplResponse::Continue)
-                }
-                Err(err) => {
-                    self.code.clear();
-                    let ErrorMessage(msg, _) = error_msg(&err);
-                    (msg, ReplResponse::Error)
-                }
-            },
+        match self.exec_result(res) {
+            Ok(obj) => {
+                self.code.clear();
+                (obj.to_string(), ReplResponse::Continue)
+            }
             Err(Error(ErrorType::Parser(ParserError::EOFExpecting(_)), _)) => {
                 (String::from(""), ReplResponse::WaitForMore)
             }
@@ -78,6 +71,10 @@ impl Repl {
                 (msg, ReplResponse::Error)
             }
         }
+    }
+
+    fn exec_result(&mut self, node_res: Result<ASTNode, Error>) -> Result<Object, Error> {
+        run::run_node(node_res?, &mut self.env)
     }
 }
 
