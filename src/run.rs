@@ -1,7 +1,14 @@
 use std::fs;
 
 use crate::{
-    ast::ASTNode, builtin::standard_env, error::Error, exec::exec, lexer::{build_lexer, Token}, object::Object, parser::{parser_from, Parser}, weeder::postprocess
+    ast::ASTNode,
+    builtin::standard_env,
+    error::Error,
+    exec::exec,
+    lexer::{build_lexer, Token},
+    object::Object,
+    parser::{parser_from, Parser},
+    weeder::postprocess,
 };
 
 fn collect_nodes<T: Iterator<Item = Result<Token, Error>>>(
