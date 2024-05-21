@@ -63,14 +63,18 @@ impl Repl {
                     self.code.clear();
                     (obj.to_string(), ReplResponse::Continue)
                 }
-                Err(err) => (format!("{:?}", err), ReplResponse::Error),
+                Err(err) => {
+                    self.code.clear();
+                    let ErrorMessage(msg, _) = error_msg(&err);
+                    (msg, ReplResponse::Error)
+                },
             },
             Err(Error(ErrorType::Parser(ParserError::EOFExpecting(_)), _)) => {
                 (String::from(""), ReplResponse::WaitForMore)
             }
             Err(err) => {
-                let ErrorMessage(msg, _) = error_msg(&err);
                 self.code.clear();
+                let ErrorMessage(msg, _) = error_msg(&err);
                 (msg, ReplResponse::Error)
             }
         }
