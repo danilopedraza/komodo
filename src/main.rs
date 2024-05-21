@@ -11,6 +11,8 @@ mod repl;
 mod run;
 mod weeder;
 
+use std::fs;
+
 use error::{error_msg, ErrorMessage};
 use exec::exec;
 use repl::{repl, Cli};
@@ -43,7 +45,8 @@ fn main() {
         })
         .unwrap();
     } else {
-        let res = run::run(&args[1]);
+        let input = fs::read_to_string(&args[1]).unwrap();
+        let res = run::run(&input);
         if let Err(err) = res {
             let ErrorMessage(msg, _) = error_msg(&err);
             println!("{msg}");

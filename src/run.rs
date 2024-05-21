@@ -1,8 +1,7 @@
-use std::fs;
-
 use crate::{
     ast::ASTNode,
     builtin::standard_env,
+    env::Environment,
     error::Error,
     exec::exec,
     lexer::{build_lexer, Token},
@@ -17,9 +16,8 @@ fn collect_nodes<T: Iterator<Item = Result<Token, Error>>>(
     parser.collect()
 }
 
-pub fn run(path: &str) -> Result<Object, Error> {
-    let input = fs::read_to_string(path).unwrap();
-    let lexer = build_lexer(&input);
+pub fn run(source: &str) -> Result<Object, Error> {
+    let lexer = build_lexer(source);
     let parser = parser_from(lexer);
     let nodes = collect_nodes(parser)?;
 
@@ -30,4 +28,8 @@ pub fn run(path: &str) -> Result<Object, Error> {
     }
 
     Ok(obj)
+}
+
+pub fn run_node(node: ASTNode, env: &mut Environment) -> Result<Object, Error> {
+    exec(&postprocess(node), env)
 }
