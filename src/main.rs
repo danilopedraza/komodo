@@ -40,7 +40,8 @@ fn main() {
     if args.len() == 1 {
         repl(&mut MyCLI {
             rl: DefaultEditor::new().unwrap(),
-        }).unwrap();
+        })
+        .unwrap();
     } else {
         let res = run::run(&args[1]);
         if let Err(err) = res {
