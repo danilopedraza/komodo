@@ -272,19 +272,6 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
     }
 
-    pub fn program_(&mut self) -> Vec<ASTNode> {
-        let mut res = vec![];
-
-        loop {
-            let exp = self.next();
-
-            match exp {
-                Some(Ok(node)) => res.push(node),
-                _ => break res,
-            }
-        }
-    }
-
     fn next_token(&mut self) -> Result<Option<TokenType>, Error> {
         match self.tokens.next() {
             Some(Ok(Token { token, position })) => {
@@ -1036,33 +1023,6 @@ mod tests {
                 _symbol("a", _pos(22, 1)),
                 _pos(0, 23),
             )))
-        );
-    }
-
-    #[test]
-    fn program() {
-        let input = "let a := 5
-        a * a
-        ";
-
-        let lexer = build_lexer(input);
-
-        assert_eq!(
-            parser_from(lexer).program_(),
-            vec![
-                _let_(
-                    _symbol("a", _pos(4, 1)),
-                    vec![],
-                    _integer("5", _pos(9, 1)),
-                    _pos(0, 10)
-                ),
-                _infix(
-                    InfixOperator::Product,
-                    _symbol("a", _pos(19, 1)),
-                    _symbol("a", _pos(23, 1)),
-                    _pos(19, 5)
-                )
-            ],
         );
     }
 
