@@ -1045,7 +1045,7 @@ mod tests {
         );
 
         let _ = exec(&func, &mut env);
-        
+
         let call = _call(_symbol("f", _dummy_pos()), vec![], _dummy_pos());
 
         assert_eq!(
