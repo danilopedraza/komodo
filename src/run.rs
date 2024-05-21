@@ -24,7 +24,7 @@ pub fn run(source: &str) -> Result<Object, Error> {
     let mut env = standard_env();
     let mut obj = Object::empty_tuple();
     for node in nodes {
-        obj = exec(&postprocess(node), &mut env)?;
+        obj = run_node(node, &mut env)?;
     }
 
     Ok(obj)
