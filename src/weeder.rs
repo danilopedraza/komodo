@@ -20,6 +20,21 @@ pub fn postprocess(node: ASTNode) -> ASTNode {
             function(*params, *proc, position)
         }
         ASTNodeType::Infix(InfixOperator::Call, called, args) => call(*called, *args, position),
+        ASTNodeType::Infix(InfixOperator::Dot, obj, old_call) => {
+            let processed_call = postprocess(*old_call);
+
+            match processed_call._type {
+                ASTNodeType::Call(called, args) => {
+                    let mut new_args = vec![postprocess(*obj)];
+                    for arg in args {
+                        new_args.push(arg);
+                    }
+
+                    ASTNode::new(ASTNodeType::Call(called, new_args), position)
+                }
+                _ => todo!(),
+            }
+        }
         ASTNodeType::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs, position),
         ASTNodeType::For(ident, iter, proc) => _for(
             &ident,
@@ -160,5 +175,29 @@ mod tests {
         );
 
         assert_eq!(postprocess(node.clone()), node);
+    }
+
+    #[test]
+    fn oop_function_call() {
+        let node = _infix(
+            InfixOperator::Dot,
+            _symbol("set", _dummy_pos()),
+            _infix(
+                InfixOperator::Call,
+                _symbol("map", _dummy_pos()),
+                _tuple(vec![_symbol("func", _dummy_pos())], _dummy_pos()),
+                _dummy_pos(),
+            ),
+            _dummy_pos(),
+        );
+
+        assert_eq!(
+            postprocess(node),
+            _call(
+                _symbol("map", _dummy_pos()),
+                vec![_symbol("set", _dummy_pos()), _symbol("func", _dummy_pos())],
+                _dummy_pos()
+            ),
+        );
     }
 }
