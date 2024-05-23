@@ -510,7 +510,20 @@ pub struct MyString {
     val: String,
 }
 
-impl InfixOperable for MyString {}
+impl InfixOperable for MyString {
+    fn sum(&self, other: Object) -> Result<Object, ()> {
+        match other {
+            Object::String(MyString { val: other_string }) => {
+                let mut val = String::new();
+                val.push_str(&self.val);
+                val.push_str(&other_string);
+                Ok(Object::String(MyString { val }))
+            }
+            _ => Err(()),
+        }
+    }
+}
+
 impl PrefixOperable for MyString {}
 
 impl fmt::Display for MyString {
@@ -764,5 +777,17 @@ impl fmt::Display for ExtensionList {
             .join(", ");
 
         write!(f, "[{}]", list)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn concat_strings() {
+        let str1 = Object::String(MyString::from("foo"));
+        let str2 = Object::String(MyString::from("bar"));
+
+        assert_eq!(str1.sum(str2), Ok(Object::String(MyString::from("foobar"))));
     }
 }
