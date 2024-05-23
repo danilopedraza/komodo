@@ -265,6 +265,13 @@ pub struct Char {
     val: char,
 }
 
+impl Char {
+    fn multiply(&self, times: usize) -> Object {
+        let val = self.val.to_string().repeat(times);
+        Object::String(MyString { val })
+    }
+}
+
 impl InfixOperable for Char {
     fn sum(&self, other: &Object) -> Result<Object, ()> {
         match other {
@@ -282,6 +289,13 @@ impl InfixOperable for Char {
 
                 Ok(Object::String(MyString { val }))
             }
+            _ => Err(()),
+        }
+    }
+
+    fn product(&self, other: &Object) -> Result<Object, ()> {
+        match other {
+            Object::Integer(Integer { val: times }) => Ok(self.multiply(*times as usize)),
             _ => Err(()),
         }
     }
@@ -510,6 +524,7 @@ impl InfixOperable for Integer {
     fn product(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val * val))),
+            Object::Char(chr) => Ok(chr.multiply(self.val as usize)),
             _ => Err(()),
         }
     }
@@ -836,5 +851,14 @@ mod tests {
 
         assert_eq!(str.sum(&chr), Ok(Object::String("boo".into())));
         assert_eq!(chr.sum(&str), Ok(Object::String("obo".into())));
+    }
+
+    #[test]
+    fn multiply_char() {
+        let chr = Object::Char('k'.into());
+        let num = Object::Integer(7.into());
+
+        assert_eq!(chr.product(&num), Ok(Object::String("kkkkkkk".into())));
+        assert_eq!(chr.product(&num), num.product(&chr));
     }
 }
