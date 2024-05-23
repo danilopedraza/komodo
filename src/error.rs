@@ -51,11 +51,8 @@ pub struct Position {
 }
 
 impl Position {
-    pub fn new(start: u32, length: u32) -> Self {
-        Self {
-            start: start as usize,
-            length: length as usize,
-        }
+    pub fn new(start: usize, length: usize) -> Self {
+        Self { start, length }
     }
 }
 
@@ -230,13 +227,12 @@ impl ErrorMessage {
         let config = codespan_reporting::term::Config::default();
 
         let file_id = files.add(filename, source);
-        let diagnostic =
-            Diagnostic::error()
-                .with_message(self.0)
-                .with_labels(vec![Label::primary(
-                    file_id,
-                    self.1.start..(self.1.start + self.1.length),
-                )]);
+        let diagnostic = Diagnostic::error()
+            .with_message(self.0.to_owned())
+            .with_labels(vec![Label::primary(
+                file_id,
+                self.1.start..(self.1.start + self.1.length),
+            )]);
 
         let _ = term::emit(&mut writer.lock(), &config, &files, &diagnostic);
     }

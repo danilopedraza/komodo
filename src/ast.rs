@@ -188,7 +188,7 @@ pub enum ASTNodeType {
     Wildcard,
 }
 
-pub fn _pos(start: u32, length: u32) -> Position {
+pub fn _pos(start: usize, length: usize) -> Position {
     Position::new(start, length)
 }
 

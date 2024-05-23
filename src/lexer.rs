@@ -73,7 +73,7 @@ pub enum TokenType {
 
 pub struct Lexer<'a> {
     input: Peekable<Chars<'a>>,
-    cur_pos: u32,
+    cur_pos: usize,
 }
 
 impl Iterator for Lexer<'_> {

@@ -220,11 +220,11 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         self.expression(Precedence::Lowest)
     }
 
-    fn start_to_cur(&self, start: u32) -> Position {
+    fn start_to_cur(&self, start: usize) -> Position {
         Position::new(start, self.cur_pos.start + self.cur_pos.length - start)
     }
 
-    fn infix(&mut self, lhs: ASTNode, op: InfixOperator, start: u32) -> _NodeResult {
+    fn infix(&mut self, lhs: ASTNode, op: InfixOperator, start: usize) -> _NodeResult {
         if op == InfixOperator::Call {
             let tuple_start = self.cur_pos.start;
 
@@ -321,14 +321,14 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
     }
 
-    fn comprehension_list_(&mut self, first: ASTNode, start: u32) -> _NodeResult {
+    fn comprehension_list_(&mut self, first: ASTNode, start: usize) -> _NodeResult {
         let last = self.expression(Precedence::Lowest)?;
         self.consume(TokenType::Rbrack)?;
 
         Ok(_comprehension_list(first, last, self.start_to_cur(start)))
     }
 
-    fn prepend_(&mut self, first: ASTNode, start: u32) -> _NodeResult {
+    fn prepend_(&mut self, first: ASTNode, start: usize) -> _NodeResult {
         let last = self.expression(Precedence::Lowest)?;
 
         self.consume(TokenType::Rbrack)?;
