@@ -275,6 +275,13 @@ impl InfixOperable for Char {
 
                 Ok(Object::String(MyString { val }))
             }
+            Object::Char(Char { val: other_chr }) => {
+                let mut val = String::new();
+                val.push(self.val);
+                val.push(*other_chr);
+
+                Ok(Object::String(MyString { val }))
+            }
             _ => Err(()),
         }
     }
@@ -812,6 +819,14 @@ mod tests {
             str1.sum(&str2),
             Ok(Object::String(MyString::from("foobar")))
         );
+    }
+
+    #[test]
+    fn concat_chars() {
+        let chr1 = Object::Char('f'.into());
+        let chr2 = Object::Char('u'.into());
+
+        assert_eq!(chr1.sum(&chr2), Ok(Object::String("fu".into())))
     }
 
     #[test]
