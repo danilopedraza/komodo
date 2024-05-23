@@ -266,7 +266,8 @@ pub struct Char {
 }
 
 impl Char {
-    fn multiply(&self, times: usize) -> Object {
+    fn multiply(&self, num: &Integer) -> Object {
+        let times = num.val as usize;
         let val = self.val.to_string().repeat(times);
         Object::String(MyString { val })
     }
@@ -295,7 +296,7 @@ impl InfixOperable for Char {
 
     fn product(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val: times }) => Ok(self.multiply(*times as usize)),
+            Object::Integer(num) => Ok(self.multiply(num)),
             _ => Err(()),
         }
     }
@@ -524,7 +525,7 @@ impl InfixOperable for Integer {
     fn product(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val * val))),
-            Object::Char(chr) => Ok(chr.multiply(self.val as usize)),
+            Object::Char(chr) => Ok(chr.multiply(self)),
             Object::String(str) => Ok(str.multiply(self)),
             _ => Err(()),
         }
