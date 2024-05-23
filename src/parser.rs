@@ -1327,4 +1327,30 @@ mod tests {
             ))),
         );
     }
+
+    #[test]
+    fn oop_function_call() {
+        let input = "list.map(func) + []";
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(_infix(
+                InfixOperator::Sum,
+                _infix(
+                    InfixOperator::Dot,
+                    _symbol("list", _pos(0, 4)),
+                    _infix(
+                        InfixOperator::Call,
+                        _symbol("map", _pos(5, 3)),
+                        _tuple(vec![_symbol("func", _pos(9, 4))], _pos(8, 6)),
+                        _pos(5, 9)
+                    ),
+                    _pos(0, 14)
+                ),
+                _extension_list(vec![], _pos(17, 2)),
+                _pos(0, 19),
+            )))
+        );
+    }
 }
