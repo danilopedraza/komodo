@@ -265,7 +265,20 @@ pub struct Char {
     val: char,
 }
 
-impl InfixOperable for Char {}
+impl InfixOperable for Char {
+    fn sum(&self, other: &Object) -> Result<Object, ()> {
+        match other {
+            Object::String(MyString { val: str }) => {
+                let mut val = String::new();
+                val.push(self.val);
+                val.push_str(str);
+
+                Ok(Object::String(MyString { val }))
+            }
+            _ => Err(()),
+        }
+    }
+}
 impl PrefixOperable for Char {}
 
 impl fmt::Display for Char {
@@ -519,6 +532,13 @@ impl InfixOperable for MyString {
                 val.push_str(other_string);
                 Ok(Object::String(MyString { val }))
             }
+            Object::Char(Char { val: chr }) => {
+                let mut val = self.val.clone();
+                val.push(*chr);
+
+                Ok(Object::String(MyString { val }))
+            }
+
             _ => Err(()),
         }
     }
@@ -792,5 +812,14 @@ mod tests {
             str1.sum(&str2),
             Ok(Object::String(MyString::from("foobar")))
         );
+    }
+
+    #[test]
+    fn concat_str_and_char() {
+        let str = Object::String("bo".into());
+        let chr = Object::Char('o'.into());
+
+        assert_eq!(str.sum(&chr), Ok(Object::String("boo".into())));
+        assert_eq!(chr.sum(&str), Ok(Object::String("obo".into())));
     }
 }
