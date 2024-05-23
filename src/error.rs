@@ -1,3 +1,9 @@
+use codespan_reporting::{
+    diagnostic::{Diagnostic, Label},
+    files::SimpleFiles,
+    term::{self, termcolor::StandardStream},
+};
+
 use crate::{
     exec::EvalError,
     lexer::{LexerError, TokenType},
@@ -40,13 +46,16 @@ impl From<EvalError> for ErrorType {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Position {
-    pub start: u32,
-    pub length: u32,
+    pub start: usize,
+    pub length: usize,
 }
 
 impl Position {
     pub fn new(start: u32, length: u32) -> Self {
-        Self { start, length }
+        Self {
+            start: start as usize,
+            length: length as usize,
+        }
     }
 }
 
@@ -213,6 +222,25 @@ fn unexpected_token(expected_msgs: Vec<String>, actual_msg: String) -> String {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ErrorMessage(pub String, pub Position);
+
+impl ErrorMessage {
+    pub fn emit(&self, filename: &str, source: &str) {
+        let mut files = SimpleFiles::new();
+        let writer = StandardStream::stderr(term::termcolor::ColorChoice::Always);
+        let config = codespan_reporting::term::Config::default();
+
+        let file_id = files.add(filename, source);
+        let diagnostic =
+            Diagnostic::error()
+                .with_message(self.0)
+                .with_labels(vec![Label::primary(
+                    file_id,
+                    self.1.start..(self.1.start + self.1.length),
+                )]);
+
+        let _ = term::emit(&mut writer.lock(), &config, &files, &diagnostic);
+    }
+}
 
 #[cfg(test)]
 mod tests {

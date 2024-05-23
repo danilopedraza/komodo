@@ -13,7 +13,7 @@ mod weeder;
 
 use std::fs;
 
-use error::{error_msg, ErrorMessage};
+use error::error_msg;
 use exec::exec;
 use repl::{repl, Cli};
 use rustyline::DefaultEditor;
@@ -48,8 +48,7 @@ fn main() {
         let input = fs::read_to_string(&args[1]).unwrap();
         let res = run::run(&input);
         if let Err(err) = res {
-            let ErrorMessage(msg, _) = error_msg(&err);
-            println!("{msg}");
+            error_msg(&err).emit(&args[1], &input);
         }
     }
 }
