@@ -527,6 +527,7 @@ impl InfixOperable for Integer {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val * val))),
             Object::Char(chr) => Ok(chr.multiply(self)),
             Object::String(str) => Ok(str.multiply(self)),
+            Object::ExtensionList(lst) => Ok(lst.multiply(self)),
             _ => Err(()),
         }
     }
@@ -810,6 +811,19 @@ pub struct ExtensionList {
     pub list: Vec<Object>,
 }
 
+impl ExtensionList {
+    fn multiply(&self, num: &Integer) -> Object {
+        let times = num.val;
+        let mut list = vec![];
+
+        for _ in 0..times {
+            list.extend(self.list.clone());
+        }
+
+        Object::ExtensionList(list.into())
+    }
+}
+
 impl Kind for ExtensionList {
     fn kind(&self) -> String {
         "extension list".into()
@@ -835,6 +849,13 @@ impl InfixOperable for ExtensionList {
 
                 Ok(Object::ExtensionList(list.into()))
             }
+            _ => Err(()),
+        }
+    }
+
+    fn product(&self, other: &Object) -> Result<Object, ()> {
+        match other {
+            Object::Integer(num) => Ok(self.multiply(num)),
             _ => Err(()),
         }
     }
@@ -918,5 +939,24 @@ mod tests {
                 vec![Object::String("hola".into()), Object::Integer(1.into())].into()
             ))
         );
+    }
+
+    #[test]
+    fn multiply_lists() {
+        let l = Object::ExtensionList(vec![Object::Integer(0.into())].into());
+        let num = Object::Integer(3.into());
+
+        assert_eq!(
+            l.product(&num),
+            Ok(Object::ExtensionList(
+                vec![
+                    Object::Integer(0.into()),
+                    Object::Integer(0.into()),
+                    Object::Integer(0.into())
+                ]
+                .into()
+            ))
+        );
+        assert_eq!(l.product(&num), num.product(&l));
     }
 }
