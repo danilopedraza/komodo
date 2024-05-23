@@ -822,7 +822,24 @@ impl From<Vec<Object>> for ExtensionList {
     }
 }
 
-impl InfixOperable for ExtensionList {}
+impl InfixOperable for ExtensionList {
+    fn sum(&self, other: &Object) -> Result<Object, ()> {
+        match other {
+            Object::ExtensionList(ExtensionList { list: other_list }) => {
+                let list: Vec<Object> = self
+                    .list
+                    .iter()
+                    .chain(other_list)
+                    .map(|obj| obj.to_owned())
+                    .collect();
+
+                Ok(Object::ExtensionList(list.into()))
+            }
+            _ => Err(()),
+        }
+    }
+}
+
 impl PrefixOperable for ExtensionList {}
 
 impl fmt::Display for ExtensionList {
@@ -888,5 +905,18 @@ mod tests {
             Ok(Object::String("humongous humongous ".into()))
         );
         assert_eq!(str.product(&num), num.product(&str));
+    }
+
+    #[test]
+    fn concat_lists() {
+        let l1 = Object::ExtensionList(vec![Object::String("hola".into())].into());
+        let l2 = Object::ExtensionList(vec![Object::Integer(1.into())].into());
+
+        assert_eq!(
+            l1.sum(&l2),
+            Ok(Object::ExtensionList(
+                vec![Object::String("hola".into()), Object::Integer(1.into())].into()
+            ))
+        );
     }
 }
