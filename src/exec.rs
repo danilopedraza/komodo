@@ -51,7 +51,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType::Integer(str) => integer(str),
         ASTNodeType::Function(params, proc) => function(params, proc),
         ASTNodeType::Infix(op, lhs, rhs) => {
-            infix(*op, exec(lhs, env)?, exec(rhs, env)?, node.position)
+            infix(*op, &exec(lhs, env)?, &exec(rhs, env)?, node.position)
         }
         ASTNodeType::Let(ident, params, value) if params.is_empty() => let_(ident, value, env),
         ASTNodeType::Let(ident, args, value) => let_function(ident, args, value, env),
@@ -288,8 +288,8 @@ fn call(
 
 fn infix(
     op: InfixOperator,
-    lhs: Object,
-    rhs: Object,
+    lhs: &Object,
+    rhs: &Object,
     infix_pos: Position,
 ) -> Result<Object, Error> {
     let lhs_kind = lhs.kind();

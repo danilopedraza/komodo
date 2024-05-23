@@ -10,7 +10,7 @@ use crate::{
 
 macro_rules! default_infix_method {
     ($ident:ident) => {
-        fn $ident(&self, _other: Object) -> Result<Object, ()> {
+        fn $ident(&self, _other: &Object) -> Result<Object, ()> {
             Err(())
         }
     };
@@ -131,7 +131,7 @@ impl Kind for Object {
 
 macro_rules! derived_object_infix_trait {
     ($ident:ident) => {
-        pub fn $ident(&self, other: Object) -> Result<Object, ()> {
+        pub fn $ident(&self, other: &Object) -> Result<Object, ()> {
             match self {
                 Self::Boolean(left) => left.$ident(other),
                 Self::Char(left) => left.$ident(other),
@@ -233,14 +233,14 @@ impl fmt::Display for Bool {
 }
 
 impl InfixOperable for Bool {
-    fn logic_and(&self, other: Object) -> Result<Object, ()> {
+    fn logic_and(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Boolean(boolean) => Ok(Object::Boolean(Bool::from(self.val && boolean.val))),
             _ => Err(()),
         }
     }
 
-    fn or(&self, other: Object) -> Result<Object, ()> {
+    fn or(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Boolean(boolean) => Ok(Object::Boolean(Bool::from(self.val || boolean.val))),
             _ => Err(()),
@@ -328,14 +328,14 @@ impl From<(ASTNode, ASTNode)> for ComprehensionSet {
 impl PrefixOperable for ComprehensionSet {}
 
 impl InfixOperable for ComprehensionSet {
-    fn contains(&self, other: Object) -> Result<Object, ()> {
+    fn contains(&self, other: &Object) -> Result<Object, ()> {
         let symbol = match &self.value._type {
             ASTNodeType::Symbol(s) => s,
             _ => unimplemented!(),
         };
 
         let mut env = Environment::default();
-        env.set(symbol, other);
+        env.set(symbol, other.to_owned());
 
         Ok(exec(&self.prop, &mut env).unwrap())
     }
@@ -373,121 +373,121 @@ impl From<&str> for Integer {
 }
 
 impl InfixOperable for Integer {
-    fn bitwise_and(&self, other: Object) -> Result<Object, ()> {
+    fn bitwise_and(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val & val))),
             _ => Err(()),
         }
     }
 
-    fn or(&self, other: Object) -> Result<Object, ()> {
+    fn or(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val | val))),
             _ => Err(()),
         }
     }
 
-    fn bitwise_xor(&self, other: Object) -> Result<Object, ()> {
+    fn bitwise_xor(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val ^ val))),
             _ => Err(()),
         }
     }
 
-    fn greater(&self, other: Object) -> Result<Object, ()> {
+    fn greater(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val > val))),
+            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val > *val))),
             _ => Err(()),
         }
     }
 
-    fn equality(&self, other: Object) -> Result<Object, ()> {
+    fn equality(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val == val))),
+            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val == *val))),
             _ => Err(()),
         }
     }
 
-    fn greater_equal(&self, other: Object) -> Result<Object, ()> {
+    fn greater_equal(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val >= val))),
+            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val >= *val))),
             _ => Err(()),
         }
     }
 
-    fn left_shift(&self, other: Object) -> Result<Object, ()> {
+    fn left_shift(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val << val))),
             _ => Err(()),
         }
     }
 
-    fn less(&self, other: Object) -> Result<Object, ()> {
+    fn less(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val < val))),
+            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val < *val))),
             _ => Err(()),
         }
     }
 
-    fn less_equal(&self, other: Object) -> Result<Object, ()> {
+    fn less_equal(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val <= val))),
+            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val <= *val))),
             _ => Err(()),
         }
     }
 
-    fn modulo(&self, other: Object) -> Result<Object, ()> {
+    fn modulo(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val % val))),
             _ => Err(()),
         }
     }
 
-    fn neq(&self, other: Object) -> Result<Object, ()> {
+    fn neq(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val != val))),
+            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val != *val))),
             _ => Ok(Object::Boolean(Bool::from(true))),
         }
     }
 
-    fn over(&self, other: Object) -> Result<Object, ()> {
+    fn over(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val / val))),
             _ => Err(()),
         }
     }
 
-    fn pow(&self, other: Object) -> Result<Object, ()> {
+    fn pow(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(
-                self.val.pow(val.try_into().unwrap()),
+                self.val.pow((*val).try_into().unwrap()),
             ))),
             _ => Err(()),
         }
     }
 
-    fn right_shift(&self, other: Object) -> Result<Object, ()> {
+    fn right_shift(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val >> val))),
             _ => Err(()),
         }
     }
 
-    fn sum(&self, other: Object) -> Result<Object, ()> {
+    fn sum(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val + val))),
             _ => Err(()),
         }
     }
 
-    fn substraction(&self, other: Object) -> Result<Object, ()> {
+    fn substraction(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val - val))),
             _ => Err(()),
         }
     }
 
-    fn product(&self, other: Object) -> Result<Object, ()> {
+    fn product(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val * val))),
             _ => Err(()),
@@ -511,12 +511,12 @@ pub struct MyString {
 }
 
 impl InfixOperable for MyString {
-    fn sum(&self, other: Object) -> Result<Object, ()> {
+    fn sum(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::String(MyString { val: other_string }) => {
                 let mut val = String::new();
                 val.push_str(&self.val);
-                val.push_str(&other_string);
+                val.push_str(other_string);
                 Ok(Object::String(MyString { val }))
             }
             _ => Err(()),
@@ -558,7 +558,7 @@ impl fmt::Display for Symbol {
 }
 
 impl InfixOperable for Symbol {
-    fn equality(&self, other: Object) -> Result<Object, ()> {
+    fn equality(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Symbol(symbol) => Ok(Object::Boolean(Bool::from(self.val == symbol.val))),
             _ => Err(()),
@@ -788,6 +788,9 @@ mod tests {
         let str1 = Object::String(MyString::from("foo"));
         let str2 = Object::String(MyString::from("bar"));
 
-        assert_eq!(str1.sum(str2), Ok(Object::String(MyString::from("foobar"))));
+        assert_eq!(
+            str1.sum(&str2),
+            Ok(Object::String(MyString::from("foobar")))
+        );
     }
 }
