@@ -1,4 +1,4 @@
-use std::{fmt, iter::zip, vec};
+use std::{collections::HashSet, fmt, iter::zip, vec};
 
 use crate::{
     ast::{ASTNode, ASTNodeType},
@@ -315,9 +315,10 @@ impl From<char> for Char {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub struct ExtensionSet {
     list: Vec<Object>,
+    _set: HashSet<Object>,
 }
 
 impl ExtensionSet {
@@ -326,12 +327,20 @@ impl ExtensionSet {
     }
 }
 
+impl PartialEq for ExtensionSet {
+    fn eq(&self, other: &Self) -> bool {
+        self.list == other.list
+    }
+}
+impl Eq for ExtensionSet {}
+
 impl InfixOperable for ExtensionSet {}
 impl PrefixOperable for ExtensionSet {}
 
 impl From<Vec<Object>> for ExtensionSet {
     fn from(list: Vec<Object>) -> Self {
-        Self { list }
+        let _set = HashSet::new();
+        Self { list, _set }
     }
 }
 
