@@ -348,8 +348,8 @@ impl From<Vec<Object>> for ExtensionSet {
     fn from(list: Vec<Object>) -> Self {
         let mut _set = HashSet::new();
 
-        for obj in &list {
-            _set.insert(obj.clone());
+        for obj in list {
+            _set.insert(obj);
         }
 
         Self { set: _set }
