@@ -229,7 +229,7 @@ fn for_(
     let obj = exec(iterable, env)?;
 
     let iter: Vec<&Object> = match &obj {
-        Object::ExtensionSet(set) => Ok(set._set.iter().collect()),
+        Object::ExtensionSet(set) => Ok(set.set.iter().collect()),
         Object::ExtensionList(list) => Ok(list.list.iter().collect()),
         obj => Err(Error(
             EvalError::NonIterableObject(obj.kind()).into(),

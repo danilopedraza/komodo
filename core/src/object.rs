@@ -323,13 +323,12 @@ impl From<char> for Char {
 
 #[derive(Clone, Debug)]
 pub struct ExtensionSet {
-    // list: Vec<Object>,
-    pub _set: HashSet<Object>,
+    pub set: HashSet<Object>,
 }
 
 impl Hash for ExtensionSet {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        for obj in &self._set {
+        for obj in &self.set {
             obj.hash(state);
         }
     }
@@ -337,7 +336,7 @@ impl Hash for ExtensionSet {
 
 impl PartialEq for ExtensionSet {
     fn eq(&self, other: &Self) -> bool {
-        self._set == other._set
+        self.set == other.set
     }
 }
 impl Eq for ExtensionSet {}
@@ -353,14 +352,14 @@ impl From<Vec<Object>> for ExtensionSet {
             _set.insert(obj.clone());
         }
 
-        Self { _set }
+        Self { set: _set }
     }
 }
 
 impl fmt::Display for ExtensionSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let list = self
-            ._set
+            .set
             .iter()
             .map(|obj| obj.to_string())
             .collect::<Vec<_>>()
