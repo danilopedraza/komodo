@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use crate::{error::Position, lexer::TokenType};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -19,7 +21,7 @@ pub enum Precedence {
     Highest,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum InfixOperator {
     BitwiseAnd,
     BitwiseXor,
@@ -130,7 +132,7 @@ impl InfixOperator {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PrefixOperator {
     BitwiseNot,
     LogicNot,
@@ -169,7 +171,13 @@ impl ASTNode {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+impl Hash for ASTNode {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self._type.hash(state);
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ASTNodeType {
     Boolean(bool),
     Call(Box<ASTNode>, Vec<ASTNode>),

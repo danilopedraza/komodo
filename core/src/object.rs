@@ -1,4 +1,10 @@
-use std::{collections::HashSet, fmt, iter::zip, vec};
+use std::{
+    collections::HashSet,
+    fmt,
+    hash::{Hash, Hasher},
+    iter::zip,
+    vec,
+};
 
 use crate::{
     ast::{ASTNode, ASTNodeType},
@@ -70,7 +76,7 @@ macro_rules! default_prefix_methods {
 
 default_prefix_methods!(bitwise_not, logic_not, inverse);
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Object {
     Boolean(Bool),
     Char(Char),
@@ -213,7 +219,7 @@ macro_rules! derived_object_prefix_traits {
 
 derived_object_prefix_traits!(bitwise_not, logic_not, inverse);
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Bool {
     val: bool,
 }
@@ -260,7 +266,7 @@ impl From<bool> for Bool {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Char {
     val: char,
 }
@@ -317,19 +323,21 @@ impl From<char> for Char {
 
 #[derive(Clone, Debug)]
 pub struct ExtensionSet {
-    list: Vec<Object>,
-    _set: HashSet<Object>,
+    // list: Vec<Object>,
+    pub _set: HashSet<Object>,
 }
 
-impl ExtensionSet {
-    pub fn list(&self) -> &[Object] {
-        &self.list
+impl Hash for ExtensionSet {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for obj in &self._set {
+            obj.hash(state);
+        }
     }
 }
 
 impl PartialEq for ExtensionSet {
     fn eq(&self, other: &Self) -> bool {
-        self.list == other.list
+        self._set == other._set
     }
 }
 impl Eq for ExtensionSet {}
@@ -339,15 +347,20 @@ impl PrefixOperable for ExtensionSet {}
 
 impl From<Vec<Object>> for ExtensionSet {
     fn from(list: Vec<Object>) -> Self {
-        let _set = HashSet::new();
-        Self { list, _set }
+        let mut _set = HashSet::new();
+
+        for obj in &list {
+            _set.insert(obj.clone());
+        }
+
+        Self { _set }
     }
 }
 
 impl fmt::Display for ExtensionSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let list = self
-            .list
+            ._set
             .iter()
             .map(|obj| obj.to_string())
             .collect::<Vec<_>>()
@@ -361,6 +374,13 @@ impl fmt::Display for ExtensionSet {
 pub struct ComprehensionSet {
     value: ASTNode,
     prop: ASTNode,
+}
+
+impl Hash for ComprehensionSet {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.value._type.hash(state);
+        self.prop._type.hash(state);
+    }
 }
 
 impl From<(ASTNode, ASTNode)> for ComprehensionSet {
@@ -391,7 +411,7 @@ impl fmt::Display for ComprehensionSet {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Integer {
     val: i64,
 }
@@ -552,7 +572,7 @@ impl PrefixOperable for Integer {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct MyString {
     val: String,
 }
@@ -608,7 +628,7 @@ impl From<&str> for MyString {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Symbol {
     val: String,
 }
@@ -636,7 +656,7 @@ impl InfixOperable for Symbol {
 
 impl PrefixOperable for Symbol {}
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Tuple {
     list: Vec<Object>,
 }
@@ -663,7 +683,7 @@ impl From<Vec<Object>> for Tuple {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Function {
     DefinedFunction(DefinedFunction),
     Effect(Effect),
@@ -702,6 +722,18 @@ pub struct DefinedFunction {
     patterns: Vec<(Vec<ASTNode>, ASTNode)>,
     params: Vec<String>,
     proc: Vec<ASTNode>,
+}
+
+impl Hash for DefinedFunction {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for (rule, res) in &self.patterns {
+            for member in rule {
+                member._type.hash(state);
+            }
+
+            res._type.hash(state);
+        }
+    }
 }
 
 impl InfixOperable for DefinedFunction {}
@@ -787,7 +819,7 @@ impl Callable for DefinedFunction {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Effect {
     func: fn(&[Object]) -> Object,
     param_number: usize,
@@ -815,7 +847,7 @@ impl Callable for Effect {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct ExtensionList {
     pub list: Vec<Object>,
 }

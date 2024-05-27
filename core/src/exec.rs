@@ -228,8 +228,9 @@ fn for_(
 ) -> Result<Object, Error> {
     let obj = exec(iterable, env)?;
 
-    let iter = match &obj {
-        Object::ExtensionSet(set) => Ok(set.list()),
+    let iter: Vec<&Object> = match &obj {
+        Object::ExtensionSet(set) => Ok(set._set.iter().collect()),
+        Object::ExtensionList(list) => Ok(list.list.iter().collect()),
         obj => Err(Error(
             EvalError::NonIterableObject(obj.kind()).into(),
             iterable.position,
@@ -862,7 +863,7 @@ mod tests {
 
         let node = &_for(
             "val",
-            _extension_set(
+            _extension_list(
                 vec![
                     _integer("1", _dummy_pos()),
                     _integer("2", _dummy_pos()),
