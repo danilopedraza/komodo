@@ -346,7 +346,12 @@ impl Decimal {
     }
 }
 
-impl PrefixOperable for Decimal {}
+impl PrefixOperable for Decimal {
+    fn inverse(&self) -> Result<Object, ()> {
+        Ok(Object::Decimal(Decimal::from(-&self.val)))
+    }
+}
+
 impl InfixOperable for Decimal {}
 
 impl fmt::Display for Decimal {
