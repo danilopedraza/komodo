@@ -6,6 +6,8 @@ use std::{
     vec,
 };
 
+use num_bigint::BigInt;
+
 use crate::{
     ast::{ASTNode, ASTNodeType},
     env::Environment,
@@ -273,7 +275,7 @@ pub struct Char {
 
 impl Char {
     fn multiply(&self, num: &Integer) -> Object {
-        let times = num.val as usize;
+        let times = num.to_machine_magnitude();
         let val = self.val.to_string().repeat(times);
         Object::String(MyString { val })
     }
@@ -430,7 +432,20 @@ impl fmt::Display for ComprehensionSet {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Integer {
-    val: i64,
+    val: BigInt,
+}
+
+impl Integer {
+    fn to_machine_magnitude(&self) -> usize {
+        let max = std::usize::MAX;
+        if self.val < BigInt::from(0) {
+            0
+        } else if self.val < BigInt::from(max) {
+            self.val.iter_u64_digits().last().unwrap() as usize
+        } else {
+            max
+        }
+    }
 }
 
 impl fmt::Display for Integer {
@@ -439,8 +454,29 @@ impl fmt::Display for Integer {
     }
 }
 
+impl From<i32> for Integer {
+    fn from(value: i32) -> Self {
+        let val = BigInt::from(value);
+        Self { val }
+    }
+}
+
 impl From<i64> for Integer {
-    fn from(val: i64) -> Self {
+    fn from(value: i64) -> Self {
+        let val = BigInt::from(value);
+        Self { val }
+    }
+}
+
+impl From<usize> for Integer {
+    fn from(value: usize) -> Self {
+        let val = BigInt::from(value);
+        Self { val }
+    }
+}
+
+impl From<BigInt> for Integer {
+    fn from(val: BigInt) -> Self {
         Self { val }
     }
 }
@@ -456,21 +492,21 @@ impl From<&str> for Integer {
 impl InfixOperable for Integer {
     fn bitwise_and(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val & val))),
+            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val & val))),
             _ => Err(()),
         }
     }
 
     fn or(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val | val))),
+            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val | val))),
             _ => Err(()),
         }
     }
 
     fn bitwise_xor(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val ^ val))),
+            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val ^ val))),
             _ => Err(()),
         }
     }
@@ -498,7 +534,9 @@ impl InfixOperable for Integer {
 
     fn left_shift(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val << val))),
+            Object::Integer(int) => Ok(Object::Integer(Integer::from(
+                &self.val << int.to_machine_magnitude(),
+            ))),
             _ => Err(()),
         }
     }
@@ -519,7 +557,7 @@ impl InfixOperable for Integer {
 
     fn modulo(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val % val))),
+            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val % val))),
             _ => Err(()),
         }
     }
@@ -533,15 +571,15 @@ impl InfixOperable for Integer {
 
     fn over(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val / val))),
+            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val / val))),
             _ => Err(()),
         }
     }
 
     fn pow(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(
-                self.val.pow((*val).try_into().unwrap()),
+            Object::Integer(int) => Ok(Object::Integer(Integer::from(
+                self.val.pow(int.to_machine_magnitude() as u32),
             ))),
             _ => Err(()),
         }
@@ -549,28 +587,30 @@ impl InfixOperable for Integer {
 
     fn right_shift(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val >> val))),
+            Object::Integer(int) => Ok(Object::Integer(Integer::from(
+                &self.val >> int.to_machine_magnitude(),
+            ))),
             _ => Err(()),
         }
     }
 
     fn sum(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val + val))),
+            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val + val))),
             _ => Err(()),
         }
     }
 
     fn substraction(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val - val))),
+            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val - val))),
             _ => Err(()),
         }
     }
 
     fn product(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(self.val * val))),
+            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val * val))),
             Object::Char(chr) => Ok(chr.multiply(self)),
             Object::String(str) => Ok(str.multiply(self)),
             Object::ExtensionList(lst) => Ok(lst.multiply(self)),
@@ -581,11 +621,11 @@ impl InfixOperable for Integer {
 
 impl PrefixOperable for Integer {
     fn bitwise_not(&self) -> Result<Object, ()> {
-        Ok(Object::Integer(Integer::from(!self.val)))
+        Ok(Object::Integer(Integer::from(!&self.val)))
     }
 
     fn inverse(&self) -> Result<Object, ()> {
-        Ok(Object::Integer(Integer::from(-self.val)))
+        Ok(Object::Integer(Integer::from(-&self.val)))
     }
 }
 
@@ -596,7 +636,7 @@ pub struct MyString {
 
 impl MyString {
     fn multiply(&self, num: &Integer) -> Object {
-        let times = num.val as usize;
+        let times = num.to_machine_magnitude();
         let val = self.val.repeat(times);
         Object::String(MyString { val })
     }
@@ -871,7 +911,7 @@ pub struct ExtensionList {
 
 impl ExtensionList {
     fn multiply(&self, num: &Integer) -> Object {
-        let times = num.val;
+        let times = num.to_machine_magnitude();
         let mut list = vec![];
 
         for _ in 0..times {
