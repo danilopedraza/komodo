@@ -1,5 +1,3 @@
-use bigdecimal::BigDecimal;
-
 use crate::error::{Error, Position};
 use crate::object::{self, Callable, ComprehensionSet, Decimal, ExtensionList, Function, Kind};
 
@@ -76,13 +74,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
 }
 
 fn decimal(int: &str, dec: &str) -> Result<Object, Error> {
-    let mut all = String::new();
-    all.push_str(int);
-    all.push('.');
-    all.push_str(dec);
-    let bigdec: BigDecimal = all.parse().unwrap();
-
-    Ok(Object::Decimal(Decimal::from(bigdec)))
+    Ok(Object::Decimal(Decimal::new(int, dec)))
 }
 
 fn prepend(first: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
