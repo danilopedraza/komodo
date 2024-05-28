@@ -352,7 +352,14 @@ impl PrefixOperable for Decimal {
     }
 }
 
-impl InfixOperable for Decimal {}
+impl InfixOperable for Decimal {
+    fn sum(&self, other: &Object) -> Result<Object, ()> {
+        match other {
+            Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val + val))),
+            _ => Err(()),
+        }
+    }
+}
 
 impl fmt::Display for Decimal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
