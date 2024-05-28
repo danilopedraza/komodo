@@ -312,3 +312,10 @@ pub fn _function(params: Vec<&str>, proc: Vec<ASTNode>, position: Position) -> A
 pub fn _call(called: ASTNode, args: Vec<ASTNode>, position: Position) -> ASTNode {
     ASTNode::new(ASTNodeType::Call(Box::new(called), args), position)
 }
+
+pub fn _decimal(int: &str, dec: &str, position: Position) -> ASTNode {
+    ASTNode::new(
+        ASTNodeType::Decimal(int.to_string(), dec.to_string()),
+        position,
+    )
+}

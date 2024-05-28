@@ -6,6 +6,7 @@ use std::{
     vec,
 };
 
+use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 
 use crate::{
@@ -82,6 +83,7 @@ default_prefix_methods!(bitwise_not, logic_not, inverse);
 pub enum Object {
     Boolean(Bool),
     Char(Char),
+    Decimal(Decimal),
     ExtensionList(ExtensionList),
     ExtensionSet(ExtensionSet),
     Function(Function),
@@ -104,6 +106,7 @@ impl fmt::Display for Object {
             Object::Boolean(boolean) => boolean.fmt(f),
             Object::Char(chr) => chr.fmt(f),
             Object::ComprehensionSet(set) => set.fmt(f),
+            Object::Decimal(dec) => dec.fmt(f),
             Object::ExtensionList(list) => list.fmt(f),
             Object::ExtensionSet(es) => es.fmt(f),
             Object::Function(func) => func.fmt(f),
@@ -125,6 +128,7 @@ impl Kind for Object {
             Object::Boolean(_) => "boolean",
             Object::Char(_) => "character",
             Object::ComprehensionSet(_) => "comprehension set",
+            Object::Decimal(_) => "decimal",
             Object::ExtensionList(_) => "extension list",
             Object::ExtensionSet(_) => "extension set",
             Object::Function(_) => "function",
@@ -144,6 +148,7 @@ macro_rules! derived_object_infix_trait {
                 Self::Boolean(left) => left.$ident(other),
                 Self::Char(left) => left.$ident(other),
                 Self::ComprehensionSet(left) => left.$ident(other),
+                Self::Decimal(left) => left.$ident(other),
                 Self::ExtensionList(left) => left.$ident(other),
                 Self::ExtensionSet(left) => left.$ident(other),
                 Self::Function(left) => left.$ident(other),
@@ -196,6 +201,7 @@ macro_rules! derived_object_prefix_trait {
                 Self::Boolean(left) => left.$ident(),
                 Self::Char(left) => left.$ident(),
                 Self::ComprehensionSet(left) => left.$ident(),
+                Self::Decimal(left) => left.$ident(),
                 Self::ExtensionList(left) => left.$ident(),
                 Self::ExtensionSet(left) => left.$ident(),
                 Self::Function(left) => left.$ident(),
@@ -320,6 +326,26 @@ impl fmt::Display for Char {
 impl From<char> for Char {
     fn from(val: char) -> Self {
         Char { val }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Decimal {
+    val: BigDecimal,
+}
+
+impl PrefixOperable for Decimal {}
+impl InfixOperable for Decimal {}
+
+impl fmt::Display for Decimal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.val.fmt(f)
+    }
+}
+
+impl From<BigDecimal> for Decimal {
+    fn from(val: BigDecimal) -> Self {
+        Self { val }
     }
 }
 

@@ -1,5 +1,7 @@
+use bigdecimal::BigDecimal;
+
 use crate::error::{Error, Position};
-use crate::object::{self, Callable, ComprehensionSet, ExtensionList, Function, Kind};
+use crate::object::{self, Callable, ComprehensionSet, Decimal, ExtensionList, Function, Kind};
 
 use crate::ast::{ASTNode, ASTNodeType, InfixOperator, PrefixOperator};
 use crate::env::Environment;
@@ -69,8 +71,18 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType::ComprehensionList(transform, prop) => comprehension_list(transform, prop, env),
         ASTNodeType::Wildcard => unimplemented!(),
         ASTNodeType::Prepend(first, most) => prepend(exec(first, env)?, most, env),
-        ASTNodeType::Decimal(_, _) => todo!(),
+        ASTNodeType::Decimal(int, dec) => decimal(int, dec),
     }
+}
+
+fn decimal(int: &str, dec: &str) -> Result<Object, Error> {
+    let mut all = String::new();
+    all.push_str(int);
+    all.push('.');
+    all.push_str(dec);
+    let bigdec: BigDecimal = all.parse().unwrap();
+
+    Ok(Object::Decimal(Decimal::from(bigdec)))
 }
 
 fn prepend(first: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
@@ -361,11 +373,13 @@ mod tests {
     use std::sync::Mutex;
     use std::vec;
 
+    use bigdecimal::BigDecimal;
+
     use super::*;
     use crate::ast::{
-        _boolean, _call, _comprehension_list, _comprehension_set, _dummy_pos, _extension_list,
-        _extension_set, _for, _function, _infix, _integer, _let_, _pos, _prefix, _prepend,
-        _signature, _symbol, _tuple,
+        _boolean, _call, _comprehension_list, _comprehension_set, _decimal, _dummy_pos,
+        _extension_list, _extension_set, _for, _function, _infix, _integer, _let_, _pos, _prefix,
+        _prepend, _signature, _symbol, _tuple,
     };
     use crate::error::ErrorType;
     use crate::object::*;
@@ -1060,6 +1074,17 @@ mod tests {
                 }),
                 _dummy_pos()
             ))
+        );
+    }
+
+    #[test]
+    fn decimal_number() {
+        let node = _decimal("1", "5", _dummy_pos());
+        let expected = Decimal::from(BigDecimal::from(3) / BigDecimal::from(2));
+
+        assert_eq!(
+            exec(&node, &mut Environment::default()),
+            Ok(Object::Decimal(expected)),
         );
     }
 }
