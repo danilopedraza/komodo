@@ -69,6 +69,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType::ComprehensionList(transform, prop) => comprehension_list(transform, prop, env),
         ASTNodeType::Wildcard => unimplemented!(),
         ASTNodeType::Prepend(first, most) => prepend(exec(first, env)?, most, env),
+        ASTNodeType::Decimal(_, _) => todo!(),
     }
 }
 

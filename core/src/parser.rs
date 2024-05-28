@@ -246,8 +246,27 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
     }
 
-    fn integer(&self, int: String) -> _NodeResult {
-        self.node_with_cur(ASTNodeType::Integer(int))
+    fn integer(&mut self, int: String) -> _NodeResult {
+        let start = self.cur_pos.start;
+        match self.peek_token() {
+            Ok(Some(TokenType::Dot)) => {
+                self.next_token()?;
+                match self.next_token()? {
+                    Some(TokenType::Integer(dec)) => Ok(ASTNode::new(
+                        ASTNodeType::Decimal(int, dec),
+                        self.start_to_cur(start),
+                    )),
+                    Some(tok) => {
+                        self.err_with_cur(ParserError::UnexpectedToken(vec![TokenType::Dot], tok))
+                    }
+                    None => Err(Error::new(
+                        ParserError::EOFExpecting(vec![TokenType::Dot]).into(),
+                        self.cur_pos,
+                    )),
+                }
+            }
+            _ => self.node_with_cur(ASTNodeType::Integer(int)),
+        }
     }
 
     fn parenthesis(&mut self) -> _NodeResult {
@@ -1351,6 +1370,20 @@ mod tests {
                 _extension_list(vec![], _pos(17, 2)),
                 _pos(0, 19),
             )))
+        );
+    }
+
+    #[test]
+    fn decimal() {
+        let input = "1.5";
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(ASTNode::new(
+                ASTNodeType::Decimal("1".into(), "5".into()),
+                _pos(0, 3),
+            ))),
         );
     }
 }

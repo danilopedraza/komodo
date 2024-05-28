@@ -184,6 +184,7 @@ pub enum ASTNodeType {
     Char(char),
     ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
     ComprehensionList(Box<ASTNode>, Box<ASTNode>),
+    Decimal(String, String),
     ExtensionList(Vec<ASTNode>),
     ExtensionSet(Vec<ASTNode>),
     For(String, Box<ASTNode>, Vec<ASTNode>),
