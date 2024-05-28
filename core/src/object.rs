@@ -326,6 +326,17 @@ pub struct ExtensionSet {
     pub set: HashSet<Object>,
 }
 
+impl ExtensionSet {
+    fn union(&self, other: &ExtensionSet) -> Object {
+        let set = self
+            .set
+            .union(&other.set)
+            .map(|val| val.to_owned())
+            .collect();
+        Object::ExtensionSet(ExtensionSet { set })
+    }
+}
+
 impl Hash for ExtensionSet {
     fn hash<H: Hasher>(&self, state: &mut H) {
         for obj in &self.set {
@@ -341,7 +352,14 @@ impl PartialEq for ExtensionSet {
 }
 impl Eq for ExtensionSet {}
 
-impl InfixOperable for ExtensionSet {}
+impl InfixOperable for ExtensionSet {
+    fn sum(&self, other: &Object) -> Result<Object, ()> {
+        match other {
+            Object::ExtensionSet(set) => Ok(self.union(set)),
+            _ => Err(()),
+        }
+    }
+}
 impl PrefixOperable for ExtensionSet {}
 
 impl From<Vec<Object>> for ExtensionSet {
@@ -998,5 +1016,25 @@ mod tests {
             ))
         );
         assert_eq!(l.product(&num), num.product(&l));
+    }
+
+    #[test]
+    fn sum_sets() {
+        let s1 =
+            Object::ExtensionSet(vec![Object::Integer(1.into()), Object::Integer(2.into())].into());
+        let s2 =
+            Object::ExtensionSet(vec![Object::Integer(2.into()), Object::Integer(3.into())].into());
+
+        assert_eq!(
+            s1.sum(&s2),
+            Ok(Object::ExtensionSet(
+                vec![
+                    Object::Integer(1.into()),
+                    Object::Integer(2.into()),
+                    Object::Integer(3.into()),
+                ]
+                .into()
+            )),
+        );
     }
 }
