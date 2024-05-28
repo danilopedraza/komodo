@@ -256,11 +256,12 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                         ASTNodeType::Decimal(int, dec),
                         self.start_to_cur(start),
                     )),
-                    Some(tok) => {
-                        self.err_with_cur(ParserError::UnexpectedToken(vec![TokenType::Dot], tok))
-                    }
+                    Some(tok) => self.err_with_cur(ParserError::UnexpectedToken(
+                        vec![TokenType::Integer("".into())],
+                        tok,
+                    )),
                     None => Err(Error::new(
-                        ParserError::EOFExpecting(vec![TokenType::Dot]).into(),
+                        ParserError::EOFExpecting(vec![TokenType::Integer("".into())]).into(),
                         self.cur_pos,
                     )),
                 }

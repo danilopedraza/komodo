@@ -356,6 +356,33 @@ impl InfixOperable for Decimal {
     fn sum(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val + val))),
+            Object::Integer(Integer { val }) => Ok(Object::Decimal(Decimal::from(&self.val + val))),
+            _ => Err(()),
+        }
+    }
+
+    fn substraction(&self, other: &Object) -> Result<Object, ()> {
+        match other {
+            Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val - val))),
+            Object::Integer(Integer { val }) => Ok(Object::Decimal(Decimal::from(&self.val - val))),
+            _ => Err(()),
+        }
+    }
+
+    fn product(&self, other: &Object) -> Result<Object, ()> {
+        match other {
+            Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val * val))),
+            Object::Integer(Integer { val }) => Ok(Object::Decimal(Decimal::from(&self.val * val))),
+            _ => Err(()),
+        }
+    }
+
+    fn over(&self, other: &Object) -> Result<Object, ()> {
+        match other {
+            Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val / val))),
+            Object::Integer(Integer { val }) => Ok(Object::Decimal(Decimal::from(
+                &self.val / BigDecimal::new(val.clone(), 0),
+            ))),
             _ => Err(()),
         }
     }
@@ -622,6 +649,9 @@ impl InfixOperable for Integer {
     fn over(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val / val))),
+            Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(
+                BigDecimal::new(self.val.clone(), 0) / val,
+            ))),
             _ => Err(()),
         }
     }
@@ -647,6 +677,7 @@ impl InfixOperable for Integer {
     fn sum(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val + val))),
+            Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val + val))),
             _ => Err(()),
         }
     }
@@ -654,6 +685,9 @@ impl InfixOperable for Integer {
     fn substraction(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val - val))),
+            Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(
+                self.val.to_owned() - val.to_owned(),
+            ))),
             _ => Err(()),
         }
     }
@@ -661,6 +695,7 @@ impl InfixOperable for Integer {
     fn product(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val * val))),
+            Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val * val))),
             Object::Char(chr) => Ok(chr.multiply(self)),
             Object::String(str) => Ok(str.multiply(self)),
             Object::ExtensionList(lst) => Ok(lst.multiply(self)),
