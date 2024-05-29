@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Symstatic Playground</title>
+<link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+<main>
+  <nav>
+    <h1 id="main-title">Symstatic Playground</h1>
+  </nav>
+  <div id="content" class="full-height">
+    <div id="editor" class="full-width rounded-corners">println("Hello, World!")</div>
+    <div id="sep"></div>
+    <div id="results" class="full-height full-width rounded-corners"></div>
+  </div>
+</main>
+
+
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.34.2/ace.min.js"
+  integrity="sha512-ddz/gyFFWirjreRd2nDldR57vPGea3K/eU+v6bK+Dg+jcOZCn4v4IGiqJQgGNdBVW1MgVTNyeVoZe2f3PDxcpA=="
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+></script>
+
+<script>
+  var editor = ace.edit("editor");
+  editor.setTheme("ace/theme/monokai");
+  editor.session.setMode("ace/mode/javascript");
+</script>
+
+</body>
+</html>
