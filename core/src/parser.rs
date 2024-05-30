@@ -1386,4 +1386,30 @@ mod tests {
             ))),
         );
     }
+
+    #[test]
+    fn range() {
+        let input = "5 in 0..10+1";
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(_infix(
+                InfixOperator::In,
+                _integer("5", _pos(0, 1)),
+                _infix(
+                    InfixOperator::Range,
+                    _integer("0", _pos(5, 1)),
+                    _infix(
+                        InfixOperator::Sum,
+                        _integer("10", _pos(8, 2)),
+                        _integer("1", _pos(11, 1)),
+                        _pos(8, 4)
+                    ),
+                    _pos(5, 7)
+                ),
+                _pos(0, 12)
+            )))
+        );
+    }
 }

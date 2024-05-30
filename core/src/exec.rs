@@ -324,6 +324,7 @@ fn infix(
         InfixOperator::Substraction => lhs.substraction(rhs),
         InfixOperator::Sum => lhs.sum(rhs),
         InfixOperator::Dot => unimplemented!(),
+        InfixOperator::Range => todo!(),
     };
 
     match res {
