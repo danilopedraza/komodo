@@ -1,6 +1,6 @@
 use crate::error::{Error, Position};
 use crate::object::{
-    self, Callable, ComprehensionSet, Decimal, ExtensionList, Function, Kind, Range,
+    self, Callable, ComprehensionSet, Decimal, ExtensionList, Fraction, Function, Kind, Range,
 };
 
 use crate::ast::{ASTNode, ASTNodeType, InfixOperator, PrefixOperator};
@@ -303,6 +303,15 @@ fn range(start: &Object, end: &Object) -> Result<Object, ()> {
     }
 }
 
+fn fraction(numer: &Object, denom: &Object) -> Result<Object, ()> {
+    match (numer, denom) {
+        (Object::Integer(numer), Object::Integer(denom)) => {
+            Ok(Object::Fraction(Fraction::new(numer, denom)))
+        }
+        _ => Err(()),
+    }
+}
+
 fn infix(
     op: InfixOperator,
     lhs: &Object,
@@ -336,7 +345,7 @@ fn infix(
         InfixOperator::Sum => lhs.sum(rhs),
         InfixOperator::Dot => unimplemented!(),
         InfixOperator::Range => range(lhs, rhs),
-        InfixOperator::Fraction => todo!(),
+        InfixOperator::Fraction => fraction(lhs, rhs),
     };
 
     match res {
@@ -383,8 +392,8 @@ mod tests {
     use super::*;
     use crate::ast::{
         _boolean, _call, _comprehension_list, _comprehension_set, _decimal, _dummy_pos,
-        _extension_list, _extension_set, _for, _function, _infix, _integer, _let_, _pos, _prefix,
-        _prepend, _range, _signature, _symbol, _tuple,
+        _extension_list, _extension_set, _for, _fraction, _function, _infix, _integer, _let_, _pos,
+        _prefix, _prepend, _range, _signature, _symbol, _tuple,
     };
     use crate::error::ErrorType;
     use crate::object::*;
@@ -1104,6 +1113,20 @@ mod tests {
         assert_eq!(
             exec(&node, &mut Environment::default()),
             Ok(Object::Range(Range::_new(1, 3))),
+        );
+    }
+
+    #[test]
+    fn fraction() {
+        let node = _fraction(
+            _integer("1", _dummy_pos()),
+            _integer("2", _dummy_pos()),
+            _dummy_pos(),
+        );
+
+        assert_eq!(
+            exec(&node, &mut Environment::default()),
+            Ok(Object::Fraction(Fraction::_new(1, 2))),
         );
     }
 }

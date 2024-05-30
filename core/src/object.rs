@@ -8,6 +8,7 @@ use std::{
 
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
+use num_rational::BigRational;
 
 use crate::{
     ast::{ASTNode, ASTNodeType},
@@ -86,6 +87,7 @@ pub enum Object {
     Decimal(Decimal),
     ExtensionList(ExtensionList),
     ExtensionSet(ExtensionSet),
+    Fraction(Fraction),
     Function(Function),
     ComprehensionSet(ComprehensionSet),
     Integer(Integer),
@@ -110,6 +112,7 @@ impl fmt::Display for Object {
             Object::Decimal(dec) => dec.fmt(f),
             Object::ExtensionList(list) => list.fmt(f),
             Object::ExtensionSet(es) => es.fmt(f),
+            Object::Fraction(frac) => frac.fmt(f),
             Object::Function(func) => func.fmt(f),
             Object::Integer(int) => int.fmt(f),
             Object::Range(range) => range.fmt(f),
@@ -133,6 +136,7 @@ impl Kind for Object {
             Object::Decimal(_) => "decimal",
             Object::ExtensionList(_) => "extension list",
             Object::ExtensionSet(_) => "extension set",
+            Object::Fraction(_) => "fraction",
             Object::Function(_) => "function",
             Object::Integer(_) => "integer",
             Object::Range(_) => "range",
@@ -154,6 +158,7 @@ macro_rules! derived_object_infix_trait {
                 Self::Decimal(left) => left.$ident(other),
                 Self::ExtensionList(left) => left.$ident(other),
                 Self::ExtensionSet(left) => left.$ident(other),
+                Self::Fraction(left) => left.$ident(other),
                 Self::Function(left) => left.$ident(other),
                 Self::Integer(left) => left.$ident(other),
                 Self::Range(left) => left.$ident(other),
@@ -208,6 +213,7 @@ macro_rules! derived_object_prefix_trait {
                 Self::Decimal(left) => left.$ident(),
                 Self::ExtensionList(left) => left.$ident(),
                 Self::ExtensionSet(left) => left.$ident(),
+                Self::Fraction(left) => left.$ident(),
                 Self::Function(left) => left.$ident(),
                 Self::Integer(left) => left.$ident(),
                 Self::Range(left) => left.$ident(),
@@ -1061,6 +1067,36 @@ impl fmt::Display for ExtensionList {
             .join(", ");
 
         write!(f, "[{}]", list)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Fraction {
+    val: BigRational,
+}
+
+impl Fraction {
+    pub fn _new(numer: i32, denom: i32) -> Self {
+        let val = BigRational::new(numer.into(), denom.into());
+
+        Self { val }
+    }
+
+    pub fn new(numer: &Integer, denom: &Integer) -> Self {
+        let val = BigRational::new(numer.val.to_owned(), denom.val.to_owned());
+
+        Self { val }
+    }
+}
+
+impl InfixOperable for Fraction {}
+impl PrefixOperable for Fraction {}
+
+impl fmt::Display for Fraction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.val.numer().fmt(f)?;
+        write!(f, " // ")?;
+        self.val.denom().fmt(f)
     }
 }
 
