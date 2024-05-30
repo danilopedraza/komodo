@@ -1412,4 +1412,20 @@ mod tests {
             )))
         );
     }
+
+    #[test]
+    fn fraction() {
+        let input = "1 // 2";
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(_infix(
+                InfixOperator::Fraction,
+                _integer("1", _pos(0, 1)),
+                _integer("2", _pos(5, 1)),
+                _pos(0, 6)
+            )))
+        );
+    }
 }

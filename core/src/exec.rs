@@ -336,6 +336,7 @@ fn infix(
         InfixOperator::Sum => lhs.sum(rhs),
         InfixOperator::Dot => unimplemented!(),
         InfixOperator::Range => range(lhs, rhs),
+        InfixOperator::Fraction => todo!(),
     };
 
     match res {
