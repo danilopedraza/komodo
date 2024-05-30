@@ -6,7 +6,7 @@ use std::{
     vec,
 };
 
-use bigdecimal::BigDecimal;
+use bigdecimal::{num_traits::Pow, BigDecimal};
 use num_bigint::BigInt;
 use num_rational::BigRational;
 
@@ -670,7 +670,7 @@ impl InfixOperable for Integer {
     fn pow(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Integer(int) => Ok(Object::Integer(Integer::from(
-                self.val.pow(int.to_machine_magnitude() as u32),
+                self.val.to_owned().pow(int.to_machine_magnitude() as u32),
             ))),
             _ => Err(()),
         }
@@ -1089,7 +1089,53 @@ impl Fraction {
     }
 }
 
-impl InfixOperable for Fraction {}
+impl InfixOperable for Fraction {
+    fn sum(&self, other: &Object) -> Result<Object, ()> {
+        match other {
+            Object::Fraction(Fraction { val }) => Ok(Object::Fraction(Fraction {
+                val: &self.val + val,
+            })),
+            _ => Err(()),
+        }
+    }
+
+    fn substraction(&self, other: &Object) -> Result<Object, ()> {
+        match other {
+            Object::Fraction(Fraction { val }) => Ok(Object::Fraction(Fraction {
+                val: &self.val - val,
+            })),
+            _ => Err(()),
+        }
+    }
+
+    fn product(&self, other: &Object) -> Result<Object, ()> {
+        match other {
+            Object::Fraction(Fraction { val }) => Ok(Object::Fraction(Fraction {
+                val: &self.val * val,
+            })),
+            _ => Err(()),
+        }
+    }
+
+    fn over(&self, other: &Object) -> Result<Object, ()> {
+        match other {
+            Object::Fraction(Fraction { val }) => Ok(Object::Fraction(Fraction {
+                val: &self.val / val,
+            })),
+            _ => Err(()),
+        }
+    }
+
+    fn pow(&self, other: &Object) -> Result<Object, ()> {
+        match other {
+            Object::Integer(Integer { val }) => Ok(Object::Fraction(Fraction {
+                val: Pow::pow(self.val.to_owned(), val),
+            })),
+            _ => Err(()),
+        }
+    }
+}
+
 impl PrefixOperable for Fraction {
     fn inverse(&self) -> Result<Object, ()> {
         let val = -self.val.to_owned();
