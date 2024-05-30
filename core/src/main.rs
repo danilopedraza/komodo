@@ -1,22 +1,9 @@
-mod ast;
-mod builtin;
-mod env;
-mod error;
-mod exec;
-mod lexer;
-mod matcher;
-mod object;
-mod parser;
-mod repl;
-mod run;
-mod weeder;
-
 use std::fs;
 
-use error::error_msg;
-use exec::exec;
-use repl::{repl, Cli};
 use rustyline::DefaultEditor;
+use symstatic::error::error_msg;
+use symstatic::repl::{repl, Cli};
+use symstatic::run::run;
 
 struct MyCLI {
     rl: DefaultEditor,
@@ -46,7 +33,7 @@ fn main() {
         .unwrap();
     } else {
         let input = fs::read_to_string(&args[1]).unwrap();
-        let res = run::run(&input);
+        let res = run(&input);
         if let Err(err) = res {
             error_msg(&err).emit(&args[1], &input);
         }

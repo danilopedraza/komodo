@@ -3,7 +3,7 @@ use std::iter::zip;
 use crate::{
     ast::{ASTNode, ASTNodeType},
     env::Environment,
-    exec,
+    exec::exec,
     object::{ExtensionList, Object},
 };
 
