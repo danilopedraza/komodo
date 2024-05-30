@@ -1,5 +1,7 @@
 use crate::error::{Error, Position};
-use crate::object::{self, Callable, ComprehensionSet, Decimal, ExtensionList, Function, Kind};
+use crate::object::{
+    self, Callable, ComprehensionSet, Decimal, ExtensionList, Function, Kind, Range,
+};
 
 use crate::ast::{ASTNode, ASTNodeType, InfixOperator, PrefixOperator};
 use crate::env::Environment;
@@ -292,6 +294,15 @@ fn call(
     }
 }
 
+fn range(start: &Object, end: &Object) -> Result<Object, ()> {
+    match (start, end) {
+        (Object::Integer(start), Object::Integer(end)) => {
+            Ok(Object::Range(Range::new(start.clone(), end.clone())))
+        }
+        _ => Err(()),
+    }
+}
+
 fn infix(
     op: InfixOperator,
     lhs: &Object,
@@ -324,7 +335,7 @@ fn infix(
         InfixOperator::Substraction => lhs.substraction(rhs),
         InfixOperator::Sum => lhs.sum(rhs),
         InfixOperator::Dot => unimplemented!(),
-        InfixOperator::Range => todo!(),
+        InfixOperator::Range => range(lhs, rhs),
     };
 
     match res {
@@ -372,7 +383,7 @@ mod tests {
     use crate::ast::{
         _boolean, _call, _comprehension_list, _comprehension_set, _decimal, _dummy_pos,
         _extension_list, _extension_set, _for, _function, _infix, _integer, _let_, _pos, _prefix,
-        _prepend, _signature, _symbol, _tuple,
+        _prepend, _range, _signature, _symbol, _tuple,
     };
     use crate::error::ErrorType;
     use crate::object::*;
@@ -1078,6 +1089,20 @@ mod tests {
         assert_eq!(
             exec(&node, &mut Environment::default()),
             Ok(Object::Decimal(expected)),
+        );
+    }
+
+    #[test]
+    fn range() {
+        let node = _range(
+            _integer("1", _dummy_pos()),
+            _integer("3", _dummy_pos()),
+            _dummy_pos(),
+        );
+
+        assert_eq!(
+            exec(&node, &mut Environment::default()),
+            Ok(Object::Range(Range::_new(1, 3))),
         );
     }
 }

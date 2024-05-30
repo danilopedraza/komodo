@@ -89,6 +89,7 @@ pub enum Object {
     Function(Function),
     ComprehensionSet(ComprehensionSet),
     Integer(Integer),
+    Range(Range),
     String(MyString),
     Symbol(Symbol),
     Tuple(Tuple),
@@ -111,6 +112,7 @@ impl fmt::Display for Object {
             Object::ExtensionSet(es) => es.fmt(f),
             Object::Function(func) => func.fmt(f),
             Object::Integer(int) => int.fmt(f),
+            Object::Range(range) => range.fmt(f),
             Object::String(str) => str.fmt(f),
             Object::Symbol(s) => s.fmt(f),
             Object::Tuple(s) => s.fmt(f),
@@ -133,6 +135,7 @@ impl Kind for Object {
             Object::ExtensionSet(_) => "extension set",
             Object::Function(_) => "function",
             Object::Integer(_) => "integer",
+            Object::Range(_) => "range",
             Object::String(_) => "string",
             Object::Symbol(_) => "symbol",
             Object::Tuple(_) => "tuple",
@@ -153,6 +156,7 @@ macro_rules! derived_object_infix_trait {
                 Self::ExtensionSet(left) => left.$ident(other),
                 Self::Function(left) => left.$ident(other),
                 Self::Integer(left) => left.$ident(other),
+                Self::Range(left) => left.$ident(other),
                 Self::String(left) => left.$ident(other),
                 Self::Symbol(left) => left.$ident(other),
                 Self::Tuple(left) => left.$ident(other),
@@ -206,6 +210,7 @@ macro_rules! derived_object_prefix_trait {
                 Self::ExtensionSet(left) => left.$ident(),
                 Self::Function(left) => left.$ident(),
                 Self::Integer(left) => left.$ident(),
+                Self::Range(left) => left.$ident(),
                 Self::String(left) => left.$ident(),
                 Self::Symbol(left) => left.$ident(),
                 Self::Tuple(left) => left.$ident(),
@@ -1056,6 +1061,36 @@ impl fmt::Display for ExtensionList {
             .join(", ");
 
         write!(f, "[{}]", list)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Range {
+    start: Integer,
+    end: Integer,
+}
+
+impl Range {
+    pub fn _new(start_int: i32, end_int: i32) -> Self {
+        let start: Integer = start_int.into();
+        let end: Integer = end_int.into();
+
+        Self { start, end }
+    }
+
+    pub fn new(start: Integer, end: Integer) -> Self {
+        Self { start, end }
+    }
+}
+
+impl PrefixOperable for Range {}
+impl InfixOperable for Range {}
+
+impl fmt::Display for Range {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.start.fmt(f)?;
+        write!(f, "..")?;
+        self.end.fmt(f)
     }
 }
 

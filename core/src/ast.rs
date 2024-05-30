@@ -324,3 +324,7 @@ pub fn _decimal(int: &str, dec: &str, position: Position) -> ASTNode {
         position,
     )
 }
+
+pub fn _range(start: ASTNode, end: ASTNode, position: Position) -> ASTNode {
+    _infix(InfixOperator::Range, start, end, position)
+}
