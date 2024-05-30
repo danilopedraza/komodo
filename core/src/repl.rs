@@ -330,11 +330,15 @@ mod tests {
         assert!(cli.lines_printed.is_empty());
     }
 
-    // #[test]
-    // fn language_error_contained() {
-    //     let mut cli = CliMock::_new(vec![Ok("let a :=".into()), Err(ReadlineError::Interrupted)]);
-    //     assert!(repl(&mut cli).is_ok());
-    // }
+    #[test]
+    fn continue_after_error() {
+        let mut cli = CliMock::_new(vec![Ok(")".into()), Err(ReadlineError::Interrupted)]);
+        repl(&mut cli);
+
+        let consumed_inputs = cli.input_index;
+
+        assert_eq!(consumed_inputs, 2);
+    }
 
     #[test]
     fn clear_autocomplete_after_error() {
