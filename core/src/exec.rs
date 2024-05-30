@@ -296,9 +296,7 @@ fn call(
 
 fn range(start: &Object, end: &Object) -> Result<Object, ()> {
     match (start, end) {
-        (Object::Integer(start), Object::Integer(end)) => {
-            Ok(Object::Range(Range::new(start.clone(), end.clone())))
-        }
+        (Object::Integer(start), Object::Integer(end)) => Ok(Object::Range(Range::new(start, end))),
         _ => Err(()),
     }
 }

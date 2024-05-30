@@ -1114,8 +1114,11 @@ impl Range {
         Self { start, end }
     }
 
-    pub fn new(start: Integer, end: Integer) -> Self {
-        Self { start, end }
+    pub fn new(start: &Integer, end: &Integer) -> Self {
+        Self {
+            start: start.to_owned(),
+            end: end.to_owned(),
+        }
     }
 }
 
