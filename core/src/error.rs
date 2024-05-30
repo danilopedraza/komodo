@@ -79,7 +79,7 @@ fn found_a(tok: &TokenType) -> String {
         TokenType::Colon => "a colon: `:`".into(),
         TokenType::Comma => "a comma: `,`".into(),
         TokenType::Dot => "a dot: `.`".into(),
-        TokenType::DotDot => "the range operator: `..`".into(),
+        TokenType::DotDot => "a range operator: `..`".into(),
         TokenType::Else => "the `else` keyword".into(),
         TokenType::Equals => "an equality operator: `=`".into(),
         TokenType::False => "a boolean: `false`".into(),
