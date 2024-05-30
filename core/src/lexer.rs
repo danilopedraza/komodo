@@ -33,6 +33,7 @@ pub enum TokenType {
     Colon,
     Comma,
     Dot,
+    DotDot,
     Else,
     Equals,
     False,
@@ -126,7 +127,7 @@ impl Lexer<'_> {
                 '!' => TokenType::Bang,
                 '^' => TokenType::BitwiseXor,
                 ',' => TokenType::Comma,
-                '.' => TokenType::Dot,
+                '.' => self.fork(TokenType::Dot, vec![('.', TokenType::DotDot)]),
                 '=' => TokenType::Equals,
                 '&' => self.fork(TokenType::BitwiseAnd, vec![('&', TokenType::LogicAnd)]),
                 '|' => self.fork(TokenType::VerticalBar, vec![('|', TokenType::LogicOr)]),
@@ -629,6 +630,24 @@ mod tests {
                 TokenType::Rparen,
                 TokenType::Assign,
                 TokenType::Ident(String::from("x")),
+            ],
+        );
+    }
+
+    #[test]
+    fn range() {
+        let code = "0..10";
+
+        assert_eq!(
+            build_lexer(code)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|res| res.unwrap().token)
+                .collect::<Vec<_>>(),
+            vec![
+                TokenType::Integer(String::from("0")),
+                TokenType::DotDot,
+                TokenType::Integer(String::from("10")),
             ],
         );
     }
