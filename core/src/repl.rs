@@ -8,7 +8,7 @@ use crate::{
     parser::{parser_from, ParserError},
     run,
 };
-use rustyline::error::ReadlineError;
+use rustyline::{error::ReadlineError, DefaultEditor};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ReplResponse {
@@ -84,6 +84,32 @@ pub trait Cli {
     fn println(&mut self, msg: &str);
 
     fn add_history_entry(&mut self, entry: &str);
+}
+
+pub struct MyCLI {
+    rl: DefaultEditor,
+}
+
+impl Default for MyCLI {
+    fn default() -> Self {
+        Self {
+            rl: DefaultEditor::new().unwrap(),
+        }
+    }
+}
+
+impl Cli for MyCLI {
+    fn input(&mut self, msg: &str) -> Result<String, rustyline::error::ReadlineError> {
+        self.rl.readline(msg)
+    }
+
+    fn println(&mut self, msg: &str) {
+        println!("{msg}")
+    }
+
+    fn add_history_entry(&mut self, entry: &str) {
+        let _ = self.rl.add_history_entry(entry);
+    }
 }
 
 pub fn repl<T: Cli>(interface: &mut T) {
