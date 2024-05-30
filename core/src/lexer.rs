@@ -62,6 +62,7 @@ pub enum TokenType {
     Rbrack,
     RightShift,
     Rparen,
+    SlashSlash,
     String(String),
     Then,
     Tilde,
@@ -141,7 +142,10 @@ impl Lexer<'_> {
                     vec![('<', TokenType::LeftShift), ('=', TokenType::LessEqual)],
                 ),
                 '-' => self.fork(TokenType::Minus, vec![('>', TokenType::Arrow)]),
-                '/' => self.fork(TokenType::Over, vec![('=', TokenType::NotEqual)]),
+                '/' => self.fork(
+                    TokenType::Over,
+                    vec![('=', TokenType::NotEqual), ('/', TokenType::SlashSlash)],
+                ),
                 '{' => TokenType::Lbrace,
                 '[' => TokenType::Lbrack,
                 '(' => TokenType::Lparen,
@@ -648,6 +652,24 @@ mod tests {
                 TokenType::Integer(String::from("0")),
                 TokenType::DotDot,
                 TokenType::Integer(String::from("10")),
+            ],
+        );
+    }
+
+    #[test]
+    fn fraction() {
+        let code = "1 // 2";
+
+        assert_eq!(
+            build_lexer(code)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|res| res.unwrap().token)
+                .collect::<Vec<_>>(),
+            vec![
+                TokenType::Integer(String::from("1")),
+                TokenType::SlashSlash,
+                TokenType::Integer(String::from("2")),
             ],
         );
     }

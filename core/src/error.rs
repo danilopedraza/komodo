@@ -107,6 +107,7 @@ fn found_a(tok: &TokenType) -> String {
         TokenType::Rbrace => "a right brace: `}`".into(),
         TokenType::Rbrack => "a right bracket: `{`".into(),
         TokenType::RightShift => "a right shift operator: `>>`".into(),
+        TokenType::SlashSlash => "a fraction operator: `//`".into(),
         TokenType::String(val) => format!("a string: `{val}`"),
         TokenType::Then => "the `then` keyword".into(),
         TokenType::Tilde => "a negation: `~`".into(),
