@@ -1090,7 +1090,12 @@ impl Fraction {
 }
 
 impl InfixOperable for Fraction {}
-impl PrefixOperable for Fraction {}
+impl PrefixOperable for Fraction {
+    fn inverse(&self) -> Result<Object, ()> {
+        let val = -self.val.to_owned();
+        Ok(Object::Fraction(Fraction { val }))
+    }
+}
 
 impl fmt::Display for Fraction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
