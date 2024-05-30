@@ -29,8 +29,7 @@ fn main() {
     if args.len() == 1 {
         repl(&mut MyCLI {
             rl: DefaultEditor::new().unwrap(),
-        })
-        .unwrap();
+        });
     } else {
         let input = fs::read_to_string(&args[1]).unwrap();
         let res = run(&input);

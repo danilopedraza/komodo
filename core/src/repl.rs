@@ -86,7 +86,7 @@ pub trait Cli {
     fn add_history_entry(&mut self, entry: &str);
 }
 
-pub fn repl<T: Cli>(interface: &mut T) -> Result<(), ()> {
+pub fn repl<T: Cli>(interface: &mut T) {
     let mut wait_for_more = false;
     let mut repl = Repl::standard_repl();
 
@@ -109,7 +109,7 @@ pub fn repl<T: Cli>(interface: &mut T) -> Result<(), ()> {
         wait_for_more = response == ReplResponse::WaitForMore;
 
         match response {
-            ReplResponse::Break => break Ok(()),
+            ReplResponse::Break => break,
             ReplResponse::Continue => continue,
             ReplResponse::Error => continue,
             ReplResponse::WaitForMore => continue,
@@ -312,16 +312,18 @@ mod tests {
 
     #[test]
     fn empty_response() {
-        let mut cli = CliMock::_new(vec![Err(ReadlineError::Interrupted)]);
-        let res = repl(&mut cli);
+        let mut repl = Repl::standard_repl();
 
-        assert_eq!(res, Ok(()));
+        assert_eq!(
+            repl.response(Err(ReadlineError::Interrupted)),
+            (String::from(""), ReplResponse::Break)
+        );
     }
 
     #[test]
     fn not_printing_empty_response() {
         let mut cli = CliMock::_new(vec![Ok("".into()), Err(ReadlineError::Interrupted)]);
-        let _ = repl(&mut cli);
+        repl(&mut cli);
 
         assert!(cli.lines_printed.is_empty());
     }
