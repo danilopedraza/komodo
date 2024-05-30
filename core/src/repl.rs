@@ -197,13 +197,15 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn error() {
-    //     let input = Ok(String::from("("));
-    //     let mut repl = Repl::default();
+    #[test]
+    fn language_error_communicated() {
+        let mut repl = Repl::standard_repl();
 
-    //     assert!(matches!(repl.response(input), (_, ReplResponse::Error)));
-    // }
+        assert!(matches!(
+            repl.response(Ok(")".into())),
+            (_, ReplResponse::Error),
+        ));
+    }
 
     #[test]
     fn memory() {
