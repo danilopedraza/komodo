@@ -10,7 +10,6 @@ pub enum ParserError {
     UnexpectedToken(Vec<TokenType>, TokenType),
     EOFReached,
     EOFExpecting(Vec<TokenType>),
-    // EOFExpecting_(Vec<TokenType>, Position),
 }
 
 pub struct Parser<T: Iterator<Item = Result<Token, Error>>> {
