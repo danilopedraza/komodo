@@ -6,7 +6,7 @@ use std::{
     vec,
 };
 
-use bigdecimal::{num_traits::Pow, BigDecimal};
+use bigdecimal::{num_traits::Pow, BigDecimal, Signed};
 use num_bigint::BigInt;
 use num_rational::BigRational;
 
@@ -669,9 +669,15 @@ impl InfixOperable for Integer {
 
     fn pow(&self, other: &Object) -> Result<Object, ()> {
         match other {
-            Object::Integer(int) => Ok(Object::Integer(Integer::from(
-                self.val.to_owned().pow(int.to_machine_magnitude() as u32),
-            ))),
+            Object::Integer(int) => {
+                if int.val.is_negative() {
+                    todo!()
+                } else {
+                    let val = self.val.to_owned().pow(int.val.magnitude());
+
+                    Ok(Object::Integer(Integer { val })) 
+                }
+            },
             _ => Err(()),
         }
     }
@@ -1285,6 +1291,17 @@ mod tests {
                 ]
                 .into()
             )),
+        );
+    }
+
+    #[test]
+    fn exponentiation() {
+        let a = Object::Integer(Integer::from(2));
+        let b = Object::Integer(Integer::from(3));
+
+        assert_eq!(
+            a.pow(&b),
+            Ok(Object::Integer(Integer::from(8))),
         );
     }
 }
