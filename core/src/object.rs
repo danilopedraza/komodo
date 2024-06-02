@@ -671,7 +671,10 @@ impl InfixOperable for Integer {
         match other {
             Object::Integer(int) => {
                 if int.val.is_negative() {
-                    todo!()
+                    let inverse = self.val.to_owned().pow(int.val.magnitude());
+                    let val = BigDecimal::new(inverse, 0).inverse();
+
+                    Ok(Object::Decimal(Decimal { val }))
                 } else {
                     let val = self.val.to_owned().pow(int.val.magnitude());
 
@@ -1302,6 +1305,19 @@ mod tests {
         assert_eq!(
             a.pow(&b),
             Ok(Object::Integer(Integer::from(8))),
+        );
+    }
+
+    #[test]
+    fn negative_exponentiation() {
+        let a = Object::Integer(Integer::from(2));
+        let b = Object::Integer(Integer::from(-3));
+
+        let expected = Object::Decimal(Decimal::new("0", "125"));
+
+        assert_eq!(
+            a.pow(&b),
+            Ok(expected),
         );
     }
 }
