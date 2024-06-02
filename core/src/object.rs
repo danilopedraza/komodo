@@ -6,8 +6,8 @@ use std::{
     vec,
 };
 
-use bigdecimal::{num_traits::Pow, BigDecimal, Signed};
-use num_bigint::BigInt;
+use bigdecimal::{num_traits::Pow, BigDecimal, One, Signed, Zero};
+use num_bigint::{BigInt, BigUint};
 use num_rational::BigRational;
 
 use crate::{
@@ -355,6 +355,32 @@ impl Decimal {
 
         Self { val }
     }
+
+    fn binary_pow(&self, exponent: &Integer) -> Self {
+        let zero = BigUint::zero();
+        let one = BigUint::one();
+        let two = &BigUint::from(2_u32);
+
+        let mut base = self.val.to_owned();
+        let mut exp = exponent.val.magnitude().to_owned();
+        let mut val = BigDecimal::one();
+
+        while exp != zero {
+            if &exp % two == one {
+                val *= &base;
+            }
+            base = &base * &base;
+
+            exp = &exp / two;
+        }
+
+        let must_invert = exponent.val.is_negative();
+        if must_invert {
+            val = val.inverse();
+        }
+
+        Decimal { val }
+    }
 }
 
 impl PrefixOperable for Decimal {
@@ -394,6 +420,13 @@ impl InfixOperable for Decimal {
             Object::Integer(Integer { val }) => Ok(Object::Decimal(Decimal::from(
                 &self.val / BigDecimal::new(val.clone(), 0),
             ))),
+            _ => Err(()),
+        }
+    }
+
+    fn pow(&self, other: &Object) -> Result<Object, ()> {
+        match other {
+            Object::Integer(int) => Ok(Object::Decimal(self.binary_pow(int))),
             _ => Err(()),
         }
     }
@@ -678,9 +711,9 @@ impl InfixOperable for Integer {
                 } else {
                     let val = self.val.to_owned().pow(int.val.magnitude());
 
-                    Ok(Object::Integer(Integer { val })) 
+                    Ok(Object::Integer(Integer { val }))
                 }
-            },
+            }
             _ => Err(()),
         }
     }
@@ -1302,10 +1335,7 @@ mod tests {
         let a = Object::Integer(Integer::from(2));
         let b = Object::Integer(Integer::from(3));
 
-        assert_eq!(
-            a.pow(&b),
-            Ok(Object::Integer(Integer::from(8))),
-        );
+        assert_eq!(a.pow(&b), Ok(Object::Integer(Integer::from(8))),);
     }
 
     #[test]
@@ -1315,9 +1345,14 @@ mod tests {
 
         let expected = Object::Decimal(Decimal::new("0", "125"));
 
-        assert_eq!(
-            a.pow(&b),
-            Ok(expected),
-        );
+        assert_eq!(a.pow(&b), Ok(expected),);
+    }
+
+    #[test]
+    fn decimal_int_exponentiation() {
+        let a = Object::Decimal(Decimal::new("0", "5"));
+        let b = Object::Integer(Integer::from(2));
+
+        assert_eq!(a.pow(&b), Ok(Object::Decimal(Decimal::new("0", "25"))),);
     }
 }
