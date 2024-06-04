@@ -384,11 +384,23 @@ impl PrefixOperable for Decimal {
     }
 }
 
+impl From<&Fraction> for Decimal {
+    fn from(frac: &Fraction) -> Self {
+        let val = BigDecimal::new(frac.val.numer().to_owned(), 0)
+            / BigDecimal::new(frac.val.denom().to_owned(), 0);
+
+        Self { val }
+    }
+}
+
 impl InfixOperable for Decimal {
     fn sum(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val + val))),
             Object::Integer(Integer { val }) => Ok(Object::Decimal(Decimal::from(&self.val + val))),
+            Object::Fraction(frac) => Ok(Object::Decimal(Decimal::from(
+                &self.val + Decimal::from(frac).val,
+            ))),
             _ => Err(()),
         }
     }
@@ -397,6 +409,9 @@ impl InfixOperable for Decimal {
         match other {
             Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val - val))),
             Object::Integer(Integer { val }) => Ok(Object::Decimal(Decimal::from(&self.val - val))),
+            Object::Fraction(frac) => Ok(Object::Decimal(Decimal::from(
+                &self.val - Decimal::from(frac).val,
+            ))),
             _ => Err(()),
         }
     }
@@ -405,6 +420,9 @@ impl InfixOperable for Decimal {
         match other {
             Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val * val))),
             Object::Integer(Integer { val }) => Ok(Object::Decimal(Decimal::from(&self.val * val))),
+            Object::Fraction(frac) => Ok(Object::Decimal(Decimal::from(
+                &self.val * Decimal::from(frac).val,
+            ))),
             _ => Err(()),
         }
     }
@@ -414,6 +432,9 @@ impl InfixOperable for Decimal {
             Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val / val))),
             Object::Integer(Integer { val }) => Ok(Object::Decimal(Decimal::from(
                 &self.val / BigDecimal::new(val.clone(), 0),
+            ))),
+            Object::Fraction(frac) => Ok(Object::Decimal(Decimal::from(
+                &self.val / Decimal::from(frac).val,
             ))),
             _ => Err(()),
         }
@@ -1157,6 +1178,9 @@ impl InfixOperable for Fraction {
             Object::Integer(Integer { val }) => Ok(Object::Fraction(Fraction {
                 val: &self.val + BigRational::from_integer(val.to_owned()),
             })),
+            Object::Decimal(dec) => Ok(Object::Decimal(Decimal::from(
+                &Decimal::from(self).val + &dec.val,
+            ))),
             _ => Err(()),
         }
     }
@@ -1169,6 +1193,9 @@ impl InfixOperable for Fraction {
             Object::Integer(Integer { val }) => Ok(Object::Fraction(Fraction {
                 val: &self.val - BigRational::from_integer(val.to_owned()),
             })),
+            Object::Decimal(dec) => Ok(Object::Decimal(Decimal::from(
+                &Decimal::from(self).val - &dec.val,
+            ))),
             _ => Err(()),
         }
     }
@@ -1181,6 +1208,9 @@ impl InfixOperable for Fraction {
             Object::Integer(Integer { val }) => Ok(Object::Fraction(Fraction {
                 val: &self.val * BigRational::from_integer(val.to_owned()),
             })),
+            Object::Decimal(dec) => Ok(Object::Decimal(Decimal::from(
+                &Decimal::from(self).val * &dec.val,
+            ))),
             _ => Err(()),
         }
     }
@@ -1193,6 +1223,9 @@ impl InfixOperable for Fraction {
             Object::Integer(Integer { val }) => Ok(Object::Fraction(Fraction {
                 val: &self.val / BigRational::from_integer(val.to_owned()),
             })),
+            Object::Decimal(dec) => Ok(Object::Decimal(Decimal::from(
+                &Decimal::from(self).val / &dec.val,
+            ))),
             _ => Err(()),
         }
     }
