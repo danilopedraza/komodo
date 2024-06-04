@@ -198,6 +198,7 @@ pub enum ASTNodeType {
     ExtensionSet(Vec<ASTNode>),
     For(String, Box<ASTNode>, Vec<ASTNode>),
     Function(Vec<String>, Vec<ASTNode>),
+    Fraction(Box<ASTNode>, Box<ASTNode>),
     If(Box<ASTNode>, Box<ASTNode>, Box<ASTNode>),
     Infix(InfixOperator, Box<ASTNode>, Box<ASTNode>),
     Integer(String),
@@ -334,5 +335,8 @@ pub fn _range(start: ASTNode, end: ASTNode, position: Position) -> ASTNode {
 }
 
 pub fn _fraction(num: ASTNode, den: ASTNode, position: Position) -> ASTNode {
-    _infix(InfixOperator::Fraction, num, den, position)
+    ASTNode::new(
+        ASTNodeType::Fraction(Box::new(num), Box::new(den)),
+        position,
+    )
 }

@@ -1,7 +1,7 @@
 use crate::{
     ast::{
         ASTNode, ASTNodeType, InfixOperator, _call, _comprehension_list, _comprehension_set,
-        _extension_list, _extension_set, _for, _if_, _infix, _let_, _prefix, _tuple,
+        _extension_list, _extension_set, _for, _fraction, _if_, _infix, _let_, _prefix, _tuple,
     },
     error::Position,
 };
@@ -35,6 +35,9 @@ pub fn postprocess(node: ASTNode) -> ASTNode {
                 _ => todo!(),
             }
         }
+        ASTNodeType::Infix(InfixOperator::Fraction, numer, denom) => {
+            fraction(*numer, *denom, node.position)
+        }
         ASTNodeType::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs, position),
         ASTNodeType::For(ident, iter, proc) => _for(
             &ident,
@@ -65,6 +68,10 @@ pub fn postprocess(node: ASTNode) -> ASTNode {
         ASTNodeType::Tuple(vals) => _tuple(postprocessed_vec(vals), position),
         _ => node,
     }
+}
+
+fn fraction(numer: ASTNode, denom: ASTNode, position: Position) -> ASTNode {
+    _fraction(numer, denom, position)
 }
 
 fn infix(op: InfixOperator, lhs: ASTNode, rhs: ASTNode, position: Position) -> ASTNode {
@@ -111,7 +118,7 @@ fn function(params_node: ASTNode, proc_node: ASTNode, position: Position) -> AST
 mod tests {
     use std::vec;
 
-    use crate::ast::{_dummy_pos, _function, _integer, _signature, _symbol};
+    use crate::ast::{_dummy_pos, _fraction, _function, _integer, _signature, _symbol};
 
     use super::*;
 
@@ -198,6 +205,25 @@ mod tests {
                 vec![_symbol("set", _dummy_pos()), _symbol("func", _dummy_pos())],
                 _dummy_pos()
             ),
+        );
+    }
+
+    #[test]
+    fn fraction() {
+        let node = _infix(
+            InfixOperator::Fraction,
+            _integer("1", _dummy_pos()),
+            _integer("2", _dummy_pos()),
+            _dummy_pos(),
+        );
+
+        assert_eq!(
+            postprocess(node),
+            _fraction(
+                _integer("1", _dummy_pos()),
+                _integer("2", _dummy_pos()),
+                _dummy_pos()
+            )
         );
     }
 }

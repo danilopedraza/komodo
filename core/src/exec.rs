@@ -11,6 +11,7 @@ use crate::object::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvalError {
+    DenominatorZero,
     MissingFunctionArguments {
         expected: usize,
         actual: usize,
@@ -72,6 +73,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType::Wildcard => unimplemented!(),
         ASTNodeType::Prepend(first, most) => prepend(exec(first, env)?, most, env),
         ASTNodeType::Decimal(int, dec) => decimal(int, dec),
+        ASTNodeType::Fraction(numer, denom) => fraction(&exec(numer, env)?, &exec(denom, env)?),
     }
 }
 
@@ -301,12 +303,12 @@ fn range(start: &Object, end: &Object) -> Result<Object, ()> {
     }
 }
 
-fn fraction(numer: &Object, denom: &Object) -> Result<Object, ()> {
+fn fraction(numer: &Object, denom: &Object) -> Result<Object, Error> {
     match (numer, denom) {
         (Object::Integer(numer), Object::Integer(denom)) => {
             Ok(Object::Fraction(Fraction::new(numer, denom)))
         }
-        _ => Err(()),
+        _ => todo!(),
     }
 }
 
@@ -343,7 +345,7 @@ fn infix(
         InfixOperator::Sum => lhs.sum(rhs),
         InfixOperator::Dot => unimplemented!(),
         InfixOperator::Range => range(lhs, rhs),
-        InfixOperator::Fraction => fraction(lhs, rhs),
+        InfixOperator::Fraction => unimplemented!(),
     };
 
     match res {
@@ -1125,6 +1127,21 @@ mod tests {
         assert_eq!(
             exec(&node, &mut Environment::default()),
             Ok(Object::Fraction(Fraction::_new(1, 2))),
+        );
+    }
+
+    #[test]
+    #[ignore = "not yet implemented"]
+    fn denominator_zero() {
+        let node = _fraction(
+            _integer("1", _dummy_pos()),
+            _integer("0", _dummy_pos()),
+            _dummy_pos(),
+        );
+
+        assert_eq!(
+            exec(&node, &mut Environment::default()),
+            Err(Error::new(EvalError::DenominatorZero.into(), _dummy_pos())),
         );
     }
 }
