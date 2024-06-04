@@ -161,9 +161,18 @@ fn comprehension_list(
     prop: &ASTNode,
     env: &mut Environment,
 ) -> Result<Object, Error> {
-    let (symbol, iterator) = match &prop._type {
-        ASTNodeType::Infix(InfixOperator::In, lhs, rhs) => match (&lhs._type, &rhs._type) {
-            (ASTNodeType::Symbol(ident), ASTNodeType::ExtensionList(l)) => (ident, list(l, env)?),
+    let symbol = match &prop._type {
+        ASTNodeType::Infix(InfixOperator::In, lhs, _) => match &lhs._type {
+            ASTNodeType::Symbol(ident) => ident,
+            _ => todo!(),
+        },
+        _ => todo!(),
+    };
+
+    let iterator: Vec<Object> = match &prop._type {
+        ASTNodeType::Infix(InfixOperator::In, _, rhs) => match exec(rhs, env)? {
+            Object::ExtensionList(lst) => lst.list,
+            Object::Range(range) => range.collect(),
             _ => todo!(),
         },
         _ => todo!(),
@@ -1167,7 +1176,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn list_from_range() {
         let node = _comprehension_list(
             _infix(

@@ -1291,20 +1291,36 @@ impl fmt::Display for Fraction {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Range {
+    cur: Integer,
     start: Integer,
     end: Integer,
 }
 
+impl Iterator for Range {
+    type Item = Object;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.cur.val < self.end.val {
+            let val = self.cur.val.to_owned();
+            self.cur.val += 1;
+            Some(Object::Integer(Integer { val }))
+        } else {
+            None
+        }
+    }
+}
+
 impl Range {
     pub fn _new(start_int: i32, end_int: i32) -> Self {
+        let cur: Integer = start_int.into();
         let start: Integer = start_int.into();
         let end: Integer = end_int.into();
 
-        Self { start, end }
+        Self { cur, start, end }
     }
 
     pub fn new(start: &Integer, end: &Integer) -> Self {
         Self {
+            cur: start.to_owned(),
             start: start.to_owned(),
             end: end.to_owned(),
         }
