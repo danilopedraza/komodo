@@ -695,6 +695,9 @@ impl InfixOperable for Integer {
             Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(
                 BigDecimal::new(self.val.clone(), 0) / val,
             ))),
+            Object::Fraction(Fraction { val }) => Ok(Object::Fraction(
+                (&BigRational::from_integer(self.val.to_owned()) / val).into(),
+            )),
             _ => Err(()),
         }
     }
@@ -743,6 +746,9 @@ impl InfixOperable for Integer {
             Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(
                 self.val.to_owned() - val.to_owned(),
             ))),
+            Object::Fraction(Fraction { val }) => Ok(Object::Fraction(
+                (&BigRational::from_integer(self.val.to_owned()) - val).into(),
+            )),
             _ => Err(()),
         }
     }
@@ -754,6 +760,9 @@ impl InfixOperable for Integer {
             Object::Char(chr) => Ok(chr.multiply(self)),
             Object::String(str) => Ok(str.multiply(self)),
             Object::ExtensionList(lst) => Ok(lst.multiply(self)),
+            Object::Fraction(Fraction { val }) => Ok(Object::Fraction(
+                (&BigRational::from_integer(self.val.to_owned()) * val).into(),
+            )),
             _ => Err(()),
         }
     }
@@ -1157,6 +1166,9 @@ impl InfixOperable for Fraction {
             Object::Fraction(Fraction { val }) => Ok(Object::Fraction(Fraction {
                 val: &self.val - val,
             })),
+            Object::Integer(Integer { val }) => Ok(Object::Fraction(Fraction {
+                val: &self.val - BigRational::from_integer(val.to_owned()),
+            })),
             _ => Err(()),
         }
     }
@@ -1166,6 +1178,9 @@ impl InfixOperable for Fraction {
             Object::Fraction(Fraction { val }) => Ok(Object::Fraction(Fraction {
                 val: &self.val * val,
             })),
+            Object::Integer(Integer { val }) => Ok(Object::Fraction(Fraction {
+                val: &self.val * BigRational::from_integer(val.to_owned()),
+            })),
             _ => Err(()),
         }
     }
@@ -1174,6 +1189,9 @@ impl InfixOperable for Fraction {
         match other {
             Object::Fraction(Fraction { val }) => Ok(Object::Fraction(Fraction {
                 val: &self.val / val,
+            })),
+            Object::Integer(Integer { val }) => Ok(Object::Fraction(Fraction {
+                val: &self.val / BigRational::from_integer(val.to_owned()),
             })),
             _ => Err(()),
         }
