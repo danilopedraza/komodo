@@ -147,9 +147,9 @@ fn parser_error_msg(err: &ParserError) -> String {
 fn exec_error_msg(err: &EvalError) -> String {
     match err {
         EvalError::BadFraction {
-            numer_kind: _,
-            denom_kind: _,
-        } => todo!(),
+            numer_kind,
+            denom_kind,
+        } => bad_fraction(numer_kind, denom_kind),
         EvalError::DenominatorZero => todo!(),
         EvalError::MissingFunctionArguments { expected, actual } => {
             missing_func_arguments(*expected, *actual)
@@ -160,6 +160,10 @@ fn exec_error_msg(err: &EvalError) -> String {
         EvalError::NonExistentPrefixOperation { op, rhs } => non_existent_prefix(op, rhs),
         EvalError::NonExistentInfixOperation { op, lhs, rhs } => non_existent_infix(op, lhs, rhs),
     }
+}
+
+fn bad_fraction(numer_kind: &str, denom_kind: &str) -> String {
+    format!("Cannot create a fraction from `{numer_kind}` and `{denom_kind}`")
 }
 
 fn non_prependable_object(kind: &str) -> String {
@@ -369,6 +373,14 @@ mod tests {
         assert_eq!(
             non_prependable_object("integer"),
             String::from("Cannot prepend elements to `integer`")
+        );
+    }
+
+    #[test]
+    fn _bad_fraction() {
+        assert_eq!(
+            bad_fraction("symbol", "list"),
+            String::from("Cannot create a fraction from `symbol` and `list`"),
         );
     }
 }
