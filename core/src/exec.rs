@@ -1165,4 +1165,37 @@ mod tests {
             Err(Error::new(EvalError::DenominatorZero.into(), _pos(5, 1))),
         );
     }
+
+    #[test]
+    #[ignore = "not yet implemented"]
+    fn list_from_range() {
+        let node = _comprehension_list(
+            _infix(
+                InfixOperator::Sum,
+                _symbol("k", _dummy_pos()),
+                _integer("1", _dummy_pos()),
+                _dummy_pos(),
+            ),
+            _infix(
+                InfixOperator::In,
+                _symbol("k", _dummy_pos()),
+                _range(
+                    _integer("0", _dummy_pos()),
+                    _integer("3", _dummy_pos()),
+                    _dummy_pos(),
+                ),
+                _dummy_pos(),
+            ),
+            _dummy_pos(),
+        );
+
+        assert_eq!(
+            exec(&node, &mut Environment::default()),
+            Ok(Object::ExtensionList(ExtensionList::from(vec![
+                Object::Integer(1.into()),
+                Object::Integer(2.into()),
+                Object::Integer(3.into()),
+            ])))
+        );
+    }
 }
