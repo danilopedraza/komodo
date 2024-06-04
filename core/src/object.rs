@@ -730,6 +730,9 @@ impl InfixOperable for Integer {
         match other {
             Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val + val))),
             Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val + val))),
+            Object::Fraction(Fraction { val }) => Ok(Object::Fraction(
+                (&BigRational::from_integer(self.val.to_owned()) + val).into(),
+            )),
             _ => Err(()),
         }
     }
@@ -1130,11 +1133,20 @@ impl Fraction {
     }
 }
 
+impl From<BigRational> for Fraction {
+    fn from(val: BigRational) -> Self {
+        Self { val }
+    }
+}
+
 impl InfixOperable for Fraction {
     fn sum(&self, other: &Object) -> Result<Object, ()> {
         match other {
             Object::Fraction(Fraction { val }) => Ok(Object::Fraction(Fraction {
                 val: &self.val + val,
+            })),
+            Object::Integer(Integer { val }) => Ok(Object::Fraction(Fraction {
+                val: &self.val + BigRational::from_integer(val.to_owned()),
             })),
             _ => Err(()),
         }
