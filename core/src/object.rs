@@ -347,12 +347,7 @@ pub struct Decimal {
 
 impl Decimal {
     pub fn new(int: &str, dec: &str) -> Self {
-        let mut all = String::new();
-        all.push_str(int);
-        all.push('.');
-        all.push_str(dec);
-        let val: BigDecimal = all.parse().unwrap();
-
+        let val: BigDecimal = format!("{int}.{dec}").parse().unwrap();
         Self { val }
     }
 
