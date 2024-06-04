@@ -20,8 +20,8 @@ use crate::{
 
 macro_rules! default_infix_method {
     ($ident:ident) => {
-        fn $ident(&self, _other: &Object) -> Result<Object, ()> {
-            Err(())
+        fn $ident(&self, _other: &Object) -> Option<Object> {
+            None
         }
     };
 }
@@ -61,8 +61,8 @@ default_infix_methods!(
 
 macro_rules! default_prefix_method {
     ($ident:ident) => {
-        fn $ident(&self) -> Result<Object, ()> {
-            Err(())
+        fn $ident(&self) -> Option<Object> {
+            None
         }
     };
 }
@@ -150,7 +150,7 @@ impl Kind for Object {
 
 macro_rules! derived_object_infix_trait {
     ($ident:ident) => {
-        pub fn $ident(&self, other: &Object) -> Result<Object, ()> {
+        pub fn $ident(&self, other: &Object) -> Option<Object> {
             match self {
                 Self::Boolean(left) => left.$ident(other),
                 Self::Char(left) => left.$ident(other),
@@ -205,7 +205,7 @@ derived_object_infix_traits!(
 
 macro_rules! derived_object_prefix_trait {
     ($ident:ident) => {
-        pub fn $ident(&self) -> Result<Object, ()> {
+        pub fn $ident(&self) -> Option<Object> {
             match self {
                 Self::Boolean(left) => left.$ident(),
                 Self::Char(left) => left.$ident(),
@@ -258,24 +258,24 @@ impl fmt::Display for Bool {
 }
 
 impl InfixOperable for Bool {
-    fn logic_and(&self, other: &Object) -> Result<Object, ()> {
+    fn logic_and(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Boolean(boolean) => Ok(Object::Boolean(Bool::from(self.val && boolean.val))),
-            _ => Err(()),
+            Object::Boolean(boolean) => Some(Object::Boolean(Bool::from(self.val && boolean.val))),
+            _ => None,
         }
     }
 
-    fn or(&self, other: &Object) -> Result<Object, ()> {
+    fn or(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Boolean(boolean) => Ok(Object::Boolean(Bool::from(self.val || boolean.val))),
-            _ => Err(()),
+            Object::Boolean(boolean) => Some(Object::Boolean(Bool::from(self.val || boolean.val))),
+            _ => None,
         }
     }
 }
 
 impl PrefixOperable for Bool {
-    fn logic_not(&self) -> Result<Object, ()> {
-        Ok(Object::Boolean(Bool::from(!self.val)))
+    fn logic_not(&self) -> Option<Object> {
+        Some(Object::Boolean(Bool::from(!self.val)))
     }
 }
 
@@ -299,30 +299,30 @@ impl Char {
 }
 
 impl InfixOperable for Char {
-    fn sum(&self, other: &Object) -> Result<Object, ()> {
+    fn sum(&self, other: &Object) -> Option<Object> {
         match other {
             Object::String(MyString { val: str }) => {
                 let mut val = String::new();
                 val.push(self.val);
                 val.push_str(str);
 
-                Ok(Object::String(MyString { val }))
+                Some(Object::String(MyString { val }))
             }
             Object::Char(Char { val: other_chr }) => {
                 let mut val = String::new();
                 val.push(self.val);
                 val.push(*other_chr);
 
-                Ok(Object::String(MyString { val }))
+                Some(Object::String(MyString { val }))
             }
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn product(&self, other: &Object) -> Result<Object, ()> {
+    fn product(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(num) => Ok(self.multiply(num)),
-            _ => Err(()),
+            Object::Integer(num) => Some(self.multiply(num)),
+            _ => None,
         }
     }
 }
@@ -379,8 +379,8 @@ impl Decimal {
 }
 
 impl PrefixOperable for Decimal {
-    fn inverse(&self) -> Result<Object, ()> {
-        Ok(Object::Decimal(Decimal::from(-&self.val)))
+    fn inverse(&self) -> Option<Object> {
+        Some(Object::Decimal(Decimal::from(-&self.val)))
     }
 }
 
@@ -394,56 +394,70 @@ impl From<&Fraction> for Decimal {
 }
 
 impl InfixOperable for Decimal {
-    fn sum(&self, other: &Object) -> Result<Object, ()> {
+    fn sum(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val + val))),
-            Object::Integer(Integer { val }) => Ok(Object::Decimal(Decimal::from(&self.val + val))),
-            Object::Fraction(frac) => Ok(Object::Decimal(Decimal::from(
+            Object::Decimal(Decimal { val }) => {
+                Some(Object::Decimal(Decimal::from(&self.val + val)))
+            }
+            Object::Integer(Integer { val }) => {
+                Some(Object::Decimal(Decimal::from(&self.val + val)))
+            }
+            Object::Fraction(frac) => Some(Object::Decimal(Decimal::from(
                 &self.val + Decimal::from(frac).val,
             ))),
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn substraction(&self, other: &Object) -> Result<Object, ()> {
+    fn substraction(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val - val))),
-            Object::Integer(Integer { val }) => Ok(Object::Decimal(Decimal::from(&self.val - val))),
-            Object::Fraction(frac) => Ok(Object::Decimal(Decimal::from(
+            Object::Decimal(Decimal { val }) => {
+                Some(Object::Decimal(Decimal::from(&self.val - val)))
+            }
+            Object::Integer(Integer { val }) => {
+                Some(Object::Decimal(Decimal::from(&self.val - val)))
+            }
+            Object::Fraction(frac) => Some(Object::Decimal(Decimal::from(
                 &self.val - Decimal::from(frac).val,
             ))),
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn product(&self, other: &Object) -> Result<Object, ()> {
+    fn product(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val * val))),
-            Object::Integer(Integer { val }) => Ok(Object::Decimal(Decimal::from(&self.val * val))),
-            Object::Fraction(frac) => Ok(Object::Decimal(Decimal::from(
+            Object::Decimal(Decimal { val }) => {
+                Some(Object::Decimal(Decimal::from(&self.val * val)))
+            }
+            Object::Integer(Integer { val }) => {
+                Some(Object::Decimal(Decimal::from(&self.val * val)))
+            }
+            Object::Fraction(frac) => Some(Object::Decimal(Decimal::from(
                 &self.val * Decimal::from(frac).val,
             ))),
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn over(&self, other: &Object) -> Result<Object, ()> {
+    fn over(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val / val))),
-            Object::Integer(Integer { val }) => Ok(Object::Decimal(Decimal::from(
+            Object::Decimal(Decimal { val }) => {
+                Some(Object::Decimal(Decimal::from(&self.val / val)))
+            }
+            Object::Integer(Integer { val }) => Some(Object::Decimal(Decimal::from(
                 &self.val / BigDecimal::new(val.clone(), 0),
             ))),
-            Object::Fraction(frac) => Ok(Object::Decimal(Decimal::from(
+            Object::Fraction(frac) => Some(Object::Decimal(Decimal::from(
                 &self.val / Decimal::from(frac).val,
             ))),
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn pow(&self, other: &Object) -> Result<Object, ()> {
+    fn pow(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(int) => Ok(Object::Decimal(self.binary_pow(int))),
-            _ => Err(()),
+            Object::Integer(int) => Some(Object::Decimal(self.binary_pow(int))),
+            _ => None,
         }
     }
 }
@@ -492,10 +506,10 @@ impl PartialEq for ExtensionSet {
 impl Eq for ExtensionSet {}
 
 impl InfixOperable for ExtensionSet {
-    fn sum(&self, other: &Object) -> Result<Object, ()> {
+    fn sum(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::ExtensionSet(set) => Ok(self.union(set)),
-            _ => Err(()),
+            Object::ExtensionSet(set) => Some(self.union(set)),
+            _ => None,
         }
     }
 }
@@ -548,7 +562,7 @@ impl From<(ASTNode, ASTNode)> for ComprehensionSet {
 impl PrefixOperable for ComprehensionSet {}
 
 impl InfixOperable for ComprehensionSet {
-    fn contains(&self, other: &Object) -> Result<Object, ()> {
+    fn contains(&self, other: &Object) -> Option<Object> {
         let symbol = match &self.value._type {
             ASTNodeType::Symbol(s) => s,
             _ => unimplemented!(),
@@ -557,7 +571,7 @@ impl InfixOperable for ComprehensionSet {
         let mut env = Environment::default();
         env.set(symbol, other.to_owned());
 
-        Ok(exec(&self.prop, &mut env).unwrap())
+        Some(exec(&self.prop, &mut env).unwrap())
     }
 }
 
@@ -631,171 +645,191 @@ impl From<&str> for Integer {
 }
 
 impl InfixOperable for Integer {
-    fn bitwise_and(&self, other: &Object) -> Result<Object, ()> {
+    fn bitwise_and(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val & val))),
-            _ => Err(()),
+            Object::Integer(Integer { val }) => {
+                Some(Object::Integer(Integer::from(&self.val & val)))
+            }
+            _ => None,
         }
     }
 
-    fn or(&self, other: &Object) -> Result<Object, ()> {
+    fn or(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val | val))),
-            _ => Err(()),
+            Object::Integer(Integer { val }) => {
+                Some(Object::Integer(Integer::from(&self.val | val)))
+            }
+            _ => None,
         }
     }
 
-    fn bitwise_xor(&self, other: &Object) -> Result<Object, ()> {
+    fn bitwise_xor(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val ^ val))),
-            _ => Err(()),
+            Object::Integer(Integer { val }) => {
+                Some(Object::Integer(Integer::from(&self.val ^ val)))
+            }
+            _ => None,
         }
     }
 
-    fn greater(&self, other: &Object) -> Result<Object, ()> {
+    fn greater(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val > *val))),
-            _ => Err(()),
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(self.val > *val))),
+            _ => None,
         }
     }
 
-    fn equality(&self, other: &Object) -> Result<Object, ()> {
+    fn equality(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val == *val))),
-            _ => Err(()),
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(self.val == *val))),
+            _ => None,
         }
     }
 
-    fn greater_equal(&self, other: &Object) -> Result<Object, ()> {
+    fn greater_equal(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val >= *val))),
-            _ => Err(()),
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(self.val >= *val))),
+            _ => None,
         }
     }
 
-    fn left_shift(&self, other: &Object) -> Result<Object, ()> {
+    fn left_shift(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(int) => Ok(Object::Integer(Integer::from(
+            Object::Integer(int) => Some(Object::Integer(Integer::from(
                 &self.val << int.to_machine_magnitude(),
             ))),
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn less(&self, other: &Object) -> Result<Object, ()> {
+    fn less(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val < *val))),
-            _ => Err(()),
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(self.val < *val))),
+            _ => None,
         }
     }
 
-    fn less_equal(&self, other: &Object) -> Result<Object, ()> {
+    fn less_equal(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val <= *val))),
-            _ => Err(()),
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(self.val <= *val))),
+            _ => None,
         }
     }
 
-    fn modulo(&self, other: &Object) -> Result<Object, ()> {
+    fn modulo(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val % val))),
-            _ => Err(()),
+            Object::Integer(Integer { val }) => {
+                Some(Object::Integer(Integer::from(&self.val % val)))
+            }
+            _ => None,
         }
     }
 
-    fn neq(&self, other: &Object) -> Result<Object, ()> {
+    fn neq(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Boolean(Bool::from(self.val != *val))),
-            _ => Ok(Object::Boolean(Bool::from(true))),
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(self.val != *val))),
+            _ => Some(Object::Boolean(Bool::from(true))),
         }
     }
 
-    fn over(&self, other: &Object) -> Result<Object, ()> {
+    fn over(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val / val))),
-            Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(
+            Object::Integer(Integer { val }) => {
+                Some(Object::Integer(Integer::from(&self.val / val)))
+            }
+            Object::Decimal(Decimal { val }) => Some(Object::Decimal(Decimal::from(
                 BigDecimal::new(self.val.clone(), 0) / val,
             ))),
-            Object::Fraction(Fraction { val }) => Ok(Object::Fraction(
+            Object::Fraction(Fraction { val }) => Some(Object::Fraction(
                 (&BigRational::from_integer(self.val.to_owned()) / val).into(),
             )),
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn pow(&self, other: &Object) -> Result<Object, ()> {
+    fn pow(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Integer(int) => {
                 if int.val.is_negative() {
                     let inverse = self.val.to_owned().pow(int.val.magnitude());
                     let val = BigDecimal::new(inverse, 0).inverse();
 
-                    Ok(Object::Decimal(Decimal { val }))
+                    Some(Object::Decimal(Decimal { val }))
                 } else {
                     let val = self.val.to_owned().pow(int.val.magnitude());
 
-                    Ok(Object::Integer(Integer { val }))
+                    Some(Object::Integer(Integer { val }))
                 }
             }
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn right_shift(&self, other: &Object) -> Result<Object, ()> {
+    fn right_shift(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(int) => Ok(Object::Integer(Integer::from(
+            Object::Integer(int) => Some(Object::Integer(Integer::from(
                 &self.val >> int.to_machine_magnitude(),
             ))),
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn sum(&self, other: &Object) -> Result<Object, ()> {
+    fn sum(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val + val))),
-            Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val + val))),
-            Object::Fraction(Fraction { val }) => Ok(Object::Fraction(
+            Object::Integer(Integer { val }) => {
+                Some(Object::Integer(Integer::from(&self.val + val)))
+            }
+            Object::Decimal(Decimal { val }) => {
+                Some(Object::Decimal(Decimal::from(&self.val + val)))
+            }
+            Object::Fraction(Fraction { val }) => Some(Object::Fraction(
                 (&BigRational::from_integer(self.val.to_owned()) + val).into(),
             )),
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn substraction(&self, other: &Object) -> Result<Object, ()> {
+    fn substraction(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val - val))),
-            Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(
+            Object::Integer(Integer { val }) => {
+                Some(Object::Integer(Integer::from(&self.val - val)))
+            }
+            Object::Decimal(Decimal { val }) => Some(Object::Decimal(Decimal::from(
                 self.val.to_owned() - val.to_owned(),
             ))),
-            Object::Fraction(Fraction { val }) => Ok(Object::Fraction(
+            Object::Fraction(Fraction { val }) => Some(Object::Fraction(
                 (&BigRational::from_integer(self.val.to_owned()) - val).into(),
             )),
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn product(&self, other: &Object) -> Result<Object, ()> {
+    fn product(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Integer(Integer::from(&self.val * val))),
-            Object::Decimal(Decimal { val }) => Ok(Object::Decimal(Decimal::from(&self.val * val))),
-            Object::Char(chr) => Ok(chr.multiply(self)),
-            Object::String(str) => Ok(str.multiply(self)),
-            Object::ExtensionList(lst) => Ok(lst.multiply(self)),
-            Object::Fraction(Fraction { val }) => Ok(Object::Fraction(
+            Object::Integer(Integer { val }) => {
+                Some(Object::Integer(Integer::from(&self.val * val)))
+            }
+            Object::Decimal(Decimal { val }) => {
+                Some(Object::Decimal(Decimal::from(&self.val * val)))
+            }
+            Object::Char(chr) => Some(chr.multiply(self)),
+            Object::String(str) => Some(str.multiply(self)),
+            Object::ExtensionList(lst) => Some(lst.multiply(self)),
+            Object::Fraction(Fraction { val }) => Some(Object::Fraction(
                 (&BigRational::from_integer(self.val.to_owned()) * val).into(),
             )),
-            _ => Err(()),
+            _ => None,
         }
     }
 }
 
 impl PrefixOperable for Integer {
-    fn bitwise_not(&self) -> Result<Object, ()> {
-        Ok(Object::Integer(Integer::from(!&self.val)))
+    fn bitwise_not(&self) -> Option<Object> {
+        Some(Object::Integer(Integer::from(!&self.val)))
     }
 
-    fn inverse(&self) -> Result<Object, ()> {
-        Ok(Object::Integer(Integer::from(-&self.val)))
+    fn inverse(&self) -> Option<Object> {
+        Some(Object::Integer(Integer::from(-&self.val)))
     }
 }
 
@@ -813,28 +847,28 @@ impl MyString {
 }
 
 impl InfixOperable for MyString {
-    fn sum(&self, other: &Object) -> Result<Object, ()> {
+    fn sum(&self, other: &Object) -> Option<Object> {
         match other {
             Object::String(MyString { val: other_string }) => {
                 let mut val = String::new();
                 val.push_str(&self.val);
                 val.push_str(other_string);
-                Ok(Object::String(MyString { val }))
+                Some(Object::String(MyString { val }))
             }
             Object::Char(Char { val: chr }) => {
                 let mut val = self.val.clone();
                 val.push(*chr);
 
-                Ok(Object::String(MyString { val }))
+                Some(Object::String(MyString { val }))
             }
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn product(&self, other: &Object) -> Result<Object, ()> {
+    fn product(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(num) => Ok(self.multiply(num)),
-            _ => Err(()),
+            Object::Integer(num) => Some(self.multiply(num)),
+            _ => None,
         }
     }
 }
@@ -873,10 +907,10 @@ impl fmt::Display for Symbol {
 }
 
 impl InfixOperable for Symbol {
-    fn equality(&self, other: &Object) -> Result<Object, ()> {
+    fn equality(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Symbol(symbol) => Ok(Object::Boolean(Bool::from(self.val == symbol.val))),
-            _ => Err(()),
+            Object::Symbol(symbol) => Some(Object::Boolean(Bool::from(self.val == symbol.val))),
+            _ => None,
         }
     }
 }
@@ -1105,7 +1139,7 @@ impl From<Vec<Object>> for ExtensionList {
 }
 
 impl InfixOperable for ExtensionList {
-    fn sum(&self, other: &Object) -> Result<Object, ()> {
+    fn sum(&self, other: &Object) -> Option<Object> {
         match other {
             Object::ExtensionList(ExtensionList { list: other_list }) => {
                 let list: Vec<Object> = self
@@ -1115,16 +1149,16 @@ impl InfixOperable for ExtensionList {
                     .map(|obj| obj.to_owned())
                     .collect();
 
-                Ok(Object::ExtensionList(list.into()))
+                Some(Object::ExtensionList(list.into()))
             }
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn product(&self, other: &Object) -> Result<Object, ()> {
+    fn product(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(num) => Ok(self.multiply(num)),
-            _ => Err(()),
+            Object::Integer(num) => Some(self.multiply(num)),
+            _ => None,
         }
     }
 }
@@ -1170,80 +1204,80 @@ impl From<BigRational> for Fraction {
 }
 
 impl InfixOperable for Fraction {
-    fn sum(&self, other: &Object) -> Result<Object, ()> {
+    fn sum(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Fraction(Fraction { val }) => Ok(Object::Fraction(Fraction {
+            Object::Fraction(Fraction { val }) => Some(Object::Fraction(Fraction {
                 val: &self.val + val,
             })),
-            Object::Integer(Integer { val }) => Ok(Object::Fraction(Fraction {
+            Object::Integer(Integer { val }) => Some(Object::Fraction(Fraction {
                 val: &self.val + BigRational::from_integer(val.to_owned()),
             })),
-            Object::Decimal(dec) => Ok(Object::Decimal(Decimal::from(
+            Object::Decimal(dec) => Some(Object::Decimal(Decimal::from(
                 &Decimal::from(self).val + &dec.val,
             ))),
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn substraction(&self, other: &Object) -> Result<Object, ()> {
+    fn substraction(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Fraction(Fraction { val }) => Ok(Object::Fraction(Fraction {
+            Object::Fraction(Fraction { val }) => Some(Object::Fraction(Fraction {
                 val: &self.val - val,
             })),
-            Object::Integer(Integer { val }) => Ok(Object::Fraction(Fraction {
+            Object::Integer(Integer { val }) => Some(Object::Fraction(Fraction {
                 val: &self.val - BigRational::from_integer(val.to_owned()),
             })),
-            Object::Decimal(dec) => Ok(Object::Decimal(Decimal::from(
+            Object::Decimal(dec) => Some(Object::Decimal(Decimal::from(
                 &Decimal::from(self).val - &dec.val,
             ))),
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn product(&self, other: &Object) -> Result<Object, ()> {
+    fn product(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Fraction(Fraction { val }) => Ok(Object::Fraction(Fraction {
+            Object::Fraction(Fraction { val }) => Some(Object::Fraction(Fraction {
                 val: &self.val * val,
             })),
-            Object::Integer(Integer { val }) => Ok(Object::Fraction(Fraction {
+            Object::Integer(Integer { val }) => Some(Object::Fraction(Fraction {
                 val: &self.val * BigRational::from_integer(val.to_owned()),
             })),
-            Object::Decimal(dec) => Ok(Object::Decimal(Decimal::from(
+            Object::Decimal(dec) => Some(Object::Decimal(Decimal::from(
                 &Decimal::from(self).val * &dec.val,
             ))),
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn over(&self, other: &Object) -> Result<Object, ()> {
+    fn over(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Fraction(Fraction { val }) => Ok(Object::Fraction(Fraction {
+            Object::Fraction(Fraction { val }) => Some(Object::Fraction(Fraction {
                 val: &self.val / val,
             })),
-            Object::Integer(Integer { val }) => Ok(Object::Fraction(Fraction {
+            Object::Integer(Integer { val }) => Some(Object::Fraction(Fraction {
                 val: &self.val / BigRational::from_integer(val.to_owned()),
             })),
-            Object::Decimal(dec) => Ok(Object::Decimal(Decimal::from(
+            Object::Decimal(dec) => Some(Object::Decimal(Decimal::from(
                 &Decimal::from(self).val / &dec.val,
             ))),
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    fn pow(&self, other: &Object) -> Result<Object, ()> {
+    fn pow(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(Integer { val }) => Ok(Object::Fraction(Fraction {
+            Object::Integer(Integer { val }) => Some(Object::Fraction(Fraction {
                 val: Pow::pow(self.val.to_owned(), val),
             })),
-            _ => Err(()),
+            _ => None,
         }
     }
 }
 
 impl PrefixOperable for Fraction {
-    fn inverse(&self) -> Result<Object, ()> {
+    fn inverse(&self) -> Option<Object> {
         let val = -self.val.to_owned();
-        Ok(Object::Fraction(Fraction { val }))
+        Some(Object::Fraction(Fraction { val }))
     }
 }
 
@@ -1298,7 +1332,7 @@ mod tests {
 
         assert_eq!(
             str1.sum(&str2),
-            Ok(Object::String(MyString::from("foobar")))
+            Some(Object::String(MyString::from("foobar")))
         );
     }
 
@@ -1307,7 +1341,7 @@ mod tests {
         let chr1 = Object::Char('f'.into());
         let chr2 = Object::Char('u'.into());
 
-        assert_eq!(chr1.sum(&chr2), Ok(Object::String("fu".into())))
+        assert_eq!(chr1.sum(&chr2), Some(Object::String("fu".into())))
     }
 
     #[test]
@@ -1315,8 +1349,8 @@ mod tests {
         let str = Object::String("bo".into());
         let chr = Object::Char('o'.into());
 
-        assert_eq!(str.sum(&chr), Ok(Object::String("boo".into())));
-        assert_eq!(chr.sum(&str), Ok(Object::String("obo".into())));
+        assert_eq!(str.sum(&chr), Some(Object::String("boo".into())));
+        assert_eq!(chr.sum(&str), Some(Object::String("obo".into())));
     }
 
     #[test]
@@ -1324,7 +1358,7 @@ mod tests {
         let chr = Object::Char('k'.into());
         let num = Object::Integer(7.into());
 
-        assert_eq!(chr.product(&num), Ok(Object::String("kkkkkkk".into())));
+        assert_eq!(chr.product(&num), Some(Object::String("kkkkkkk".into())));
         assert_eq!(chr.product(&num), num.product(&chr));
     }
 
@@ -1335,7 +1369,7 @@ mod tests {
 
         assert_eq!(
             str.product(&num),
-            Ok(Object::String("humongous humongous ".into()))
+            Some(Object::String("humongous humongous ".into()))
         );
         assert_eq!(str.product(&num), num.product(&str));
     }
@@ -1347,7 +1381,7 @@ mod tests {
 
         assert_eq!(
             l1.sum(&l2),
-            Ok(Object::ExtensionList(
+            Some(Object::ExtensionList(
                 vec![Object::String("hola".into()), Object::Integer(1.into())].into()
             ))
         );
@@ -1360,7 +1394,7 @@ mod tests {
 
         assert_eq!(
             l.product(&num),
-            Ok(Object::ExtensionList(
+            Some(Object::ExtensionList(
                 vec![
                     Object::Integer(0.into()),
                     Object::Integer(0.into()),
@@ -1381,7 +1415,7 @@ mod tests {
 
         assert_eq!(
             s1.sum(&s2),
-            Ok(Object::ExtensionSet(
+            Some(Object::ExtensionSet(
                 vec![
                     Object::Integer(1.into()),
                     Object::Integer(2.into()),
@@ -1397,7 +1431,7 @@ mod tests {
         let a = Object::Integer(Integer::from(2));
         let b = Object::Integer(Integer::from(3));
 
-        assert_eq!(a.pow(&b), Ok(Object::Integer(Integer::from(8))),);
+        assert_eq!(a.pow(&b), Some(Object::Integer(Integer::from(8))),);
     }
 
     #[test]
@@ -1407,7 +1441,7 @@ mod tests {
 
         let expected = Object::Decimal(Decimal::new("0", "125"));
 
-        assert_eq!(a.pow(&b), Ok(expected),);
+        assert_eq!(a.pow(&b), Some(expected),);
     }
 
     #[test]
@@ -1415,6 +1449,6 @@ mod tests {
         let a = Object::Decimal(Decimal::new("0", "5"));
         let b = Object::Integer(Integer::from(2));
 
-        assert_eq!(a.pow(&b), Ok(Object::Decimal(Decimal::new("0", "25"))),);
+        assert_eq!(a.pow(&b), Some(Object::Decimal(Decimal::new("0", "25"))),);
     }
 }

@@ -300,10 +300,12 @@ fn call(
     }
 }
 
-fn range(start: &Object, end: &Object) -> Result<Object, ()> {
+fn range(start: &Object, end: &Object) -> Option<Object> {
     match (start, end) {
-        (Object::Integer(start), Object::Integer(end)) => Ok(Object::Range(Range::new(start, end))),
-        _ => Err(()),
+        (Object::Integer(start), Object::Integer(end)) => {
+            Some(Object::Range(Range::new(start, end)))
+        }
+        _ => None,
     }
 }
 
@@ -369,7 +371,7 @@ fn infix(
     };
 
     match res {
-        Err(()) => Err(Error(
+        None => Err(Error(
             EvalError::NonExistentInfixOperation {
                 op: op.ident(),
                 lhs: lhs_kind,
@@ -378,7 +380,7 @@ fn infix(
             .into(),
             infix_pos,
         )),
-        Ok(obj) => Ok(obj),
+        Some(obj) => Ok(obj),
     }
 }
 
@@ -390,7 +392,7 @@ fn prefix(op: PrefixOperator, obj: Object, prefix_pos: Position) -> Result<Objec
     };
 
     match res {
-        Err(()) => Err(Error(
+        None => Err(Error(
             EvalError::NonExistentPrefixOperation {
                 op: op.ident(),
                 rhs: obj.kind(),
@@ -398,7 +400,7 @@ fn prefix(op: PrefixOperator, obj: Object, prefix_pos: Position) -> Result<Objec
             .into(),
             prefix_pos,
         )),
-        Ok(obj) => Ok(obj),
+        Some(obj) => Ok(obj),
     }
 }
 
