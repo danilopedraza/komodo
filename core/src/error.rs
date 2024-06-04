@@ -146,6 +146,10 @@ fn parser_error_msg(err: &ParserError) -> String {
 
 fn exec_error_msg(err: &EvalError) -> String {
     match err {
+        EvalError::BadFraction {
+            numer_kind: _,
+            denom_kind: _,
+        } => todo!(),
         EvalError::DenominatorZero => todo!(),
         EvalError::MissingFunctionArguments { expected, actual } => {
             missing_func_arguments(*expected, *actual)

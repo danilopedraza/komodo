@@ -11,6 +11,10 @@ use crate::object::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvalError {
+    BadFraction {
+        numer_kind: String,
+        denom_kind: String,
+    },
     DenominatorZero,
     MissingFunctionArguments {
         expected: usize,
@@ -73,9 +77,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType::Wildcard => unimplemented!(),
         ASTNodeType::Prepend(first, most) => prepend(exec(first, env)?, most, env),
         ASTNodeType::Decimal(int, dec) => decimal(int, dec),
-        ASTNodeType::Fraction(numer, denom) => {
-            fraction(&exec(numer, env)?, &exec(denom, env)?, denom.position)
-        }
+        ASTNodeType::Fraction(numer, denom) => fraction(numer, denom, node.position, env),
     }
 }
 
@@ -305,15 +307,28 @@ fn range(start: &Object, end: &Object) -> Result<Object, ()> {
     }
 }
 
-fn fraction(numer: &Object, denom: &Object, denom_pos: Position) -> Result<Object, Error> {
-    match (numer, denom) {
-        (Object::Integer(_), Object::Integer(int)) if int.is_zero() => {
-            Err(Error::new(EvalError::DenominatorZero.into(), denom_pos))
-        }
+fn fraction(
+    numer: &ASTNode,
+    denom: &ASTNode,
+    position: Position,
+    env: &mut Environment,
+) -> Result<Object, Error> {
+    match (exec(numer, env)?, exec(denom, env)?) {
+        (Object::Integer(_), Object::Integer(int)) if int.is_zero() => Err(Error::new(
+            EvalError::DenominatorZero.into(),
+            denom.position,
+        )),
         (Object::Integer(numer), Object::Integer(denom)) => {
             Ok(Object::Fraction(Fraction::new(numer, denom)))
         }
-        _ => todo!(),
+        (numer, denom) => Err(Error::new(
+            EvalError::BadFraction {
+                numer_kind: numer.kind(),
+                denom_kind: denom.kind(),
+            }
+            .into(),
+            position,
+        )),
     }
 }
 

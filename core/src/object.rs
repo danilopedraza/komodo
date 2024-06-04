@@ -1128,7 +1128,7 @@ impl Fraction {
         Self { val }
     }
 
-    pub fn new(numer: &Integer, denom: &Integer) -> Self {
+    pub fn new(numer: Integer, denom: Integer) -> Self {
         let val = BigRational::new(numer.val.to_owned(), denom.val.to_owned());
 
         Self { val }
