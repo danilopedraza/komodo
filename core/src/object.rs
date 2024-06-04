@@ -567,6 +567,10 @@ impl Integer {
             max
         }
     }
+
+    pub fn is_zero(&self) -> bool {
+        self.val.is_zero()
+    }
 }
 
 impl fmt::Display for Integer {

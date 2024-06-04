@@ -73,7 +73,9 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType::Wildcard => unimplemented!(),
         ASTNodeType::Prepend(first, most) => prepend(exec(first, env)?, most, env),
         ASTNodeType::Decimal(int, dec) => decimal(int, dec),
-        ASTNodeType::Fraction(numer, denom) => fraction(&exec(numer, env)?, &exec(denom, env)?),
+        ASTNodeType::Fraction(numer, denom) => {
+            fraction(&exec(numer, env)?, &exec(denom, env)?, denom.position)
+        }
     }
 }
 
@@ -303,8 +305,11 @@ fn range(start: &Object, end: &Object) -> Result<Object, ()> {
     }
 }
 
-fn fraction(numer: &Object, denom: &Object) -> Result<Object, Error> {
+fn fraction(numer: &Object, denom: &Object, denom_pos: Position) -> Result<Object, Error> {
     match (numer, denom) {
+        (Object::Integer(_), Object::Integer(int)) if int.is_zero() => {
+            Err(Error::new(EvalError::DenominatorZero.into(), denom_pos))
+        }
         (Object::Integer(numer), Object::Integer(denom)) => {
             Ok(Object::Fraction(Fraction::new(numer, denom)))
         }
@@ -1131,17 +1136,16 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn denominator_zero() {
         let node = _fraction(
             _integer("1", _dummy_pos()),
-            _integer("0", _dummy_pos()),
+            _integer("0", _pos(5, 1)),
             _dummy_pos(),
         );
 
         assert_eq!(
             exec(&node, &mut Environment::default()),
-            Err(Error::new(EvalError::DenominatorZero.into(), _dummy_pos())),
+            Err(Error::new(EvalError::DenominatorZero.into(), _pos(5, 1))),
         );
     }
 }
