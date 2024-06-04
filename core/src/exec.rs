@@ -170,11 +170,7 @@ fn comprehension_list(
     };
 
     let iterator: Vec<Object> = match &prop._type {
-        ASTNodeType::Infix(InfixOperator::In, _, rhs) => match exec(rhs, env)? {
-            Object::ExtensionList(lst) => lst.list,
-            Object::Range(range) => range.collect(),
-            _ => todo!(),
-        },
+        ASTNodeType::Infix(InfixOperator::In, _, rhs) => get_iterable(rhs, env)?,
         _ => todo!(),
     };
 
@@ -248,16 +244,7 @@ fn for_(
     proc: &[ASTNode],
     env: &mut Environment,
 ) -> Result<Object, Error> {
-    let obj = exec(iterable, env)?;
-
-    let iter: Vec<&Object> = match &obj {
-        Object::ExtensionSet(set) => Ok(set.set.iter().collect()),
-        Object::ExtensionList(list) => Ok(list.list.iter().collect()),
-        obj => Err(Error(
-            EvalError::NonIterableObject(obj.kind()).into(),
-            iterable.position,
-        )),
-    }?;
+    let iter: Vec<Object> = get_iterable(iterable, env)?;
 
     env.push_scope();
 
@@ -272,6 +259,18 @@ fn for_(
     env.pop_scope();
 
     Ok(Object::empty_tuple())
+}
+
+fn get_iterable(node: &ASTNode, env: &mut Environment) -> Result<Vec<Object>, Error> {
+    match exec(node, env)? {
+        Object::ExtensionSet(set) => Ok(set.set.iter().map(|obj| obj.to_owned()).collect()),
+        Object::ExtensionList(list) => Ok(list.list.iter().map(|obj| obj.to_owned()).collect()),
+        Object::Range(range) => Ok(range.collect()),
+        obj => Err(Error(
+            EvalError::NonIterableObject(obj.kind()).into(),
+            node.position,
+        )),
+    }
 }
 
 fn call(
