@@ -13,6 +13,9 @@
 		},
 		{
 			"include": "#integers"
+		},
+		{
+			"include": "#comments"
 		}
 	],
 	"repository": {
@@ -65,8 +68,15 @@
 					"match": "\\b(true|false)\\b"
 				}
 			]
-
-		}
+		},
+		"comments": {
+      "patterns": [
+        {
+          "name": "comment.line.number-sign.smtc",
+          "match": "#.*$"
+        }
+      ]
+    }
 	},
 	"scopeName": "source.smtc"
 }
