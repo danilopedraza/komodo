@@ -1,0 +1,72 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "symstatic",
+	"patterns": [
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#chars"
+		},
+		{
+			"include": "#integers"
+		}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword.control.smtc",
+					"match": "\\b(else|for|if|let|then)\\b"
+				},
+				{
+					"name": "keyword.operator.smtc",
+					"match": "\\b(in|!|^|,|\\.|\\.\\.|=|&|&&|\\|(\\|\\|)|\\:|\\:=|\\>|\\>\\>|\\>=|\\<|\\<\\<|\\<=|\\-|\\-\\>|\\/|\\/=|\\/\\/|%|\\+|\\*|\\*\\*|\\~|_)\\b"
+				},
+				{
+					"name": "storage.type.smtc",
+					"match": "\\b(let)\\b"
+				}
+			]
+		},
+		"strings": {
+			"name": "string.quoted.double.smtc",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.smtc",
+					"match": "\\\\."
+				}
+			]
+		},
+		"chars": {
+			"name": "string.quoted.single.smtc",
+			"begin": "'",
+			"end": "'",
+			"patterns": [
+				{
+					"name": "constant.character.escape.smtc",
+					"match": "\\\\."
+				}
+			]
+		},
+		"constants": {
+			"patterns": [
+				{
+					"name": "constant.numeric.smtc",
+					"match": "[1-9][0-9]*|0"
+				},
+				{
+					"name": "constant.other.smtc",
+					"match": "\\b(true|false)\\b"
+				}
+			]
+
+		}
+	},
+	"scopeName": "source.smtc"
+}

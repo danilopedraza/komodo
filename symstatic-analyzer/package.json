@@ -1,0 +1,25 @@
+{
+  "name": "symstatic-analyzer",
+  "displayName": "symstatic-analyzer",
+  "description": "",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.89.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "symstatic",
+      "aliases": ["symstatic", "smtc"],
+      "extensions": [".smtc"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "symstatic",
+      "scopeName": "source.smtc",
+      "path": "./syntaxes/symstatic.tmLanguage.json"
+    }]
+  }
+}
