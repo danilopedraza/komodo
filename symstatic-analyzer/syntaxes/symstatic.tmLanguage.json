@@ -16,6 +16,9 @@
 		},
 		{
 			"include": "#comments"
+		},
+		{
+			"include": "#symbols"
 		}
 	],
 	"repository": {
@@ -76,7 +79,15 @@
           "match": "#.*$"
         }
       ]
-    }
+    },
+		"symbols": {
+			"patterns": [
+				{
+					"name": "variable.name.smtc",
+					"match": "[a-zA-Z]+"
+				}
+			]
+		}
 	},
 	"scopeName": "source.smtc"
 }
