@@ -34,7 +34,7 @@ pub enum EvalError {
     NonPrependableObject(String),
 }
 
-fn truthy(val: Object) -> bool {
+fn truthy(val: &Object) -> bool {
     match val {
         Object::Boolean(boolean) => boolean.value(),
         _ => false,
@@ -231,7 +231,7 @@ fn if_(
     second: &ASTNode,
     env: &mut Environment,
 ) -> Result<Object, Error> {
-    if truthy(cond) {
+    if truthy(&cond) {
         exec(first, env)
     } else {
         exec(second, env)
