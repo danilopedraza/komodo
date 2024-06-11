@@ -166,7 +166,11 @@ fn exec_error_msg(err: &EvalError) -> String {
 }
 
 fn failed_assertion(msg: &str) -> String {
-    format!("Failed assertion: {msg}")
+    if msg.is_empty() {
+        "Failed assertion".into()
+    } else {
+        format!("Failed assertion: {msg}")
+    }
 }
 
 fn bad_fraction(numer_kind: &str, denom_kind: &str) -> String {
@@ -388,6 +392,22 @@ mod tests {
         assert_eq!(
             bad_fraction("symbol", "list"),
             String::from("Cannot create a fraction from `symbol` and `list`"),
+        );
+    }
+
+    #[test]
+    fn _failed_assertion_no_message() {
+        assert_eq!(
+            failed_assertion(""),
+            String::from("Failed assertion"),
+        );
+    }
+
+    #[test]
+    fn _failed_assertion() {
+        assert_eq!(
+            failed_assertion("this is not what I want"),
+            String::from("Failed assertion: this is not what I want"),
         );
     }
 }
