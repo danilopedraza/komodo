@@ -1344,12 +1344,14 @@ impl fmt::Display for Range {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct FailedAssertion(pub String);
+pub struct FailedAssertion(pub Option<String>);
 
 impl fmt::Display for FailedAssertion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let msg = &self.0;
-        write!(f, "Failed assertion: {msg}")
+        match &self.0 {
+            None => write!(f, "Failed assertion"),
+            Some(msg) => write!(f, "Failed assertion: {msg}"),
+        }
     }
 }
 

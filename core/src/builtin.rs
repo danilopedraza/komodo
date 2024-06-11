@@ -23,8 +23,8 @@ fn smtc_getln(_args: &[Object]) -> Object {
 
 fn smtc_assert(args: &[Object]) -> Object {
     match (truthy(&args[0]), args.len()) {
-        (false, len) if len > 1 => Object::Error(FailedAssertion(args[1].to_string())),
-        (false, _) => Object::Error(FailedAssertion("".into())),
+        (false, len) if len > 1 => Object::Error(FailedAssertion(Some(args[1].to_string()))),
+        (false, _) => Object::Error(FailedAssertion(None)),
         _ => Object::empty_tuple(),
     }
 }

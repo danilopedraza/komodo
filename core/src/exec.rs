@@ -17,7 +17,7 @@ pub enum EvalError {
         denom_kind: String,
     },
     DenominatorZero,
-    FailedAssertion(String),
+    FailedAssertion(Option<String>),
     MissingFunctionArguments {
         expected: usize,
         actual: usize,

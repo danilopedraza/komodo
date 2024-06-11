@@ -165,11 +165,10 @@ fn exec_error_msg(err: &EvalError) -> String {
     }
 }
 
-fn failed_assertion(msg: &str) -> String {
-    if msg.is_empty() {
-        "Failed assertion".into()
-    } else {
-        format!("Failed assertion: {msg}")
+fn failed_assertion(msg: &Option<String>) -> String {
+    match msg {
+        None => "Failed assertion".into(),
+        Some(msg) => format!("Failed assertion: {msg}"),
     }
 }
 
@@ -397,16 +396,13 @@ mod tests {
 
     #[test]
     fn _failed_assertion_no_message() {
-        assert_eq!(
-            failed_assertion(""),
-            String::from("Failed assertion"),
-        );
+        assert_eq!(failed_assertion(&None), String::from("Failed assertion"),);
     }
 
     #[test]
     fn _failed_assertion() {
         assert_eq!(
-            failed_assertion("this is not what I want"),
+            failed_assertion(&Some(String::from("this is not what I want"))),
             String::from("Failed assertion: this is not what I want"),
         );
     }

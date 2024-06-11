@@ -11,7 +11,7 @@ fn failed_assertion() {
     assert_eq!(
         run(code),
         Err(Error::new(
-            EvalError::FailedAssertion("1 is different from 2".into()).into(),
+            EvalError::FailedAssertion(Some("1 is different from 2".into())).into(),
             Position::new(0, code.len())
         )),
     );
