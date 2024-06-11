@@ -151,6 +151,7 @@ fn exec_error_msg(err: &EvalError) -> String {
             denom_kind,
         } => bad_fraction(numer_kind, denom_kind),
         EvalError::DenominatorZero => todo!(),
+        EvalError::FailedAssertion(_) => todo!(),
         EvalError::MissingFunctionArguments { expected, actual } => {
             missing_func_arguments(*expected, *actual)
         }

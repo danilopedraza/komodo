@@ -1,6 +1,7 @@
 use crate::error::{Error, Position};
 use crate::object::{
-    self, Callable, ComprehensionSet, Decimal, ExtensionList, Fraction, Function, Kind, Range,
+    self, Callable, ComprehensionSet, Decimal, ExtensionList, FailedAssertion, Fraction, Function,
+    Kind, Range,
 };
 
 use crate::ast::{ASTNode, ASTNodeType, InfixOperator, PrefixOperator};
@@ -16,6 +17,7 @@ pub enum EvalError {
         denom_kind: String,
     },
     DenominatorZero,
+    FailedAssertion(String),
     MissingFunctionArguments {
         expected: usize,
         actual: usize,
@@ -34,7 +36,7 @@ pub enum EvalError {
     NonPrependableObject(String),
 }
 
-fn truthy(val: &Object) -> bool {
+pub fn truthy(val: &Object) -> bool {
     match val {
         Object::Boolean(boolean) => boolean.value(),
         _ => false,
@@ -52,7 +54,7 @@ fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, Error> {
 }
 
 pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
-    match &node._type {
+    let res = match &node._type {
         ASTNodeType::Symbol(str) => symbol(str, env),
         ASTNodeType::ExtensionSet(l) => extension_set(l, env),
         ASTNodeType::Integer(str) => integer(str),
@@ -78,6 +80,15 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType::Prepend(first, most) => prepend(exec(first, env)?, most, env),
         ASTNodeType::Decimal(int, dec) => decimal(int, dec),
         ASTNodeType::Fraction(numer, denom) => fraction(numer, denom, node.position, env),
+    };
+
+    if let Ok(Object::Error(FailedAssertion(msg))) = res {
+        Err(Error::new(
+            EvalError::FailedAssertion(msg).into(),
+            node.position,
+        ))
+    } else {
+        res
     }
 }
 

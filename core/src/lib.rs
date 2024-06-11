@@ -2,7 +2,7 @@ mod ast;
 mod builtin;
 mod env;
 pub mod error;
-mod exec;
+pub mod exec;
 mod lexer;
 mod matcher;
 mod object;

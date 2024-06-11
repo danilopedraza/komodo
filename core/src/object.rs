@@ -85,6 +85,7 @@ pub enum Object {
     Boolean(Bool),
     Char(Char),
     Decimal(Decimal),
+    Error(FailedAssertion),
     ExtensionList(ExtensionList),
     ExtensionSet(ExtensionSet),
     Fraction(Fraction),
@@ -110,6 +111,7 @@ impl fmt::Display for Object {
             Object::Char(chr) => chr.fmt(f),
             Object::ComprehensionSet(set) => set.fmt(f),
             Object::Decimal(dec) => dec.fmt(f),
+            Object::Error(err) => err.fmt(f),
             Object::ExtensionList(list) => list.fmt(f),
             Object::ExtensionSet(es) => es.fmt(f),
             Object::Fraction(frac) => frac.fmt(f),
@@ -134,6 +136,7 @@ impl Kind for Object {
             Object::Char(_) => "character",
             Object::ComprehensionSet(_) => "comprehension set",
             Object::Decimal(_) => "decimal",
+            Object::Error(_) => "error",
             Object::ExtensionList(_) => "extension list",
             Object::ExtensionSet(_) => "extension set",
             Object::Fraction(_) => "fraction",
@@ -156,6 +159,7 @@ macro_rules! derived_object_infix_trait {
                 Self::Char(left) => left.$ident(other),
                 Self::ComprehensionSet(left) => left.$ident(other),
                 Self::Decimal(left) => left.$ident(other),
+                Self::Error(left) => left.$ident(other),
                 Self::ExtensionList(left) => left.$ident(other),
                 Self::ExtensionSet(left) => left.$ident(other),
                 Self::Fraction(left) => left.$ident(other),
@@ -211,6 +215,7 @@ macro_rules! derived_object_prefix_trait {
                 Self::Char(left) => left.$ident(),
                 Self::ComprehensionSet(left) => left.$ident(),
                 Self::Decimal(left) => left.$ident(),
+                Self::Error(left) => left.$ident(),
                 Self::ExtensionList(left) => left.$ident(),
                 Self::ExtensionSet(left) => left.$ident(),
                 Self::Fraction(left) => left.$ident(),
@@ -1337,6 +1342,19 @@ impl fmt::Display for Range {
         self.end.fmt(f)
     }
 }
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct FailedAssertion(pub String);
+
+impl fmt::Display for FailedAssertion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let msg = &self.0;
+        write!(f, "Failed assertion: {msg}")
+    }
+}
+
+impl PrefixOperable for FailedAssertion {}
+impl InfixOperable for FailedAssertion {}
 
 #[cfg(test)]
 mod tests {

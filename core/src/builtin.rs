@@ -1,6 +1,7 @@
 use crate::{
     env::Environment,
-    object::{Effect, Function, MyString, Object, Tuple},
+    exec::truthy,
+    object::{Effect, FailedAssertion, Function, MyString, Object, Tuple},
 };
 
 use std::io::{stdin, BufRead};
@@ -18,6 +19,14 @@ fn smtc_getln(_args: &[Object]) -> Object {
     line.pop();
 
     Object::String(MyString::from(line.as_str()))
+}
+
+fn smtc_assert(args: &[Object]) -> Object {
+    match (truthy(&args[0]), args.len()) {
+        (false, len) if len > 1 => Object::Error(FailedAssertion(args[1].to_string())),
+        (false, _) => Object::Error(FailedAssertion("".into())),
+        _ => Object::empty_tuple(),
+    }
 }
 
 fn env_with(assets: Vec<(&str, Object)>) -> Environment {
@@ -39,6 +48,10 @@ pub fn standard_env() -> Environment {
         (
             "getln",
             Object::Function(Function::Effect(Effect::new(smtc_getln, 1))),
+        ),
+        (
+            "assert",
+            Object::Function(Function::Effect(Effect::new(smtc_assert, 1))),
         ),
     ])
 }
