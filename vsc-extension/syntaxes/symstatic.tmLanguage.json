@@ -12,6 +12,12 @@
 			"include": "#chars"
 		},
 		{
+			"include": "#numbers"
+		},
+		{
+			"include": "#calls"
+		},
+		{
 			"include": "#symbols"
 		}
 	],
@@ -43,6 +49,26 @@
 				{
 					"name": "constant.character.escape.smtc",
 					"match": "\\\\."
+				}
+			]
+		},
+		"numbers": {
+			"patterns": [
+        {
+          "name": "constant.numeric.integer.smtc",
+          "match": "(?<![\\w\\d.])\\d+(?![.])"
+        },
+        {
+          "name": "constant.numeric.float.smtc",
+          "match": "(\\d+)?\\.(\\d+)?"
+        }
+      ]
+		},
+		"calls": {
+			"patterns": [
+				{
+					"name": "entity.name.function.smtc",
+					"match": "[a-zA-Z]+(\\()"
 				}
 			]
 		},
