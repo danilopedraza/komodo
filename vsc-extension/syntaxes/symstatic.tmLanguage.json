@@ -15,6 +15,9 @@
 			"include": "#numbers"
 		},
 		{
+			"include": "#keywords"
+		},
+		{
 			"include": "#calls"
 		},
 		{
@@ -63,6 +66,18 @@
           "match": "(\\d+)?\\.(\\d+)?"
         }
       ]
+		},
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword.other.smtc",
+					"match": "\\b(true|false|let|in)\\b"
+				},
+				{
+					"name": "keyword.control.smtc",
+					"match": "\\b(for|if|else|then)\\b"
+				}
+			]
 		},
 		"calls": {
 			"patterns": [
