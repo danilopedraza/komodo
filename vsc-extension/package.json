@@ -27,5 +27,8 @@
       "scopeName": "source.smtc",
       "path": "./syntaxes/symstatic.tmLanguage.json"
     }]
+  },
+  "scripts": {
+    "deploy": "vsce publish --yarn"
   }
 }
