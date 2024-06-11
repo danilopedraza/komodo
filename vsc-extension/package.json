@@ -29,6 +29,6 @@
     }]
   },
   "scripts": {
-    "deploy": "vsce publish --yarn"
+    "deploy": "vsce publish"
   }
 }

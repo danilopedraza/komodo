@@ -19,7 +19,7 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: 18.x
-    - run: npm install
+    - run: npm install && npm install @vscode/vsce --save-dev
     - name: Publish
       run: npm run deploy
       env:
