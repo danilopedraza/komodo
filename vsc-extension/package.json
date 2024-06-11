@@ -4,7 +4,7 @@
   "description": "A VSC extension for Symstatic.",
   "license": "GPL-3.0-only",
   "publisher": "symstatic",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/danilopedraza/symstatic"
@@ -29,6 +29,6 @@
     }]
   },
   "scripts": {
-    "deploy": "vsce publish"
+    "deploy": "vsce publish --skip-duplicate"
   }
 }
