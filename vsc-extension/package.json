@@ -3,6 +3,10 @@
   "displayName": "symstatic-analyzer",
   "description": "",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danilopedraza/symstatic"
+  },
   "engines": {
     "vscode": "^1.89.0"
   },
