@@ -150,8 +150,10 @@ fn exec_error_msg(err: &EvalError) -> String {
             numer_kind,
             denom_kind,
         } => bad_fraction(numer_kind, denom_kind),
-        EvalError::DenominatorZero => todo!(),
-        EvalError::FailedAssertion(_) => todo!(),
+        EvalError::DenominatorZero => {
+            "Cannot create a fraction with zero as the denominator".into()
+        }
+        EvalError::FailedAssertion(msg) => failed_assertion(msg),
         EvalError::MissingFunctionArguments { expected, actual } => {
             missing_func_arguments(*expected, *actual)
         }
@@ -161,6 +163,10 @@ fn exec_error_msg(err: &EvalError) -> String {
         EvalError::NonExistentPrefixOperation { op, rhs } => non_existent_prefix(op, rhs),
         EvalError::NonExistentInfixOperation { op, lhs, rhs } => non_existent_infix(op, lhs, rhs),
     }
+}
+
+fn failed_assertion(msg: &str) -> String {
+    format!("Failed assertion: {msg}")
 }
 
 fn bad_fraction(numer_kind: &str, denom_kind: &str) -> String {
