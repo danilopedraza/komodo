@@ -1,3 +1,3 @@
 # symstatic-analyzer
 
-A VSCode extension for Symstatic.
+A VSC extension for Symstatic.

@@ -1,7 +1,8 @@
 {
   "name": "symstatic-analyzer",
   "displayName": "symstatic-analyzer",
-  "description": "",
+  "description": "A VSC extension for Symstatic.",
+  "publisher": "symstatic",
   "version": "0.0.1",
   "repository": {
     "type": "git",
