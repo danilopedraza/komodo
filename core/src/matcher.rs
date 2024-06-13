@@ -8,39 +8,33 @@ use crate::{
 };
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum Match {
-    Match(Vec<(String, Object)>),
-    NotAMatch,
-}
+pub struct Match(pub Vec<(String, Object)>);
 
-pub fn match_call(patterns: &[ASTNode], args: &[Object]) -> Match {
+pub fn match_call(patterns: &[ASTNode], args: &[Object]) -> Option<Match> {
     match_list(patterns, args)
 }
 
-fn join(map1: Match, map2: Match) -> Match {
-    match (map1, map2) {
-        (Match::Match(v1), Match::Match(v2)) => {
-            for (key1, val1) in &v1 {
-                for (key2, val2) in &v2 {
-                    if key1 == key2 && val1 != val2 {
-                        return Match::NotAMatch;
-                    }
-                }
+fn join(map1: Option<Match>, map2: Option<Match>) -> Option<Match> {
+    let Match(v1) = map1?;
+    let Match(v2) = map2?;
+    for (key1, val1) in &v1 {
+        for (key2, val2) in &v2 {
+            if key1 == key2 && val1 != val2 {
+                return None;
             }
-
-            let mut map = vec![];
-            map.extend(v1);
-            map.extend(v2);
-
-            Match::Match(map)
         }
-        _ => Match::NotAMatch,
     }
+
+    let mut map = vec![];
+    map.extend(v1);
+    map.extend(v2);
+
+    Some(Match(map))
 }
 
-fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Match {
+fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Option<Match> {
     if patterns.len() != vals.len() {
-        Match::NotAMatch
+        None
     } else {
         zip(patterns, vals)
             .map(|(pattern, val)| match_(pattern, val))
@@ -48,7 +42,7 @@ fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Match {
     }
 }
 
-fn match_(pattern: &ASTNode, val: &Object) -> Match {
+fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
     match &pattern._type {
         ASTNodeType::Wildcard => empty_match(),
         ASTNodeType::Symbol(s) => single_match(s, val),
@@ -58,22 +52,22 @@ fn match_(pattern: &ASTNode, val: &Object) -> Match {
     }
 }
 
-fn single_match(name: &str, val: &Object) -> Match {
-    Match::Match(vec![(name.to_string(), val.clone())])
+fn single_match(name: &str, val: &Object) -> Option<Match> {
+    Some(Match(vec![(name.to_string(), val.clone())]))
 }
 
-fn empty_match() -> Match {
-    Match::Match(vec![])
+fn empty_match() -> Option<Match> {
+    Some(Match(vec![]))
 }
 
-fn match_extension_list(pattern: &[ASTNode], val: &Object) -> Match {
+fn match_extension_list(pattern: &[ASTNode], val: &Object) -> Option<Match> {
     match val {
         Object::ExtensionList(ExtensionList { list: al }) => match_list(pattern, al),
-        _ => Match::NotAMatch,
+        _ => None,
     }
 }
 
-fn match_prefix_crop(first: &ASTNode, most: &ASTNode, val: &Object) -> Match {
+fn match_prefix_crop(first: &ASTNode, most: &ASTNode, val: &Object) -> Option<Match> {
     match val {
         Object::ExtensionList(ExtensionList { list }) if !list.is_empty() => {
             let first_match = match_(first, &list[0]);
@@ -83,15 +77,15 @@ fn match_prefix_crop(first: &ASTNode, most: &ASTNode, val: &Object) -> Match {
 
             join(first_match, last_match)
         }
-        _ => Match::NotAMatch,
+        _ => None,
     }
 }
 
-fn match_constant(pattern: &ASTNode, val: &Object) -> Match {
+fn match_constant(pattern: &ASTNode, val: &Object) -> Option<Match> {
     if exec(pattern, &mut Environment::default()).unwrap() == *val {
         empty_match()
     } else {
-        Match::NotAMatch
+        None
     }
 }
 
@@ -122,10 +116,10 @@ mod tests {
 
         assert_eq!(
             match_list(&patterns, &args),
-            Match::Match(vec![
+            Some(Match(vec![
                 (String::from("a"), Object::Integer(Integer::from(1))),
                 (String::from("b"), Object::Integer(Integer::from(2)))
-            ])
+            ]))
         );
     }
 
@@ -142,13 +136,13 @@ mod tests {
 
         assert_eq!(
             match_(&pattern, &value),
-            Match::Match(vec![
+            Some(Match(vec![
                 (String::from("first"), Object::Integer(Integer::from(4))),
                 (
                     String::from("most"),
                     Object::ExtensionList(ExtensionList::from(vec![]))
                 ),
-            ]),
+            ])),
         );
     }
 
@@ -161,6 +155,6 @@ mod tests {
             Object::Integer(Integer::from(2)),
         ];
 
-        assert_eq!(match_call(&patterns, &values), Match::NotAMatch);
+        assert_eq!(match_call(&patterns, &values), None);
     }
 }

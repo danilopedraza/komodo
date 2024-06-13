@@ -1048,7 +1048,7 @@ impl DefinedFunction {
         env: &mut Environment,
     ) -> Option<Result<Object, Error>> {
         for (patterns, val) in &self.patterns {
-            if let Match::Match(v) = match_call(patterns, args) {
+            if let Some(Match(v)) = match_call(patterns, args) {
                 env.push_scope();
 
                 for (name, pattern_val) in v {
