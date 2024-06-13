@@ -1,4 +1,4 @@
-name: Interpreter Unit Tests
+name: Interpreter Tests
 
 on:
   push:
@@ -25,5 +25,9 @@ jobs:
       run: cargo fmt --check
     - name: Lint
       run: cargo clippy --all-targets --all-features
-    - name: Test
+    - name: Run Unit Tests
       run: cargo test --verbose
+    - name: Build
+      run: cargo build --release --verbose
+    - name: Run e2e Tests
+      run: sh ../tests/interpreter-e2e.sh
