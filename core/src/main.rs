@@ -10,13 +10,24 @@ fn run_smtc(args: &[String]) -> ExitCode {
         repl(&mut MyCLI::default());
         ExitCode::SUCCESS
     } else {
-        let input = fs::read_to_string(&args[1]).unwrap();
-        let res = run(&input);
-        if let Err(err) = res {
-            error_msg(&err).emit(&args[1], &input);
-            ExitCode::FAILURE
-        } else {
-            ExitCode::SUCCESS
+        let path = &args[1];
+        let input_res = fs::read_to_string(path);
+
+        match input_res {
+            Ok(input) => {
+                let res = run(&input);
+                if let Err(err) = res {
+                    error_msg(&err).emit(path, &input);
+                    ExitCode::FAILURE
+                } else {
+                    ExitCode::SUCCESS
+                }
+            }
+            Err(err) => {
+                let msg = err.to_string();
+                println!("Error reading {path}: {msg}");
+                ExitCode::FAILURE
+            }
         }
     }
 }
