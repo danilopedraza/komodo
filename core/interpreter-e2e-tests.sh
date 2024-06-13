@@ -1,7 +1,7 @@
 #!/bin/bash
 
-examples_dir="$(pwd)/examples"
-binary_path="$(pwd)/core/target/release/symstatic"
+examples_dir="$(pwd)/../examples"
+binary_path="$(pwd)/target/release/symstatic"
 
 for file in $(find "$examples_dir" -type f -name "*.smtc"); do
     output=$(eval "$binary_path $file" 2>&1)

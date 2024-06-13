@@ -30,4 +30,4 @@ jobs:
     - name: Build
       run: cargo build --release --verbose
     - name: Run e2e Tests
-      run: sh ../tests/interpreter-e2e.sh
+      run: sh interpreter-e2e-tests.sh
