@@ -169,6 +169,10 @@ impl Lexer<'_> {
 
         loop {
             match self.next_char() {
+                Some('\\') => match self.next_char() {
+                    Some(c) => str.push(c),
+                    None => break Err(LexerError::UnterminatedString),
+                },
                 Some('"') => break Ok(TokenType::String(str)),
                 Some(c) => str.push(c),
                 None => break Err(LexerError::UnterminatedString),
@@ -700,6 +704,19 @@ mod tests {
         assert_eq!(
             build_lexer(code).next(),
             Some(Err(Error::new(LexerError::EmptyChar.into(), _pos(0, 2)))),
+        );
+    }
+
+    #[test]
+    fn escape_string() {
+        let code = "\"\\\"\"";
+
+        assert_eq!(
+            build_lexer(code).next(),
+            Some(Ok(Token::new(
+                TokenType::String(String::from("\"")),
+                _pos(0, 4)
+            )))
         );
     }
 }
