@@ -176,16 +176,19 @@ impl Lexer<'_> {
     }
 
     fn char(&mut self) -> Option<LexerResult> {
-        let chr = self.next_char();
-        if chr.is_none() {
-            return Some(Err(LexerError::UnterminatedChar));
+        if let Some('\\') = self.input.peek() {
+            self.next_token();
         }
 
-        Some(match self.next_char() {
-            Some('\'') => Ok(TokenType::Char(chr.unwrap())),
-            Some(c) => Err(LexerError::UnexpectedChar(c)),
-            None => Err(LexerError::UnterminatedChar),
-        })
+        match (self.next_char(), self.next_char()) {
+            (Some(chr), Some('\'')) => {
+                Some(Ok(TokenType::Char(chr)))
+            },
+            (Some(_), Some(c)) => {
+                Some(Err(LexerError::UnexpectedChar(c)))
+            },
+            _ => Some(Err(LexerError::UnterminatedChar))
+        }
     }
 
     fn skip_comment(&mut self) {
@@ -670,6 +673,22 @@ mod tests {
                 TokenType::Integer(String::from("1")),
                 TokenType::SlashSlash,
                 TokenType::Integer(String::from("2")),
+            ],
+        );
+    }
+
+    #[test]
+    fn escape_char() {
+        let code = "'\\''";
+        
+        assert_eq!(
+            build_lexer(code)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|res| res.unwrap().token)
+                .collect::<Vec<_>>(),
+            vec![
+                TokenType::Char('\''),
             ],
         );
     }
