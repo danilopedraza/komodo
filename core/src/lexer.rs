@@ -4,6 +4,7 @@ use crate::error::{Error, Position};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LexerError {
+    EmptyChar,
     UnexpectedChar(char),
     UnterminatedChar,
     UnterminatedString,
@@ -176,18 +177,19 @@ impl Lexer<'_> {
     }
 
     fn char(&mut self) -> Option<LexerResult> {
+        if let Some('\'') = self.input.peek() {
+            self.next_token();
+            return Some(Err(LexerError::EmptyChar));
+        }
+
         if let Some('\\') = self.input.peek() {
             self.next_token();
         }
 
         match (self.next_char(), self.next_char()) {
-            (Some(chr), Some('\'')) => {
-                Some(Ok(TokenType::Char(chr)))
-            },
-            (Some(_), Some(c)) => {
-                Some(Err(LexerError::UnexpectedChar(c)))
-            },
-            _ => Some(Err(LexerError::UnterminatedChar))
+            (Some(chr), Some('\'')) => Some(Ok(TokenType::Char(chr))),
+            (Some(_), Some(c)) => Some(Err(LexerError::UnexpectedChar(c))),
+            _ => Some(Err(LexerError::UnterminatedChar)),
         }
     }
 
@@ -680,16 +682,24 @@ mod tests {
     #[test]
     fn escape_char() {
         let code = "'\\''";
-        
+
         assert_eq!(
             build_lexer(code)
                 .collect::<Vec<_>>()
                 .into_iter()
                 .map(|res| res.unwrap().token)
                 .collect::<Vec<_>>(),
-            vec![
-                TokenType::Char('\''),
-            ],
+            vec![TokenType::Char('\''),],
+        );
+    }
+
+    #[test]
+    fn empty_char() {
+        let code = "''";
+
+        assert_eq!(
+            build_lexer(code).next(),
+            Some(Err(Error::new(LexerError::EmptyChar.into(), _pos(0, 2)))),
         );
     }
 }

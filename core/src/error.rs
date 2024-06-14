@@ -121,6 +121,7 @@ fn found_a(tok: &TokenType) -> String {
 
 fn lexer_error_msg(err: &LexerError) -> String {
     match err {
+        LexerError::EmptyChar => "This character is empty".into(),
         LexerError::UnexpectedChar(chr) => unexpected_char(*chr),
         LexerError::UnterminatedChar => {
             "The end of the program was reached while reading a character".into()
