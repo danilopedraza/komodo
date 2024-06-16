@@ -378,7 +378,7 @@ fn infix(
         InfixOperator::LessEqual => lhs.less_equal(rhs),
         InfixOperator::LogicAnd => lhs.logic_and(rhs),
         InfixOperator::Or => lhs.or(rhs),
-        InfixOperator::Mod => lhs.modulo(rhs),
+        InfixOperator::Rem => lhs.modulo(rhs),
         InfixOperator::NotEquality => lhs.neq(rhs),
         InfixOperator::Product => lhs.product(rhs),
         InfixOperator::RightShift => lhs.right_shift(rhs),
@@ -702,7 +702,7 @@ mod tests {
     #[test]
     fn remainder() {
         let node = &infix(
-            InfixOperator::Mod,
+            InfixOperator::Rem,
             integer("3", dummy_pos()),
             integer("2", dummy_pos()),
             dummy_pos(),

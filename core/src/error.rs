@@ -100,7 +100,7 @@ fn found_a(tok: &TokenType) -> String {
         TokenType::LogicOr => "a double pipe symbol: `||`".into(),
         TokenType::Lparen => "a left parenthesis: `(`".into(),
         TokenType::Minus => "a minus operator: `-`".into(),
-        TokenType::Mod => "a modulo operator: `%`".into(),
+        TokenType::Percent => "a modulo operator: `%`".into(),
         TokenType::NotEqual => "a non-equality operator: `/=`".into(),
         TokenType::Over => "a division operator: `/`".into(),
         TokenType::Plus => "a plus operator: `+`".into(),

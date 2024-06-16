@@ -645,7 +645,7 @@ mod tests {
             Token::new(TokenType::Integer(String::from("5")), _pos(4, 1)),
             Token::new(TokenType::NotEqual, _pos(6, 2)),
             Token::new(TokenType::Integer(String::from("6")), _pos(9, 1)),
-            Token::new(TokenType::Mod, _pos(11, 1)),
+            Token::new(TokenType::Percent, _pos(11, 1)),
             Token::new(TokenType::Integer(String::from("2")), _pos(13, 1)),
         ];
 
@@ -660,7 +660,7 @@ mod tests {
                     _pos(0, 5)
                 ),
                 infix(
-                    InfixOperator::Mod,
+                    InfixOperator::Rem,
                     integer("6", _pos(9, 1)),
                     integer("2", _pos(13, 1)),
                     _pos(9, 5)
@@ -806,7 +806,7 @@ mod tests {
             Token::new(TokenType::Integer(String::from("1")), _pos(16, 1)),
             Token::new(TokenType::Plus, _pos(18, 1)),
             Token::new(TokenType::Integer(String::from("0")), _pos(20, 1)),
-            Token::new(TokenType::Mod, _pos(22, 1)),
+            Token::new(TokenType::Percent, _pos(22, 1)),
             Token::new(TokenType::Integer(String::from("2")), _pos(24, 1)),
         ];
 
@@ -823,7 +823,7 @@ mod tests {
                     InfixOperator::Sum,
                     integer("1", _pos(16, 1)),
                     infix(
-                        InfixOperator::Mod,
+                        InfixOperator::Rem,
                         integer("0", _pos(20, 1)),
                         integer("2", _pos(24, 1)),
                         _pos(20, 5)
