@@ -483,7 +483,11 @@ pub fn parser_from<T: Iterator<Item = Result<Token, Error>>>(tokens: T) -> Parse
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{error::Position, lexer::build_lexer};
+    use crate::{
+        ast::tests::{_boolean, _char, _integer, _pos, _string},
+        error::Position,
+        lexer::build_lexer,
+    };
     use std::iter;
 
     #[test]

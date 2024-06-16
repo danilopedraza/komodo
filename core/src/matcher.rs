@@ -92,7 +92,7 @@ fn match_constant(pattern: &ASTNode, val: &Object) -> Option<Match> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{_dummy_pos, _extension_list, _prepend, _symbol},
+        ast::{_extension_list, _prepend, _symbol, tests::_dummy_pos},
         object::Integer,
     };
 

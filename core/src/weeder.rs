@@ -118,7 +118,10 @@ fn function(params_node: ASTNode, proc_node: ASTNode, position: Position) -> AST
 mod tests {
     use std::vec;
 
-    use crate::ast::{_dummy_pos, _fraction, _function, _integer, _signature, _symbol};
+    use crate::ast::{
+        _signature, _symbol,
+        tests::{_dummy_pos, _function, _integer},
+    };
 
     use super::*;
 

@@ -431,10 +431,10 @@ mod tests {
     use bigdecimal::BigDecimal;
 
     use super::*;
+    use crate::ast::tests::{_boolean, _decimal, _dummy_pos, _function, _integer, _pos, _range};
     use crate::ast::{
-        _boolean, _call, _comprehension_list, _comprehension_set, _decimal, _dummy_pos,
-        _extension_list, _extension_set, _for, _fraction, _function, _infix, _integer, _let_, _pos,
-        _prefix, _prepend, _range, _signature, _symbol, _tuple,
+        _call, _comprehension_list, _comprehension_set, _extension_list, _extension_set, _for,
+        _fraction, _infix, _let_, _prefix, _prepend, _signature, _symbol, _tuple,
     };
     use crate::error::ErrorType;
     use crate::object::*;
