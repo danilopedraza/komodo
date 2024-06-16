@@ -25,7 +25,7 @@ fn run_smtc(args: &[String]) -> ExitCode {
             }
             Err(err) => {
                 let msg = err.to_string();
-                println!("Error reading {path}: {msg}");
+                eprintln!("Error reading {path}: {msg}");
                 ExitCode::FAILURE
             }
         }
