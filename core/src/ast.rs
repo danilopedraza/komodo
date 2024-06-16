@@ -204,7 +204,7 @@ pub enum ASTNodeType {
     Integer(String),
     Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
     Prefix(PrefixOperator, Box<ASTNode>),
-    Prepend(Box<ASTNode>, Box<ASTNode>),
+    Cons(Box<ASTNode>, Box<ASTNode>),
     Signature(Box<ASTNode>, Option<Box<ASTNode>>),
     String(String),
     Symbol(String),
@@ -212,55 +212,52 @@ pub enum ASTNodeType {
     Wildcard,
 }
 
-pub fn _let_(ident: ASTNode, params: Vec<ASTNode>, val: ASTNode, position: Position) -> ASTNode {
+pub fn let_(ident: ASTNode, params: Vec<ASTNode>, val: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
         ASTNodeType::Let(Box::new(ident), params, Box::new(val)),
         position,
     )
 }
 
-pub fn _signature(symbol: ASTNode, type_: Option<ASTNode>, position: Position) -> ASTNode {
+pub fn signature(symbol: ASTNode, type_: Option<ASTNode>, position: Position) -> ASTNode {
     ASTNode::new(
         ASTNodeType::Signature(Box::new(symbol), type_.map(Box::new)),
         position,
     )
 }
 
-pub fn _symbol(name: &str, position: Position) -> ASTNode {
+pub fn symbol(name: &str, position: Position) -> ASTNode {
     ASTNode::new(ASTNodeType::Symbol(name.into()), position)
 }
 
-pub fn _infix(op: InfixOperator, lhs: ASTNode, rhs: ASTNode, position: Position) -> ASTNode {
+pub fn infix(op: InfixOperator, lhs: ASTNode, rhs: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
         ASTNodeType::Infix(op, Box::new(lhs), Box::new(rhs)),
         position,
     )
 }
 
-pub fn _tuple(list: Vec<ASTNode>, position: Position) -> ASTNode {
+pub fn tuple(list: Vec<ASTNode>, position: Position) -> ASTNode {
     ASTNode::new(ASTNodeType::Tuple(list), position)
 }
 
-pub fn _extension_list(list: Vec<ASTNode>, position: Position) -> ASTNode {
+pub fn extension_list(list: Vec<ASTNode>, position: Position) -> ASTNode {
     ASTNode::new(ASTNodeType::ExtensionList(list), position)
 }
 
-pub fn _extension_set(list: Vec<ASTNode>, position: Position) -> ASTNode {
+pub fn extension_set(list: Vec<ASTNode>, position: Position) -> ASTNode {
     ASTNode::new(ASTNodeType::ExtensionSet(list), position)
 }
 
-pub fn _comprehension_list(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
+pub fn comprehension_list(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
         ASTNodeType::ComprehensionList(Box::new(val), Box::new(prop)),
         position,
     )
 }
 
-pub fn _prepend(first: ASTNode, most: ASTNode, position: Position) -> ASTNode {
-    ASTNode::new(
-        ASTNodeType::Prepend(Box::new(first), Box::new(most)),
-        position,
-    )
+pub fn cons(first: ASTNode, most: ASTNode, position: Position) -> ASTNode {
+    ASTNode::new(ASTNodeType::Cons(Box::new(first), Box::new(most)), position)
 }
 
 pub fn _for(var: &str, iter: ASTNode, block: Vec<ASTNode>, position: Position) -> ASTNode {
@@ -270,29 +267,29 @@ pub fn _for(var: &str, iter: ASTNode, block: Vec<ASTNode>, position: Position) -
     )
 }
 
-pub fn _if_(cond: ASTNode, first_res: ASTNode, second_res: ASTNode, position: Position) -> ASTNode {
+pub fn _if(cond: ASTNode, first_res: ASTNode, second_res: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
         ASTNodeType::If(Box::new(cond), Box::new(first_res), Box::new(second_res)),
         position,
     )
 }
 
-pub fn _prefix(op: PrefixOperator, val: ASTNode, position: Position) -> ASTNode {
+pub fn prefix(op: PrefixOperator, val: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(ASTNodeType::Prefix(op, Box::new(val)), position)
 }
 
-pub fn _comprehension_set(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
+pub fn comprehension_set(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
         ASTNodeType::ComprehensionSet(Box::new(val), Box::new(prop)),
         position,
     )
 }
 
-pub fn _call(called: ASTNode, args: Vec<ASTNode>, position: Position) -> ASTNode {
+pub fn call(called: ASTNode, args: Vec<ASTNode>, position: Position) -> ASTNode {
     ASTNode::new(ASTNodeType::Call(Box::new(called), args), position)
 }
 
-pub fn _fraction(num: ASTNode, den: ASTNode, position: Position) -> ASTNode {
+pub fn fraction(num: ASTNode, den: ASTNode, position: Position) -> ASTNode {
     ASTNode::new(
         ASTNodeType::Fraction(Box::new(num), Box::new(den)),
         position,
@@ -306,41 +303,41 @@ pub mod tests {
         Position::new(start, length)
     }
 
-    pub fn _dummy_pos() -> Position {
+    pub fn dummy_pos() -> Position {
         Position::new(0, 0)
     }
 
-    pub fn _boolean(val: bool, position: Position) -> ASTNode {
+    pub fn boolean(val: bool, position: Position) -> ASTNode {
         ASTNode::new(ASTNodeType::Boolean(val), position)
     }
 
-    pub fn _char(val: char, position: Position) -> ASTNode {
+    pub fn char(val: char, position: Position) -> ASTNode {
         ASTNode::new(ASTNodeType::Char(val), position)
     }
 
-    pub fn _string(str: &str, position: Position) -> ASTNode {
+    pub fn string(str: &str, position: Position) -> ASTNode {
         ASTNode::new(ASTNodeType::String(str.into()), position)
     }
 
-    pub fn _integer(int: &str, position: Position) -> ASTNode {
+    pub fn integer(int: &str, position: Position) -> ASTNode {
         ASTNode::new(ASTNodeType::Integer(int.into()), position)
     }
 
-    pub fn _function(params: Vec<&str>, proc: Vec<ASTNode>, position: Position) -> ASTNode {
+    pub fn function(params: Vec<&str>, proc: Vec<ASTNode>, position: Position) -> ASTNode {
         ASTNode::new(
             ASTNodeType::Function(params.into_iter().map(|str| str.to_owned()).collect(), proc),
             position,
         )
     }
 
-    pub fn _decimal(int: &str, dec: &str, position: Position) -> ASTNode {
+    pub fn decimal(int: &str, dec: &str, position: Position) -> ASTNode {
         ASTNode::new(
             ASTNodeType::Decimal(int.to_string(), dec.to_string()),
             position,
         )
     }
 
-    pub fn _range(start: ASTNode, end: ASTNode, position: Position) -> ASTNode {
-        _infix(InfixOperator::Range, start, end, position)
+    pub fn range(start: ASTNode, end: ASTNode, position: Position) -> ASTNode {
+        infix(InfixOperator::Range, start, end, position)
     }
 }

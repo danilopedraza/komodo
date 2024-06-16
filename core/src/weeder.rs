@@ -1,7 +1,8 @@
 use crate::{
+    ast,
     ast::{
-        ASTNode, ASTNodeType, InfixOperator, _call, _comprehension_list, _comprehension_set,
-        _extension_list, _extension_set, _for, _fraction, _if_, _infix, _let_, _prefix, _tuple,
+        comprehension_list, comprehension_set, extension_list, extension_set, ASTNode, ASTNodeType,
+        InfixOperator, _for, _if, let_, prefix, tuple,
     },
     error::Position,
 };
@@ -46,36 +47,36 @@ pub fn postprocess(node: ASTNode) -> ASTNode {
             position,
         ),
         ASTNodeType::ComprehensionList(value, prop) => {
-            _comprehension_list(postprocess(*value), postprocess(*prop), position)
+            comprehension_list(postprocess(*value), postprocess(*prop), position)
         }
         ASTNodeType::ComprehensionSet(value, prop) => {
-            _comprehension_set(postprocess(*value), postprocess(*prop), position)
+            comprehension_set(postprocess(*value), postprocess(*prop), position)
         }
-        ASTNodeType::ExtensionList(vals) => _extension_list(postprocessed_vec(vals), position),
-        ASTNodeType::ExtensionSet(vals) => _extension_set(postprocessed_vec(vals), position),
+        ASTNodeType::ExtensionList(vals) => extension_list(postprocessed_vec(vals), position),
+        ASTNodeType::ExtensionSet(vals) => extension_set(postprocessed_vec(vals), position),
         ASTNodeType::Function(args, proc) => ASTNode::new(
             ASTNodeType::Function(args, postprocessed_vec(proc)),
             position,
         ),
-        ASTNodeType::If(cond, first, second) => _if_(
+        ASTNodeType::If(cond, first, second) => _if(
             postprocess(*cond),
             postprocess(*first),
             postprocess(*second),
             position,
         ),
-        ASTNodeType::Let(ident, params, val) => _let_(*ident, params, postprocess(*val), position),
-        ASTNodeType::Prefix(op, node) => _prefix(op, postprocess(*node), position),
-        ASTNodeType::Tuple(vals) => _tuple(postprocessed_vec(vals), position),
+        ASTNodeType::Let(ident, params, val) => let_(*ident, params, postprocess(*val), position),
+        ASTNodeType::Prefix(op, node) => prefix(op, postprocess(*node), position),
+        ASTNodeType::Tuple(vals) => tuple(postprocessed_vec(vals), position),
         _ => node,
     }
 }
 
 fn fraction(numer: ASTNode, denom: ASTNode, position: Position) -> ASTNode {
-    _fraction(numer, denom, position)
+    ast::fraction(numer, denom, position)
 }
 
 fn infix(op: InfixOperator, lhs: ASTNode, rhs: ASTNode, position: Position) -> ASTNode {
-    _infix(op, postprocess(lhs), postprocess(rhs), position)
+    ast::infix(op, postprocess(lhs), postprocess(rhs), position)
 }
 
 fn call(called_node: ASTNode, args_node: ASTNode, position: Position) -> ASTNode {
@@ -85,7 +86,7 @@ fn call(called_node: ASTNode, args_node: ASTNode, position: Position) -> ASTNode
         _ => todo!(),
     };
 
-    _call(called, args, position)
+    ast::call(called, args, position)
 }
 
 fn function(params_node: ASTNode, proc_node: ASTNode, position: Position) -> ASTNode {
@@ -119,69 +120,65 @@ mod tests {
     use std::vec;
 
     use crate::ast::{
-        _signature, _symbol,
-        tests::{_dummy_pos, _function, _integer},
+        signature, symbol,
+        tests::{dummy_pos, function, integer},
     };
 
     use super::*;
 
     #[test]
     fn inlined_function() {
-        let node = _infix(
+        let node = infix(
             InfixOperator::Call,
-            _infix(
+            infix(
                 InfixOperator::Correspondence,
-                _symbol("x", _dummy_pos()),
-                _symbol("x", _dummy_pos()),
-                _dummy_pos(),
+                symbol("x", dummy_pos()),
+                symbol("x", dummy_pos()),
+                dummy_pos(),
             ),
-            _tuple(vec![_integer("1", _dummy_pos())], _dummy_pos()),
-            _dummy_pos(),
+            tuple(vec![integer("1", dummy_pos())], dummy_pos()),
+            dummy_pos(),
         );
 
         assert_eq!(
             postprocess(node),
-            _call(
-                _function(vec!["x"], vec![_symbol("x", _dummy_pos())], _dummy_pos()),
-                vec![_integer("1", _dummy_pos())],
-                _dummy_pos()
+            ast::call(
+                function(vec!["x"], vec![symbol("x", dummy_pos())], dummy_pos()),
+                vec![integer("1", dummy_pos())],
+                dummy_pos()
             )
         );
     }
 
     #[test]
     fn several_params_function() {
-        let node = _infix(
+        let node = infix(
             InfixOperator::Correspondence,
-            _tuple(
-                vec![_symbol("x", _dummy_pos()), _symbol("y", _dummy_pos())],
-                _dummy_pos(),
+            tuple(
+                vec![symbol("x", dummy_pos()), symbol("y", dummy_pos())],
+                dummy_pos(),
             ),
-            _symbol("x", _dummy_pos()),
-            _dummy_pos(),
+            symbol("x", dummy_pos()),
+            dummy_pos(),
         );
 
         assert_eq!(
             postprocess(node),
-            _function(
-                vec!["x", "y",],
-                vec![_symbol("x", _dummy_pos())],
-                _dummy_pos()
-            ),
+            function(vec!["x", "y",], vec![symbol("x", dummy_pos())], dummy_pos()),
         );
     }
 
     #[test]
-    fn signature() {
-        let node = _signature(
-            _symbol("f", _dummy_pos()),
-            Some(_infix(
+    fn signature_() {
+        let node = signature(
+            symbol("f", dummy_pos()),
+            Some(infix(
                 InfixOperator::Correspondence,
-                _symbol("Real", _dummy_pos()),
-                _symbol("Real", _dummy_pos()),
-                _dummy_pos(),
+                symbol("Real", dummy_pos()),
+                symbol("Real", dummy_pos()),
+                dummy_pos(),
             )),
-            _dummy_pos(),
+            dummy_pos(),
         );
 
         assert_eq!(postprocess(node.clone()), node);
@@ -189,43 +186,43 @@ mod tests {
 
     #[test]
     fn oop_function_call() {
-        let node = _infix(
+        let node = infix(
             InfixOperator::Dot,
-            _symbol("set", _dummy_pos()),
-            _infix(
+            symbol("set", dummy_pos()),
+            infix(
                 InfixOperator::Call,
-                _symbol("map", _dummy_pos()),
-                _tuple(vec![_symbol("func", _dummy_pos())], _dummy_pos()),
-                _dummy_pos(),
+                symbol("map", dummy_pos()),
+                tuple(vec![symbol("func", dummy_pos())], dummy_pos()),
+                dummy_pos(),
             ),
-            _dummy_pos(),
+            dummy_pos(),
         );
 
         assert_eq!(
             postprocess(node),
-            _call(
-                _symbol("map", _dummy_pos()),
-                vec![_symbol("set", _dummy_pos()), _symbol("func", _dummy_pos())],
-                _dummy_pos()
+            ast::call(
+                symbol("map", dummy_pos()),
+                vec![symbol("set", dummy_pos()), symbol("func", dummy_pos())],
+                dummy_pos()
             ),
         );
     }
 
     #[test]
-    fn fraction() {
-        let node = _infix(
+    fn fraction_() {
+        let node = infix(
             InfixOperator::Fraction,
-            _integer("1", _dummy_pos()),
-            _integer("2", _dummy_pos()),
-            _dummy_pos(),
+            integer("1", dummy_pos()),
+            integer("2", dummy_pos()),
+            dummy_pos(),
         );
 
         assert_eq!(
             postprocess(node),
-            _fraction(
-                _integer("1", _dummy_pos()),
-                _integer("2", _dummy_pos()),
-                _dummy_pos()
+            fraction(
+                integer("1", dummy_pos()),
+                integer("2", dummy_pos()),
+                dummy_pos()
             )
         );
     }

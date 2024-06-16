@@ -117,11 +117,11 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         match self.next_token()? {
             Some(TokenType::Assign) => self
                 .expression(Precedence::Lowest)
-                .map(|res| _let_(sg, vec![], res, self.start_to_cur(start))),
+                .map(|res| let_(sg, vec![], res, self.start_to_cur(start))),
             Some(TokenType::Lparen) => {
                 let (sg, params, val) = self.let_function_with_arguments_(sg)?;
 
-                Ok(_let_(sg, params, val, self.start_to_cur(start)))
+                Ok(let_(sg, params, val, self.start_to_cur(start)))
             }
             _ => Ok(sg),
         }
@@ -197,14 +197,14 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 let symbol_pos = self.cur_pos;
                 self.next_token()?;
                 self.type__().map(|tp| {
-                    _signature(
-                        _symbol(&name, symbol_pos),
+                    signature(
+                        symbol(&name, symbol_pos),
                         Some(tp),
                         self.start_to_cur(symbol_pos.start),
                     )
                 })
             }
-            (Some(TokenType::Ident(name)), _) => Ok(_symbol(&name, self.cur_pos)),
+            (Some(TokenType::Ident(name)), _) => Ok(symbol(&name, self.cur_pos)),
             (Some(tok), _) => self.err_with_cur(ParserError::UnexpectedToken(
                 vec![TokenType::Ident(String::from(""))],
                 tok,
@@ -228,10 +228,10 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             let tuple_start = self.cur_pos.start;
 
             self.sequence(TokenType::Rparen, None).map(|args| {
-                _infix(
+                infix(
                     op,
                     lhs,
-                    _tuple(args, self.start_to_cur(tuple_start)),
+                    tuple(args, self.start_to_cur(tuple_start)),
                     self.start_to_cur(start),
                 )
             })
@@ -274,7 +274,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
         if matches!(self.peek_token()?, Some(TokenType::Rparen)) {
             self.next_token()?;
-            return Ok(_tuple(vec![], self.start_to_cur(start)));
+            return Ok(tuple(vec![], self.start_to_cur(start)));
         }
 
         let res = self.expression(Precedence::Lowest)?;
@@ -283,7 +283,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             Some(TokenType::Rparen) => Ok(res),
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rparen, Some(res))
-                .map(|lst| _tuple(lst, self.start_to_cur(start))),
+                .map(|lst| tuple(lst, self.start_to_cur(start))),
             Some(tok) => {
                 self.err_with_cur(ParserError::UnexpectedToken(vec![TokenType::Rparen], tok))
             }
@@ -315,7 +315,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
         if matches!(self.peek_token()?, Some(TokenType::Rbrack)) {
             self.next_token()?;
-            return Ok(_extension_list(vec![], self.start_to_cur(start)));
+            return Ok(extension_list(vec![], self.start_to_cur(start)));
         }
 
         let first = self.expression(Precedence::Lowest)?;
@@ -324,8 +324,8 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             Some(TokenType::Colon) => self.comprehension_list_(first, start),
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rbrack, Some(first))
-                .map(|lst| _extension_list(lst, self.start_to_cur(start))),
-            Some(TokenType::Rbrack) => Ok(_extension_list(vec![first], self.start_to_cur(start))),
+                .map(|lst| extension_list(lst, self.start_to_cur(start))),
+            Some(TokenType::Rbrack) => Ok(extension_list(vec![first], self.start_to_cur(start))),
             Some(TokenType::VerticalBar) => self.prepend_(first, start),
             Some(tok) => self.err_with_cur(ParserError::UnexpectedToken(
                 vec![TokenType::Colon, TokenType::Comma, TokenType::Rbrack],
@@ -344,7 +344,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         let last = self.expression(Precedence::Lowest)?;
         self.consume(TokenType::Rbrack)?;
 
-        Ok(_comprehension_list(first, last, self.start_to_cur(start)))
+        Ok(comprehension_list(first, last, self.start_to_cur(start)))
     }
 
     fn prepend_(&mut self, first: ASTNode, start: usize) -> _NodeResult {
@@ -352,7 +352,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
         self.consume(TokenType::Rbrack)?;
 
-        Ok(_prepend(first, last, self.start_to_cur(start)))
+        Ok(cons(first, last, self.start_to_cur(start)))
     }
 
     fn for_(&mut self) -> _NodeResult {
@@ -413,7 +413,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
         let second_res = self.expression(Precedence::Lowest)?;
 
-        Ok(_if_(cond, first_res, second_res, self.start_to_cur(start)))
+        Ok(_if(cond, first_res, second_res, self.start_to_cur(start)))
     }
 
     fn current_infix(&mut self) -> Option<InfixOperator> {
@@ -427,7 +427,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         let start = self.cur_pos.start;
 
         self.expression(Precedence::Highest)
-            .map(|expr| _prefix(op, expr, self.start_to_cur(start)))
+            .map(|expr| prefix(op, expr, self.start_to_cur(start)))
     }
 
     fn set(&mut self) -> _NodeResult {
@@ -435,7 +435,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
         if matches!(self.peek_token()?, Some(TokenType::Rbrace)) {
             self.next_token()?;
-            return Ok(_extension_set(vec![], self.start_to_cur(start)));
+            return Ok(extension_set(vec![], self.start_to_cur(start)));
         }
 
         let first = self.expression(Precedence::Lowest)?;
@@ -443,15 +443,15 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         match self.next_token()? {
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rbrace, Some(first))
-                .map(|lst| _extension_set(lst, self.start_to_cur(start))),
+                .map(|lst| extension_set(lst, self.start_to_cur(start))),
             Some(TokenType::Colon) => {
                 let second = self.expression(Precedence::Lowest)?;
 
                 self.consume(TokenType::Rbrace)?;
 
-                Ok(_comprehension_set(first, second, self.start_to_cur(start)))
+                Ok(comprehension_set(first, second, self.start_to_cur(start)))
             }
-            Some(TokenType::Rbrace) => Ok(_extension_set(vec![first], self.start_to_cur(start))),
+            Some(TokenType::Rbrace) => Ok(extension_set(vec![first], self.start_to_cur(start))),
             Some(tok) => Err(Error::new(
                 ParserError::UnexpectedToken(
                     vec![TokenType::Comma, TokenType::Rbrace, TokenType::Colon],
@@ -484,7 +484,7 @@ pub fn parser_from<T: Iterator<Item = Result<Token, Error>>>(tokens: T) -> Parse
 mod tests {
     use super::*;
     use crate::{
-        ast::tests::{_boolean, _char, _integer, _pos, _string},
+        ast::tests::{_pos, boolean, char, integer, string},
         error::Position,
         lexer::build_lexer,
     };
@@ -506,7 +506,7 @@ mod tests {
         )];
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(_integer("0", _pos(0, 1))))
+            Some(Ok(integer("0", _pos(0, 1))))
         );
     }
 
@@ -519,7 +519,7 @@ mod tests {
         ];
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(_integer("365", _pos(1, 3)))),
+            Some(Ok(integer("365", _pos(1, 3)))),
         );
     }
 
@@ -547,10 +547,10 @@ mod tests {
         ];
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::Sum,
-                _integer("1", _pos(0, 1)),
-                _integer("1", _pos(4, 1)),
+                integer("1", _pos(0, 1)),
+                integer("1", _pos(4, 1)),
                 _pos(0, 5)
             )))
         );
@@ -579,13 +579,13 @@ mod tests {
         ];
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::Product,
-                _integer("1", _pos(0, 1)),
-                _infix(
+                integer("1", _pos(0, 1)),
+                infix(
                     InfixOperator::Exponentiation,
-                    _integer("2", _pos(2, 1)),
-                    _integer("2", _pos(7, 1)),
+                    integer("2", _pos(2, 1)),
+                    integer("2", _pos(7, 1)),
                     _pos(2, 6),
                 ),
                 _pos(0, 8)
@@ -604,15 +604,15 @@ mod tests {
         ];
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::Sum,
-                _infix(
+                infix(
                     InfixOperator::Division,
-                    _integer("1", _pos(0, 1)),
-                    _integer("1", _pos(2, 1)),
+                    integer("1", _pos(0, 1)),
+                    integer("1", _pos(2, 1)),
                     _pos(0, 3)
                 ),
-                _integer("1", _pos(6, 1)),
+                integer("1", _pos(6, 1)),
                 _pos(0, 7),
             )))
         );
@@ -628,10 +628,10 @@ mod tests {
         ];
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(_let_(
-                _symbol("x", _pos(4, 1)),
+            Some(Ok(let_(
+                symbol("x", _pos(4, 1)),
                 vec![],
-                _integer("1", _pos(9, 1)),
+                integer("1", _pos(9, 1)),
                 _pos(0, 10)
             )))
         );
@@ -651,18 +651,18 @@ mod tests {
 
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::NotEquality,
-                _infix(
+                infix(
                     InfixOperator::Sum,
-                    _integer("1", _pos(0, 1)),
-                    _integer("5", _pos(4, 1)),
+                    integer("1", _pos(0, 1)),
+                    integer("5", _pos(4, 1)),
                     _pos(0, 5)
                 ),
-                _infix(
+                infix(
                     InfixOperator::Mod,
-                    _integer("6", _pos(9, 1)),
-                    _integer("2", _pos(13, 1)),
+                    integer("6", _pos(9, 1)),
+                    integer("2", _pos(13, 1)),
                     _pos(9, 5)
                 ),
                 _pos(0, 14)
@@ -688,13 +688,13 @@ mod tests {
 
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(_let_(
-                _symbol("f", _pos(4, 1)),
-                vec![_symbol("x", _pos(6, 1)), _symbol("y", _pos(9, 1))],
-                _infix(
+            Some(Ok(let_(
+                symbol("f", _pos(4, 1)),
+                vec![symbol("x", _pos(6, 1)), symbol("y", _pos(9, 1))],
+                infix(
                     InfixOperator::Sum,
-                    _symbol("x", _pos(15, 1)),
-                    _symbol("y", _pos(19, 1)),
+                    symbol("x", _pos(15, 1)),
+                    symbol("y", _pos(19, 1)),
                     _pos(15, 5)
                 ),
                 _pos(0, 20),
@@ -711,7 +711,7 @@ mod tests {
 
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(_extension_set(vec![], _pos(0, 2))))
+            Some(Ok(extension_set(vec![], _pos(0, 2))))
         );
     }
 
@@ -729,8 +729,8 @@ mod tests {
 
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(_extension_set(
-                vec![_boolean(true, _pos(2, 4)), _boolean(false, _pos(9, 4)),],
+            Some(Ok(extension_set(
+                vec![boolean(true, _pos(2, 4)), boolean(false, _pos(9, 4)),],
                 _pos(0, 14)
             )))
         );
@@ -745,7 +745,7 @@ mod tests {
 
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(_tuple(vec![], _pos(0, 2))))
+            Some(Ok(tuple(vec![], _pos(0, 2))))
         );
     }
 
@@ -761,8 +761,8 @@ mod tests {
 
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(_tuple(
-                vec![_symbol("Real", _pos(1, 4)), _symbol("Real", _pos(7, 4))],
+            Some(Ok(tuple(
+                vec![symbol("Real", _pos(1, 4)), symbol("Real", _pos(7, 4))],
                 _pos(0, 12)
             )))
         );
@@ -782,12 +782,12 @@ mod tests {
 
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(_comprehension_set(
-                _symbol("a", _pos(1, 1)),
-                _infix(
+            Some(Ok(comprehension_set(
+                symbol("a", _pos(1, 1)),
+                infix(
                     InfixOperator::Equality,
-                    _symbol("a", _pos(5, 1)),
-                    _integer("1", _pos(9, 1)),
+                    symbol("a", _pos(5, 1)),
+                    integer("1", _pos(9, 1)),
                     _pos(5, 5)
                 ),
                 _pos(0, 11),
@@ -812,20 +812,20 @@ mod tests {
 
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(_let_(
-                _signature(
-                    _symbol("x", _pos(4, 1)),
-                    Some(_symbol("Real", _pos(8, 4))),
+            Some(Ok(let_(
+                signature(
+                    symbol("x", _pos(4, 1)),
+                    Some(symbol("Real", _pos(8, 4))),
                     _pos(4, 8)
                 ),
                 vec![],
-                _infix(
+                infix(
                     InfixOperator::Sum,
-                    _integer("1", _pos(16, 1)),
-                    _infix(
+                    integer("1", _pos(16, 1)),
+                    infix(
                         InfixOperator::Mod,
-                        _integer("0", _pos(20, 1)),
-                        _integer("2", _pos(24, 1)),
+                        integer("0", _pos(20, 1)),
+                        integer("2", _pos(24, 1)),
                         _pos(20, 5)
                     ),
                     _pos(16, 9),
@@ -847,15 +847,15 @@ mod tests {
 
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::LeftShift,
-                _infix(
+                infix(
                     InfixOperator::Substraction,
-                    _symbol("x", _pos(0, 1)),
-                    _integer("1", _pos(4, 1)),
+                    symbol("x", _pos(0, 1)),
+                    integer("1", _pos(4, 1)),
                     _pos(0, 5)
                 ),
-                _integer("1", _pos(9, 1)),
+                integer("1", _pos(9, 1)),
                 _pos(0, 10),
             )))
         );
@@ -867,15 +867,15 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::Greater,
-                _infix(
+                infix(
                     InfixOperator::LeftShift,
-                    _integer("1", _pos(0, 1)),
-                    _integer("1", _pos(5, 1)),
+                    integer("1", _pos(0, 1)),
+                    integer("1", _pos(5, 1)),
                     _pos(0, 6)
                 ),
-                _integer("1", _pos(9, 1)),
+                integer("1", _pos(9, 1)),
                 _pos(0, 10)
             )))
         );
@@ -887,15 +887,15 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::Or,
-                _infix(
+                infix(
                     InfixOperator::BitwiseAnd,
-                    _symbol("a", _pos(0, 1)),
-                    _symbol("b", _pos(4, 1)),
+                    symbol("a", _pos(0, 1)),
+                    symbol("b", _pos(4, 1)),
                     _pos(0, 5)
                 ),
-                _symbol("c", _pos(9, 1)),
+                symbol("c", _pos(9, 1)),
                 _pos(0, 10),
             )))
         );
@@ -907,15 +907,15 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::Or,
-                _infix(
+                infix(
                     InfixOperator::LogicAnd,
-                    _symbol("a", _pos(0, 1)),
-                    _symbol("b", _pos(5, 1)),
+                    symbol("a", _pos(0, 1)),
+                    symbol("b", _pos(5, 1)),
                     _pos(0, 6)
                 ),
-                _symbol("c", _pos(10, 1)),
+                symbol("c", _pos(10, 1)),
                 _pos(0, 11),
             )))
         );
@@ -927,21 +927,21 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::Or,
-                _infix(
+                infix(
                     InfixOperator::Sum,
-                    _symbol("a", _pos(2, 1)),
-                    _symbol("b", _pos(6, 1)),
+                    symbol("a", _pos(2, 1)),
+                    symbol("b", _pos(6, 1)),
                     _pos(2, 5)
                 ),
-                _infix(
+                infix(
                     InfixOperator::BitwiseAnd,
-                    _symbol("a", _pos(11, 1)),
-                    _infix(
+                    symbol("a", _pos(11, 1)),
+                    infix(
                         InfixOperator::LeftShift,
-                        _symbol("b", _pos(15, 1)),
-                        _symbol("c", _pos(20, 1)),
+                        symbol("b", _pos(15, 1)),
+                        symbol("c", _pos(20, 1)),
                         _pos(15, 6)
                     ),
                     _pos(11, 10),
@@ -957,20 +957,20 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::Or,
-                _infix(
+                infix(
                     InfixOperator::BitwiseXor,
-                    _symbol("a", _pos(0, 1)),
-                    _infix(
+                    symbol("a", _pos(0, 1)),
+                    infix(
                         InfixOperator::BitwiseAnd,
-                        _symbol("b", _pos(4, 1)),
-                        _symbol("c", _pos(8, 1)),
+                        symbol("b", _pos(4, 1)),
+                        symbol("c", _pos(8, 1)),
                         _pos(4, 5)
                     ),
                     _pos(0, 9),
                 ),
-                _symbol("d", _pos(13, 1)),
+                symbol("d", _pos(13, 1)),
                 _pos(0, 14)
             )))
         );
@@ -982,11 +982,8 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_tuple(
-                vec![
-                    _extension_set(vec![], _pos(1, 2)),
-                    _integer("0", _pos(5, 1))
-                ],
+            Some(Ok(tuple(
+                vec![extension_set(vec![], _pos(1, 2)), integer("0", _pos(5, 1))],
                 _pos(0, 7)
             )))
         );
@@ -998,16 +995,16 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_prefix(
+            Some(Ok(prefix(
                 PrefixOperator::LogicNot,
-                _infix(
+                infix(
                     InfixOperator::NotEquality,
-                    _prefix(
+                    prefix(
                         PrefixOperator::BitwiseNot,
-                        _integer("1", _pos(3, 1)),
+                        integer("1", _pos(3, 1)),
                         _pos(2, 2)
                     ),
-                    _prefix(PrefixOperator::Minus, _integer("1", _pos(9, 1)), _pos(8, 2)),
+                    prefix(PrefixOperator::Minus, integer("1", _pos(9, 1)), _pos(8, 2)),
                     _pos(2, 8),
                 ),
                 _pos(0, 11),
@@ -1031,19 +1028,15 @@ mod tests {
 
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(_if_(
-                _infix(
+            Some(Ok(_if(
+                infix(
                     InfixOperator::Less,
-                    _symbol("a", _pos(3, 1)),
-                    _integer("0", _pos(7, 1)),
+                    symbol("a", _pos(3, 1)),
+                    integer("0", _pos(7, 1)),
                     _pos(3, 5)
                 ),
-                _prefix(
-                    PrefixOperator::Minus,
-                    _symbol("a", _pos(15, 1)),
-                    _pos(14, 2)
-                ),
-                _symbol("a", _pos(22, 1)),
+                prefix(PrefixOperator::Minus, symbol("a", _pos(15, 1)), _pos(14, 2)),
+                symbol("a", _pos(22, 1)),
                 _pos(0, 23),
             )))
         );
@@ -1057,11 +1050,11 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::Call,
-                _symbol("f", _pos(0, 1)),
-                _tuple(
-                    vec![_symbol("x", _pos(2, 1)), _symbol("y", _pos(5, 1)),],
+                symbol("f", _pos(0, 1)),
+                tuple(
+                    vec![symbol("x", _pos(2, 1)), symbol("y", _pos(5, 1)),],
                     _pos(1, 6)
                 ),
                 _pos(0, 7),
@@ -1077,7 +1070,7 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_tuple(vec![_integer("1", _pos(1, 1))], _pos(0, 4)))),
+            Some(Ok(tuple(vec![integer("1", _pos(1, 1))], _pos(0, 4)))),
         );
     }
 
@@ -1089,13 +1082,13 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::Correspondence,
-                _symbol("x", _pos(0, 1)),
-                _infix(
+                symbol("x", _pos(0, 1)),
+                infix(
                     InfixOperator::Product,
-                    _integer("2", _pos(5, 1)),
-                    _symbol("x", _pos(7, 1)),
+                    integer("2", _pos(5, 1)),
+                    symbol("x", _pos(7, 1)),
                     _pos(5, 3)
                 ),
                 _pos(0, 8),
@@ -1111,19 +1104,19 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::Call,
-                _infix(
+                infix(
                     InfixOperator::Correspondence,
-                    _tuple(
-                        vec![_symbol("x", _pos(2, 1)), _symbol("y", _pos(5, 1)),],
+                    tuple(
+                        vec![symbol("x", _pos(2, 1)), symbol("y", _pos(5, 1)),],
                         _pos(1, 6)
                     ),
-                    _symbol("x", _pos(11, 1)),
+                    symbol("x", _pos(11, 1)),
                     _pos(1, 11),
                 ),
-                _tuple(
-                    vec![_integer("1", _pos(14, 1)), _integer("2", _pos(17, 1)),],
+                tuple(
+                    vec![integer("1", _pos(14, 1)), integer("2", _pos(17, 1)),],
                     _pos(13, 6)
                 ),
                 _pos(0, 19)
@@ -1139,8 +1132,8 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_tuple(
-                vec![_char('a', _pos(1, 3)), _string("b", _pos(6, 3)),],
+            Some(Ok(tuple(
+                vec![char('a', _pos(1, 3)), string("b", _pos(6, 3)),],
                 _pos(0, 10),
             )))
         );
@@ -1156,11 +1149,11 @@ mod tests {
             parser_from(lexer).next(),
             Some(Ok(_for(
                 "i",
-                _symbol("list", _pos(9, 4)),
-                vec![_infix(
+                symbol("list", _pos(9, 4)),
+                vec![infix(
                     InfixOperator::Call,
-                    _symbol("println", _pos(15, 7)),
-                    _tuple(vec![_symbol("i", _pos(23, 1))], _pos(22, 3)),
+                    symbol("println", _pos(15, 7)),
+                    tuple(vec![symbol("i", _pos(23, 1))], _pos(22, 3)),
                     _pos(15, 10)
                 )],
                 _pos(0, 25)
@@ -1176,15 +1169,15 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::In,
-                _integer("1", _pos(0, 1)),
-                _comprehension_set(
-                    _symbol("k", _pos(7, 1)),
-                    _infix(
+                integer("1", _pos(0, 1)),
+                comprehension_set(
+                    symbol("k", _pos(7, 1)),
+                    infix(
                         InfixOperator::GreaterEqual,
-                        _symbol("k", _pos(11, 1)),
-                        _integer("1", _pos(16, 1)),
+                        symbol("k", _pos(11, 1)),
+                        integer("1", _pos(16, 1)),
                         _pos(11, 6)
                     ),
                     _pos(5, 14),
@@ -1202,11 +1195,8 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_extension_list(
-                vec![
-                    _extension_list(vec![], _pos(1, 2)),
-                    _integer("2", _pos(5, 1)),
-                ],
+            Some(Ok(extension_list(
+                vec![extension_list(vec![], _pos(1, 2)), integer("2", _pos(5, 1)),],
                 _pos(0, 7),
             ))),
         );
@@ -1220,25 +1210,25 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_comprehension_list(
-                _infix(
+            Some(Ok(comprehension_list(
+                infix(
                     InfixOperator::In,
-                    _symbol("k", _pos(2, 1)),
-                    _extension_list(
-                        vec![_integer("1", _pos(8, 1)), _integer("2", _pos(11, 1)),],
+                    symbol("k", _pos(2, 1)),
+                    extension_list(
+                        vec![integer("1", _pos(8, 1)), integer("2", _pos(11, 1)),],
                         _pos(7, 6)
                     ),
                     _pos(2, 11)
                 ),
-                _infix(
+                infix(
                     InfixOperator::Equality,
-                    _infix(
+                    infix(
                         InfixOperator::Substraction,
-                        _symbol("k", _pos(16, 1)),
-                        _integer("1", _pos(20, 1)),
+                        symbol("k", _pos(16, 1)),
+                        integer("1", _pos(20, 1)),
                         _pos(16, 5)
                     ),
-                    _integer("0", _pos(24, 1)),
+                    integer("0", _pos(24, 1)),
                     _pos(16, 9)
                 ),
                 _pos(0, 27)
@@ -1254,8 +1244,8 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_extension_set(
-                vec![_extension_set(vec![], _pos(1, 2))],
+            Some(Ok(extension_set(
+                vec![extension_set(vec![], _pos(1, 2))],
                 _pos(0, 4)
             ))),
         );
@@ -1269,10 +1259,10 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_extension_list(
+            Some(Ok(extension_list(
                 vec![
-                    _symbol("a", _pos(1, 1)),
-                    _integer("1", _pos(4, 1)),
+                    symbol("a", _pos(1, 1)),
+                    integer("1", _pos(4, 1)),
                     ASTNode::new(ASTNodeType::Wildcard, _pos(7, 1)),
                 ],
                 _pos(0, 9)
@@ -1287,10 +1277,10 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_prepend(
-                _integer("1", _pos(1, 1)),
-                _extension_list(
-                    vec![_integer("2", _pos(4, 1)), _integer("3", _pos(6, 1)),],
+            Some(Ok(cons(
+                integer("1", _pos(1, 1)),
+                extension_list(
+                    vec![integer("2", _pos(4, 1)), integer("3", _pos(6, 1)),],
                     _pos(3, 5)
                 ),
                 _pos(0, 9)
@@ -1305,19 +1295,19 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::Sum,
-                _comprehension_list(
-                    _symbol("a", _pos(1, 1)),
-                    _infix(
+                comprehension_list(
+                    symbol("a", _pos(1, 1)),
+                    infix(
                         InfixOperator::In,
-                        _symbol("a", _pos(5, 1)),
-                        _symbol("b", _pos(10, 1)),
+                        symbol("a", _pos(5, 1)),
+                        symbol("b", _pos(10, 1)),
                         _pos(5, 6)
                     ),
                     _pos(0, 12)
                 ),
-                _extension_list(vec![], _pos(15, 2)),
+                extension_list(vec![], _pos(15, 2)),
                 _pos(0, 17)
             )))
         );
@@ -1358,20 +1348,20 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::Sum,
-                _infix(
+                infix(
                     InfixOperator::Dot,
-                    _symbol("list", _pos(0, 4)),
-                    _infix(
+                    symbol("list", _pos(0, 4)),
+                    infix(
                         InfixOperator::Call,
-                        _symbol("map", _pos(5, 3)),
-                        _tuple(vec![_symbol("func", _pos(9, 4))], _pos(8, 6)),
+                        symbol("map", _pos(5, 3)),
+                        tuple(vec![symbol("func", _pos(9, 4))], _pos(8, 6)),
                         _pos(5, 9)
                     ),
                     _pos(0, 14)
                 ),
-                _extension_list(vec![], _pos(17, 2)),
+                extension_list(vec![], _pos(17, 2)),
                 _pos(0, 19),
             )))
         );
@@ -1398,16 +1388,16 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::In,
-                _integer("5", _pos(0, 1)),
-                _infix(
+                integer("5", _pos(0, 1)),
+                infix(
                     InfixOperator::Range,
-                    _integer("0", _pos(5, 1)),
-                    _infix(
+                    integer("0", _pos(5, 1)),
+                    infix(
                         InfixOperator::Sum,
-                        _integer("10", _pos(8, 2)),
-                        _integer("1", _pos(11, 1)),
+                        integer("10", _pos(8, 2)),
+                        integer("1", _pos(11, 1)),
                         _pos(8, 4)
                     ),
                     _pos(5, 7)
@@ -1424,10 +1414,10 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(_infix(
+            Some(Ok(infix(
                 InfixOperator::Fraction,
-                _integer("1", _pos(0, 1)),
-                _integer("2", _pos(5, 1)),
+                integer("1", _pos(0, 1)),
+                integer("2", _pos(5, 1)),
                 _pos(0, 6)
             )))
         );

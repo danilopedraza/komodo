@@ -262,7 +262,7 @@ impl ErrorMessage {
 
 #[cfg(test)]
 mod tests {
-    use crate::ast::tests::_dummy_pos;
+    use crate::ast::tests::dummy_pos;
 
     use super::*;
 
@@ -318,10 +318,10 @@ mod tests {
     #[test]
     fn eof_reached() {
         assert_eq!(
-            error_msg(&Error(ParserError::EOFReached.into(), _dummy_pos())),
+            error_msg(&Error(ParserError::EOFReached.into(), dummy_pos())),
             ErrorMessage(
                 "The end of the program was reached while reading an expression".into(),
-                _dummy_pos()
+                dummy_pos()
             ),
         );
     }

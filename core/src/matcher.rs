@@ -47,7 +47,7 @@ fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
         ASTNodeType::Wildcard => empty_match(),
         ASTNodeType::Symbol(s) => single_match(s, val),
         ASTNodeType::ExtensionList(l) => match_extension_list(l, val),
-        ASTNodeType::Prepend(first, most) => match_prefix_crop(first, most, val),
+        ASTNodeType::Cons(first, most) => match_prefix_crop(first, most, val),
         _ => match_constant(pattern, val),
     }
 }
@@ -92,7 +92,7 @@ fn match_constant(pattern: &ASTNode, val: &Object) -> Option<Match> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{_extension_list, _prepend, _symbol, tests::_dummy_pos},
+        ast::{cons, extension_list, symbol, tests::dummy_pos},
         object::Integer,
     };
 
@@ -101,8 +101,8 @@ mod tests {
     #[test]
     fn two_args() {
         let patterns = [
-            _extension_list(vec![_symbol("a", _dummy_pos())], _dummy_pos()),
-            _extension_list(vec![_symbol("b", _dummy_pos())], _dummy_pos()),
+            extension_list(vec![symbol("a", dummy_pos())], dummy_pos()),
+            extension_list(vec![symbol("b", dummy_pos())], dummy_pos()),
         ];
 
         let args = [
@@ -125,10 +125,10 @@ mod tests {
 
     #[test]
     fn list_prefix() {
-        let pattern = _prepend(
-            _symbol("first", _dummy_pos()),
-            _symbol("most", _dummy_pos()),
-            _dummy_pos(),
+        let pattern = cons(
+            symbol("first", dummy_pos()),
+            symbol("most", dummy_pos()),
+            dummy_pos(),
         );
 
         let value =
@@ -148,7 +148,7 @@ mod tests {
 
     #[test]
     fn unmatch_different_value() {
-        let patterns = [_symbol("a", _dummy_pos()), _symbol("a", _dummy_pos())];
+        let patterns = [symbol("a", dummy_pos()), symbol("a", dummy_pos())];
 
         let values = [
             Object::Integer(Integer::from(1)),

@@ -77,7 +77,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType::ExtensionList(l) => extension_list(l, env),
         ASTNodeType::ComprehensionList(transform, prop) => comprehension_list(transform, prop, env),
         ASTNodeType::Wildcard => unimplemented!(),
-        ASTNodeType::Prepend(first, most) => prepend(exec(first, env)?, most, env),
+        ASTNodeType::Cons(first, most) => prepend(exec(first, env)?, most, env),
         ASTNodeType::Decimal(int, dec) => decimal(int, dec),
         ASTNodeType::Fraction(numer, denom) => fraction(numer, denom, node.position, env),
     };
@@ -431,17 +431,17 @@ mod tests {
     use bigdecimal::BigDecimal;
 
     use super::*;
-    use crate::ast::tests::{_boolean, _decimal, _dummy_pos, _function, _integer, _pos, _range};
+    use crate::ast::tests::{_pos, boolean, decimal, dummy_pos, function, integer, range};
     use crate::ast::{
-        _call, _comprehension_list, _comprehension_set, _extension_list, _extension_set, _for,
-        _fraction, _infix, _let_, _prefix, _prepend, _signature, _symbol, _tuple,
+        _for, call, comprehension_list, comprehension_set, cons, extension_list, extension_set,
+        fraction, infix, let_, prefix, signature, symbol, tuple,
     };
     use crate::error::ErrorType;
     use crate::object::*;
 
     #[test]
-    fn symbol() {
-        let node = _symbol("a", _dummy_pos());
+    fn symbol_() {
+        let node = symbol("a", dummy_pos());
         assert_eq!(
             exec(&node, &mut Default::default()),
             Ok(Object::Symbol(Symbol::from("a")))
@@ -450,9 +450,9 @@ mod tests {
 
     #[test]
     fn set_by_extension() {
-        let node = _extension_set(
-            vec![_symbol("a", _dummy_pos()), _symbol("a", _dummy_pos())],
-            _dummy_pos(),
+        let node = extension_set(
+            vec![symbol("a", dummy_pos()), symbol("a", dummy_pos())],
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -466,11 +466,11 @@ mod tests {
 
     #[test]
     fn integer_sum() {
-        let node = _infix(
+        let node = infix(
             InfixOperator::Sum,
-            _integer("0", _dummy_pos()),
-            _integer("1", _dummy_pos()),
-            _dummy_pos(),
+            integer("0", dummy_pos()),
+            integer("1", dummy_pos()),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -481,11 +481,11 @@ mod tests {
 
     #[test]
     fn integer_substraction() {
-        let node = &_infix(
+        let node = &infix(
             InfixOperator::Substraction,
-            _integer("0", _dummy_pos()),
-            _integer("1", _dummy_pos()),
-            _dummy_pos(),
+            integer("0", dummy_pos()),
+            integer("1", dummy_pos()),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -496,11 +496,11 @@ mod tests {
 
     #[test]
     fn integer_product() {
-        let node = &_infix(
+        let node = &infix(
             InfixOperator::Product,
-            _integer("0", _dummy_pos()),
-            _integer("1", _dummy_pos()),
-            _dummy_pos(),
+            integer("0", dummy_pos()),
+            integer("1", dummy_pos()),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -511,11 +511,11 @@ mod tests {
 
     #[test]
     fn symbol_comparison() {
-        let node = &_infix(
+        let node = &infix(
             InfixOperator::Equality,
-            _symbol("a", _dummy_pos()),
-            _symbol("b", _dummy_pos()),
-            _dummy_pos(),
+            symbol("a", dummy_pos()),
+            symbol("b", dummy_pos()),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -526,11 +526,11 @@ mod tests {
 
     #[test]
     fn let_expression() {
-        let node = &_let_(
-            _signature(_symbol("x", _dummy_pos()), None, _dummy_pos()),
+        let node = &let_(
+            signature(symbol("x", dummy_pos()), None, dummy_pos()),
             vec![],
-            _integer("0", _dummy_pos()),
-            _dummy_pos(),
+            integer("0", dummy_pos()),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -541,16 +541,16 @@ mod tests {
 
     #[test]
     fn logic_operators() {
-        let node = &_infix(
+        let node = &infix(
             InfixOperator::LogicAnd,
-            _infix(
+            infix(
                 InfixOperator::Or,
-                _boolean(true, _dummy_pos()),
-                _boolean(false, _dummy_pos()),
-                _dummy_pos(),
+                boolean(true, dummy_pos()),
+                boolean(false, dummy_pos()),
+                dummy_pos(),
             ),
-            _boolean(false, _dummy_pos()),
-            _dummy_pos(),
+            boolean(false, dummy_pos()),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -561,21 +561,21 @@ mod tests {
 
     #[test]
     fn less_leq() {
-        let node = &_infix(
+        let node = &infix(
             InfixOperator::LogicAnd,
-            _infix(
+            infix(
                 InfixOperator::Less,
-                _integer("0", _dummy_pos()),
-                _integer("1", _dummy_pos()),
-                _dummy_pos(),
+                integer("0", dummy_pos()),
+                integer("1", dummy_pos()),
+                dummy_pos(),
             ),
-            _infix(
+            infix(
                 InfixOperator::LessEqual,
-                _integer("1", _dummy_pos()),
-                _integer("1", _dummy_pos()),
-                _dummy_pos(),
+                integer("1", dummy_pos()),
+                integer("1", dummy_pos()),
+                dummy_pos(),
             ),
-            _dummy_pos(),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -586,21 +586,21 @@ mod tests {
 
     #[test]
     fn greater_geq() {
-        let node = &_infix(
+        let node = &infix(
             InfixOperator::LogicAnd,
-            _infix(
+            infix(
                 InfixOperator::Greater,
-                _integer("1", _dummy_pos()),
-                _integer("0", _dummy_pos()),
-                _dummy_pos(),
+                integer("1", dummy_pos()),
+                integer("0", dummy_pos()),
+                dummy_pos(),
             ),
-            _infix(
+            infix(
                 InfixOperator::GreaterEqual,
-                _integer("0", _dummy_pos()),
-                _integer("0", _dummy_pos()),
-                _dummy_pos(),
+                integer("0", dummy_pos()),
+                integer("0", dummy_pos()),
+                dummy_pos(),
             ),
-            _dummy_pos(),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -611,21 +611,21 @@ mod tests {
 
     #[test]
     fn neq() {
-        let node = &_infix(
+        let node = &infix(
             InfixOperator::LogicAnd,
-            _infix(
+            infix(
                 InfixOperator::NotEquality,
-                _integer("1", _dummy_pos()),
-                _integer("2", _dummy_pos()),
-                _dummy_pos(),
+                integer("1", dummy_pos()),
+                integer("2", dummy_pos()),
+                dummy_pos(),
             ),
-            _infix(
+            infix(
                 InfixOperator::NotEquality,
-                _integer("1", _dummy_pos()),
-                _boolean(true, _dummy_pos()),
-                _dummy_pos(),
+                integer("1", dummy_pos()),
+                boolean(true, dummy_pos()),
+                dummy_pos(),
             ),
-            _dummy_pos(),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -636,21 +636,21 @@ mod tests {
 
     #[test]
     fn bitwise_and_xor_or() {
-        let node = &_infix(
+        let node = &infix(
             InfixOperator::Or,
-            _infix(
+            infix(
                 InfixOperator::BitwiseXor,
-                _infix(
+                infix(
                     InfixOperator::BitwiseAnd,
-                    _integer("7", _dummy_pos()),
-                    _integer("6", _dummy_pos()),
-                    _dummy_pos(),
+                    integer("7", dummy_pos()),
+                    integer("6", dummy_pos()),
+                    dummy_pos(),
                 ),
-                _integer("1", _dummy_pos()),
-                _dummy_pos(),
+                integer("1", dummy_pos()),
+                dummy_pos(),
             ),
-            _integer("0", _dummy_pos()),
-            _dummy_pos(),
+            integer("0", dummy_pos()),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -661,16 +661,16 @@ mod tests {
 
     #[test]
     fn shifts() {
-        let node = &_infix(
+        let node = &infix(
             InfixOperator::LeftShift,
-            _infix(
+            infix(
                 InfixOperator::RightShift,
-                _integer("256", _dummy_pos()),
-                _integer("4", _dummy_pos()),
-                _dummy_pos(),
+                integer("256", dummy_pos()),
+                integer("4", dummy_pos()),
+                dummy_pos(),
             ),
-            _integer("1", _dummy_pos()),
-            _dummy_pos(),
+            integer("1", dummy_pos()),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -681,16 +681,16 @@ mod tests {
 
     #[test]
     fn power_and_division() {
-        let node = &_infix(
+        let node = &infix(
             InfixOperator::Division,
-            _infix(
+            infix(
                 InfixOperator::Exponentiation,
-                _integer("3", _dummy_pos()),
-                _integer("2", _dummy_pos()),
-                _dummy_pos(),
+                integer("3", dummy_pos()),
+                integer("2", dummy_pos()),
+                dummy_pos(),
             ),
-            _integer("2", _dummy_pos()),
-            _dummy_pos(),
+            integer("2", dummy_pos()),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -701,11 +701,11 @@ mod tests {
 
     #[test]
     fn remainder() {
-        let node = &_infix(
+        let node = &infix(
             InfixOperator::Mod,
-            _integer("3", _dummy_pos()),
-            _integer("2", _dummy_pos()),
-            _dummy_pos(),
+            integer("3", dummy_pos()),
+            integer("2", dummy_pos()),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -715,24 +715,24 @@ mod tests {
     }
 
     #[test]
-    fn prefix() {
-        let node = &_prefix(
+    fn prefix_() {
+        let node = &prefix(
             PrefixOperator::LogicNot,
-            _infix(
+            infix(
                 InfixOperator::NotEquality,
-                _prefix(
+                prefix(
                     PrefixOperator::BitwiseNot,
-                    _integer("1", _dummy_pos()),
-                    _dummy_pos(),
+                    integer("1", dummy_pos()),
+                    dummy_pos(),
                 ),
-                _prefix(
+                prefix(
                     PrefixOperator::Minus,
-                    _integer("1", _dummy_pos()),
-                    _dummy_pos(),
+                    integer("1", dummy_pos()),
+                    dummy_pos(),
                 ),
-                _dummy_pos(),
+                dummy_pos(),
             ),
-            _dummy_pos(),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -748,20 +748,20 @@ mod tests {
 
         let node = &ASTNode::new(
             ASTNodeType::If(
-                Box::new(_infix(
+                Box::new(infix(
                     InfixOperator::Less,
-                    _symbol("a", _dummy_pos()),
-                    _integer("0", _dummy_pos()),
-                    _dummy_pos(),
+                    symbol("a", dummy_pos()),
+                    integer("0", dummy_pos()),
+                    dummy_pos(),
                 )),
-                Box::new(_prefix(
+                Box::new(prefix(
                     PrefixOperator::Minus,
-                    _symbol("a", _dummy_pos()),
-                    _dummy_pos(),
+                    symbol("a", dummy_pos()),
+                    dummy_pos(),
                 )),
-                Box::new(_symbol("a", _dummy_pos())),
+                Box::new(symbol("a", dummy_pos())),
             ),
-            _dummy_pos(),
+            dummy_pos(),
         );
 
         assert_eq!(exec(node, &mut env), Ok(Object::Integer(Integer::from(5))));
@@ -773,7 +773,7 @@ mod tests {
         env.set("x", Object::Boolean(Bool::from(true)));
         env.push_scope();
 
-        let node = &_symbol("x", _dummy_pos());
+        let node = &symbol("x", dummy_pos());
 
         assert_eq!(exec(node, &mut env), Ok(Object::Boolean(Bool::from(true))));
     }
@@ -782,11 +782,11 @@ mod tests {
     fn save_value() {
         let mut env = Environment::default();
 
-        let node = &_let_(
-            _symbol("x", _dummy_pos()),
+        let node = &let_(
+            symbol("x", dummy_pos()),
             vec![],
-            _integer("0", _dummy_pos()),
-            _dummy_pos(),
+            integer("0", dummy_pos()),
+            dummy_pos(),
         );
 
         assert!(exec(node, &mut env).is_ok());
@@ -795,10 +795,10 @@ mod tests {
     }
 
     #[test]
-    fn tuple() {
-        let node = &_tuple(
-            vec![_integer("1", _dummy_pos()), _integer("2", _dummy_pos())],
-            _dummy_pos(),
+    fn tuple_() {
+        let node = &tuple(
+            vec![integer("1", dummy_pos()), integer("2", dummy_pos())],
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -811,16 +811,16 @@ mod tests {
     }
 
     #[test]
-    fn function() {
-        let node = &_function(
+    fn function_() {
+        let node = &function(
             vec!["x"],
-            vec![_infix(
+            vec![infix(
                 InfixOperator::Product,
-                _integer("2", _dummy_pos()),
-                _symbol("x", _dummy_pos()),
-                _dummy_pos(),
+                integer("2", dummy_pos()),
+                symbol("x", dummy_pos()),
+                dummy_pos(),
             )],
-            _dummy_pos(),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -828,11 +828,11 @@ mod tests {
             Ok(Object::Function(object::Function::DefinedFunction(
                 DefinedFunction::new(
                     vec![String::from("x"),],
-                    vec![_infix(
+                    vec![infix(
                         InfixOperator::Product,
-                        _integer("2", _dummy_pos()),
-                        _symbol("x", _dummy_pos()),
-                        _dummy_pos()
+                        integer("2", dummy_pos()),
+                        symbol("x", dummy_pos()),
+                        dummy_pos()
                     )],
                 )
             ))),
@@ -840,20 +840,20 @@ mod tests {
     }
 
     #[test]
-    fn call() {
-        let node = &_call(
-            _function(
+    fn call_() {
+        let node = &call(
+            function(
                 vec!["x"],
-                vec![_infix(
+                vec![infix(
                     InfixOperator::Product,
-                    _integer("2", _dummy_pos()),
-                    _symbol("x", _dummy_pos()),
-                    _dummy_pos(),
+                    integer("2", dummy_pos()),
+                    symbol("x", dummy_pos()),
+                    dummy_pos(),
                 )],
-                _dummy_pos(),
+                dummy_pos(),
             ),
-            vec![_integer("1", _dummy_pos())],
-            _dummy_pos(),
+            vec![integer("1", dummy_pos())],
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -864,19 +864,19 @@ mod tests {
 
     #[test]
     fn several_params_call() {
-        let node = &_call(
-            _function(
+        let node = &call(
+            function(
                 vec!["x", "y"],
-                vec![_infix(
+                vec![infix(
                     InfixOperator::Sum,
-                    _symbol("x", _dummy_pos()),
-                    _symbol("y", _dummy_pos()),
-                    _dummy_pos(),
+                    symbol("x", dummy_pos()),
+                    symbol("y", dummy_pos()),
+                    dummy_pos(),
                 )],
-                _dummy_pos(),
+                dummy_pos(),
             ),
-            vec![_integer("1", _dummy_pos()), _integer("2", _dummy_pos())],
-            _dummy_pos(),
+            vec![integer("1", dummy_pos()), integer("2", dummy_pos())],
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -887,18 +887,18 @@ mod tests {
 
     #[test]
     fn missing_args() {
-        let node = &_call(
-            _function(
+        let node = &call(
+            function(
                 vec!["x", "y"],
-                vec![_infix(
+                vec![infix(
                     InfixOperator::Sum,
-                    _symbol("x", _dummy_pos()),
-                    _symbol("y", _dummy_pos()),
-                    _dummy_pos(),
+                    symbol("x", dummy_pos()),
+                    symbol("y", dummy_pos()),
+                    dummy_pos(),
                 )],
-                _dummy_pos(),
+                dummy_pos(),
             ),
-            vec![_integer("1", _dummy_pos())],
+            vec![integer("1", dummy_pos())],
             _pos(0, 5),
         );
 
@@ -933,20 +933,20 @@ mod tests {
 
         let node = &_for(
             "val",
-            _extension_list(
+            extension_list(
                 vec![
-                    _integer("1", _dummy_pos()),
-                    _integer("2", _dummy_pos()),
-                    _integer("3", _dummy_pos()),
+                    integer("1", dummy_pos()),
+                    integer("2", dummy_pos()),
+                    integer("3", dummy_pos()),
                 ],
-                _dummy_pos(),
+                dummy_pos(),
             ),
-            vec![_call(
-                _symbol("f", _dummy_pos()),
-                vec![_symbol("val", _dummy_pos())],
-                _dummy_pos(),
+            vec![call(
+                symbol("f", dummy_pos()),
+                vec![symbol("val", dummy_pos())],
+                dummy_pos(),
             )],
-            _dummy_pos(),
+            dummy_pos(),
         );
 
         assert_eq!(exec(node, &mut env), Ok(Object::empty_tuple()),);
@@ -958,27 +958,27 @@ mod tests {
     }
 
     #[test]
-    fn comprehension_set() {
-        let node = &&_comprehension_set(
-            _symbol("k", _dummy_pos()),
-            _infix(
+    fn comprehension_set_() {
+        let node = &comprehension_set(
+            symbol("k", dummy_pos()),
+            infix(
                 InfixOperator::Greater,
-                _symbol("k", _dummy_pos()),
-                _integer("1", _dummy_pos()),
-                _dummy_pos(),
+                symbol("k", dummy_pos()),
+                integer("1", dummy_pos()),
+                dummy_pos(),
             ),
-            _dummy_pos(),
+            dummy_pos(),
         );
 
         assert_eq!(
             exec(node, &mut Environment::default()),
             Ok(Object::ComprehensionSet(ComprehensionSet::from((
-                _symbol("k", _dummy_pos()),
-                _infix(
+                symbol("k", dummy_pos()),
+                infix(
                     InfixOperator::Greater,
-                    _symbol("k", _dummy_pos()),
-                    _integer("1", _dummy_pos()),
-                    _dummy_pos()
+                    symbol("k", dummy_pos()),
+                    integer("1", dummy_pos()),
+                    dummy_pos()
                 )
             )))),
         );
@@ -986,20 +986,20 @@ mod tests {
 
     #[test]
     fn comprehension_set_question() {
-        let node = &_infix(
+        let node = &infix(
             InfixOperator::In,
-            _integer("1", _dummy_pos()),
-            _comprehension_set(
-                _symbol("k", _dummy_pos()),
-                _infix(
+            integer("1", dummy_pos()),
+            comprehension_set(
+                symbol("k", dummy_pos()),
+                infix(
                     InfixOperator::GreaterEqual,
-                    _symbol("k", _dummy_pos()),
-                    _integer("1", _dummy_pos()),
-                    _dummy_pos(),
+                    symbol("k", dummy_pos()),
+                    integer("1", dummy_pos()),
+                    dummy_pos(),
                 ),
-                _dummy_pos(),
+                dummy_pos(),
             ),
-            _dummy_pos(),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -1009,8 +1009,8 @@ mod tests {
     }
 
     #[test]
-    fn extension_list() {
-        let node = &_extension_list(vec![_integer("1", _dummy_pos())], _dummy_pos());
+    fn extension_list_() {
+        let node = &extension_list(vec![integer("1", dummy_pos())], dummy_pos());
 
         assert_eq!(
             exec(node, &mut Environment::default()),
@@ -1022,32 +1022,32 @@ mod tests {
 
     #[test]
     fn function_with_code_block() {
-        let node = &_call(
-            _function(
+        let node = &call(
+            function(
                 vec!["x"],
                 vec![
-                    _let_(
-                        _symbol("y", _dummy_pos()),
+                    let_(
+                        symbol("y", dummy_pos()),
                         vec![],
-                        _infix(
+                        infix(
                             InfixOperator::Product,
-                            _integer("2", _dummy_pos()),
-                            _symbol("x", _dummy_pos()),
-                            _dummy_pos(),
+                            integer("2", dummy_pos()),
+                            symbol("x", dummy_pos()),
+                            dummy_pos(),
                         ),
-                        _dummy_pos(),
+                        dummy_pos(),
                     ),
-                    _infix(
+                    infix(
                         InfixOperator::Sum,
-                        _symbol("y", _dummy_pos()),
-                        _integer("1", _dummy_pos()),
-                        _dummy_pos(),
+                        symbol("y", dummy_pos()),
+                        integer("1", dummy_pos()),
+                        dummy_pos(),
                     ),
                 ],
-                _dummy_pos(),
+                dummy_pos(),
             ),
-            vec![_integer("2", _dummy_pos())],
-            _dummy_pos(),
+            vec![integer("2", dummy_pos())],
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -1057,24 +1057,24 @@ mod tests {
     }
 
     #[test]
-    fn comprehension_list() {
-        let node = &_comprehension_list(
-            _infix(
+    fn comprehension_list_() {
+        let node = &comprehension_list(
+            infix(
                 InfixOperator::Sum,
-                _symbol("k", _dummy_pos()),
-                _integer("1", _dummy_pos()),
-                _dummy_pos(),
+                symbol("k", dummy_pos()),
+                integer("1", dummy_pos()),
+                dummy_pos(),
             ),
-            _infix(
+            infix(
                 InfixOperator::In,
-                _symbol("k", _dummy_pos()),
-                _extension_list(
-                    vec![_integer("0", _dummy_pos()), _integer("1", _dummy_pos())],
-                    _dummy_pos(),
+                symbol("k", dummy_pos()),
+                extension_list(
+                    vec![integer("0", dummy_pos()), integer("1", dummy_pos())],
+                    dummy_pos(),
                 ),
-                _dummy_pos(),
+                dummy_pos(),
             ),
-            _dummy_pos(),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -1088,10 +1088,10 @@ mod tests {
 
     #[test]
     fn prepend() {
-        let node = _prepend(
-            _integer("1", _dummy_pos()),
-            _extension_list(vec![_symbol("s", _dummy_pos())], _dummy_pos()),
-            _dummy_pos(),
+        let node = cons(
+            integer("1", dummy_pos()),
+            extension_list(vec![symbol("s", dummy_pos())], dummy_pos()),
+            dummy_pos(),
         );
 
         let obj = Object::ExtensionList(
@@ -1109,16 +1109,16 @@ mod tests {
     #[ignore = "not yet implemented"]
     fn missing_args_2() {
         let mut env = Environment::default();
-        let func = _let_(
-            _symbol("f", _dummy_pos()),
-            vec![_symbol("x", _dummy_pos())],
-            _symbol("x", _dummy_pos()),
-            _dummy_pos(),
+        let func = let_(
+            symbol("f", dummy_pos()),
+            vec![symbol("x", dummy_pos())],
+            symbol("x", dummy_pos()),
+            dummy_pos(),
         );
 
         let _ = exec(&func, &mut env);
 
-        let call = _call(_symbol("f", _dummy_pos()), vec![], _dummy_pos());
+        let call = call(symbol("f", dummy_pos()), vec![], dummy_pos());
 
         assert_eq!(
             exec(&call, &mut env),
@@ -1127,14 +1127,14 @@ mod tests {
                     expected: 1,
                     actual: 0
                 }),
-                _dummy_pos()
+                dummy_pos()
             ))
         );
     }
 
     #[test]
     fn decimal_number() {
-        let node = _decimal("1", "5", _dummy_pos());
+        let node = decimal("1", "5", dummy_pos());
         let expected = Decimal::from(BigDecimal::from(3) / BigDecimal::from(2));
 
         assert_eq!(
@@ -1144,11 +1144,11 @@ mod tests {
     }
 
     #[test]
-    fn range() {
-        let node = _range(
-            _integer("1", _dummy_pos()),
-            _integer("3", _dummy_pos()),
-            _dummy_pos(),
+    fn range_() {
+        let node = range(
+            integer("1", dummy_pos()),
+            integer("3", dummy_pos()),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -1158,11 +1158,11 @@ mod tests {
     }
 
     #[test]
-    fn fraction() {
-        let node = _fraction(
-            _integer("1", _dummy_pos()),
-            _integer("2", _dummy_pos()),
-            _dummy_pos(),
+    fn fraction_() {
+        let node = fraction(
+            integer("1", dummy_pos()),
+            integer("2", dummy_pos()),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -1173,10 +1173,10 @@ mod tests {
 
     #[test]
     fn denominator_zero() {
-        let node = _fraction(
-            _integer("1", _dummy_pos()),
-            _integer("0", _pos(5, 1)),
-            _dummy_pos(),
+        let node = fraction(
+            integer("1", dummy_pos()),
+            integer("0", _pos(5, 1)),
+            dummy_pos(),
         );
 
         assert_eq!(
@@ -1187,24 +1187,24 @@ mod tests {
 
     #[test]
     fn list_from_range() {
-        let node = _comprehension_list(
-            _infix(
+        let node = comprehension_list(
+            infix(
                 InfixOperator::Sum,
-                _symbol("k", _dummy_pos()),
-                _integer("1", _dummy_pos()),
-                _dummy_pos(),
+                symbol("k", dummy_pos()),
+                integer("1", dummy_pos()),
+                dummy_pos(),
             ),
-            _infix(
+            infix(
                 InfixOperator::In,
-                _symbol("k", _dummy_pos()),
-                _range(
-                    _integer("0", _dummy_pos()),
-                    _integer("3", _dummy_pos()),
-                    _dummy_pos(),
+                symbol("k", dummy_pos()),
+                range(
+                    integer("0", dummy_pos()),
+                    integer("3", dummy_pos()),
+                    dummy_pos(),
                 ),
-                _dummy_pos(),
+                dummy_pos(),
             ),
-            _dummy_pos(),
+            dummy_pos(),
         );
 
         assert_eq!(
