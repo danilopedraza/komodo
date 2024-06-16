@@ -129,7 +129,7 @@ impl InfixOperator {
             InfixOperator::LessEqual => "less-or-equal",
             InfixOperator::LogicAnd => "logic AND",
             InfixOperator::Or => "OR",
-            InfixOperator::Rem => "modulo",
+            InfixOperator::Rem => "remainder",
             InfixOperator::NotEquality => "non-equality",
             InfixOperator::Product => "multiplication",
             InfixOperator::Range => "range generation",

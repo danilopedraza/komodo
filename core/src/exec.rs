@@ -378,7 +378,7 @@ fn infix(
         InfixOperator::LessEqual => lhs.less_equal(rhs),
         InfixOperator::LogicAnd => lhs.logic_and(rhs),
         InfixOperator::Or => lhs.or(rhs),
-        InfixOperator::Rem => lhs.modulo(rhs),
+        InfixOperator::Rem => lhs.rem(rhs),
         InfixOperator::NotEquality => lhs.neq(rhs),
         InfixOperator::Product => lhs.product(rhs),
         InfixOperator::RightShift => lhs.right_shift(rhs),

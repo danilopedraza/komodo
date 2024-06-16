@@ -49,7 +49,7 @@ default_infix_methods!(
     less_equal,
     logic_and,
     or,
-    modulo,
+    rem,
     neq,
     over,
     pow,
@@ -197,7 +197,7 @@ derived_object_infix_traits!(
     less_equal,
     logic_and,
     or,
-    modulo,
+    rem,
     neq,
     over,
     pow,
@@ -721,7 +721,7 @@ impl InfixOperable for Integer {
         }
     }
 
-    fn modulo(&self, other: &Object) -> Option<Object> {
+    fn rem(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Integer(Integer { val }) => {
                 Some(Object::Integer(Integer::from(&self.val % val)))
