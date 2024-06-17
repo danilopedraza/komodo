@@ -287,6 +287,10 @@ mod tests {
 
     use super::*;
 
+    fn tokens_from(source: &str) -> Result<Vec<Token>, Error> {
+        build_lexer(source).collect()
+    }
+
     #[test]
     fn empty_string() {
         assert!(build_lexer("").next().is_none());
@@ -308,30 +312,22 @@ mod tests {
     #[test]
     fn simple_expression() {
         assert_eq!(
-            build_lexer("x + y /= a")
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap())
-                .collect::<Vec<_>>(),
-            vec![
+            tokens_from("x + y /= a"),
+            Ok(vec![
                 Token::new(TokenType::Ident(String::from('x')), Position::new(0, 1)),
                 Token::new(TokenType::Plus, Position::new(2, 1)),
                 Token::new(TokenType::Ident(String::from('y')), Position::new(4, 1)),
                 Token::new(TokenType::NotEqual, Position::new(6, 2)),
                 Token::new(TokenType::Ident(String::from('a')), Position::new(9, 1)),
-            ],
+            ]),
         );
     }
 
     #[test]
     fn simple_statement() {
         assert_eq!(
-            build_lexer("let x := 1 / 2.")
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap())
-                .collect::<Vec<_>>(),
-            vec![
+            tokens_from("let x := 1 / 2."),
+            Ok(vec![
                 Token::new(TokenType::Let, Position::new(0, 3)),
                 Token::new(TokenType::Ident(String::from('x')), Position::new(4, 1)),
                 Token::new(TokenType::Assign, Position::new(6, 2)),
@@ -339,19 +335,15 @@ mod tests {
                 Token::new(TokenType::Over, Position::new(11, 1)),
                 Token::new(TokenType::Integer(String::from('2')), Position::new(13, 1)),
                 Token::new(TokenType::Dot, Position::new(14, 1)),
-            ],
+            ]),
         );
     }
 
     #[test]
     fn complex_expression() {
         assert_eq!(
-            build_lexer("(x * y) = 23 % 2")
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap())
-                .collect::<Vec<_>>(),
-            vec![
+            tokens_from("(x * y) = 23 % 2"),
+            Ok(vec![
                 Token::new(TokenType::Lparen, Position::new(0, 1)),
                 Token::new(TokenType::Ident(String::from('x')), Position::new(1, 1)),
                 Token::new(TokenType::Times, Position::new(3, 1)),
@@ -361,7 +353,7 @@ mod tests {
                 Token::new(TokenType::Integer(String::from("23")), Position::new(10, 2)),
                 Token::new(TokenType::Percent, Position::new(13, 1)),
                 Token::new(TokenType::Integer(String::from("2")), Position::new(15, 1)),
-            ],
+            ]),
         );
     }
 
@@ -443,12 +435,8 @@ mod tests {
     #[test]
     fn function_call() {
         assert_eq!(
-            build_lexer("f(x,y ** 2)")
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap())
-                .collect::<Vec<_>>(),
-            vec![
+            tokens_from("f(x,y ** 2)"),
+            Ok(vec![
                 Token::new(TokenType::Ident(String::from('f')), Position::new(0, 1)),
                 Token::new(TokenType::Lparen, Position::new(1, 1)),
                 Token::new(TokenType::Ident(String::from('x')), Position::new(2, 1)),
@@ -457,7 +445,7 @@ mod tests {
                 Token::new(TokenType::ToThe, Position::new(6, 2)),
                 Token::new(TokenType::Integer(String::from('2')), Position::new(9, 1)),
                 Token::new(TokenType::Rparen, Position::new(10, 1)),
-            ],
+            ]),
         );
     }
 
@@ -499,12 +487,8 @@ mod tests {
         let code = "input() # get input\nprint() # print";
 
         assert_eq!(
-            build_lexer(code)
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap())
-                .collect::<Vec<_>>(),
-            vec![
+            tokens_from(code),
+            Ok(vec![
                 Token::new(TokenType::Ident(String::from("input")), Position::new(0, 5)),
                 Token::new(TokenType::Lparen, Position::new(5, 1)),
                 Token::new(TokenType::Rparen, Position::new(6, 1)),
@@ -514,7 +498,7 @@ mod tests {
                 ),
                 Token::new(TokenType::Lparen, Position::new(25, 1)),
                 Token::new(TokenType::Rparen, Position::new(26, 1)),
-            ],
+            ]),
         );
     }
 
