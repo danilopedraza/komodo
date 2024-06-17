@@ -291,6 +291,13 @@ mod tests {
         build_lexer(source).collect()
     }
 
+    fn token_types_from(source: &str) -> Result<Vec<TokenType>, Error> {
+        match tokens_from(source) {
+            Ok(tokens) => Ok(tokens.into_iter().map(|t| t.token).collect()),
+            Err(err) => Err(err),
+        }
+    }
+
     #[test]
     fn empty_string() {
         assert!(build_lexer("").next().is_none());
@@ -360,67 +367,51 @@ mod tests {
     #[test]
     fn leq_comparisons() {
         assert_eq!(
-            build_lexer("a < b <= c")
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap().token)
-                .collect::<Vec<_>>(),
-            vec![
+            token_types_from("a < b <= c"),
+            Ok(vec![
                 TokenType::Ident(String::from("a")),
                 TokenType::Less,
                 TokenType::Ident(String::from("b")),
                 TokenType::LessEqual,
                 TokenType::Ident(String::from("c"))
-            ],
+            ]),
         );
     }
 
     #[test]
     fn geq_comparisons() {
         assert_eq!(
-            build_lexer("a > b >= c")
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap().token)
-                .collect::<Vec<_>>(),
-            vec![
+            token_types_from("a > b >= c"),
+            Ok(vec![
                 TokenType::Ident(String::from("a")),
                 TokenType::Greater,
                 TokenType::Ident(String::from("b")),
                 TokenType::GreaterEqual,
                 TokenType::Ident(String::from("c"))
-            ],
+            ]),
         );
     }
 
     #[test]
     fn function_declaration() {
         assert_eq!(
-            build_lexer("let f: a -> a")
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap().token)
-                .collect::<Vec<_>>(),
-            vec![
+            token_types_from("let f: a -> a"),
+            Ok(vec![
                 TokenType::Let,
                 TokenType::Ident(String::from('f')),
                 TokenType::Colon,
                 TokenType::Ident(String::from('a')),
                 TokenType::Arrow,
                 TokenType::Ident(String::from('a'))
-            ],
+            ]),
         );
     }
 
     #[test]
     fn shift_operator() {
         assert_eq!(
-            build_lexer("(1 << 2) >> 2")
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap().token)
-                .collect::<Vec<_>>(),
-            vec![
+            token_types_from("(1 << 2) >> 2"),
+            Ok(vec![
                 TokenType::Lparen,
                 TokenType::Integer(String::from("1")),
                 TokenType::LeftShift,
@@ -428,7 +419,7 @@ mod tests {
                 TokenType::Rparen,
                 TokenType::RightShift,
                 TokenType::Integer(String::from("2"))
-            ]
+            ]),
         );
     }
 
@@ -452,33 +443,25 @@ mod tests {
     #[test]
     fn set() {
         assert_eq!(
-            build_lexer("{true, false}")
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap().token)
-                .collect::<Vec<_>>(),
-            vec![
+            token_types_from("{true, false}"),
+            Ok(vec![
                 TokenType::Lbrace,
                 TokenType::True,
                 TokenType::Comma,
                 TokenType::False,
                 TokenType::Rbrace
-            ],
+            ]),
         );
     }
 
     #[test]
     fn leading_zeros() {
         assert_eq!(
-            build_lexer("01")
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap().token)
-                .collect::<Vec<_>>(),
-            vec![
+            token_types_from("01"),
+            Ok(vec![
                 TokenType::Integer(String::from('0')),
                 TokenType::Integer(String::from('1'))
-            ]
+            ]),
         );
     }
 
@@ -507,12 +490,8 @@ mod tests {
         let code = "if a < 0 then -a else a";
 
         assert_eq!(
-            build_lexer(code)
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap().token)
-                .collect::<Vec<_>>(),
-            vec![
+            token_types_from(code),
+            Ok(vec![
                 TokenType::If,
                 TokenType::Ident(String::from("a")),
                 TokenType::Less,
@@ -522,7 +501,7 @@ mod tests {
                 TokenType::Ident(String::from("a")),
                 TokenType::Else,
                 TokenType::Ident(String::from("a")),
-            ]
+            ]),
         );
     }
 
@@ -593,18 +572,14 @@ mod tests {
         let code = "[1, 2]";
 
         assert_eq!(
-            build_lexer(code)
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap().token)
-                .collect::<Vec<_>>(),
-            vec![
+            token_types_from(code),
+            Ok(vec![
                 TokenType::Lbrack,
                 TokenType::Integer(String::from("1")),
                 TokenType::Comma,
                 TokenType::Integer(String::from("2")),
                 TokenType::Rbrack,
-            ],
+            ]),
         );
     }
 
@@ -613,12 +588,8 @@ mod tests {
         let code = "f(x, _) := x";
 
         assert_eq!(
-            build_lexer(code)
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap().token)
-                .collect::<Vec<_>>(),
-            vec![
+            token_types_from(code),
+            Ok(vec![
                 TokenType::Ident(String::from("f")),
                 TokenType::Lparen,
                 TokenType::Ident(String::from("x")),
@@ -627,7 +598,7 @@ mod tests {
                 TokenType::Rparen,
                 TokenType::Assign,
                 TokenType::Ident(String::from("x")),
-            ],
+            ]),
         );
     }
 
@@ -636,16 +607,12 @@ mod tests {
         let code = "0..10";
 
         assert_eq!(
-            build_lexer(code)
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap().token)
-                .collect::<Vec<_>>(),
-            vec![
+            token_types_from(code),
+            Ok(vec![
                 TokenType::Integer(String::from("0")),
                 TokenType::DotDot,
                 TokenType::Integer(String::from("10")),
-            ],
+            ]),
         );
     }
 
@@ -654,16 +621,12 @@ mod tests {
         let code = "1 // 2";
 
         assert_eq!(
-            build_lexer(code)
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap().token)
-                .collect::<Vec<_>>(),
-            vec![
+            token_types_from(code),
+            Ok(vec![
                 TokenType::Integer(String::from("1")),
                 TokenType::SlashSlash,
                 TokenType::Integer(String::from("2")),
-            ],
+            ]),
         );
     }
 
@@ -671,14 +634,7 @@ mod tests {
     fn escape_char() {
         let code = "'\\''";
 
-        assert_eq!(
-            build_lexer(code)
-                .collect::<Vec<_>>()
-                .into_iter()
-                .map(|res| res.unwrap().token)
-                .collect::<Vec<_>>(),
-            vec![TokenType::Char('\''),],
-        );
+        assert_eq!(token_types_from(code), Ok(vec![TokenType::Char('\''),]),);
     }
 
     #[test]
