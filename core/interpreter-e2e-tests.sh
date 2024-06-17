@@ -1,10 +1,9 @@
 #!/bin/bash
 
 examples_dir="$(pwd)/../examples"
-binary_path="$(pwd)/target/release/symstatic"
 
 for file in $(find "$examples_dir" -type f -name "*.smtc"); do
-    output=$(eval "$binary_path $file" 2>&1)
+    output=$(eval "cargo run $file" 2>&1)
 
     if [ $? -ne 0 ]; then
         echo "Error: $file failed its execution"

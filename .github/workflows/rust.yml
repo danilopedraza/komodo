@@ -27,7 +27,5 @@ jobs:
       run: cargo clippy --all-targets --all-features
     - name: Run Unit Tests
       run: cargo test --verbose
-    - name: Build
-      run: cargo build --release --verbose
     - name: Run e2e Tests
       run: sh interpreter-e2e-tests.sh
