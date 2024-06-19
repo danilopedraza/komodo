@@ -593,7 +593,7 @@ pub struct Integer {
 
 impl Integer {
     fn to_machine_magnitude(&self) -> usize {
-        let max = std::usize::MAX;
+        let max = usize::MAX;
         if self.val < BigInt::from(0) {
             0
         } else if self.val < BigInt::from(max) {
