@@ -2,4 +2,4 @@
 
 [Introduction](./intro.md)
 
-- [Installation](./chapter_01_installation.md)
+- [Installation](./installation.md)
