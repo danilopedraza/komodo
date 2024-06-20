@@ -1,7 +1,19 @@
 #!/bin/bash
 
-examples_dir="$(pwd)/../examples"
+cargo fmt --check
+if [ $? -ne 0 ]; then
+    read -r -p "Do you want to run 'cargo fmt'? [Y/n] " response
+    if [ "$response" in [yY][eE][sS]|[yY] ]; then
+        cargo fmt
+    fi    
+fi
 
+cargo clippy --all-targets --all-features
+
+cargo test
+
+examples_dir="$(pwd)/../examples"
+echo "Running examples..."
 for file in $(find "$examples_dir" -type f -name "*.smtc"); do
     output=$(eval "cargo run --quiet $file" 2>&1)
 
