@@ -1,20 +1,8 @@
 #!/bin/bash
 
-if [ $1 = "prod" ]; then
-    set -e
-fi
+set -e
 
 cargo fmt --check
-if [ $? -ne 0 ]; then
-    while true; do
-        read -r -p "Do you want to run 'cargo fmt'? [Y/n] " response
-        case "$response" in
-            Y|y|"" ) cargo fmt ; break; ;;
-            N|n    ) exit 1; ;;
-            .*     ) continue; ;;
-        esac
-    done
-fi
 
 cargo clippy --all-targets --all-features
 
