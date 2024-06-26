@@ -6,8 +6,9 @@
 
   # https://devenv.sh/packages/
   packages = [
-    pkgs.git
     pkgs.cargo
+    pkgs.git
+    pkgs.mdbook
     pkgs.nodejs_20
   ];
 
