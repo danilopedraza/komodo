@@ -8,6 +8,7 @@
   packages = [
     pkgs.git
     pkgs.cargo
+    pkgs.nodejs_20
   ];
 
   # https://devenv.sh/scripts/
