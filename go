@@ -29,6 +29,9 @@ case "$POSITIONAL_ARG" in
     (cd core; sh lint.sh)
     ;;
   deploy-book)
-    
+    mdbook build ./book --dest-dir "$TARGET"
+    ;;
+  serve-book)
+    mdbook serve ./book --open
     ;;
 esac
