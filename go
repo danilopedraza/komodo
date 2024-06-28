@@ -35,6 +35,6 @@ case "$POSITIONAL_ARG" in
     mdbook serve ./book --open
     ;;
   deploy-site)
-    mdbook build ./book --dest-dir "$TARGET"
+    mdbook build ./book --dest-dir "$TARGET/book/"
     ;;
 esac
