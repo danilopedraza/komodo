@@ -367,7 +367,13 @@ fn infix(
         InfixOperator::BitwiseXor => lhs.bitwise_xor(rhs),
         InfixOperator::Call => unimplemented!(),
         InfixOperator::Correspondence => unimplemented!(),
-        InfixOperator::Division => lhs.over(rhs),
+        InfixOperator::Division => {
+            if rhs.is_zero() {
+                return Err(Error::new(EvalError::DenominatorZero.into(), infix_pos));
+            } else {
+                lhs.over(rhs)
+            }
+        }
         InfixOperator::Equality => lhs.equality(rhs),
         InfixOperator::Exponentiation => lhs.pow(rhs),
         InfixOperator::Greater => lhs.greater(rhs),
@@ -1214,6 +1220,21 @@ mod tests {
                 Object::Integer(2.into()),
                 Object::Integer(3.into()),
             ])))
+        );
+    }
+
+    #[test]
+    fn zero_division() {
+        let node = infix(
+            InfixOperator::Division,
+            integer("1", dummy_pos()),
+            integer("0", dummy_pos()),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            exec(&node, &mut Environment::default()),
+            Err(Error::new(EvalError::DenominatorZero.into(), dummy_pos())),
         );
     }
 }

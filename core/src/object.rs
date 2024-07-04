@@ -102,6 +102,15 @@ impl Object {
     pub fn empty_tuple() -> Self {
         Self::Tuple(Tuple::from(vec![]))
     }
+
+    pub fn is_zero(&self) -> bool {
+        match self {
+            Object::Integer(Integer { val }) => val.is_zero(),
+            Object::Decimal(Decimal { val }) => val.is_zero(),
+            Object::Fraction(Fraction { val }) => val.is_zero(),
+            _ => false,
+        }
+    }
 }
 
 impl fmt::Display for Object {
