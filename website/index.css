@@ -5,8 +5,18 @@
 }
 
 html {
-  /* font-size: 62.5%; */
+  font-size: 120%;
   font-family: Helvetica, Arial, sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+main {
+  width: 100%;
 }
 
 ul {
@@ -17,12 +27,11 @@ nav {
   height: 100px;
   width: 100%;
 
-  padding: 10px;
-  padding-top: 0px;
+  border: 10px;
+  border-top: 0px;
+  padding-right: 20px;
 
-  display: flex;
-  flex-direction: row;
-  align-items: center;
+  background-color: antiquewhite;
 }
 
 .identifier {
@@ -32,4 +41,41 @@ nav {
 
 .nav-item {
   margin: 10px;
+}
+
+header {
+  /* padding-left: 100px;
+  padding-right: 100px; */
+  background-color: antiquewhite;
+  padding-top: 30px;
+  padding-bottom: 30px;
+}
+
+.centered-box {
+  width: 100%;
+  max-width: 1000px;
+}
+
+section {
+  padding-top: 40px;
+  padding-bottom: 40px;
+}
+
+.row {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+}
+
+.centering {
+  align-items: center;
+}
+
+section div {
+  gap: 25px;
 }
