@@ -151,9 +151,7 @@ fn exec_error_msg(err: &EvalError) -> String {
             numer_kind,
             denom_kind,
         } => bad_fraction(numer_kind, denom_kind),
-        EvalError::DenominatorZero => {
-            "Cannot create a fraction with zero as the denominator".into()
-        }
+        EvalError::DenominatorZero => "Division by zero".into(),
         EvalError::FailedAssertion(msg) => failed_assertion(msg),
         EvalError::MissingFunctionArguments { expected, actual } => {
             missing_func_arguments(*expected, *actual)
