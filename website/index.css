@@ -79,3 +79,15 @@ section {
 section div {
   gap: 25px;
 }
+
+#features {
+  background-color: rgb(179, 179, 189);
+}
+
+#using {
+  background-color: antiquewhite;
+}
+
+#contributing {
+  background-color: rgb(179, 179, 189);
+}
