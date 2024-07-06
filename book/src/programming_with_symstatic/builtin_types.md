@@ -18,7 +18,7 @@ Symstatic has a few built-in types:
 
 - Lists: An ordered collection of anything. You can write them in two ways:
   - By extension: `[1, 2, 4, 8]`
-  - By composition? `[ 2**k : k in 0..4 ]`
+  - By... composition? `[ 2**k : k in 0..4 ]`
 
   Both of these examples describe the same thing! I should also remind you that the elements of a list can be of different type. This is valid: `[1, '2', "3"]`.
   
