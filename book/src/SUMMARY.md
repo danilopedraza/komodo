@@ -10,3 +10,4 @@
   - [Code examples](./using_symstatic/code_examples.md)
 - [Programming with Symstatic](./programming_with_symstatic.md)
   - [Core features](./programming_with_symstatic/core_features.md)
+  - [Built-in Types](./programming_with_symstatic/builtin_types.md)
