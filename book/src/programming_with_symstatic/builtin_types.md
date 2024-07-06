@@ -8,7 +8,7 @@ Symstatic has a few built-in types:
 
 - BigDecimals: Signed, arbitrary precision decimal numbers. You can write them in decimal form with a dot.
 
-- Fractions: Signed, arbitrary precision fractions, made with BigDecimals. You can write them like this: `1 // 2`.
+- Fractions: Signed, arbitrary precision fractions, made with BigIntegers. You can write them like this: `1 // 2`.
 
 - Characters: Old-fashioned ASCII characters. You can write them like this: `'x'`, where `x` is a representation of some ASCII value. (Support for escaped characters is pretty bad right now!)
 
