@@ -20,7 +20,7 @@ Symstatic has a few built-in types:
   - By extension: `[1, 2, 4, 8]`
   - By composition? `[ 2**k : k in 0..4 ]`
 
-  Both of these examples describe the same thing!
+  Both of these examples describe the same thing! I should also remind you that the elements of a list can be of different type. This is valid: `[1, '2', "3"]`.
   
   **Note**: You probably noticed the `0..4` expression. This is a **range**, and it behaves exactly like you expect: It goes from 0 to 3 (it always excludes the last number).
 
