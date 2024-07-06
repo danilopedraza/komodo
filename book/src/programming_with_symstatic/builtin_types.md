@@ -14,7 +14,7 @@ Symstatic has a few built-in types:
 
 - Strings: A bunch of characters, ordered. You can write them like this: `"Hello, world!"`.
   
-  **Note**: Many programming languages use the built-in list type to define strings. Symstatic does not do this. The string type is completely different and defined independently in the Symstatic interpreter.
+  **Note**: Many programming languages use the built-in list type to define strings. Symstatic does not do this. The string type is completely different and defined independently in the interpreter.
 
 - Lists: An ordered collection of anything. You can write them in two ways:
   - By extension: `[1, 2, 4, 8]`
