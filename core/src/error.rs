@@ -1,7 +1,10 @@
 use codespan_reporting::{
     diagnostic::{Diagnostic, Label},
     files::SimpleFiles,
-    term::{self, termcolor::StandardStream},
+    term::{
+        self,
+        termcolor::{Buffer, StandardStream},
+    },
 };
 
 use crate::{
@@ -241,6 +244,24 @@ fn unexpected_token(expected_msgs: Vec<String>, actual_msg: String) -> String {
 pub struct ErrorMessage(pub String, pub Position);
 
 impl ErrorMessage {
+    pub fn as_bytes(&self, filename: &str, source: &str) -> Vec<u8> {
+        let mut files = SimpleFiles::new();
+        let mut writer = Buffer::no_color();
+        let config = codespan_reporting::term::Config::default();
+
+        let file_id = files.add(filename, source);
+        let diagnostic = Diagnostic::error()
+            .with_message(self.0.to_owned())
+            .with_labels(vec![Label::primary(
+                file_id,
+                self.1.start..(self.1.start + self.1.length),
+            )]);
+
+        let _ = term::emit(&mut writer, &config, &files, &diagnostic);
+
+        writer.into_inner()
+    }
+
     pub fn emit(&self, filename: &str, source: &str) {
         let mut files = SimpleFiles::new();
         let writer = StandardStream::stderr(term::termcolor::ColorChoice::Always);
