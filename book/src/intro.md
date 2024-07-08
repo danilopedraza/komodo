@@ -7,3 +7,5 @@ Symstatic draws inspiration from [Picat](https://picat-lang.org/), [SETL](https:
 Symstatic is unstable (I just add what I want) and in active development. Here is the [source code](https://github.com/danilopedraza/symstatic).
 
 This document is a guide to show how to use Symstatic.
+
+> **Tip**: You can search for terms in this document using the 🔍 icon at the top of the page, or pressing the `s` key.
