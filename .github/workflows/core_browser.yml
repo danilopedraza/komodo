@@ -1,0 +1,17 @@
+name: Interpreter Browser Port Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run all Tests
+      run: ./go test-core-browser
