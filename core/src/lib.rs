@@ -1,6 +1,6 @@
 mod ast;
 pub mod builtin;
-mod env;
+pub mod env;
 pub mod error;
 pub mod exec;
 mod lexer;
