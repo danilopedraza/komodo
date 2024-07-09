@@ -1,6 +1,7 @@
 use std::fs;
 use std::process::ExitCode;
 
+use symstatic::builtin::standard_env;
 use symstatic::error::error_msg;
 use symstatic::repl::{repl, MyCLI};
 use symstatic::run::run;
@@ -15,7 +16,8 @@ fn run_smtc(args: &[String]) -> ExitCode {
 
         match input_res {
             Ok(input) => {
-                let res = run(&input);
+                let mut env = standard_env();
+                let res = run(&input, &mut env);
                 if let Err(err) = res {
                     error_msg(&err).emit(path, &input);
                     ExitCode::FAILURE
