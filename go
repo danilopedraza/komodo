@@ -32,10 +32,10 @@ case "$POSITIONAL_ARG" in
     (cd core; sh lint.sh)
     ;;
   lint-core-browser)
-    (cd core-browser; cargo fmt; cargo clippy --all-targets --all-features)
+    (cd core-browser; sh lint.sh)
     ;;
   test-core-browser)
-    (cd core-browser; cargo test)
+    (cd core-browser; sh test.sh)
     ;;
   deploy-book)
     mdbook build ./book --dest-dir "$TARGET"
