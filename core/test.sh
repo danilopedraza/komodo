@@ -6,7 +6,7 @@ cargo fmt --check
 
 cargo clippy --all-targets --all-features
 
-cargo test
+cargo test --all-features
 
 examples_dir="$(pwd)/../examples"
 echo "Running examples..."
