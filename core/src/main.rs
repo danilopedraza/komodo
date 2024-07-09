@@ -3,11 +3,13 @@ use std::process::ExitCode;
 
 use symstatic::builtin::standard_env;
 use symstatic::error::error_msg;
+#[cfg(feature = "repl")]
 use symstatic::repl::{repl, MyCLI};
 use symstatic::run::run;
 
 fn run_smtc(args: &[String]) -> ExitCode {
     if args.len() == 1 {
+        #[cfg(feature = "repl")]
         repl(&mut MyCLI::default());
         ExitCode::SUCCESS
     } else {
