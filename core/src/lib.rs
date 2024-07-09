@@ -7,7 +7,6 @@ mod lexer;
 mod matcher;
 mod object;
 mod parser;
-#[cfg(feature = "repl")]
 pub mod repl;
 pub mod run;
 mod weeder;
