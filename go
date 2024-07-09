@@ -22,6 +22,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$POSITIONAL_ARG" in
+  build-core-wasm)
+    (cd core; cargo build --target wasm32-unknown-unknown)
+    ;;
   test-core)
     (cd core; sh test.sh)
     ;;
