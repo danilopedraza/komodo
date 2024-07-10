@@ -21,7 +21,7 @@ fn smtc_getln(_args: &[Object]) -> Object {
     Object::String(MyString::from(line.as_str()))
 }
 
-fn smtc_assert(args: &[Object]) -> Object {
+pub fn smtc_assert(args: &[Object]) -> Object {
     match (truthy(&args[0]), args.len()) {
         (false, len) if len > 1 => Object::Error(FailedAssertion(Some(args[1].to_string()))),
         (false, _) => Object::Error(FailedAssertion(None)),
