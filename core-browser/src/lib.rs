@@ -11,7 +11,7 @@ extern "C" {
 #[wasm_bindgen]
 pub fn run_code(source: &str) -> Option<String> {
     if let Err(err) = run(source, &mut Environment::default()) {
-        Some(String::from_utf8(error_msg(&err).as_bytes("foo", source)).unwrap())
+        Some(String::from_utf8(error_msg(&err).as_bytes("source.smtc", source)).unwrap())
     } else {
         None
     }
