@@ -37,6 +37,9 @@ case "$POSITIONAL_ARG" in
   test-core-browser)
     (cd core-browser; sh test.sh)
     ;;
+  build-book)
+    mdbook build ./book
+    ;;
   deploy-book)
     mdbook build ./book --dest-dir "$TARGET"
     ;;

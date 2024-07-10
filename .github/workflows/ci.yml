@@ -36,7 +36,7 @@ jobs:
         run: devenv shell ./go test-core-browser
       
       - name: Test Book
-        run: devenv shell ./go deploy-book -- --target /dev/null
+        run: devenv shell ./go build-book
   
   deploy:
     environment:
