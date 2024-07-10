@@ -49,4 +49,6 @@ case "$POSITIONAL_ARG" in
   deploy-site)
     mdbook build ./book --dest-dir "$TARGET/book/"
     ;;
+  deploy-vsc-extension)
+    (cd vsc-extension; vsce publish --skip-duplicate)
 esac
