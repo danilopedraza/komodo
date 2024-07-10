@@ -9,11 +9,11 @@ extern "C" {
 }
 
 #[wasm_bindgen]
-pub fn run_code(source: &str) -> Option<String> {
+pub fn run_code(source: &str) -> String {
     if let Err(err) = run(source, &mut Environment::default()) {
-        Some(String::from_utf8(error_msg(&err).as_bytes("source.smtc", source)).unwrap())
+        String::from_utf8(error_msg(&err).as_bytes("source.smtc", source)).unwrap()
     } else {
-        None
+        String::from("")
     }
 }
 
@@ -23,11 +23,6 @@ mod tests {
 
     #[test]
     fn correct_code() {
-        assert!(run_code("2 + 2").is_none());
-    }
-
-    #[test]
-    fn incorrect_code() {
-        assert!(run_code("3 + (").is_some());
+        assert_eq!(run_code("2 + 2"), String::from(""));
     }
 }
