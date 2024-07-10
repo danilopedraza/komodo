@@ -5,7 +5,7 @@ pub mod error;
 pub mod exec;
 mod lexer;
 mod matcher;
-mod object;
+pub mod object;
 mod parser;
 #[cfg(feature = "repl")]
 pub mod repl;
