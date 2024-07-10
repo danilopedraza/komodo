@@ -24,7 +24,7 @@ Symstatic has a few built-in types:
   
   **Note**: You probably noticed the `0..4` expression. This is a **range**, and it behaves exactly like you expect: It goes from 0 to 3 (it always excludes the last number).
 
-- Tuples: An ordered collection of anything. Wait... That's the same as lists! Yes. There are differences, though. You can't do operations with tuples just like you can with lists, and you can compose them like we did above with lists. You can write them like this: `('1', 11, "111")`.
+- Tuples: An ordered collection of anything. Wait... That's the same as lists! Yes. There are differences, though. You can't do operations with tuples just like you can with lists, and you can't compose them like we did above with lists. You can write them like this: `('1', 11, "111")`.
 
 - Sets: An unordered and extendable collection of anything. You can write them like this: `{ 1, 2, 3 }`.
 
