@@ -852,6 +852,12 @@ pub struct MyString {
     val: String,
 }
 
+impl From<String> for MyString {
+    fn from(val: String) -> Self {
+        Self { val }
+    }
+}
+
 impl MyString {
     fn multiply(&self, num: &Integer) -> Object {
         let times = num.to_machine_magnitude();
