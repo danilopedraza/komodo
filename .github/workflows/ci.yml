@@ -68,3 +68,8 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      
+      - name: Deploy VSC Extension
+        run: devenv shell ./go deploy-vsc-extension
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
