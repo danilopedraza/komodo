@@ -9,4 +9,4 @@ _script()
 
   return 0
 }
-complete -o nospace -F _script ./go
+complete -F _script ./go
