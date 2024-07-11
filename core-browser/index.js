@@ -9,3 +9,7 @@ results.setShowPrintMargin(false);
 results.renderer.setShowGutter(false);
 results.setHighlightActiveLine(false);
 results.renderer.$cursorLayer.element.style.display = "none"
+
+import init, { run_code } from "./smtc/symstatic_browser.js"
+await init();
+console.log(run_code("println(\"foo\"", ""));
