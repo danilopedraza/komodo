@@ -55,4 +55,6 @@ case "$POSITIONAL_ARG" in
   shortlist)
     echo build-core-wasm test-core lint-core lint-core-browser test-core-browser build-book deploy-book serve-book deploy-site deploy-vsc-extension shortlist
     ;;
+  *)
+    echo "Unknown option: $POSITIONAL_ARG"
 esac
