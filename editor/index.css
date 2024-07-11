@@ -45,11 +45,10 @@ main {
 
 #sep {
   width: 20px;
-  /* background-color: yellow; */
 }
 
 #results {
-  background-color: #272822;
+  background-color: #282a36;
 }
 
 nav {
@@ -58,5 +57,7 @@ nav {
 }
 
 #editor {
+  width: 800px;
+  height: 100%;
   resize: horizontal;
 }

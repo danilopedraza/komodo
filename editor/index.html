@@ -3,6 +3,7 @@
 <head>
 <title>Symstatic Playground</title>
 <link rel="stylesheet" href="index.css">
+<script type="module" src="index.js"></script>
 </head>
 <body>
 
@@ -11,7 +12,9 @@
     <h1 id="main-title">Symstatic Playground</h1>
   </nav>
   <div id="content" class="full-height">
-    <div id="editor" class="full-width rounded-corners clear-corners">println("Hello, World!")</div>
+    <div id="editor-wrapper">
+      <div id="editor" class="full-width rounded-corners clear-corners">println("Hello, World!")</div>
+    </div>
     <div id="sep"></div>
     <div id="results" class="full-height full-width clear-corners"></div>
   </div>
@@ -24,12 +27,6 @@
   crossorigin="anonymous"
   referrerpolicy="no-referrer"
 ></script>
-
-<script>
-  var editor = ace.edit("editor");
-  editor.setTheme("ace/theme/monokai");
-  editor.session.setMode("ace/mode/javascript");
-</script>
 
 </body>
 </html>
