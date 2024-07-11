@@ -1,18 +1,9 @@
+mod builtin;
 mod utils;
 
-use std::sync::Mutex;
-
-use symstatic::{
-    builtin::smtc_assert,
-    env::Environment,
-    error::error_msg,
-    object::{Effect, Function, Object},
-    run::run,
-};
+use builtin::{standard_env, STDIN, STDOUT};
+use symstatic::{error::error_msg, run::run};
 use wasm_bindgen::prelude::*;
-
-static STDOUT: Mutex<String> = Mutex::new(String::new());
-static STDIN: Mutex<Vec<String>> = Mutex::new(vec![]);
 
 #[wasm_bindgen]
 pub fn run_code(source: &str, stdin: &str) -> String {
@@ -27,36 +18,7 @@ pub fn run_code(source: &str, stdin: &str) -> String {
 
     std::mem::drop(guard);
 
-    fn smtc_println(args: &[Object]) -> Object {
-        let mut guard = STDOUT.lock().unwrap();
-        guard.push_str(&args[0].to_string());
-        guard.push('\n');
-
-        Object::empty_tuple()
-    }
-
-    fn smtc_getln(_args: &[Object]) -> Object {
-        let mut guard = STDIN.lock().unwrap();
-
-        let res = guard.pop().unwrap_or_default();
-
-        Object::String(res.into())
-    }
-
-    let mut env = Environment::default();
-    env.set(
-        "println",
-        Object::Function(Function::Effect(Effect::new(smtc_println, 1))),
-    );
-    env.set(
-        "getln",
-        Object::Function(Function::Effect(Effect::new(smtc_getln, 0))),
-    );
-
-    env.set(
-        "assert",
-        Object::Function(Function::Effect(Effect::new(smtc_assert, 1))),
-    );
+    let mut env = standard_env();
 
     let run_res = run(source, &mut env);
     let mut res = STDOUT.lock().unwrap().clone();
