@@ -10,5 +10,9 @@
     pkgs.vsce
   ];
 
+  enterShell = ''
+    source autocomplete.sh
+  '';
+
   # See full reference at https://devenv.sh/reference/options/
 }

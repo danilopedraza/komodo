@@ -51,4 +51,8 @@ case "$POSITIONAL_ARG" in
     ;;
   deploy-vsc-extension)
     (cd vsc-extension; vsce publish --skip-duplicate)
+    ;;
+  shortlist)
+    echo build-core-wasm test-core lint-core lint-core-browser test-core-browser build-book deploy-book serve-book deploy-site deploy-vsc-extension shortlist
+    ;;
 esac
