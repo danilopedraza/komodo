@@ -32,6 +32,9 @@ main {
 
 .rounded-corners {
   border-radius: 5px;
+}
+
+.clear-corners {
   border: 2px solid rgb(63, 63, 63);
 }
 
@@ -52,4 +55,8 @@ main {
 nav {
   padding: 8px;
   margin-bottom: 10px;
+}
+
+#editor {
+  resize: horizontal;
 }
