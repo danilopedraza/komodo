@@ -12,4 +12,11 @@ results.renderer.$cursorLayer.element.style.display = "none"
 
 import init, { run_code } from "./smtc/symstatic_browser.js"
 await init();
-console.log(run_code("println(\"foo\"", ""));
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && e.ctrlKey) {
+    let res = run_code(editor.getValue(), "");
+    results.setValue(res);
+    results.clearSelection();
+  }
+});
