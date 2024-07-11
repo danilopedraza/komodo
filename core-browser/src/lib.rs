@@ -23,7 +23,9 @@ pub fn run_code(source: &str, stdin: &str) -> String {
     let run_res = run(source, &mut env);
     let mut res = STDOUT.lock().unwrap().clone();
     if let Err(err) = run_res {
-        res.push_str(&String::from_utf8(error_msg(&err).as_bytes("source.smtc", source)).unwrap());
+        res.push_str(
+            &String::from_utf8(error_msg(&err).as_bytes("source.smtc", source)).unwrap_or_default(),
+        );
     }
 
     res
