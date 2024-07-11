@@ -11,7 +11,7 @@ while [[ $# -gt 0 ]]; do
       shift # past value
       ;;
     -*|--*)
-      echo "Unknown option $1"
+      echo "Unknown option: $1"
       exit 1
       ;;
     *)
