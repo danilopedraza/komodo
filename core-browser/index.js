@@ -1,8 +1,8 @@
-let editor = ace.edit("editor");
+const editor = ace.edit("editor");
 editor.setTheme("ace/theme/dracula");
 editor.session.setMode("ace/mode/javascript");
 
-let results = ace.edit("results");
+const results = ace.edit("results");
 results.setTheme("ace/theme/dracula");
 results.setReadOnly(true);
 results.setShowPrintMargin(false);
