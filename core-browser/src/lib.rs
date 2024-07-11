@@ -1,5 +1,4 @@
 mod builtin;
-mod utils;
 
 use builtin::{standard_env, STDIN, STDOUT};
 use symstatic::{error::error_msg, run::run};
