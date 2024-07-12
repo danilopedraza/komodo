@@ -41,11 +41,11 @@ mod tests {
 
     #[test]
     fn println() {
-        assert_eq!(run_code("println(\"hello\")", ""), "hello\n");
+        assert_eq!(run_code("println(\"hello\")", ""), "\"hello\"\n");
     }
 
     #[test]
     fn getln() {
-        assert_eq!(run_code("println(getln())", "hello\n"), "hello\n");
+        assert_eq!(run_code("println(getln())", "hello\n"), "\"hello\"\n");
     }
 }
