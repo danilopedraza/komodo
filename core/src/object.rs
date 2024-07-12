@@ -1181,6 +1181,13 @@ impl InfixOperable for ExtensionList {
             _ => None,
         }
     }
+
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::ExtensionList(list) => Some(Object::Boolean((self.list == list.list).into())),
+            _ => Some(Object::Boolean(false.into())),
+        }
+    }
 }
 
 impl PrefixOperable for ExtensionList {}
