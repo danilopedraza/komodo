@@ -897,7 +897,7 @@ impl PrefixOperable for MyString {}
 
 impl fmt::Display for MyString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.val)
+        write!(f, "\"{}\"", self.val)
     }
 }
 
