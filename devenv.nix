@@ -12,6 +12,7 @@
 
   enterShell = ''
     source autocomplete.sh
+    rustup default stable
   '';
 
   # See full reference at https://devenv.sh/reference/options/
