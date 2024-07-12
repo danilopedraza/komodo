@@ -10,7 +10,7 @@ use crate::{
 // pub enum AnalyzerError {}
 
 fn postprocessed_vec(vec: Vec<ASTNode>) -> Vec<ASTNode> {
-    vec.iter().map(|node| postprocess(node.clone())).collect()
+    vec.into_iter().map(postprocess).collect()
 }
 
 pub fn postprocess(node: ASTNode) -> ASTNode {
