@@ -108,8 +108,8 @@ fn function(params_node: ASTNode, proc_node: ASTNode, position: Position) -> AST
     };
 
     let proc = match proc_node._type {
-        ASTNodeType::Tuple(v) => v.clone(),
-        _ => vec![proc_node.clone()],
+        ASTNodeType::Tuple(v) => postprocessed_vec(v),
+        _ => vec![postprocess(proc_node)],
     };
 
     ASTNode::new(ASTNodeType::Function(params, proc), position)
@@ -118,6 +118,8 @@ fn function(params_node: ASTNode, proc_node: ASTNode, position: Position) -> AST
 #[cfg(test)]
 mod tests {
     use std::vec;
+
+    use ast::call;
 
     use crate::ast::{
         signature, symbol,
@@ -224,6 +226,53 @@ mod tests {
                 integer("2", dummy_pos()),
                 dummy_pos()
             )
+        );
+    }
+
+    #[test]
+    fn function_inside_procedure() {
+        let node = infix(
+            InfixOperator::Correspondence,
+            symbol("n", dummy_pos()),
+            tuple(
+                vec![
+                    let_(
+                        symbol("f", dummy_pos()),
+                        vec![symbol("k", dummy_pos())],
+                        symbol("k", dummy_pos()),
+                        dummy_pos(),
+                    ),
+                    infix(
+                        InfixOperator::Call,
+                        symbol("f", dummy_pos()),
+                        tuple(vec![symbol("n", dummy_pos())], dummy_pos()),
+                        dummy_pos(),
+                    ),
+                ],
+                dummy_pos(),
+            ),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            postprocess(node),
+            function(
+                vec!["n"],
+                vec![
+                    let_(
+                        symbol("f", dummy_pos()),
+                        vec![symbol("k", dummy_pos())],
+                        symbol("k", dummy_pos()),
+                        dummy_pos(),
+                    ),
+                    call(
+                        symbol("f", dummy_pos()),
+                        vec![symbol("n", dummy_pos())],
+                        dummy_pos()
+                    )
+                ],
+                dummy_pos()
+            ),
         );
     }
 }
