@@ -47,7 +47,7 @@ pub fn standard_env() -> Environment {
         ),
         (
             "getln",
-            Object::Function(Function::Effect(Effect::new(smtc_getln, 1))),
+            Object::Function(Function::Effect(Effect::new(smtc_getln, 0))),
         ),
         (
             "assert",
