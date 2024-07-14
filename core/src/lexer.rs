@@ -220,7 +220,8 @@ impl Lexer<'_> {
 
     fn identifier_or_keyword(&mut self, first: char) -> TokenType {
         let mut literal = String::from(first);
-        while let Some(chr) = self.input.by_ref().next_if(|c| c.is_alphabetic()) {
+        while let Some(chr) = self.input.by_ref().next_if(|c| c.is_alphanumeric()) {
+            // is (kinda) intentional to accept non-ascii symbols
             self.cur_pos += 1;
             literal.push(chr);
         }
@@ -656,6 +657,19 @@ mod tests {
             Some(Ok(Token::new(
                 TokenType::String(String::from("\"")),
                 _pos(0, 4)
+            )))
+        );
+    }
+
+    #[test]
+    fn ident_with_number() {
+        let code = "s1";
+
+        assert_eq!(
+            build_lexer(code).next(),
+            Some(Ok(Token::new(
+                TokenType::Ident(String::from("s1")),
+                _pos(0, 2),
             )))
         );
     }
