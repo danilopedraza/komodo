@@ -14,10 +14,10 @@ pub fn postprocess(node: ParseNode) -> WeederResult<ASTNode> {
     let tp: WeederResult<ASTNodeType> = match node._type {
         ParseNodeType::Boolean(bool) => boolean(bool),
         ParseNodeType::Call(called, proc) => call(*called, proc),
-        ParseNodeType::Char(_) => todo!(),
+        ParseNodeType::Char(chr) => char(chr),
         ParseNodeType::ComprehensionSet(_, _) => todo!(),
         ParseNodeType::ComprehensionList(_, _) => todo!(),
-        ParseNodeType::Decimal(_, _) => todo!(),
+        ParseNodeType::Decimal(int, dec) => decimal(int, dec),
         ParseNodeType::ExtensionList(_) => todo!(),
         ParseNodeType::ExtensionSet(_) => todo!(),
         ParseNodeType::For(_, _, _) => todo!(),
@@ -45,6 +45,14 @@ fn postprocess_vec(vec: Vec<ParseNode>) -> WeederResult<Vec<ASTNode>> {
 
 fn boolean(val: bool) -> WeederResult<ASTNodeType> {
     Ok(ASTNodeType::Boolean(val))
+}
+
+fn char(chr: char) -> WeederResult<ASTNodeType> {
+    Ok(ASTNodeType::Char(chr))
+}
+
+fn decimal(int: String, dec: String) -> WeederResult<ASTNodeType> {
+    Ok(ASTNodeType::Decimal(int, dec))
 }
 
 fn call(called: ParseNode, proc: Vec<ParseNode>) -> WeederResult<ASTNodeType> {

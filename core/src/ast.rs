@@ -16,4 +16,6 @@ impl ASTNode {
 pub enum ASTNodeType {
     Boolean(bool),
     Call(Box<ASTNode>, Vec<ASTNode>),
+    Char(char),
+    Decimal(String, String),
 }
