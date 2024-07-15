@@ -51,4 +51,35 @@ pub enum ASTNodeType {
         numer: Box<ASTNode>,
         denom: Box<ASTNode>,
     },
+    If {
+        cond: Box<ASTNode>,
+        positive: Box<ASTNode>,
+        negative: Box<ASTNode>,
+    },
+    Integer {
+        dec: String,
+    },
+    Let {
+        ident: Box<ASTNode>,
+        params: Vec<ASTNode>,
+        val: Box<ASTNode>,
+    },
+    Cons {
+        first: Box<ASTNode>,
+        tail: Box<ASTNode>,
+    },
+    Signature {
+        val: Box<ASTNode>,
+        constraint: Option<Box<ASTNode>>,
+    },
+    String {
+        str: String,
+    },
+    Symbol {
+        name: String,
+    },
+    Tuple {
+        values: Vec<ASTNode>,
+    },
+    Wildcard,
 }

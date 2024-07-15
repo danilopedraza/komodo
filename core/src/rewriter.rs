@@ -22,17 +22,17 @@ pub fn rewrite(node: ParseNode) -> ASTNode {
         ParseNodeType::For(val, iter, proc) => _for(val, *iter, proc),
         ParseNodeType::Function(params, proc) => function(params, proc),
         ParseNodeType::Fraction(numer, denom) => fraction(*numer, *denom),
-        ParseNodeType::If(_, _, _) => todo!(),
+        ParseNodeType::If(cond, positive, negative) => _if(*cond, *positive, *negative),
         ParseNodeType::Infix(_, _, _) => todo!(),
-        ParseNodeType::Integer(_) => todo!(),
-        ParseNodeType::Let(_, _, _) => todo!(),
+        ParseNodeType::Integer(dec) => integer(dec),
+        ParseNodeType::Let(ident, params, val) => _let(*ident, params, *val),
         ParseNodeType::Prefix(_, _) => todo!(),
-        ParseNodeType::Cons(_, _) => todo!(),
-        ParseNodeType::Signature(_, _) => todo!(),
-        ParseNodeType::String(_) => todo!(),
-        ParseNodeType::Symbol(_) => todo!(),
-        ParseNodeType::Tuple(_) => todo!(),
-        ParseNodeType::Wildcard => todo!(),
+        ParseNodeType::Cons(first, tail) => cons(*first, *tail),
+        ParseNodeType::Signature(val, constraint) => signature(*val, constraint),
+        ParseNodeType::String(str) => string(str),
+        ParseNodeType::Symbol(name) => symbol(name),
+        ParseNodeType::Tuple(values) => tuple(values),
+        ParseNodeType::Wildcard => wildcard(),
     };
 
     ASTNode::new(tp, node.position)
@@ -91,6 +91,57 @@ fn fraction(numer: ParseNode, denom: ParseNode) -> ASTNodeType {
     let numer = Box::new(rewrite(numer));
     let denom = Box::new(rewrite(denom));
     ASTNodeType::Fraction { numer, denom }
+}
+
+fn _if(cond: ParseNode, positive: ParseNode, negative: ParseNode) -> ASTNodeType {
+    let cond = Box::new(rewrite(cond));
+    let positive = Box::new(rewrite(positive));
+    let negative = Box::new(rewrite(negative));
+    ASTNodeType::If {
+        cond,
+        positive,
+        negative,
+    }
+}
+
+fn integer(dec: String) -> ASTNodeType {
+    ASTNodeType::Integer { dec }
+}
+
+fn _let(ident: ParseNode, params: Vec<ParseNode>, val: ParseNode) -> ASTNodeType {
+    let ident = Box::new(rewrite(ident));
+    let params = rewrite_vec(params);
+    let val = Box::new(rewrite(val));
+    ASTNodeType::Let { ident, params, val }
+}
+
+fn cons(first: ParseNode, tail: ParseNode) -> ASTNodeType {
+    let first = Box::new(rewrite(first));
+    let tail = Box::new(rewrite(tail));
+    ASTNodeType::Cons { first, tail }
+}
+
+fn signature(val: ParseNode, constraint: Option<Box<ParseNode>>) -> ASTNodeType {
+    let val = Box::new(rewrite(val));
+    let constraint = constraint.map(|node| Box::new(rewrite(*node)));
+    ASTNodeType::Signature { val, constraint }
+}
+
+fn string(str: String) -> ASTNodeType {
+    ASTNodeType::String { str }
+}
+
+fn symbol(name: String) -> ASTNodeType {
+    ASTNodeType::Symbol { name }
+}
+
+fn tuple(values: Vec<ParseNode>) -> ASTNodeType {
+    let values = rewrite_vec(values);
+    ASTNodeType::Tuple { values }
+}
+
+fn wildcard() -> ASTNodeType {
+    ASTNodeType::Wildcard
 }
 
 fn call(called: ParseNode, args: Vec<ParseNode>) -> ASTNodeType {
