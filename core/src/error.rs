@@ -294,7 +294,7 @@ impl ErrorMessage {
 
 #[cfg(test)]
 mod tests {
-    use crate::parse_node::tests::dummy_pos;
+    use crate::cst::tests::dummy_pos;
 
     use super::*;
 

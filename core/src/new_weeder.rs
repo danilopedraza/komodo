@@ -1,7 +1,7 @@
 use crate::{
     ast::{ASTNode, ASTNodeType},
+    cst::{CSTNode, CSTNodeType, InfixOperator},
     error::Error,
-    parse_node::{InfixOperator, ParseNode, ParseNodeType},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -10,36 +10,36 @@ pub enum WeederError {}
 type WeederResult<T> = Result<T, Error>;
 
 #[allow(unused)]
-pub fn rewrite(node: ParseNode) -> WeederResult<ASTNode> {
+pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
     let tp: ASTNodeType = match node._type {
-        ParseNodeType::Boolean(bool) => boolean(bool),
-        ParseNodeType::Call(called, proc) => call(*called, proc),
-        ParseNodeType::Char(chr) => char(chr),
-        ParseNodeType::ComprehensionSet(val, prop) => comprehension_set(*val, *prop),
-        ParseNodeType::ComprehensionList(val, prop) => comprehension_list(*val, *prop),
-        ParseNodeType::Decimal(int, dec) => decimal(int, dec),
-        ParseNodeType::ExtensionList(list) => extension_list(list),
-        ParseNodeType::ExtensionSet(list) => extension_set(list),
-        ParseNodeType::For(val, iter, proc) => _for(val, *iter, proc),
-        ParseNodeType::Function(params, proc) => function(params, proc),
-        ParseNodeType::Fraction(numer, denom) => fraction(*numer, *denom),
-        ParseNodeType::If(cond, positive, negative) => _if(*cond, *positive, *negative),
-        ParseNodeType::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs),
-        ParseNodeType::Integer(dec) => integer(dec),
-        ParseNodeType::Let(ident, params, val) => _let(*ident, params, *val),
-        ParseNodeType::Prefix(_, _) => todo!(),
-        ParseNodeType::Cons(first, tail) => cons(*first, *tail),
-        ParseNodeType::Signature(val, constraint) => signature(*val, constraint),
-        ParseNodeType::String(str) => string(str),
-        ParseNodeType::Symbol(name) => symbol(name),
-        ParseNodeType::Tuple(values) => tuple(values),
-        ParseNodeType::Wildcard => wildcard(),
+        CSTNodeType::Boolean(bool) => boolean(bool),
+        CSTNodeType::Call(called, proc) => call(*called, proc),
+        CSTNodeType::Char(chr) => char(chr),
+        CSTNodeType::ComprehensionSet(val, prop) => comprehension_set(*val, *prop),
+        CSTNodeType::ComprehensionList(val, prop) => comprehension_list(*val, *prop),
+        CSTNodeType::Decimal(int, dec) => decimal(int, dec),
+        CSTNodeType::ExtensionList(list) => extension_list(list),
+        CSTNodeType::ExtensionSet(list) => extension_set(list),
+        CSTNodeType::For(val, iter, proc) => _for(val, *iter, proc),
+        CSTNodeType::Function(params, proc) => function(params, proc),
+        CSTNodeType::Fraction(numer, denom) => fraction(*numer, *denom),
+        CSTNodeType::If(cond, positive, negative) => _if(*cond, *positive, *negative),
+        CSTNodeType::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs),
+        CSTNodeType::Integer(dec) => integer(dec),
+        CSTNodeType::Let(ident, params, val) => _let(*ident, params, *val),
+        CSTNodeType::Prefix(_, _) => todo!(),
+        CSTNodeType::Cons(first, tail) => cons(*first, *tail),
+        CSTNodeType::Signature(val, constraint) => signature(*val, constraint),
+        CSTNodeType::String(str) => string(str),
+        CSTNodeType::Symbol(name) => symbol(name),
+        CSTNodeType::Tuple(values) => tuple(values),
+        CSTNodeType::Wildcard => wildcard(),
     }?;
 
     Ok(ASTNode::new(tp, node.position))
 }
 
-fn rewrite_vec(vec: Vec<ParseNode>) -> WeederResult<Vec<ASTNode>> {
+fn rewrite_vec(vec: Vec<CSTNode>) -> WeederResult<Vec<ASTNode>> {
     vec.into_iter().map(rewrite).collect()
 }
 
@@ -51,13 +51,13 @@ fn char(chr: char) -> WeederResult<ASTNodeType> {
     Ok(ASTNodeType::Char(chr))
 }
 
-fn comprehension_set(val: ParseNode, prop: ParseNode) -> WeederResult<ASTNodeType> {
+fn comprehension_set(val: CSTNode, prop: CSTNode) -> WeederResult<ASTNodeType> {
     let val = Box::new(rewrite(val)?);
     let prop = Box::new(rewrite(prop)?);
     Ok(ASTNodeType::ComprehensionSet { val, prop })
 }
 
-fn comprehension_list(val: ParseNode, prop: ParseNode) -> WeederResult<ASTNodeType> {
+fn comprehension_list(val: CSTNode, prop: CSTNode) -> WeederResult<ASTNodeType> {
     let val = Box::new(rewrite(val)?);
     let prop = Box::new(rewrite(prop)?);
     Ok(ASTNodeType::ComprehensionList { val, prop })
@@ -67,34 +67,34 @@ fn decimal(int: String, dec: String) -> WeederResult<ASTNodeType> {
     Ok(ASTNodeType::Decimal { int, dec })
 }
 
-fn extension_list(list: Vec<ParseNode>) -> WeederResult<ASTNodeType> {
+fn extension_list(list: Vec<CSTNode>) -> WeederResult<ASTNodeType> {
     let list = rewrite_vec(list)?;
     Ok(ASTNodeType::ExtensionList { list })
 }
 
-fn extension_set(list: Vec<ParseNode>) -> WeederResult<ASTNodeType> {
+fn extension_set(list: Vec<CSTNode>) -> WeederResult<ASTNodeType> {
     let list = rewrite_vec(list)?;
     Ok(ASTNodeType::ExtensionSet { list })
 }
 
-fn _for(val: String, iter: ParseNode, proc: Vec<ParseNode>) -> WeederResult<ASTNodeType> {
+fn _for(val: String, iter: CSTNode, proc: Vec<CSTNode>) -> WeederResult<ASTNodeType> {
     let iter = Box::new(rewrite(iter)?);
     let proc = rewrite_vec(proc)?;
     Ok(ASTNodeType::For { val, iter, proc })
 }
 
-fn function(params: Vec<String>, proc: Vec<ParseNode>) -> WeederResult<ASTNodeType> {
+fn function(params: Vec<String>, proc: Vec<CSTNode>) -> WeederResult<ASTNodeType> {
     let proc = rewrite_vec(proc)?;
     Ok(ASTNodeType::Function { params, proc })
 }
 
-fn fraction(numer: ParseNode, denom: ParseNode) -> WeederResult<ASTNodeType> {
+fn fraction(numer: CSTNode, denom: CSTNode) -> WeederResult<ASTNodeType> {
     let numer = Box::new(rewrite(numer)?);
     let denom = Box::new(rewrite(denom)?);
     Ok(ASTNodeType::Fraction { numer, denom })
 }
 
-fn _if(cond: ParseNode, positive: ParseNode, negative: ParseNode) -> WeederResult<ASTNodeType> {
+fn _if(cond: CSTNode, positive: CSTNode, negative: CSTNode) -> WeederResult<ASTNodeType> {
     let cond = Box::new(rewrite(cond)?);
     let positive = Box::new(rewrite(positive)?);
     let negative = Box::new(rewrite(negative)?);
@@ -105,13 +105,13 @@ fn _if(cond: ParseNode, positive: ParseNode, negative: ParseNode) -> WeederResul
     })
 }
 
-fn infix(cst_op: InfixOperator, lhs: ParseNode, rhs: ParseNode) -> WeederResult<ASTNodeType> {
+fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTNodeType> {
     match cst_op {
         InfixOperator::BitwiseAnd => todo!(),
         InfixOperator::BitwiseXor => todo!(),
         InfixOperator::Call => {
             let args = match rhs._type {
-                ParseNodeType::Tuple(v) => v,
+                CSTNodeType::Tuple(v) => v,
                 _ => todo!(),
             };
 
@@ -119,13 +119,13 @@ fn infix(cst_op: InfixOperator, lhs: ParseNode, rhs: ParseNode) -> WeederResult<
         }
         InfixOperator::Correspondence => {
             let params = match lhs._type {
-                ParseNodeType::Symbol(s) => vec![s.to_string()],
-                ParseNodeType::Tuple(tuple_params) => {
+                CSTNodeType::Symbol(s) => vec![s.to_string()],
+                CSTNodeType::Tuple(tuple_params) => {
                     let mut res = vec![];
 
                     for param in tuple_params {
                         match param._type {
-                            ParseNodeType::Symbol(s) => res.push(s),
+                            CSTNodeType::Symbol(s) => res.push(s),
                             _ => todo!(),
                         }
                     }
@@ -136,7 +136,7 @@ fn infix(cst_op: InfixOperator, lhs: ParseNode, rhs: ParseNode) -> WeederResult<
             };
 
             let proc = match rhs._type {
-                ParseNodeType::Tuple(v) => v,
+                CSTNodeType::Tuple(v) => v,
                 _ => vec![rhs],
             };
 
@@ -169,20 +169,20 @@ fn integer(dec: String) -> WeederResult<ASTNodeType> {
     Ok(ASTNodeType::Integer { dec })
 }
 
-fn _let(ident: ParseNode, params: Vec<ParseNode>, val: ParseNode) -> WeederResult<ASTNodeType> {
+fn _let(ident: CSTNode, params: Vec<CSTNode>, val: CSTNode) -> WeederResult<ASTNodeType> {
     let ident = Box::new(rewrite(ident)?);
     let params = rewrite_vec(params)?;
     let val = Box::new(rewrite(val)?);
     Ok(ASTNodeType::Let { ident, params, val })
 }
 
-fn cons(first: ParseNode, tail: ParseNode) -> WeederResult<ASTNodeType> {
+fn cons(first: CSTNode, tail: CSTNode) -> WeederResult<ASTNodeType> {
     let first = Box::new(rewrite(first)?);
     let tail = Box::new(rewrite(tail)?);
     Ok(ASTNodeType::Cons { first, tail })
 }
 
-fn signature(val: ParseNode, constraint: Option<Box<ParseNode>>) -> WeederResult<ASTNodeType> {
+fn signature(val: CSTNode, constraint: Option<Box<CSTNode>>) -> WeederResult<ASTNodeType> {
     let val = Box::new(rewrite(val)?);
     let constraint = match constraint {
         None => None,
@@ -199,7 +199,7 @@ fn symbol(name: String) -> WeederResult<ASTNodeType> {
     Ok(ASTNodeType::Symbol { name })
 }
 
-fn tuple(values: Vec<ParseNode>) -> WeederResult<ASTNodeType> {
+fn tuple(values: Vec<CSTNode>) -> WeederResult<ASTNodeType> {
     let values = rewrite_vec(values)?;
     Ok(ASTNodeType::Tuple { values })
 }
@@ -208,7 +208,7 @@ fn wildcard() -> WeederResult<ASTNodeType> {
     Ok(ASTNodeType::Wildcard)
 }
 
-fn call(called: ParseNode, args: Vec<ParseNode>) -> WeederResult<ASTNodeType> {
+fn call(called: CSTNode, args: Vec<CSTNode>) -> WeederResult<ASTNodeType> {
     let called = Box::new(rewrite(called)?);
     let args = rewrite_vec(args)?;
     Ok(ASTNodeType::Call { called, args })
@@ -218,25 +218,22 @@ fn call(called: ParseNode, args: Vec<ParseNode>) -> WeederResult<ASTNodeType> {
 mod tests {
     use crate::{
         ast,
-        parse_node::{self, tests::dummy_pos, InfixOperator},
+        cst::{self, tests::dummy_pos, InfixOperator},
     };
 
     use super::rewrite;
 
     #[test]
     fn inlined_function() {
-        let node = parse_node::infix(
+        let node = cst::infix(
             InfixOperator::Call,
-            parse_node::infix(
+            cst::infix(
                 InfixOperator::Correspondence,
-                parse_node::symbol("x", dummy_pos()),
-                parse_node::symbol("x", dummy_pos()),
+                cst::symbol("x", dummy_pos()),
+                cst::symbol("x", dummy_pos()),
                 dummy_pos(),
             ),
-            parse_node::tuple(
-                vec![parse_node::tests::integer("1", dummy_pos())],
-                dummy_pos(),
-            ),
+            cst::tuple(vec![cst::tests::integer("1", dummy_pos())], dummy_pos()),
             dummy_pos(),
         );
 

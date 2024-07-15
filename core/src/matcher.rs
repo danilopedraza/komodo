@@ -1,16 +1,16 @@
 use std::iter::zip;
 
 use crate::{
+    cst::{CSTNode, CSTNodeType},
     env::Environment,
     exec::exec,
     object::{ExtensionList, Object},
-    parse_node::{ParseNode, ParseNodeType},
 };
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Match(pub Vec<(String, Object)>);
 
-pub fn match_call(patterns: &[ParseNode], args: &[Object]) -> Option<Match> {
+pub fn match_call(patterns: &[CSTNode], args: &[Object]) -> Option<Match> {
     match_list(patterns, args)
 }
 
@@ -32,7 +32,7 @@ fn join(map1: Option<Match>, map2: Option<Match>) -> Option<Match> {
     Some(Match(map))
 }
 
-fn match_list(patterns: &[ParseNode], vals: &[Object]) -> Option<Match> {
+fn match_list(patterns: &[CSTNode], vals: &[Object]) -> Option<Match> {
     if patterns.len() != vals.len() {
         None
     } else {
@@ -42,12 +42,12 @@ fn match_list(patterns: &[ParseNode], vals: &[Object]) -> Option<Match> {
     }
 }
 
-fn match_(pattern: &ParseNode, val: &Object) -> Option<Match> {
+fn match_(pattern: &CSTNode, val: &Object) -> Option<Match> {
     match &pattern._type {
-        ParseNodeType::Wildcard => empty_match(),
-        ParseNodeType::Symbol(s) => single_match(s, val),
-        ParseNodeType::ExtensionList(l) => match_extension_list(l, val),
-        ParseNodeType::Cons(first, most) => match_prefix_crop(first, most, val),
+        CSTNodeType::Wildcard => empty_match(),
+        CSTNodeType::Symbol(s) => single_match(s, val),
+        CSTNodeType::ExtensionList(l) => match_extension_list(l, val),
+        CSTNodeType::Cons(first, most) => match_prefix_crop(first, most, val),
         _ => match_constant(pattern, val),
     }
 }
@@ -60,14 +60,14 @@ fn empty_match() -> Option<Match> {
     Some(Match(vec![]))
 }
 
-fn match_extension_list(pattern: &[ParseNode], val: &Object) -> Option<Match> {
+fn match_extension_list(pattern: &[CSTNode], val: &Object) -> Option<Match> {
     match val {
         Object::ExtensionList(ExtensionList { list: al }) => match_list(pattern, al),
         _ => None,
     }
 }
 
-fn match_prefix_crop(first: &ParseNode, most: &ParseNode, val: &Object) -> Option<Match> {
+fn match_prefix_crop(first: &CSTNode, most: &CSTNode, val: &Object) -> Option<Match> {
     match val {
         Object::ExtensionList(ExtensionList { list }) if !list.is_empty() => {
             let first_match = match_(first, &list[0]);
@@ -81,7 +81,7 @@ fn match_prefix_crop(first: &ParseNode, most: &ParseNode, val: &Object) -> Optio
     }
 }
 
-fn match_constant(pattern: &ParseNode, val: &Object) -> Option<Match> {
+fn match_constant(pattern: &CSTNode, val: &Object) -> Option<Match> {
     if exec(pattern, &mut Environment::default()).unwrap() == *val {
         empty_match()
     } else {
@@ -92,8 +92,8 @@ fn match_constant(pattern: &ParseNode, val: &Object) -> Option<Match> {
 #[cfg(test)]
 mod tests {
     use crate::{
+        cst::{cons, extension_list, symbol, tests::dummy_pos},
         object::Integer,
-        parse_node::{cons, extension_list, symbol, tests::dummy_pos},
     };
 
     use super::*;

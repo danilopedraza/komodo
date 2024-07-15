@@ -11,11 +11,11 @@ use num_bigint::{BigInt, BigUint};
 use num_rational::BigRational;
 
 use crate::{
+    cst::{CSTNode, CSTNodeType},
     env::Environment,
     error::Error,
     exec::exec,
     matcher::{match_call, Match},
-    parse_node::{ParseNode, ParseNodeType},
 };
 
 macro_rules! default_infix_method {
@@ -556,8 +556,8 @@ impl fmt::Display for ExtensionSet {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ComprehensionSet {
-    value: ParseNode,
-    prop: ParseNode,
+    value: CSTNode,
+    prop: CSTNode,
 }
 
 impl Hash for ComprehensionSet {
@@ -567,8 +567,8 @@ impl Hash for ComprehensionSet {
     }
 }
 
-impl From<(ParseNode, ParseNode)> for ComprehensionSet {
-    fn from((value, prop): (ParseNode, ParseNode)) -> Self {
+impl From<(CSTNode, CSTNode)> for ComprehensionSet {
+    fn from((value, prop): (CSTNode, CSTNode)) -> Self {
         Self { value, prop }
     }
 }
@@ -578,7 +578,7 @@ impl PrefixOperable for ComprehensionSet {}
 impl InfixOperable for ComprehensionSet {
     fn contains(&self, other: &Object) -> Option<Object> {
         let symbol = match &self.value._type {
-            ParseNodeType::Symbol(s) => s,
+            CSTNodeType::Symbol(s) => s,
             _ => unimplemented!(),
         };
 
@@ -1000,9 +1000,9 @@ impl Callable for Function {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct DefinedFunction {
-    patterns: Vec<(Vec<ParseNode>, ParseNode)>,
+    patterns: Vec<(Vec<CSTNode>, CSTNode)>,
     params: Vec<String>,
-    proc: Vec<ParseNode>,
+    proc: Vec<CSTNode>,
 }
 
 impl Hash for DefinedFunction {
@@ -1027,7 +1027,7 @@ impl fmt::Display for DefinedFunction {
 }
 
 impl DefinedFunction {
-    pub fn new(params: Vec<String>, proc: Vec<ParseNode>) -> Self {
+    pub fn new(params: Vec<String>, proc: Vec<CSTNode>) -> Self {
         Self {
             patterns: vec![],
             params,
@@ -1035,7 +1035,7 @@ impl DefinedFunction {
         }
     }
 
-    pub fn add_pattern(&mut self, args: &[ParseNode], value: &ParseNode) {
+    pub fn add_pattern(&mut self, args: &[CSTNode], value: &CSTNode) {
         self.patterns.push((args.to_vec(), value.clone()))
     }
 

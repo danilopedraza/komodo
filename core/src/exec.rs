@@ -4,11 +4,11 @@ use crate::object::{
     Kind, Range,
 };
 
+use crate::cst::{CSTNode, CSTNodeType, InfixOperator, PrefixOperator};
 use crate::env::Environment;
 use crate::object::{
     Bool, Char, DefinedFunction, ExtensionSet, Integer, MyString, Object, Symbol, Tuple,
 };
-use crate::parse_node::{InfixOperator, ParseNode, ParseNodeType, PrefixOperator};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvalError {
@@ -43,45 +43,43 @@ pub fn truthy(val: &Object) -> bool {
     }
 }
 
-pub fn list(l: &[ParseNode], env: &mut Environment) -> Result<Vec<Object>, Error> {
+pub fn list(l: &[CSTNode], env: &mut Environment) -> Result<Vec<Object>, Error> {
     l.iter().map(|node| exec(node, env)).collect()
 }
 
-fn function(params: &[String], proc: &[ParseNode]) -> Result<Object, Error> {
+fn function(params: &[String], proc: &[CSTNode]) -> Result<Object, Error> {
     Ok(Object::Function(object::Function::DefinedFunction(
         DefinedFunction::new(params.to_owned(), proc.to_owned()),
     )))
 }
 
-pub fn exec(node: &ParseNode, env: &mut Environment) -> Result<Object, Error> {
+pub fn exec(node: &CSTNode, env: &mut Environment) -> Result<Object, Error> {
     let res = match &node._type {
-        ParseNodeType::Symbol(str) => symbol(str, env),
-        ParseNodeType::ExtensionSet(l) => extension_set(l, env),
-        ParseNodeType::Integer(str) => integer(str),
-        ParseNodeType::Function(params, proc) => function(params, proc),
-        ParseNodeType::Infix(op, lhs, rhs) => {
+        CSTNodeType::Symbol(str) => symbol(str, env),
+        CSTNodeType::ExtensionSet(l) => extension_set(l, env),
+        CSTNodeType::Integer(str) => integer(str),
+        CSTNodeType::Function(params, proc) => function(params, proc),
+        CSTNodeType::Infix(op, lhs, rhs) => {
             infix(*op, &exec(lhs, env)?, &exec(rhs, env)?, node.position)
         }
-        ParseNodeType::Let(ident, params, value) if params.is_empty() => let_(ident, value, env),
-        ParseNodeType::Let(ident, args, value) => let_function(ident, args, value, env),
-        ParseNodeType::Boolean(val) => boolean(*val),
-        ParseNodeType::Call(func_node, args) => call(func_node, args, env, node.position),
-        ParseNodeType::Char(chr) => char(*chr),
-        ParseNodeType::ComprehensionSet(value, prop) => comprehension_set(value, prop),
-        ParseNodeType::If(cond, first, second) => if_(exec(cond, env)?, first, second, env),
-        ParseNodeType::Prefix(op, node) => prefix(*op, exec(node, env)?, node.position),
-        ParseNodeType::Signature(_, _) => unimplemented!(),
-        ParseNodeType::String(str) => string(str),
-        ParseNodeType::Tuple(l) => tuple(l, env),
-        ParseNodeType::For(symbol, iterable, proc) => for_(symbol, iterable, proc, env),
-        ParseNodeType::ExtensionList(l) => extension_list(l, env),
-        ParseNodeType::ComprehensionList(transform, prop) => {
-            comprehension_list(transform, prop, env)
-        }
-        ParseNodeType::Wildcard => unimplemented!(),
-        ParseNodeType::Cons(first, most) => prepend(exec(first, env)?, most, env),
-        ParseNodeType::Decimal(int, dec) => decimal(int, dec),
-        ParseNodeType::Fraction(numer, denom) => fraction(numer, denom, node.position, env),
+        CSTNodeType::Let(ident, params, value) if params.is_empty() => let_(ident, value, env),
+        CSTNodeType::Let(ident, args, value) => let_function(ident, args, value, env),
+        CSTNodeType::Boolean(val) => boolean(*val),
+        CSTNodeType::Call(func_node, args) => call(func_node, args, env, node.position),
+        CSTNodeType::Char(chr) => char(*chr),
+        CSTNodeType::ComprehensionSet(value, prop) => comprehension_set(value, prop),
+        CSTNodeType::If(cond, first, second) => if_(exec(cond, env)?, first, second, env),
+        CSTNodeType::Prefix(op, node) => prefix(*op, exec(node, env)?, node.position),
+        CSTNodeType::Signature(_, _) => unimplemented!(),
+        CSTNodeType::String(str) => string(str),
+        CSTNodeType::Tuple(l) => tuple(l, env),
+        CSTNodeType::For(symbol, iterable, proc) => for_(symbol, iterable, proc, env),
+        CSTNodeType::ExtensionList(l) => extension_list(l, env),
+        CSTNodeType::ComprehensionList(transform, prop) => comprehension_list(transform, prop, env),
+        CSTNodeType::Wildcard => unimplemented!(),
+        CSTNodeType::Cons(first, most) => prepend(exec(first, env)?, most, env),
+        CSTNodeType::Decimal(int, dec) => decimal(int, dec),
+        CSTNodeType::Fraction(numer, denom) => fraction(numer, denom, node.position, env),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -98,7 +96,7 @@ fn decimal(int: &str, dec: &str) -> Result<Object, Error> {
     Ok(Object::Decimal(Decimal::new(int, dec)))
 }
 
-fn prepend(first: Object, most: &ParseNode, env: &mut Environment) -> Result<Object, Error> {
+fn prepend(first: Object, most: &CSTNode, env: &mut Environment) -> Result<Object, Error> {
     match exec(most, env)? {
         Object::ExtensionList(lst) => {
             let mut res = vec![first];
@@ -116,11 +114,11 @@ fn prepend(first: Object, most: &ParseNode, env: &mut Environment) -> Result<Obj
     }
 }
 
-fn extension_list(l: &[ParseNode], env: &mut Environment) -> Result<Object, Error> {
+fn extension_list(l: &[CSTNode], env: &mut Environment) -> Result<Object, Error> {
     list(l, env).map(|lst| Object::ExtensionList(ExtensionList::from(lst)))
 }
 
-fn tuple(l: &[ParseNode], env: &mut Environment) -> Result<Object, Error> {
+fn tuple(l: &[CSTNode], env: &mut Environment) -> Result<Object, Error> {
     list(l, env).map(|lst| Object::Tuple(Tuple::from(lst)))
 }
 
@@ -128,7 +126,7 @@ fn string(str: &str) -> Result<Object, Error> {
     Ok(Object::String(MyString::from(str)))
 }
 
-fn comprehension_set(value: &ParseNode, prop: &ParseNode) -> Result<Object, Error> {
+fn comprehension_set(value: &CSTNode, prop: &CSTNode) -> Result<Object, Error> {
     Ok(Object::ComprehensionSet(ComprehensionSet::from((
         value.clone(),
         prop.clone(),
@@ -143,11 +141,11 @@ fn boolean(val: bool) -> Result<Object, Error> {
     Ok(Object::Boolean(Bool::from(val)))
 }
 
-fn let_(ident: &ParseNode, value: &ParseNode, env: &mut Environment) -> Result<Object, Error> {
+fn let_(ident: &CSTNode, value: &CSTNode, env: &mut Environment) -> Result<Object, Error> {
     match &ident._type {
-        ParseNodeType::Symbol(name) => exec_and_set(value, name, env),
-        ParseNodeType::Signature(ident, None) => match &ident._type {
-            ParseNodeType::Symbol(name) => exec_and_set(value, name, env),
+        CSTNodeType::Symbol(name) => exec_and_set(value, name, env),
+        CSTNodeType::Signature(ident, None) => match &ident._type {
+            CSTNodeType::Symbol(name) => exec_and_set(value, name, env),
             _ => todo!(),
         },
         _ => unimplemented!(),
@@ -158,7 +156,7 @@ fn integer(str: &str) -> Result<Object, Error> {
     Ok(Object::Integer(Integer::from(str)))
 }
 
-fn extension_set(l: &[ParseNode], env: &mut Environment) -> Result<Object, Error> {
+fn extension_set(l: &[CSTNode], env: &mut Environment) -> Result<Object, Error> {
     list(l, env).map(|lst| Object::ExtensionSet(ExtensionSet::from(lst)))
 }
 
@@ -170,20 +168,20 @@ fn symbol(str: &str, env: &mut Environment) -> Result<Object, Error> {
 }
 
 fn comprehension_list(
-    transform: &ParseNode,
-    prop: &ParseNode,
+    transform: &CSTNode,
+    prop: &CSTNode,
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let symbol = match &prop._type {
-        ParseNodeType::Infix(InfixOperator::In, lhs, _) => match &lhs._type {
-            ParseNodeType::Symbol(ident) => ident,
+        CSTNodeType::Infix(InfixOperator::In, lhs, _) => match &lhs._type {
+            CSTNodeType::Symbol(ident) => ident,
             _ => todo!(),
         },
         _ => todo!(),
     };
 
     let iterator: Vec<Object> = match &prop._type {
-        ParseNodeType::Infix(InfixOperator::In, _, rhs) => get_iterable(rhs, env)?,
+        CSTNodeType::Infix(InfixOperator::In, _, rhs) => get_iterable(rhs, env)?,
         _ => todo!(),
     };
 
@@ -199,13 +197,13 @@ fn comprehension_list(
 }
 
 fn let_function(
-    ident: &ParseNode,
-    args: &[ParseNode],
-    value: &ParseNode,
+    ident: &CSTNode,
+    args: &[CSTNode],
+    value: &CSTNode,
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let name = match &ident._type {
-        ParseNodeType::Symbol(name) => name,
+        CSTNodeType::Symbol(name) => name,
         _ => unimplemented!(),
     };
 
@@ -232,7 +230,7 @@ fn let_function(
     )))
 }
 
-fn exec_and_set(node: &ParseNode, name: &str, env: &mut Environment) -> Result<Object, Error> {
+fn exec_and_set(node: &CSTNode, name: &str, env: &mut Environment) -> Result<Object, Error> {
     let val = exec(node, env)?;
     env.set(name, val.clone());
     Ok(val)
@@ -240,8 +238,8 @@ fn exec_and_set(node: &ParseNode, name: &str, env: &mut Environment) -> Result<O
 
 fn if_(
     cond: Object,
-    first: &ParseNode,
-    second: &ParseNode,
+    first: &CSTNode,
+    second: &CSTNode,
     env: &mut Environment,
 ) -> Result<Object, Error> {
     if truthy(&cond) {
@@ -253,8 +251,8 @@ fn if_(
 
 fn for_(
     symbol: &str,
-    iterable: &ParseNode,
-    proc: &[ParseNode],
+    iterable: &CSTNode,
+    proc: &[CSTNode],
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let iter: Vec<Object> = get_iterable(iterable, env)?;
@@ -274,7 +272,7 @@ fn for_(
     Ok(Object::empty_tuple())
 }
 
-fn get_iterable(node: &ParseNode, env: &mut Environment) -> Result<Vec<Object>, Error> {
+fn get_iterable(node: &CSTNode, env: &mut Environment) -> Result<Vec<Object>, Error> {
     match exec(node, env)? {
         Object::ExtensionSet(set) => Ok(set.set.iter().map(|obj| obj.to_owned()).collect()),
         Object::ExtensionList(list) => Ok(list.list.iter().map(|obj| obj.to_owned()).collect()),
@@ -287,8 +285,8 @@ fn get_iterable(node: &ParseNode, env: &mut Environment) -> Result<Vec<Object>, 
 }
 
 fn call(
-    func_node: &ParseNode,
-    args: &[ParseNode],
+    func_node: &CSTNode,
+    args: &[CSTNode],
     env: &mut Environment,
     call_pos: Position,
 ) -> Result<Object, Error> {
@@ -331,8 +329,8 @@ fn range(start: &Object, end: &Object) -> Option<Object> {
 }
 
 fn fraction(
-    numer: &ParseNode,
-    denom: &ParseNode,
+    numer: &CSTNode,
+    denom: &CSTNode,
     position: Position,
     env: &mut Environment,
 ) -> Result<Object, Error> {
@@ -439,13 +437,13 @@ mod tests {
     use bigdecimal::BigDecimal;
 
     use super::*;
-    use crate::error::ErrorType;
-    use crate::object::*;
-    use crate::parse_node::tests::{_pos, boolean, decimal, dummy_pos, function, integer, range};
-    use crate::parse_node::{
+    use crate::cst::tests::{_pos, boolean, decimal, dummy_pos, function, integer, range};
+    use crate::cst::{
         _for, call, comprehension_list, comprehension_set, cons, extension_list, extension_set,
         fraction, infix, let_, prefix, signature, symbol, tuple,
     };
+    use crate::error::ErrorType;
+    use crate::object::*;
 
     #[test]
     fn symbol_() {
@@ -754,8 +752,8 @@ mod tests {
         let mut env = Environment::default();
         env.set("a", Object::Integer(Integer::from(-5)));
 
-        let node = &ParseNode::new(
-            ParseNodeType::If(
+        let node = &CSTNode::new(
+            CSTNodeType::If(
                 Box::new(infix(
                     InfixOperator::Less,
                     symbol("a", dummy_pos()),

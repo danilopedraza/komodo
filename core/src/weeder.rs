@@ -1,103 +1,103 @@
 use crate::{
-    error::Position,
-    parse_node,
-    parse_node::{
-        comprehension_list, comprehension_set, extension_list, extension_set, InfixOperator,
-        ParseNode, ParseNodeType, _for, _if, let_, prefix, tuple,
+    cst,
+    cst::{
+        comprehension_list, comprehension_set, extension_list, extension_set, CSTNode, CSTNodeType,
+        InfixOperator, _for, _if, let_, prefix, tuple,
     },
+    error::Position,
 };
 
 // pub enum AnalyzerError {}
 
-fn postprocessed_vec(vec: Vec<ParseNode>) -> Vec<ParseNode> {
+fn postprocessed_vec(vec: Vec<CSTNode>) -> Vec<CSTNode> {
     vec.into_iter().map(postprocess).collect()
 }
 
-pub fn postprocess(node: ParseNode) -> ParseNode {
+pub fn postprocess(node: CSTNode) -> CSTNode {
     let position = node.position;
 
     match node._type {
-        ParseNodeType::Infix(InfixOperator::Correspondence, params, proc) => {
+        CSTNodeType::Infix(InfixOperator::Correspondence, params, proc) => {
             function(*params, *proc, position)
         }
-        ParseNodeType::Infix(InfixOperator::Call, called, args) => call(*called, *args, position),
-        ParseNodeType::Infix(InfixOperator::Dot, obj, old_call) => {
+        CSTNodeType::Infix(InfixOperator::Call, called, args) => call(*called, *args, position),
+        CSTNodeType::Infix(InfixOperator::Dot, obj, old_call) => {
             let processed_call = postprocess(*old_call);
 
             match processed_call._type {
-                ParseNodeType::Call(called, args) => {
+                CSTNodeType::Call(called, args) => {
                     let mut new_args = vec![postprocess(*obj)];
                     for arg in args {
                         new_args.push(arg);
                     }
 
-                    ParseNode::new(ParseNodeType::Call(called, new_args), position)
+                    CSTNode::new(CSTNodeType::Call(called, new_args), position)
                 }
                 _ => todo!(),
             }
         }
-        ParseNodeType::Infix(InfixOperator::Fraction, numer, denom) => {
+        CSTNodeType::Infix(InfixOperator::Fraction, numer, denom) => {
             fraction(*numer, *denom, node.position)
         }
-        ParseNodeType::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs, position),
-        ParseNodeType::For(ident, iter, proc) => _for(
+        CSTNodeType::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs, position),
+        CSTNodeType::For(ident, iter, proc) => _for(
             &ident,
             postprocess(*iter),
             postprocessed_vec(proc),
             position,
         ),
-        ParseNodeType::ComprehensionList(value, prop) => {
+        CSTNodeType::ComprehensionList(value, prop) => {
             comprehension_list(postprocess(*value), postprocess(*prop), position)
         }
-        ParseNodeType::ComprehensionSet(value, prop) => {
+        CSTNodeType::ComprehensionSet(value, prop) => {
             comprehension_set(postprocess(*value), postprocess(*prop), position)
         }
-        ParseNodeType::ExtensionList(vals) => extension_list(postprocessed_vec(vals), position),
-        ParseNodeType::ExtensionSet(vals) => extension_set(postprocessed_vec(vals), position),
-        ParseNodeType::Function(args, proc) => ParseNode::new(
-            ParseNodeType::Function(args, postprocessed_vec(proc)),
+        CSTNodeType::ExtensionList(vals) => extension_list(postprocessed_vec(vals), position),
+        CSTNodeType::ExtensionSet(vals) => extension_set(postprocessed_vec(vals), position),
+        CSTNodeType::Function(args, proc) => CSTNode::new(
+            CSTNodeType::Function(args, postprocessed_vec(proc)),
             position,
         ),
-        ParseNodeType::If(cond, first, second) => _if(
+        CSTNodeType::If(cond, first, second) => _if(
             postprocess(*cond),
             postprocess(*first),
             postprocess(*second),
             position,
         ),
-        ParseNodeType::Let(ident, params, val) => let_(*ident, params, postprocess(*val), position),
-        ParseNodeType::Prefix(op, node) => prefix(op, postprocess(*node), position),
-        ParseNodeType::Tuple(vals) => tuple(postprocessed_vec(vals), position),
+        CSTNodeType::Let(ident, params, val) => let_(*ident, params, postprocess(*val), position),
+        CSTNodeType::Prefix(op, node) => prefix(op, postprocess(*node), position),
+        CSTNodeType::Tuple(vals) => tuple(postprocessed_vec(vals), position),
         _ => node,
     }
 }
 
-fn fraction(numer: ParseNode, denom: ParseNode, position: Position) -> ParseNode {
-    parse_node::fraction(numer, denom, position)
+fn fraction(numer: CSTNode, denom: CSTNode, position: Position) -> CSTNode {
+    cst::fraction(numer, denom, position)
 }
 
-fn infix(op: InfixOperator, lhs: ParseNode, rhs: ParseNode, position: Position) -> ParseNode {
-    parse_node::infix(op, postprocess(lhs), postprocess(rhs), position)
+fn infix(op: InfixOperator, lhs: CSTNode, rhs: CSTNode, position: Position) -> CSTNode {
+    cst::infix(op, postprocess(lhs), postprocess(rhs), position)
 }
 
-fn call(called_node: ParseNode, args_node: ParseNode, position: Position) -> ParseNode {
+fn call(called_node: CSTNode, args_node: CSTNode, position: Position) -> CSTNode {
     let called = postprocess(called_node);
     let args = match postprocess(args_node)._type {
-        ParseNodeType::Tuple(v) => v,
+        CSTNodeType::Tuple(v) => v,
         _ => todo!(),
     };
 
-    parse_node::call(called, args, position)
+    cst::call(called, args, position)
 }
 
-fn function(params_node: ParseNode, proc_node: ParseNode, position: Position) -> ParseNode {
+fn function(params_node: CSTNode, proc_node: CSTNode, position: Position) -> CSTNode {
     let params = match params_node._type {
-        ParseNodeType::Symbol(s) => vec![s.to_owned()],
-        ParseNodeType::Tuple(tuple_params) => {
+        CSTNodeType::Symbol(s) => vec![s.to_owned()],
+        CSTNodeType::Tuple(tuple_params) => {
             let mut res = vec![];
 
             for param in tuple_params {
                 match param._type {
-                    ParseNodeType::Symbol(s) => res.push(s),
+                    CSTNodeType::Symbol(s) => res.push(s),
                     _ => todo!(),
                 }
             }
@@ -108,20 +108,20 @@ fn function(params_node: ParseNode, proc_node: ParseNode, position: Position) ->
     };
 
     let proc = match proc_node._type {
-        ParseNodeType::Tuple(v) => postprocessed_vec(v),
+        CSTNodeType::Tuple(v) => postprocessed_vec(v),
         _ => vec![postprocess(proc_node)],
     };
 
-    ParseNode::new(ParseNodeType::Function(params, proc), position)
+    CSTNode::new(CSTNodeType::Function(params, proc), position)
 }
 
 #[cfg(test)]
 mod tests {
     use std::vec;
 
-    use parse_node::call;
+    use cst::call;
 
-    use crate::parse_node::{
+    use crate::cst::{
         signature, symbol,
         tests::{dummy_pos, function, integer},
     };
@@ -144,7 +144,7 @@ mod tests {
 
         assert_eq!(
             postprocess(node),
-            parse_node::call(
+            cst::call(
                 function(vec!["x"], vec![symbol("x", dummy_pos())], dummy_pos()),
                 vec![integer("1", dummy_pos())],
                 dummy_pos()
@@ -202,7 +202,7 @@ mod tests {
 
         assert_eq!(
             postprocess(node),
-            parse_node::call(
+            cst::call(
                 symbol("map", dummy_pos()),
                 vec![symbol("set", dummy_pos()), symbol("func", dummy_pos())],
                 dummy_pos()
