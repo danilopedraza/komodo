@@ -17,7 +17,7 @@ pub fn postprocess(node: ParseNode) -> ASTNode {
         ParseNodeType::ComprehensionSet(val, prop) => comprehension_set(*val, *prop),
         ParseNodeType::ComprehensionList(val, prop) => comprehension_list(*val, *prop),
         ParseNodeType::Decimal(int, dec) => decimal(int, dec),
-        ParseNodeType::ExtensionList(_) => todo!(),
+        ParseNodeType::ExtensionList(list) => extension_list(list),
         ParseNodeType::ExtensionSet(_) => todo!(),
         ParseNodeType::For(_, _, _) => todo!(),
         ParseNodeType::Function(_, _) => todo!(),
@@ -64,6 +64,11 @@ fn comprehension_list(val: ParseNode, prop: ParseNode) -> ASTNodeType {
 
 fn decimal(int: String, dec: String) -> ASTNodeType {
     ASTNodeType::Decimal { int, dec }
+}
+
+fn extension_list(list: Vec<ParseNode>) -> ASTNodeType {
+    let list = postprocess_vec(list);
+    ASTNodeType::ExtensionList { list }
 }
 
 fn call(called: ParseNode, args: Vec<ParseNode>) -> ASTNodeType {

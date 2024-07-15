@@ -32,4 +32,7 @@ pub enum ASTNodeType {
         int: String,
         dec: String,
     },
+    ExtensionList {
+        list: Vec<ASTNode>,
+    },
 }
