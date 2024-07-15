@@ -9,7 +9,7 @@ use crate::{
 // type WeederResult<T> = Result<T, Error>;
 
 #[allow(unused)]
-pub fn postprocess(node: ParseNode) -> ASTNode {
+pub fn rewrite(node: ParseNode) -> ASTNode {
     let tp: ASTNodeType = match node._type {
         ParseNodeType::Boolean(bool) => boolean(bool),
         ParseNodeType::Call(called, proc) => call(*called, proc),
@@ -38,8 +38,8 @@ pub fn postprocess(node: ParseNode) -> ASTNode {
     ASTNode::new(tp, node.position)
 }
 
-fn postprocess_vec(vec: Vec<ParseNode>) -> Vec<ASTNode> {
-    vec.into_iter().map(postprocess).collect()
+fn rewrite_vec(vec: Vec<ParseNode>) -> Vec<ASTNode> {
+    vec.into_iter().map(rewrite).collect()
 }
 
 fn boolean(val: bool) -> ASTNodeType {
@@ -51,14 +51,14 @@ fn char(chr: char) -> ASTNodeType {
 }
 
 fn comprehension_set(val: ParseNode, prop: ParseNode) -> ASTNodeType {
-    let val = Box::new(postprocess(val));
-    let prop = Box::new(postprocess(prop));
+    let val = Box::new(rewrite(val));
+    let prop = Box::new(rewrite(prop));
     ASTNodeType::ComprehensionSet { val, prop }
 }
 
 fn comprehension_list(val: ParseNode, prop: ParseNode) -> ASTNodeType {
-    let val = Box::new(postprocess(val));
-    let prop = Box::new(postprocess(prop));
+    let val = Box::new(rewrite(val));
+    let prop = Box::new(rewrite(prop));
     ASTNodeType::ComprehensionList { val, prop }
 }
 
@@ -67,17 +67,17 @@ fn decimal(int: String, dec: String) -> ASTNodeType {
 }
 
 fn extension_list(list: Vec<ParseNode>) -> ASTNodeType {
-    let list = postprocess_vec(list);
+    let list = rewrite_vec(list);
     ASTNodeType::ExtensionList { list }
 }
 
 fn extension_set(list: Vec<ParseNode>) -> ASTNodeType {
-    let list = postprocess_vec(list);
+    let list = rewrite_vec(list);
     ASTNodeType::ExtensionSet { list }
 }
 
 fn call(called: ParseNode, args: Vec<ParseNode>) -> ASTNodeType {
-    let called = Box::new(postprocess(called));
-    let args = postprocess_vec(args);
+    let called = Box::new(rewrite(called));
+    let args = rewrite_vec(args);
     ASTNodeType::Call { called, args }
 }
