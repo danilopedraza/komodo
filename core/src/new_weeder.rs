@@ -14,7 +14,7 @@ pub fn postprocess(node: ParseNode) -> ASTNode {
         ParseNodeType::Boolean(bool) => boolean(bool),
         ParseNodeType::Call(called, proc) => call(*called, proc),
         ParseNodeType::Char(chr) => char(chr),
-        ParseNodeType::ComprehensionSet(_, _) => todo!(),
+        ParseNodeType::ComprehensionSet(val, prop) => comprehension_set(*val, *prop),
         ParseNodeType::ComprehensionList(_, _) => todo!(),
         ParseNodeType::Decimal(int, dec) => decimal(int, dec),
         ParseNodeType::ExtensionList(_) => todo!(),
@@ -48,6 +48,10 @@ fn boolean(val: bool) -> ASTNodeType {
 
 fn char(chr: char) -> ASTNodeType {
     ASTNodeType::Char(chr)
+}
+
+fn comprehension_set(val: ParseNode, prop: ParseNode) -> ASTNodeType {
+    ASTNodeType::ComprehensionSet(Box::new(postprocess(val)), Box::new(postprocess(prop)))
 }
 
 fn decimal(int: String, dec: String) -> ASTNodeType {

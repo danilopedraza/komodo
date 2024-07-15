@@ -17,5 +17,6 @@ pub enum ASTNodeType {
     Boolean(bool),
     Call(Box<ASTNode>, Vec<ASTNode>),
     Char(char),
+    ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
     Decimal(String, String),
 }
