@@ -35,4 +35,7 @@ pub enum ASTNodeType {
     ExtensionList {
         list: Vec<ASTNode>,
     },
+    ExtensionSet {
+        list: Vec<ASTNode>,
+    },
 }
