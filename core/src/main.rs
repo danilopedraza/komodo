@@ -7,32 +7,35 @@ use symstatic::error::error_msg;
 use symstatic::repl::{repl, MyCLI};
 use symstatic::run::run;
 
+fn run_file(path: &str) -> ExitCode {
+    let input_res = fs::read_to_string(path);
+
+    match input_res {
+        Ok(input) => {
+            let mut env = standard_env();
+            let res = run(&input, &mut env);
+            if let Err(err) = res {
+                error_msg(&err).emit(path, &input);
+                ExitCode::FAILURE
+            } else {
+                ExitCode::SUCCESS
+            }
+        }
+        Err(err) => {
+            let msg = err.to_string();
+            eprintln!("Error reading {path}: {msg}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
 fn run_smtc(args: &[String]) -> ExitCode {
     if args.len() == 1 {
         #[cfg(feature = "repl")]
         repl(&mut MyCLI::default());
         ExitCode::SUCCESS
     } else {
-        let path = &args[1];
-        let input_res = fs::read_to_string(path);
-
-        match input_res {
-            Ok(input) => {
-                let mut env = standard_env();
-                let res = run(&input, &mut env);
-                if let Err(err) = res {
-                    error_msg(&err).emit(path, &input);
-                    ExitCode::FAILURE
-                } else {
-                    ExitCode::SUCCESS
-                }
-            }
-            Err(err) => {
-                let msg = err.to_string();
-                eprintln!("Error reading {path}: {msg}");
-                ExitCode::FAILURE
-            }
-        }
+        run_file(&args[1])
     }
 }
 
