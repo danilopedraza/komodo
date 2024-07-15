@@ -1,6 +1,6 @@
 use crate::{
     ast::{ASTNode, ASTNodeType},
-    parse_node::{ParseNode, ParseNodeType},
+    parse_node::{InfixOperator, ParseNode, ParseNodeType},
 };
 
 // #[derive(Clone, Debug, PartialEq, Eq)]
@@ -23,7 +23,7 @@ pub fn rewrite(node: ParseNode) -> ASTNode {
         ParseNodeType::Function(params, proc) => function(params, proc),
         ParseNodeType::Fraction(numer, denom) => fraction(*numer, *denom),
         ParseNodeType::If(cond, positive, negative) => _if(*cond, *positive, *negative),
-        ParseNodeType::Infix(_, _, _) => todo!(),
+        ParseNodeType::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs),
         ParseNodeType::Integer(dec) => integer(dec),
         ParseNodeType::Let(ident, params, val) => _let(*ident, params, *val),
         ParseNodeType::Prefix(_, _) => todo!(),
@@ -104,6 +104,66 @@ fn _if(cond: ParseNode, positive: ParseNode, negative: ParseNode) -> ASTNodeType
     }
 }
 
+fn infix(cst_op: InfixOperator, lhs: ParseNode, rhs: ParseNode) -> ASTNodeType {
+    match cst_op {
+        InfixOperator::BitwiseAnd => todo!(),
+        InfixOperator::BitwiseXor => todo!(),
+        InfixOperator::Call => {
+            let args = match rhs._type {
+                ParseNodeType::Tuple(v) => v,
+                _ => todo!(),
+            };
+
+            call(lhs, args)
+        }
+        InfixOperator::Correspondence => {
+            let params = match lhs._type {
+                ParseNodeType::Symbol(s) => vec![s.to_string()],
+                ParseNodeType::Tuple(tuple_params) => {
+                    let mut res = vec![];
+
+                    for param in tuple_params {
+                        match param._type {
+                            ParseNodeType::Symbol(s) => res.push(s),
+                            _ => todo!(),
+                        }
+                    }
+
+                    res
+                }
+                _ => todo!(),
+            };
+
+            let proc = match rhs._type {
+                ParseNodeType::Tuple(v) => v,
+                _ => vec![rhs],
+            };
+
+            function(params, proc)
+        }
+        InfixOperator::Division => todo!(),
+        InfixOperator::Dot => todo!(),
+        InfixOperator::Equality => todo!(),
+        InfixOperator::Exponentiation => todo!(),
+        InfixOperator::Fraction => todo!(),
+        InfixOperator::Greater => todo!(),
+        InfixOperator::GreaterEqual => todo!(),
+        InfixOperator::In => todo!(),
+        InfixOperator::LeftShift => todo!(),
+        InfixOperator::Less => todo!(),
+        InfixOperator::LessEqual => todo!(),
+        InfixOperator::LogicAnd => todo!(),
+        InfixOperator::Or => todo!(),
+        InfixOperator::Rem => todo!(),
+        InfixOperator::NotEquality => todo!(),
+        InfixOperator::Product => todo!(),
+        InfixOperator::Range => todo!(),
+        InfixOperator::RightShift => todo!(),
+        InfixOperator::Substraction => todo!(),
+        InfixOperator::Sum => todo!(),
+    }
+}
+
 fn integer(dec: String) -> ASTNodeType {
     ASTNodeType::Integer { dec }
 }
@@ -148,4 +208,45 @@ fn call(called: ParseNode, args: Vec<ParseNode>) -> ASTNodeType {
     let called = Box::new(rewrite(called));
     let args = rewrite_vec(args);
     ASTNodeType::Call { called, args }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        ast,
+        parse_node::{self, tests::dummy_pos, InfixOperator},
+    };
+
+    use super::rewrite;
+
+    #[test]
+    fn inlined_function() {
+        let node = parse_node::infix(
+            InfixOperator::Call,
+            parse_node::infix(
+                InfixOperator::Correspondence,
+                parse_node::symbol("x", dummy_pos()),
+                parse_node::symbol("x", dummy_pos()),
+                dummy_pos(),
+            ),
+            parse_node::tuple(
+                vec![parse_node::tests::integer("1", dummy_pos())],
+                dummy_pos(),
+            ),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            rewrite(node),
+            ast::tests::call(
+                ast::tests::function(
+                    vec!["x"],
+                    vec![ast::tests::symbol("x", dummy_pos())],
+                    dummy_pos()
+                ),
+                vec![ast::tests::integer("1", dummy_pos())],
+                dummy_pos()
+            )
+        );
+    }
 }

@@ -1,6 +1,11 @@
 use crate::error::Position;
+use std::hash::Hash;
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum InfixOperator {}
 
 #[allow(unused)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ASTNode {
     _type: ASTNodeType,
     position: Position,
@@ -12,7 +17,14 @@ impl ASTNode {
     }
 }
 
+impl Hash for ASTNode {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self._type.hash(state);
+    }
+}
+
 #[allow(unused)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ASTNodeType {
     Boolean(bool),
     Call {
@@ -56,6 +68,11 @@ pub enum ASTNodeType {
         positive: Box<ASTNode>,
         negative: Box<ASTNode>,
     },
+    Infix {
+        op: InfixOperator,
+        lhs: Box<ASTNode>,
+        rhs: Box<ASTNode>,
+    },
     Integer {
         dec: String,
     },
@@ -82,4 +99,28 @@ pub enum ASTNodeType {
         values: Vec<ASTNode>,
     },
     Wildcard,
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    pub fn call(called: ASTNode, args: Vec<ASTNode>, position: Position) -> ASTNode {
+        let called = Box::new(called);
+        ASTNode::new(ASTNodeType::Call { called, args }, position)
+    }
+
+    pub fn function(params: Vec<&str>, proc: Vec<ASTNode>, position: Position) -> ASTNode {
+        let params = params.into_iter().map(|str| str.to_string()).collect();
+        ASTNode::new(ASTNodeType::Function { params, proc }, position)
+    }
+
+    pub fn symbol(name: &str, position: Position) -> ASTNode {
+        let name = name.to_string();
+        ASTNode::new(ASTNodeType::Symbol { name }, position)
+    }
+
+    pub fn integer(dec: &str, position: Position) -> ASTNode {
+        let dec = dec.to_string();
+        ASTNode::new(ASTNodeType::Integer { dec }, position)
+    }
 }
