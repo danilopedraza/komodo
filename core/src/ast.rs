@@ -20,6 +20,10 @@ pub enum ASTNodeType {
         args: Vec<ASTNode>,
     },
     Char(char),
+    ComprehensionList {
+        val: Box<ASTNode>,
+        prop: Box<ASTNode>,
+    },
     ComprehensionSet {
         val: Box<ASTNode>,
         prop: Box<ASTNode>,
