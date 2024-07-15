@@ -38,4 +38,17 @@ pub enum ASTNodeType {
     ExtensionSet {
         list: Vec<ASTNode>,
     },
+    For {
+        val: String,
+        iter: Box<ASTNode>,
+        proc: Vec<ASTNode>,
+    },
+    Function {
+        params: Vec<String>,
+        proc: Vec<ASTNode>,
+    },
+    Fraction {
+        numer: Box<ASTNode>,
+        denom: Box<ASTNode>,
+    },
 }

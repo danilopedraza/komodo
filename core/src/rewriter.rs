@@ -19,9 +19,9 @@ pub fn rewrite(node: ParseNode) -> ASTNode {
         ParseNodeType::Decimal(int, dec) => decimal(int, dec),
         ParseNodeType::ExtensionList(list) => extension_list(list),
         ParseNodeType::ExtensionSet(list) => extension_set(list),
-        ParseNodeType::For(_, _, _) => todo!(),
-        ParseNodeType::Function(_, _) => todo!(),
-        ParseNodeType::Fraction(_, _) => todo!(),
+        ParseNodeType::For(val, iter, proc) => _for(val, *iter, proc),
+        ParseNodeType::Function(params, proc) => function(params, proc),
+        ParseNodeType::Fraction(numer, denom) => fraction(*numer, *denom),
         ParseNodeType::If(_, _, _) => todo!(),
         ParseNodeType::Infix(_, _, _) => todo!(),
         ParseNodeType::Integer(_) => todo!(),
@@ -74,6 +74,23 @@ fn extension_list(list: Vec<ParseNode>) -> ASTNodeType {
 fn extension_set(list: Vec<ParseNode>) -> ASTNodeType {
     let list = rewrite_vec(list);
     ASTNodeType::ExtensionSet { list }
+}
+
+fn _for(val: String, iter: ParseNode, proc: Vec<ParseNode>) -> ASTNodeType {
+    let iter = Box::new(rewrite(iter));
+    let proc = rewrite_vec(proc);
+    ASTNodeType::For { val, iter, proc }
+}
+
+fn function(params: Vec<String>, proc: Vec<ParseNode>) -> ASTNodeType {
+    let proc = rewrite_vec(proc);
+    ASTNodeType::Function { params, proc }
+}
+
+fn fraction(numer: ParseNode, denom: ParseNode) -> ASTNodeType {
+    let numer = Box::new(rewrite(numer));
+    let denom = Box::new(rewrite(denom));
+    ASTNodeType::Fraction { numer, denom }
 }
 
 fn call(called: ParseNode, args: Vec<ParseNode>) -> ASTNodeType {
