@@ -5,11 +5,11 @@ pub mod error;
 pub mod exec;
 mod lexer;
 mod matcher;
+mod new_weeder;
 pub mod object;
 mod parse_node;
 mod parser;
 #[cfg(feature = "repl")]
 pub mod repl;
-mod rewriter;
 pub mod run;
 mod weeder;

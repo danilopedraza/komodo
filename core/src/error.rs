@@ -10,8 +10,8 @@ use codespan_reporting::{
 use crate::{
     exec::EvalError,
     lexer::{LexerError, TokenType},
+    new_weeder::WeederError,
     parser::ParserError,
-    rewriter::WeederError,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
