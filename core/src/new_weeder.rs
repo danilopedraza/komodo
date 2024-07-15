@@ -1,17 +1,16 @@
 use crate::{
     ast::{ASTNode, ASTNodeType},
-    error::Error,
     parse_node::{ParseNode, ParseNodeType},
 };
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum WeederError {}
+// #[derive(Clone, Debug, PartialEq, Eq)]
+// pub enum WeederError {}
 
-type WeederResult<T> = Result<T, Error>;
+// type WeederResult<T> = Result<T, Error>;
 
 #[allow(unused)]
-pub fn postprocess(node: ParseNode) -> WeederResult<ASTNode> {
-    let tp: WeederResult<ASTNodeType> = match node._type {
+pub fn postprocess(node: ParseNode) -> ASTNode {
+    let tp: ASTNodeType = match node._type {
         ParseNodeType::Boolean(bool) => boolean(bool),
         ParseNodeType::Call(called, proc) => call(*called, proc),
         ParseNodeType::Char(chr) => char(chr),
@@ -36,28 +35,25 @@ pub fn postprocess(node: ParseNode) -> WeederResult<ASTNode> {
         ParseNodeType::Wildcard => todo!(),
     };
 
-    Ok(ASTNode::new(tp?, node.position))
+    ASTNode::new(tp, node.position)
 }
 
-fn postprocess_vec(vec: Vec<ParseNode>) -> WeederResult<Vec<ASTNode>> {
+fn postprocess_vec(vec: Vec<ParseNode>) -> Vec<ASTNode> {
     vec.into_iter().map(postprocess).collect()
 }
 
-fn boolean(val: bool) -> WeederResult<ASTNodeType> {
-    Ok(ASTNodeType::Boolean(val))
+fn boolean(val: bool) -> ASTNodeType {
+    ASTNodeType::Boolean(val)
 }
 
-fn char(chr: char) -> WeederResult<ASTNodeType> {
-    Ok(ASTNodeType::Char(chr))
+fn char(chr: char) -> ASTNodeType {
+    ASTNodeType::Char(chr)
 }
 
-fn decimal(int: String, dec: String) -> WeederResult<ASTNodeType> {
-    Ok(ASTNodeType::Decimal(int, dec))
+fn decimal(int: String, dec: String) -> ASTNodeType {
+    ASTNodeType::Decimal(int, dec)
 }
 
-fn call(called: ParseNode, proc: Vec<ParseNode>) -> WeederResult<ASTNodeType> {
-    Ok(ASTNodeType::Call(
-        Box::new(postprocess(called)?),
-        postprocess_vec(proc)?,
-    ))
+fn call(called: ParseNode, proc: Vec<ParseNode>) -> ASTNodeType {
+    ASTNodeType::Call(Box::new(postprocess(called)), postprocess_vec(proc))
 }
