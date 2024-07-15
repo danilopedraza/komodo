@@ -15,8 +15,17 @@ impl ASTNode {
 #[allow(unused)]
 pub enum ASTNodeType {
     Boolean(bool),
-    Call(Box<ASTNode>, Vec<ASTNode>),
+    Call {
+        called: Box<ASTNode>,
+        args: Vec<ASTNode>,
+    },
     Char(char),
-    ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
-    Decimal(String, String),
+    ComprehensionSet {
+        val: Box<ASTNode>,
+        prop: Box<ASTNode>,
+    },
+    Decimal {
+        int: String,
+        dec: String,
+    },
 }

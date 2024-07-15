@@ -51,13 +51,17 @@ fn char(chr: char) -> ASTNodeType {
 }
 
 fn comprehension_set(val: ParseNode, prop: ParseNode) -> ASTNodeType {
-    ASTNodeType::ComprehensionSet(Box::new(postprocess(val)), Box::new(postprocess(prop)))
+    let val = Box::new(postprocess(val));
+    let prop = Box::new(postprocess(prop));
+    ASTNodeType::ComprehensionSet { val, prop }
 }
 
 fn decimal(int: String, dec: String) -> ASTNodeType {
-    ASTNodeType::Decimal(int, dec)
+    ASTNodeType::Decimal { int, dec }
 }
 
-fn call(called: ParseNode, proc: Vec<ParseNode>) -> ASTNodeType {
-    ASTNodeType::Call(Box::new(postprocess(called)), postprocess_vec(proc))
+fn call(called: ParseNode, args: Vec<ParseNode>) -> ASTNodeType {
+    let called = Box::new(postprocess(called));
+    let args = postprocess_vec(args);
+    ASTNodeType::Call { called, args }
 }
