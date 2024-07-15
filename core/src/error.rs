@@ -281,7 +281,7 @@ impl ErrorMessage {
 
 #[cfg(test)]
 mod tests {
-    use crate::ast::tests::dummy_pos;
+    use crate::parse_node::tests::dummy_pos;
 
     use super::*;
 

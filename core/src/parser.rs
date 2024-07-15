@@ -1,8 +1,8 @@
 use std::{iter::Peekable, vec};
 
-use crate::ast::*;
 use crate::error::{Error, Position};
 use crate::lexer::{Token, TokenType};
+use crate::parse_node::*;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParserError {
@@ -18,7 +18,7 @@ pub struct Parser<T: Iterator<Item = Result<Token, Error>>> {
 }
 
 impl<T: Iterator<Item = Result<Token, Error>>> Iterator for Parser<T> {
-    type Item = Result<ASTNode, Error>;
+    type Item = Result<ParseNode, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.peek_token() {
@@ -29,7 +29,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Iterator for Parser<T> {
     }
 }
 
-type _NodeResult = Result<ASTNode, Error>;
+type _NodeResult = Result<ParseNode, Error>;
 
 impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     fn peek_pos(&mut self) -> Position {
@@ -82,23 +82,23 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn wildcard(&self) -> _NodeResult {
-        self.node_with_cur(ASTNodeType::Wildcard)
+        self.node_with_cur(ParseNodeType::Wildcard)
     }
 
     fn char(&self, chr: char) -> _NodeResult {
-        self.node_with_cur(ASTNodeType::Char(chr))
+        self.node_with_cur(ParseNodeType::Char(chr))
     }
 
     fn string(&self, str: String) -> _NodeResult {
-        self.node_with_cur(ASTNodeType::String(str))
+        self.node_with_cur(ParseNodeType::String(str))
     }
 
     fn boolean(&self, val: bool) -> _NodeResult {
-        self.node_with_cur(ASTNodeType::Boolean(val))
+        self.node_with_cur(ParseNodeType::Boolean(val))
     }
 
-    fn node_with_cur(&self, node: ASTNodeType) -> _NodeResult {
-        Ok(ASTNode::new(node, self.cur_pos))
+    fn node_with_cur(&self, node: ParseNodeType) -> _NodeResult {
+        Ok(ParseNode::new(node, self.cur_pos))
     }
 
     fn err_with_cur(&self, err: ParserError) -> _NodeResult {
@@ -106,7 +106,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn symbol(&self, literal: String) -> _NodeResult {
-        self.node_with_cur(ASTNodeType::Symbol(literal))
+        self.node_with_cur(ParseNodeType::Symbol(literal))
     }
 
     fn let_(&mut self) -> _NodeResult {
@@ -129,8 +129,8 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
     fn let_function_with_arguments_(
         &mut self,
-        name: ASTNode,
-    ) -> Result<(ASTNode, Vec<ASTNode>, ASTNode), Error> {
+        name: ParseNode,
+    ) -> Result<(ParseNode, Vec<ParseNode>, ParseNode), Error> {
         let args_res = self.sequence(TokenType::Rparen, None);
 
         match (args_res, self.next_token()?) {
@@ -153,8 +153,8 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     fn sequence(
         &mut self,
         terminator: TokenType,
-        first: Option<ASTNode>,
-    ) -> Result<Vec<ASTNode>, Error> {
+        first: Option<ParseNode>,
+    ) -> Result<Vec<ParseNode>, Error> {
         let mut res = match first {
             None => vec![],
             Some(node) => vec![node],
@@ -223,7 +223,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         Position::new(start, self.cur_pos.start + self.cur_pos.length - start)
     }
 
-    fn infix(&mut self, lhs: ASTNode, op: InfixOperator, start: usize) -> _NodeResult {
+    fn infix(&mut self, lhs: ParseNode, op: InfixOperator, start: usize) -> _NodeResult {
         if op == InfixOperator::Call {
             let tuple_start = self.cur_pos.start;
 
@@ -237,8 +237,8 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             })
         } else {
             self.expression(op.precedence()).map(|rhs| {
-                ASTNode::new(
-                    ASTNodeType::Infix(op, Box::new(lhs), Box::new(rhs)),
+                ParseNode::new(
+                    ParseNodeType::Infix(op, Box::new(lhs), Box::new(rhs)),
                     self.start_to_cur(start),
                 )
             })
@@ -251,8 +251,8 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             Ok(Some(TokenType::Dot)) => {
                 self.next_token()?;
                 match self.next_token()? {
-                    Some(TokenType::Integer(dec)) => Ok(ASTNode::new(
-                        ASTNodeType::Decimal(int, dec),
+                    Some(TokenType::Integer(dec)) => Ok(ParseNode::new(
+                        ParseNodeType::Decimal(int, dec),
                         self.start_to_cur(start),
                     )),
                     Some(tok) => self.err_with_cur(ParserError::UnexpectedToken(
@@ -265,7 +265,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                     )),
                 }
             }
-            _ => self.node_with_cur(ASTNodeType::Integer(int)),
+            _ => self.node_with_cur(ParseNodeType::Integer(int)),
         }
     }
 
@@ -340,14 +340,14 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
     }
 
-    fn comprehension_list_(&mut self, first: ASTNode, start: usize) -> _NodeResult {
+    fn comprehension_list_(&mut self, first: ParseNode, start: usize) -> _NodeResult {
         let last = self.expression(Precedence::Lowest)?;
         self.consume(TokenType::Rbrack)?;
 
         Ok(comprehension_list(first, last, self.start_to_cur(start)))
     }
 
-    fn prepend_(&mut self, first: ASTNode, start: usize) -> _NodeResult {
+    fn prepend_(&mut self, first: ParseNode, start: usize) -> _NodeResult {
         let last = self.expression(Precedence::Lowest)?;
 
         self.consume(TokenType::Rbrack)?;
@@ -376,11 +376,11 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
         self.consume(TokenType::Colon)?;
 
-        let ASTNode { _type, position } = self.expression(Precedence::Lowest)?;
+        let ParseNode { _type, position } = self.expression(Precedence::Lowest)?;
 
         let proc = match _type {
-            ASTNodeType::Tuple(v) => v,
-            node => vec![ASTNode::new(node, position)],
+            ParseNodeType::Tuple(v) => v,
+            node => vec![ParseNode::new(node, position)],
         };
 
         Ok(_for(&ident, iter, proc, self.start_to_cur(start)))
@@ -484,9 +484,9 @@ pub fn parser_from<T: Iterator<Item = Result<Token, Error>>>(tokens: T) -> Parse
 mod tests {
     use super::*;
     use crate::{
-        ast::tests::{_pos, boolean, char, integer, string},
         error::Position,
         lexer::build_lexer,
+        parse_node::tests::{_pos, boolean, char, integer, string},
     };
     use std::iter;
 
@@ -1263,7 +1263,7 @@ mod tests {
                 vec![
                     symbol("a", _pos(1, 1)),
                     integer("1", _pos(4, 1)),
-                    ASTNode::new(ASTNodeType::Wildcard, _pos(7, 1)),
+                    ParseNode::new(ParseNodeType::Wildcard, _pos(7, 1)),
                 ],
                 _pos(0, 9)
             ),)),
@@ -1374,8 +1374,8 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(ASTNode::new(
-                ASTNodeType::Decimal("1".into(), "5".into()),
+            Some(Ok(ParseNode::new(
+                ParseNodeType::Decimal("1".into(), "5".into()),
                 _pos(0, 3),
             ))),
         );

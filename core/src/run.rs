@@ -1,17 +1,17 @@
 use crate::{
-    ast::ASTNode,
     env::Environment,
     error::Error,
     exec::exec,
     lexer::{build_lexer, Token},
     object::Object,
+    parse_node::ParseNode,
     parser::{parser_from, Parser},
     weeder::postprocess,
 };
 
 fn collect_nodes<T: Iterator<Item = Result<Token, Error>>>(
     parser: Parser<T>,
-) -> Result<Vec<ASTNode>, Error> {
+) -> Result<Vec<ParseNode>, Error> {
     parser.collect()
 }
 
@@ -27,6 +27,6 @@ pub fn run(source: &str, env: &mut Environment) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn run_node(node: ASTNode, env: &mut Environment) -> Result<Object, Error> {
+pub fn run_node(node: ParseNode, env: &mut Environment) -> Result<Object, Error> {
     exec(&postprocess(node), env)
 }

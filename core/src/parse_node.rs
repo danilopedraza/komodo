@@ -169,129 +169,142 @@ impl PrefixOperator {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ASTNode {
-    pub _type: ASTNodeType,
+pub struct ParseNode {
+    pub _type: ParseNodeType,
     pub position: Position,
 }
 
-impl ASTNode {
-    pub fn new(_type: ASTNodeType, position: Position) -> Self {
+impl ParseNode {
+    pub fn new(_type: ParseNodeType, position: Position) -> Self {
         Self { _type, position }
     }
 }
 
-impl Hash for ASTNode {
+impl Hash for ParseNode {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self._type.hash(state);
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum ASTNodeType {
+pub enum ParseNodeType {
     Boolean(bool),
-    Call(Box<ASTNode>, Vec<ASTNode>),
+    Call(Box<ParseNode>, Vec<ParseNode>),
     Char(char),
-    ComprehensionSet(Box<ASTNode>, Box<ASTNode>),
-    ComprehensionList(Box<ASTNode>, Box<ASTNode>),
+    ComprehensionSet(Box<ParseNode>, Box<ParseNode>),
+    ComprehensionList(Box<ParseNode>, Box<ParseNode>),
     Decimal(String, String),
-    ExtensionList(Vec<ASTNode>),
-    ExtensionSet(Vec<ASTNode>),
-    For(String, Box<ASTNode>, Vec<ASTNode>),
-    Function(Vec<String>, Vec<ASTNode>),
-    Fraction(Box<ASTNode>, Box<ASTNode>),
-    If(Box<ASTNode>, Box<ASTNode>, Box<ASTNode>),
-    Infix(InfixOperator, Box<ASTNode>, Box<ASTNode>),
+    ExtensionList(Vec<ParseNode>),
+    ExtensionSet(Vec<ParseNode>),
+    For(String, Box<ParseNode>, Vec<ParseNode>),
+    Function(Vec<String>, Vec<ParseNode>),
+    Fraction(Box<ParseNode>, Box<ParseNode>),
+    If(Box<ParseNode>, Box<ParseNode>, Box<ParseNode>),
+    Infix(InfixOperator, Box<ParseNode>, Box<ParseNode>),
     Integer(String),
-    Let(Box<ASTNode>, Vec<ASTNode>, Box<ASTNode>),
-    Prefix(PrefixOperator, Box<ASTNode>),
-    Cons(Box<ASTNode>, Box<ASTNode>),
-    Signature(Box<ASTNode>, Option<Box<ASTNode>>),
+    Let(Box<ParseNode>, Vec<ParseNode>, Box<ParseNode>),
+    Prefix(PrefixOperator, Box<ParseNode>),
+    Cons(Box<ParseNode>, Box<ParseNode>),
+    Signature(Box<ParseNode>, Option<Box<ParseNode>>),
     String(String),
     Symbol(String),
-    Tuple(Vec<ASTNode>),
+    Tuple(Vec<ParseNode>),
     Wildcard,
 }
 
-pub fn let_(ident: ASTNode, params: Vec<ASTNode>, val: ASTNode, position: Position) -> ASTNode {
-    ASTNode::new(
-        ASTNodeType::Let(Box::new(ident), params, Box::new(val)),
+pub fn let_(
+    ident: ParseNode,
+    params: Vec<ParseNode>,
+    val: ParseNode,
+    position: Position,
+) -> ParseNode {
+    ParseNode::new(
+        ParseNodeType::Let(Box::new(ident), params, Box::new(val)),
         position,
     )
 }
 
-pub fn signature(symbol: ASTNode, type_: Option<ASTNode>, position: Position) -> ASTNode {
-    ASTNode::new(
-        ASTNodeType::Signature(Box::new(symbol), type_.map(Box::new)),
+pub fn signature(symbol: ParseNode, type_: Option<ParseNode>, position: Position) -> ParseNode {
+    ParseNode::new(
+        ParseNodeType::Signature(Box::new(symbol), type_.map(Box::new)),
         position,
     )
 }
 
-pub fn symbol(name: &str, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType::Symbol(name.into()), position)
+pub fn symbol(name: &str, position: Position) -> ParseNode {
+    ParseNode::new(ParseNodeType::Symbol(name.into()), position)
 }
 
-pub fn infix(op: InfixOperator, lhs: ASTNode, rhs: ASTNode, position: Position) -> ASTNode {
-    ASTNode::new(
-        ASTNodeType::Infix(op, Box::new(lhs), Box::new(rhs)),
+pub fn infix(op: InfixOperator, lhs: ParseNode, rhs: ParseNode, position: Position) -> ParseNode {
+    ParseNode::new(
+        ParseNodeType::Infix(op, Box::new(lhs), Box::new(rhs)),
         position,
     )
 }
 
-pub fn tuple(list: Vec<ASTNode>, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType::Tuple(list), position)
+pub fn tuple(list: Vec<ParseNode>, position: Position) -> ParseNode {
+    ParseNode::new(ParseNodeType::Tuple(list), position)
 }
 
-pub fn extension_list(list: Vec<ASTNode>, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType::ExtensionList(list), position)
+pub fn extension_list(list: Vec<ParseNode>, position: Position) -> ParseNode {
+    ParseNode::new(ParseNodeType::ExtensionList(list), position)
 }
 
-pub fn extension_set(list: Vec<ASTNode>, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType::ExtensionSet(list), position)
+pub fn extension_set(list: Vec<ParseNode>, position: Position) -> ParseNode {
+    ParseNode::new(ParseNodeType::ExtensionSet(list), position)
 }
 
-pub fn comprehension_list(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
-    ASTNode::new(
-        ASTNodeType::ComprehensionList(Box::new(val), Box::new(prop)),
+pub fn comprehension_list(val: ParseNode, prop: ParseNode, position: Position) -> ParseNode {
+    ParseNode::new(
+        ParseNodeType::ComprehensionList(Box::new(val), Box::new(prop)),
         position,
     )
 }
 
-pub fn cons(first: ASTNode, most: ASTNode, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType::Cons(Box::new(first), Box::new(most)), position)
-}
-
-pub fn _for(var: &str, iter: ASTNode, block: Vec<ASTNode>, position: Position) -> ASTNode {
-    ASTNode::new(
-        ASTNodeType::For(var.into(), Box::new(iter), block),
+pub fn cons(first: ParseNode, most: ParseNode, position: Position) -> ParseNode {
+    ParseNode::new(
+        ParseNodeType::Cons(Box::new(first), Box::new(most)),
         position,
     )
 }
 
-pub fn _if(cond: ASTNode, first_res: ASTNode, second_res: ASTNode, position: Position) -> ASTNode {
-    ASTNode::new(
-        ASTNodeType::If(Box::new(cond), Box::new(first_res), Box::new(second_res)),
+pub fn _for(var: &str, iter: ParseNode, block: Vec<ParseNode>, position: Position) -> ParseNode {
+    ParseNode::new(
+        ParseNodeType::For(var.into(), Box::new(iter), block),
         position,
     )
 }
 
-pub fn prefix(op: PrefixOperator, val: ASTNode, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType::Prefix(op, Box::new(val)), position)
-}
-
-pub fn comprehension_set(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
-    ASTNode::new(
-        ASTNodeType::ComprehensionSet(Box::new(val), Box::new(prop)),
+pub fn _if(
+    cond: ParseNode,
+    first_res: ParseNode,
+    second_res: ParseNode,
+    position: Position,
+) -> ParseNode {
+    ParseNode::new(
+        ParseNodeType::If(Box::new(cond), Box::new(first_res), Box::new(second_res)),
         position,
     )
 }
 
-pub fn call(called: ASTNode, args: Vec<ASTNode>, position: Position) -> ASTNode {
-    ASTNode::new(ASTNodeType::Call(Box::new(called), args), position)
+pub fn prefix(op: PrefixOperator, val: ParseNode, position: Position) -> ParseNode {
+    ParseNode::new(ParseNodeType::Prefix(op, Box::new(val)), position)
 }
 
-pub fn fraction(num: ASTNode, den: ASTNode, position: Position) -> ASTNode {
-    ASTNode::new(
-        ASTNodeType::Fraction(Box::new(num), Box::new(den)),
+pub fn comprehension_set(val: ParseNode, prop: ParseNode, position: Position) -> ParseNode {
+    ParseNode::new(
+        ParseNodeType::ComprehensionSet(Box::new(val), Box::new(prop)),
+        position,
+    )
+}
+
+pub fn call(called: ParseNode, args: Vec<ParseNode>, position: Position) -> ParseNode {
+    ParseNode::new(ParseNodeType::Call(Box::new(called), args), position)
+}
+
+pub fn fraction(num: ParseNode, den: ParseNode, position: Position) -> ParseNode {
+    ParseNode::new(
+        ParseNodeType::Fraction(Box::new(num), Box::new(den)),
         position,
     )
 }
@@ -307,37 +320,37 @@ pub mod tests {
         Position::new(0, 0)
     }
 
-    pub fn boolean(val: bool, position: Position) -> ASTNode {
-        ASTNode::new(ASTNodeType::Boolean(val), position)
+    pub fn boolean(val: bool, position: Position) -> ParseNode {
+        ParseNode::new(ParseNodeType::Boolean(val), position)
     }
 
-    pub fn char(val: char, position: Position) -> ASTNode {
-        ASTNode::new(ASTNodeType::Char(val), position)
+    pub fn char(val: char, position: Position) -> ParseNode {
+        ParseNode::new(ParseNodeType::Char(val), position)
     }
 
-    pub fn string(str: &str, position: Position) -> ASTNode {
-        ASTNode::new(ASTNodeType::String(str.into()), position)
+    pub fn string(str: &str, position: Position) -> ParseNode {
+        ParseNode::new(ParseNodeType::String(str.into()), position)
     }
 
-    pub fn integer(int: &str, position: Position) -> ASTNode {
-        ASTNode::new(ASTNodeType::Integer(int.into()), position)
+    pub fn integer(int: &str, position: Position) -> ParseNode {
+        ParseNode::new(ParseNodeType::Integer(int.into()), position)
     }
 
-    pub fn function(params: Vec<&str>, proc: Vec<ASTNode>, position: Position) -> ASTNode {
-        ASTNode::new(
-            ASTNodeType::Function(params.into_iter().map(|str| str.to_owned()).collect(), proc),
+    pub fn function(params: Vec<&str>, proc: Vec<ParseNode>, position: Position) -> ParseNode {
+        ParseNode::new(
+            ParseNodeType::Function(params.into_iter().map(|str| str.to_owned()).collect(), proc),
             position,
         )
     }
 
-    pub fn decimal(int: &str, dec: &str, position: Position) -> ASTNode {
-        ASTNode::new(
-            ASTNodeType::Decimal(int.to_string(), dec.to_string()),
+    pub fn decimal(int: &str, dec: &str, position: Position) -> ParseNode {
+        ParseNode::new(
+            ParseNodeType::Decimal(int.to_string(), dec.to_string()),
             position,
         )
     }
 
-    pub fn range(start: ASTNode, end: ASTNode, position: Position) -> ASTNode {
+    pub fn range(start: ParseNode, end: ParseNode, position: Position) -> ParseNode {
         infix(InfixOperator::Range, start, end, position)
     }
 }

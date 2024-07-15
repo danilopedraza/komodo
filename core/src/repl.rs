@@ -1,10 +1,10 @@
 use crate::{
-    ast::ASTNode,
     builtin::standard_env,
     env::Environment,
     error::{error_msg, Error, ErrorMessage, ErrorType},
     lexer::build_lexer,
     object::Object,
+    parse_node::ParseNode,
     parser::{parser_from, ParserError},
     run,
 };
@@ -56,7 +56,7 @@ impl Repl {
         }
     }
 
-    fn exec_response(&mut self, res: Result<ASTNode, Error>) -> (String, ReplResponse) {
+    fn exec_response(&mut self, res: Result<ParseNode, Error>) -> (String, ReplResponse) {
         match self.exec_result(res) {
             Ok(obj) => {
                 self.code.clear();
@@ -73,7 +73,7 @@ impl Repl {
         }
     }
 
-    fn exec_result(&mut self, node_res: Result<ASTNode, Error>) -> Result<Object, Error> {
+    fn exec_result(&mut self, node_res: Result<ParseNode, Error>) -> Result<Object, Error> {
         run::run_node(node_res?, &mut self.env)
     }
 }

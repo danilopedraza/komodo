@@ -284,7 +284,7 @@ pub fn build_lexer(input: &str) -> Lexer {
 mod tests {
     use std::vec;
 
-    use crate::ast::tests::_pos;
+    use crate::parse_node::tests::_pos;
 
     use super::*;
 

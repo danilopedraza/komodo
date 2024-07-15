@@ -4,11 +4,11 @@ use crate::object::{
     Kind, Range,
 };
 
-use crate::ast::{ASTNode, ASTNodeType, InfixOperator, PrefixOperator};
 use crate::env::Environment;
 use crate::object::{
     Bool, Char, DefinedFunction, ExtensionSet, Integer, MyString, Object, Symbol, Tuple,
 };
+use crate::parse_node::{InfixOperator, ParseNode, ParseNodeType, PrefixOperator};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvalError {
@@ -43,43 +43,45 @@ pub fn truthy(val: &Object) -> bool {
     }
 }
 
-pub fn list(l: &[ASTNode], env: &mut Environment) -> Result<Vec<Object>, Error> {
+pub fn list(l: &[ParseNode], env: &mut Environment) -> Result<Vec<Object>, Error> {
     l.iter().map(|node| exec(node, env)).collect()
 }
 
-fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, Error> {
+fn function(params: &[String], proc: &[ParseNode]) -> Result<Object, Error> {
     Ok(Object::Function(object::Function::DefinedFunction(
         DefinedFunction::new(params.to_owned(), proc.to_owned()),
     )))
 }
 
-pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
+pub fn exec(node: &ParseNode, env: &mut Environment) -> Result<Object, Error> {
     let res = match &node._type {
-        ASTNodeType::Symbol(str) => symbol(str, env),
-        ASTNodeType::ExtensionSet(l) => extension_set(l, env),
-        ASTNodeType::Integer(str) => integer(str),
-        ASTNodeType::Function(params, proc) => function(params, proc),
-        ASTNodeType::Infix(op, lhs, rhs) => {
+        ParseNodeType::Symbol(str) => symbol(str, env),
+        ParseNodeType::ExtensionSet(l) => extension_set(l, env),
+        ParseNodeType::Integer(str) => integer(str),
+        ParseNodeType::Function(params, proc) => function(params, proc),
+        ParseNodeType::Infix(op, lhs, rhs) => {
             infix(*op, &exec(lhs, env)?, &exec(rhs, env)?, node.position)
         }
-        ASTNodeType::Let(ident, params, value) if params.is_empty() => let_(ident, value, env),
-        ASTNodeType::Let(ident, args, value) => let_function(ident, args, value, env),
-        ASTNodeType::Boolean(val) => boolean(*val),
-        ASTNodeType::Call(func_node, args) => call(func_node, args, env, node.position),
-        ASTNodeType::Char(chr) => char(*chr),
-        ASTNodeType::ComprehensionSet(value, prop) => comprehension_set(value, prop),
-        ASTNodeType::If(cond, first, second) => if_(exec(cond, env)?, first, second, env),
-        ASTNodeType::Prefix(op, node) => prefix(*op, exec(node, env)?, node.position),
-        ASTNodeType::Signature(_, _) => unimplemented!(),
-        ASTNodeType::String(str) => string(str),
-        ASTNodeType::Tuple(l) => tuple(l, env),
-        ASTNodeType::For(symbol, iterable, proc) => for_(symbol, iterable, proc, env),
-        ASTNodeType::ExtensionList(l) => extension_list(l, env),
-        ASTNodeType::ComprehensionList(transform, prop) => comprehension_list(transform, prop, env),
-        ASTNodeType::Wildcard => unimplemented!(),
-        ASTNodeType::Cons(first, most) => prepend(exec(first, env)?, most, env),
-        ASTNodeType::Decimal(int, dec) => decimal(int, dec),
-        ASTNodeType::Fraction(numer, denom) => fraction(numer, denom, node.position, env),
+        ParseNodeType::Let(ident, params, value) if params.is_empty() => let_(ident, value, env),
+        ParseNodeType::Let(ident, args, value) => let_function(ident, args, value, env),
+        ParseNodeType::Boolean(val) => boolean(*val),
+        ParseNodeType::Call(func_node, args) => call(func_node, args, env, node.position),
+        ParseNodeType::Char(chr) => char(*chr),
+        ParseNodeType::ComprehensionSet(value, prop) => comprehension_set(value, prop),
+        ParseNodeType::If(cond, first, second) => if_(exec(cond, env)?, first, second, env),
+        ParseNodeType::Prefix(op, node) => prefix(*op, exec(node, env)?, node.position),
+        ParseNodeType::Signature(_, _) => unimplemented!(),
+        ParseNodeType::String(str) => string(str),
+        ParseNodeType::Tuple(l) => tuple(l, env),
+        ParseNodeType::For(symbol, iterable, proc) => for_(symbol, iterable, proc, env),
+        ParseNodeType::ExtensionList(l) => extension_list(l, env),
+        ParseNodeType::ComprehensionList(transform, prop) => {
+            comprehension_list(transform, prop, env)
+        }
+        ParseNodeType::Wildcard => unimplemented!(),
+        ParseNodeType::Cons(first, most) => prepend(exec(first, env)?, most, env),
+        ParseNodeType::Decimal(int, dec) => decimal(int, dec),
+        ParseNodeType::Fraction(numer, denom) => fraction(numer, denom, node.position, env),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -96,7 +98,7 @@ fn decimal(int: &str, dec: &str) -> Result<Object, Error> {
     Ok(Object::Decimal(Decimal::new(int, dec)))
 }
 
-fn prepend(first: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
+fn prepend(first: Object, most: &ParseNode, env: &mut Environment) -> Result<Object, Error> {
     match exec(most, env)? {
         Object::ExtensionList(lst) => {
             let mut res = vec![first];
@@ -114,11 +116,11 @@ fn prepend(first: Object, most: &ASTNode, env: &mut Environment) -> Result<Objec
     }
 }
 
-fn extension_list(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
+fn extension_list(l: &[ParseNode], env: &mut Environment) -> Result<Object, Error> {
     list(l, env).map(|lst| Object::ExtensionList(ExtensionList::from(lst)))
 }
 
-fn tuple(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
+fn tuple(l: &[ParseNode], env: &mut Environment) -> Result<Object, Error> {
     list(l, env).map(|lst| Object::Tuple(Tuple::from(lst)))
 }
 
@@ -126,7 +128,7 @@ fn string(str: &str) -> Result<Object, Error> {
     Ok(Object::String(MyString::from(str)))
 }
 
-fn comprehension_set(value: &ASTNode, prop: &ASTNode) -> Result<Object, Error> {
+fn comprehension_set(value: &ParseNode, prop: &ParseNode) -> Result<Object, Error> {
     Ok(Object::ComprehensionSet(ComprehensionSet::from((
         value.clone(),
         prop.clone(),
@@ -141,11 +143,11 @@ fn boolean(val: bool) -> Result<Object, Error> {
     Ok(Object::Boolean(Bool::from(val)))
 }
 
-fn let_(ident: &ASTNode, value: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
+fn let_(ident: &ParseNode, value: &ParseNode, env: &mut Environment) -> Result<Object, Error> {
     match &ident._type {
-        ASTNodeType::Symbol(name) => exec_and_set(value, name, env),
-        ASTNodeType::Signature(ident, None) => match &ident._type {
-            ASTNodeType::Symbol(name) => exec_and_set(value, name, env),
+        ParseNodeType::Symbol(name) => exec_and_set(value, name, env),
+        ParseNodeType::Signature(ident, None) => match &ident._type {
+            ParseNodeType::Symbol(name) => exec_and_set(value, name, env),
             _ => todo!(),
         },
         _ => unimplemented!(),
@@ -156,7 +158,7 @@ fn integer(str: &str) -> Result<Object, Error> {
     Ok(Object::Integer(Integer::from(str)))
 }
 
-fn extension_set(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
+fn extension_set(l: &[ParseNode], env: &mut Environment) -> Result<Object, Error> {
     list(l, env).map(|lst| Object::ExtensionSet(ExtensionSet::from(lst)))
 }
 
@@ -168,20 +170,20 @@ fn symbol(str: &str, env: &mut Environment) -> Result<Object, Error> {
 }
 
 fn comprehension_list(
-    transform: &ASTNode,
-    prop: &ASTNode,
+    transform: &ParseNode,
+    prop: &ParseNode,
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let symbol = match &prop._type {
-        ASTNodeType::Infix(InfixOperator::In, lhs, _) => match &lhs._type {
-            ASTNodeType::Symbol(ident) => ident,
+        ParseNodeType::Infix(InfixOperator::In, lhs, _) => match &lhs._type {
+            ParseNodeType::Symbol(ident) => ident,
             _ => todo!(),
         },
         _ => todo!(),
     };
 
     let iterator: Vec<Object> = match &prop._type {
-        ASTNodeType::Infix(InfixOperator::In, _, rhs) => get_iterable(rhs, env)?,
+        ParseNodeType::Infix(InfixOperator::In, _, rhs) => get_iterable(rhs, env)?,
         _ => todo!(),
     };
 
@@ -197,13 +199,13 @@ fn comprehension_list(
 }
 
 fn let_function(
-    ident: &ASTNode,
-    args: &[ASTNode],
-    value: &ASTNode,
+    ident: &ParseNode,
+    args: &[ParseNode],
+    value: &ParseNode,
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let name = match &ident._type {
-        ASTNodeType::Symbol(name) => name,
+        ParseNodeType::Symbol(name) => name,
         _ => unimplemented!(),
     };
 
@@ -230,7 +232,7 @@ fn let_function(
     )))
 }
 
-fn exec_and_set(node: &ASTNode, name: &str, env: &mut Environment) -> Result<Object, Error> {
+fn exec_and_set(node: &ParseNode, name: &str, env: &mut Environment) -> Result<Object, Error> {
     let val = exec(node, env)?;
     env.set(name, val.clone());
     Ok(val)
@@ -238,8 +240,8 @@ fn exec_and_set(node: &ASTNode, name: &str, env: &mut Environment) -> Result<Obj
 
 fn if_(
     cond: Object,
-    first: &ASTNode,
-    second: &ASTNode,
+    first: &ParseNode,
+    second: &ParseNode,
     env: &mut Environment,
 ) -> Result<Object, Error> {
     if truthy(&cond) {
@@ -251,8 +253,8 @@ fn if_(
 
 fn for_(
     symbol: &str,
-    iterable: &ASTNode,
-    proc: &[ASTNode],
+    iterable: &ParseNode,
+    proc: &[ParseNode],
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let iter: Vec<Object> = get_iterable(iterable, env)?;
@@ -272,7 +274,7 @@ fn for_(
     Ok(Object::empty_tuple())
 }
 
-fn get_iterable(node: &ASTNode, env: &mut Environment) -> Result<Vec<Object>, Error> {
+fn get_iterable(node: &ParseNode, env: &mut Environment) -> Result<Vec<Object>, Error> {
     match exec(node, env)? {
         Object::ExtensionSet(set) => Ok(set.set.iter().map(|obj| obj.to_owned()).collect()),
         Object::ExtensionList(list) => Ok(list.list.iter().map(|obj| obj.to_owned()).collect()),
@@ -285,8 +287,8 @@ fn get_iterable(node: &ASTNode, env: &mut Environment) -> Result<Vec<Object>, Er
 }
 
 fn call(
-    func_node: &ASTNode,
-    args: &[ASTNode],
+    func_node: &ParseNode,
+    args: &[ParseNode],
     env: &mut Environment,
     call_pos: Position,
 ) -> Result<Object, Error> {
@@ -329,8 +331,8 @@ fn range(start: &Object, end: &Object) -> Option<Object> {
 }
 
 fn fraction(
-    numer: &ASTNode,
-    denom: &ASTNode,
+    numer: &ParseNode,
+    denom: &ParseNode,
     position: Position,
     env: &mut Environment,
 ) -> Result<Object, Error> {
@@ -437,13 +439,13 @@ mod tests {
     use bigdecimal::BigDecimal;
 
     use super::*;
-    use crate::ast::tests::{_pos, boolean, decimal, dummy_pos, function, integer, range};
-    use crate::ast::{
+    use crate::error::ErrorType;
+    use crate::object::*;
+    use crate::parse_node::tests::{_pos, boolean, decimal, dummy_pos, function, integer, range};
+    use crate::parse_node::{
         _for, call, comprehension_list, comprehension_set, cons, extension_list, extension_set,
         fraction, infix, let_, prefix, signature, symbol, tuple,
     };
-    use crate::error::ErrorType;
-    use crate::object::*;
 
     #[test]
     fn symbol_() {
@@ -752,8 +754,8 @@ mod tests {
         let mut env = Environment::default();
         env.set("a", Object::Integer(Integer::from(-5)));
 
-        let node = &ASTNode::new(
-            ASTNodeType::If(
+        let node = &ParseNode::new(
+            ParseNodeType::If(
                 Box::new(infix(
                     InfixOperator::Less,
                     symbol("a", dummy_pos()),
