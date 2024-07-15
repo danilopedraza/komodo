@@ -11,6 +11,7 @@ use crate::{
     exec::EvalError,
     lexer::{LexerError, TokenType},
     parser::ParserError,
+    rewriter::WeederError,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -26,6 +27,7 @@ impl Error {
 pub enum ErrorType {
     Lexer(LexerError),
     Parser(ParserError),
+    Weeder(WeederError),
     Exec(EvalError),
 }
 
@@ -38,6 +40,12 @@ impl From<LexerError> for ErrorType {
 impl From<ParserError> for ErrorType {
     fn from(err: ParserError) -> Self {
         Self::Parser(err)
+    }
+}
+
+impl From<WeederError> for ErrorType {
+    fn from(err: WeederError) -> Self {
+        Self::Weeder(err)
     }
 }
 
@@ -63,6 +71,7 @@ pub fn error_msg(Error(err, pos): &Error) -> ErrorMessage {
     let msg = match err {
         ErrorType::Lexer(err) => lexer_error_msg(err),
         ErrorType::Parser(err) => parser_error_msg(err),
+        ErrorType::Weeder(err) => weeder_error_msg(err),
         ErrorType::Exec(err) => exec_error_msg(err),
     };
 
@@ -146,6 +155,10 @@ fn parser_error_msg(err: &ParserError) -> String {
             eof_expecting(expected.iter().map(found_a).collect())
         }
     }
+}
+
+fn weeder_error_msg(_err: &WeederError) -> String {
+    todo!()
 }
 
 fn exec_error_msg(err: &EvalError) -> String {
