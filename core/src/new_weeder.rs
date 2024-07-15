@@ -146,7 +146,7 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
         InfixOperator::Dot => todo!(),
         InfixOperator::Equality => todo!(),
         InfixOperator::Exponentiation => todo!(),
-        InfixOperator::Fraction => todo!(),
+        InfixOperator::Fraction => fraction(lhs, rhs),
         InfixOperator::Greater => todo!(),
         InfixOperator::GreaterEqual => todo!(),
         InfixOperator::In => todo!(),
@@ -246,6 +246,25 @@ mod tests {
                     dummy_pos()
                 ),
                 vec![ast::tests::integer("1", dummy_pos())],
+                dummy_pos()
+            ))
+        );
+    }
+
+    #[test]
+    fn fraction_() {
+        let node = cst::infix(
+            InfixOperator::Fraction,
+            cst::tests::integer("1", dummy_pos()),
+            cst::tests::integer("2", dummy_pos()),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            rewrite(node),
+            Ok(ast::tests::fraction(
+                ast::tests::integer("1", dummy_pos()),
+                ast::tests::integer("2", dummy_pos()),
                 dummy_pos()
             ))
         );

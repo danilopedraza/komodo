@@ -114,6 +114,12 @@ pub mod tests {
         ASTNode::new(ASTNodeType::Function { params, proc }, position)
     }
 
+    pub fn fraction(numer: ASTNode, denom: ASTNode, position: Position) -> ASTNode {
+        let numer = Box::new(numer);
+        let denom = Box::new(denom);
+        ASTNode::new(ASTNodeType::Fraction { numer, denom }, position)
+    }
+
     pub fn symbol(name: &str, position: Position) -> ASTNode {
         let name = name.to_string();
         ASTNode::new(ASTNodeType::Symbol { name }, position)
