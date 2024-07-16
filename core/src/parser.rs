@@ -246,27 +246,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn integer(&mut self, int: String) -> _NodeResult {
-        let start = self.cur_pos.start;
-        match self.peek_token() {
-            Ok(Some(TokenType::Dot)) => {
-                self.next_token()?;
-                match self.next_token()? {
-                    Some(TokenType::Integer(dec)) => Ok(CSTNode::new(
-                        CSTNodeType::Decimal(int, dec),
-                        self.start_to_cur(start),
-                    )),
-                    Some(tok) => self.err_with_cur(ParserError::UnexpectedToken(
-                        vec![TokenType::Integer("".into())],
-                        tok,
-                    )),
-                    None => Err(Error::new(
-                        ParserError::EOFExpecting(vec![TokenType::Integer("".into())]).into(),
-                        self.cur_pos,
-                    )),
-                }
-            }
-            _ => self.node_with_cur(CSTNodeType::Integer(int)),
-        }
+        self.node_with_cur(CSTNodeType::Integer(int))
     }
 
     fn parenthesis(&mut self) -> _NodeResult {
@@ -1374,9 +1354,11 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(CSTNode::new(
-                CSTNodeType::Decimal("1".into(), "5".into()),
-                _pos(0, 3),
+            Some(Ok(infix(
+                InfixOperator::Dot,
+                integer("1", _pos(0, 1)),
+                integer("5", _pos(2, 1)),
+                _pos(0, 3)
             ))),
         );
     }
@@ -1419,6 +1401,27 @@ mod tests {
                 integer("1", _pos(0, 1)),
                 integer("2", _pos(5, 1)),
                 _pos(0, 6)
+            )))
+        );
+    }
+
+    #[test]
+    fn oop_cal_with_int() {
+        let input = "2.f()";
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(infix(
+                InfixOperator::Dot,
+                integer("2", _pos(0, 1)),
+                infix(
+                    InfixOperator::Call,
+                    symbol("f", _pos(2, 1)),
+                    tuple(vec![], _pos(3, 2)),
+                    _pos(2, 3)
+                ),
+                _pos(0, 5)
             )))
         );
     }
