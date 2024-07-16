@@ -2,7 +2,29 @@ use crate::error::Position;
 use std::hash::Hash;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum InfixOperator {}
+pub enum InfixOperator {
+    BitwiseAnd,
+    BitwiseXor,
+    Division,
+    Dot,
+    Equality,
+    Exponentiation,
+    Greater,
+    GreaterEqual,
+    In,
+    LeftShift,
+    Less,
+    LessEqual,
+    LogicAnd,
+    Or,
+    Rem,
+    NotEquality,
+    Product,
+    Range,
+    RightShift,
+    Substraction,
+    Sum,
+}
 
 #[allow(unused)]
 #[derive(Clone, Debug, PartialEq, Eq)]

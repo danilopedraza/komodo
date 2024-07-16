@@ -1,5 +1,5 @@
 use crate::{
-    ast::{ASTNode, ASTNodeType},
+    ast::{self, ASTNode, ASTNodeType},
     cst::{CSTNode, CSTNodeType, InfixOperator},
     error::Error,
 };
@@ -107,8 +107,8 @@ fn _if(cond: CSTNode, positive: CSTNode, negative: CSTNode) -> WeederResult<ASTN
 
 fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTNodeType> {
     match cst_op {
-        InfixOperator::BitwiseAnd => todo!(),
-        InfixOperator::BitwiseXor => todo!(),
+        InfixOperator::BitwiseAnd => infix_node(ast::InfixOperator::BitwiseAnd, lhs, rhs),
+        InfixOperator::BitwiseXor => infix_node(ast::InfixOperator::BitwiseXor, lhs, rhs),
         InfixOperator::Call => {
             let args = match rhs._type {
                 CSTNodeType::Tuple(v) => v,
@@ -142,27 +142,33 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
 
             function(params, proc)
         }
-        InfixOperator::Division => todo!(),
-        InfixOperator::Dot => todo!(),
-        InfixOperator::Equality => todo!(),
-        InfixOperator::Exponentiation => todo!(),
+        InfixOperator::Division => infix_node(ast::InfixOperator::Division, lhs, rhs),
+        InfixOperator::Dot => infix_node(ast::InfixOperator::Dot, lhs, rhs),
+        InfixOperator::Equality => infix_node(ast::InfixOperator::Equality, lhs, rhs),
+        InfixOperator::Exponentiation => infix_node(ast::InfixOperator::Exponentiation, lhs, rhs),
         InfixOperator::Fraction => fraction(lhs, rhs),
-        InfixOperator::Greater => todo!(),
-        InfixOperator::GreaterEqual => todo!(),
-        InfixOperator::In => todo!(),
-        InfixOperator::LeftShift => todo!(),
-        InfixOperator::Less => todo!(),
-        InfixOperator::LessEqual => todo!(),
-        InfixOperator::LogicAnd => todo!(),
-        InfixOperator::Or => todo!(),
-        InfixOperator::Rem => todo!(),
-        InfixOperator::NotEquality => todo!(),
-        InfixOperator::Product => todo!(),
-        InfixOperator::Range => todo!(),
-        InfixOperator::RightShift => todo!(),
-        InfixOperator::Substraction => todo!(),
-        InfixOperator::Sum => todo!(),
+        InfixOperator::Greater => infix_node(ast::InfixOperator::Greater, lhs, rhs),
+        InfixOperator::GreaterEqual => infix_node(ast::InfixOperator::GreaterEqual, lhs, rhs),
+        InfixOperator::In => infix_node(ast::InfixOperator::In, lhs, rhs),
+        InfixOperator::LeftShift => infix_node(ast::InfixOperator::LeftShift, lhs, rhs),
+        InfixOperator::Less => infix_node(ast::InfixOperator::Less, lhs, rhs),
+        InfixOperator::LessEqual => infix_node(ast::InfixOperator::LessEqual, lhs, rhs),
+        InfixOperator::LogicAnd => infix_node(ast::InfixOperator::LogicAnd, lhs, rhs),
+        InfixOperator::Or => infix_node(ast::InfixOperator::Or, lhs, rhs),
+        InfixOperator::Rem => infix_node(ast::InfixOperator::Rem, lhs, rhs),
+        InfixOperator::NotEquality => infix_node(ast::InfixOperator::NotEquality, lhs, rhs),
+        InfixOperator::Product => infix_node(ast::InfixOperator::Product, lhs, rhs),
+        InfixOperator::Range => infix_node(ast::InfixOperator::Range, lhs, rhs),
+        InfixOperator::RightShift => infix_node(ast::InfixOperator::RightShift, lhs, rhs),
+        InfixOperator::Substraction => infix_node(ast::InfixOperator::Substraction, lhs, rhs),
+        InfixOperator::Sum => infix_node(ast::InfixOperator::Sum, lhs, rhs),
     }
+}
+
+fn infix_node(op: ast::InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTNodeType> {
+    let lhs = Box::new(rewrite(lhs)?);
+    let rhs = Box::new(rewrite(rhs)?);
+    Ok(ASTNodeType::Infix { op, lhs, rhs })
 }
 
 fn integer(dec: String) -> WeederResult<ASTNodeType> {
