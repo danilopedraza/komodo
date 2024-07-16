@@ -16,7 +16,6 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeType::Char(chr) => char(chr),
         CSTNodeType::ComprehensionSet(val, prop) => comprehension_set(*val, *prop),
         CSTNodeType::ComprehensionList(val, prop) => comprehension_list(*val, *prop),
-        CSTNodeType::Decimal(int, dec) => decimal(int, dec),
         CSTNodeType::ExtensionList(list) => extension_list(list),
         CSTNodeType::ExtensionSet(list) => extension_set(list),
         CSTNodeType::For(val, iter, proc) => _for(val, *iter, proc),
@@ -155,6 +154,17 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
                         args: new_args,
                     })
                 }
+                ASTNodeType::Integer { dec } => {
+                    if let Ok(ASTNode {
+                        _type: ASTNodeType::Integer { dec: int },
+                        position: _,
+                    }) = rewrite(lhs)
+                    {
+                        decimal(int, dec)
+                    } else {
+                        todo!()
+                    }
+                }
                 _ => todo!(),
             }
         }
@@ -243,7 +253,11 @@ fn call(called: CSTNode, args: Vec<CSTNode>) -> WeederResult<ASTNodeType> {
 mod tests {
     use crate::{
         ast,
-        cst::{self, tests::dummy_pos, InfixOperator},
+        cst::{
+            self,
+            tests::{dummy_pos, integer},
+            InfixOperator,
+        },
     };
 
     use super::rewrite;
@@ -319,6 +333,21 @@ mod tests {
                 ],
                 dummy_pos()
             )),
+        );
+    }
+
+    #[test]
+    fn decimal() {
+        let node = cst::infix(
+            InfixOperator::Dot,
+            integer("1", dummy_pos()),
+            integer("5", dummy_pos()),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            rewrite(node),
+            Ok(ast::tests::decimal("1", "5", dummy_pos()))
         );
     }
 }

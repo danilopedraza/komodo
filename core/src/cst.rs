@@ -162,7 +162,6 @@ pub enum CSTNodeType {
     Char(char),
     ComprehensionSet(Box<CSTNode>, Box<CSTNode>),
     ComprehensionList(Box<CSTNode>, Box<CSTNode>),
-    Decimal(String, String),
     ExtensionList(Vec<CSTNode>),
     ExtensionSet(Vec<CSTNode>),
     For(String, Box<CSTNode>, Vec<CSTNode>),
