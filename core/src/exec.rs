@@ -410,7 +410,6 @@ fn infix(
         InfixOperator::RightShift => lhs.right_shift(rhs),
         InfixOperator::Substraction => lhs.substraction(rhs),
         InfixOperator::Sum => lhs.sum(rhs),
-        InfixOperator::Dot => unimplemented!(),
         InfixOperator::Range => range(lhs, rhs),
     };
 
