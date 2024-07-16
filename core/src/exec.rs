@@ -56,7 +56,7 @@ fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, Error> {
 
 pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     let res = match &node._type {
-        ASTNodeType::Symbol { name } => symbol(&name, env),
+        ASTNodeType::Symbol { name } => symbol(name, env),
         ASTNodeType::ExtensionSet { list } => extension_set(list, env),
         ASTNodeType::Integer { dec } => integer(dec),
         ASTNodeType::Function { params, proc } => function(params, proc),

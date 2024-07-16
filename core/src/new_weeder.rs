@@ -13,7 +13,6 @@ type WeederResult<T> = Result<T, Error>;
 pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
     let tp: ASTNodeType = match node._type {
         CSTNodeType::Boolean(bool) => boolean(bool),
-        CSTNodeType::Call(called, proc) => call(*called, proc),
         CSTNodeType::Char(chr) => char(chr),
         CSTNodeType::ComprehensionSet(val, prop) => comprehension_set(*val, *prop),
         CSTNodeType::ComprehensionList(val, prop) => comprehension_list(*val, *prop),
@@ -21,8 +20,6 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeType::ExtensionList(list) => extension_list(list),
         CSTNodeType::ExtensionSet(list) => extension_set(list),
         CSTNodeType::For(val, iter, proc) => _for(val, *iter, proc),
-        CSTNodeType::Function(params, proc) => function(params, proc),
-        CSTNodeType::Fraction(numer, denom) => fraction(*numer, *denom),
         CSTNodeType::If(cond, positive, negative) => _if(*cond, *positive, *negative),
         CSTNodeType::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs),
         CSTNodeType::Integer(dec) => integer(dec),

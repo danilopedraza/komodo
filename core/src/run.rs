@@ -1,4 +1,5 @@
 use crate::{
+    ast::ASTNode,
     cst::CSTNode,
     env::Environment,
     error::Error,
@@ -11,8 +12,10 @@ use crate::{
 
 fn collect_nodes<T: Iterator<Item = Result<Token, Error>>>(
     parser: Parser<T>,
-) -> Result<Vec<CSTNode>, Error> {
-    parser.collect()
+) -> Result<Vec<ASTNode>, Error> {
+    let cst_nodes: Result<Vec<CSTNode>, Error> = parser.collect();
+
+    cst_nodes?.into_iter().map(rewrite).collect()
 }
 
 pub fn run(source: &str, env: &mut Environment) -> Result<(), Error> {
@@ -27,6 +30,6 @@ pub fn run(source: &str, env: &mut Environment) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn run_node(node: CSTNode, env: &mut Environment) -> Result<Object, Error> {
-    exec(&rewrite(node)?, env)
+pub fn run_node(node: ASTNode, env: &mut Environment) -> Result<Object, Error> {
+    exec(&node, env)
 }

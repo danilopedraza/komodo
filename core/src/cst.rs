@@ -109,36 +109,6 @@ impl InfixOperator {
             Self::Sum => Precedence::Addition,
         }
     }
-
-    pub fn ident(&self) -> String {
-        match self {
-            InfixOperator::BitwiseAnd => "bitwise AND",
-            InfixOperator::BitwiseXor => "bitwise XOR",
-            InfixOperator::Call => unimplemented!(),
-            InfixOperator::Correspondence => unimplemented!(),
-            InfixOperator::Division => "division",
-            InfixOperator::Dot => "shorthand function call",
-            InfixOperator::Equality => "equality",
-            InfixOperator::Exponentiation => "exponentiation",
-            InfixOperator::Fraction => "fraction generation",
-            InfixOperator::Greater => "greater",
-            InfixOperator::GreaterEqual => "greater-or-equal",
-            InfixOperator::In => "membership",
-            InfixOperator::LeftShift => "left shift",
-            InfixOperator::Less => "less",
-            InfixOperator::LessEqual => "less-or-equal",
-            InfixOperator::LogicAnd => "logic AND",
-            InfixOperator::Or => "OR",
-            InfixOperator::Rem => "remainder",
-            InfixOperator::NotEquality => "non-equality",
-            InfixOperator::Product => "multiplication",
-            InfixOperator::Range => "range generation",
-            InfixOperator::RightShift => "right shift",
-            InfixOperator::Substraction => "substraction",
-            InfixOperator::Sum => "addition",
-        }
-        .into()
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -189,7 +159,6 @@ impl Hash for CSTNode {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum CSTNodeType {
     Boolean(bool),
-    Call(Box<CSTNode>, Vec<CSTNode>),
     Char(char),
     ComprehensionSet(Box<CSTNode>, Box<CSTNode>),
     ComprehensionList(Box<CSTNode>, Box<CSTNode>),
@@ -197,8 +166,6 @@ pub enum CSTNodeType {
     ExtensionList(Vec<CSTNode>),
     ExtensionSet(Vec<CSTNode>),
     For(String, Box<CSTNode>, Vec<CSTNode>),
-    Function(Vec<String>, Vec<CSTNode>),
-    Fraction(Box<CSTNode>, Box<CSTNode>),
     If(Box<CSTNode>, Box<CSTNode>, Box<CSTNode>),
     Infix(InfixOperator, Box<CSTNode>, Box<CSTNode>),
     Integer(String),
@@ -285,16 +252,16 @@ pub fn comprehension_set(val: CSTNode, prop: CSTNode, position: Position) -> CST
     )
 }
 
-pub fn call(called: CSTNode, args: Vec<CSTNode>, position: Position) -> CSTNode {
-    CSTNode::new(CSTNodeType::Call(Box::new(called), args), position)
-}
+// pub fn call(called: CSTNode, args: Vec<CSTNode>, position: Position) -> CSTNode {
+//     CSTNode::new(CSTNodeType::Call(Box::new(called), args), position)
+// }
 
-pub fn fraction(num: CSTNode, den: CSTNode, position: Position) -> CSTNode {
-    CSTNode::new(
-        CSTNodeType::Fraction(Box::new(num), Box::new(den)),
-        position,
-    )
-}
+// pub fn fraction(num: CSTNode, den: CSTNode, position: Position) -> CSTNode {
+//     CSTNode::new(
+//         CSTNodeType::Fraction(Box::new(num), Box::new(den)),
+//         position,
+//     )
+// }
 
 #[cfg(test)]
 pub mod tests {
@@ -323,21 +290,21 @@ pub mod tests {
         CSTNode::new(CSTNodeType::Integer(int.into()), position)
     }
 
-    pub fn function(params: Vec<&str>, proc: Vec<CSTNode>, position: Position) -> CSTNode {
-        CSTNode::new(
-            CSTNodeType::Function(params.into_iter().map(|str| str.to_owned()).collect(), proc),
-            position,
-        )
-    }
+    // pub fn function(params: Vec<&str>, proc: Vec<CSTNode>, position: Position) -> CSTNode {
+    //     CSTNode::new(
+    //         CSTNodeType::Function(params.into_iter().map(|str| str.to_owned()).collect(), proc),
+    //         position,
+    //     )
+    // }
 
-    pub fn decimal(int: &str, dec: &str, position: Position) -> CSTNode {
-        CSTNode::new(
-            CSTNodeType::Decimal(int.to_string(), dec.to_string()),
-            position,
-        )
-    }
+    // pub fn decimal(int: &str, dec: &str, position: Position) -> CSTNode {
+    //     CSTNode::new(
+    //         CSTNodeType::Decimal(int.to_string(), dec.to_string()),
+    //         position,
+    //     )
+    // }
 
-    pub fn range(start: CSTNode, end: CSTNode, position: Position) -> CSTNode {
-        infix(InfixOperator::Range, start, end, position)
-    }
+    // pub fn range(start: CSTNode, end: CSTNode, position: Position) -> CSTNode {
+    //     infix(InfixOperator::Range, start, end, position)
+    // }
 }
