@@ -11,7 +11,7 @@ use num_bigint::{BigInt, BigUint};
 use num_rational::BigRational;
 
 use crate::{
-    cst::{CSTNode, CSTNodeType},
+    ast::{ASTNode, ASTNodeType},
     env::Environment,
     error::Error,
     exec::exec,
@@ -556,8 +556,8 @@ impl fmt::Display for ExtensionSet {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ComprehensionSet {
-    value: CSTNode,
-    prop: CSTNode,
+    value: ASTNode,
+    prop: ASTNode,
 }
 
 impl Hash for ComprehensionSet {
@@ -567,8 +567,8 @@ impl Hash for ComprehensionSet {
     }
 }
 
-impl From<(CSTNode, CSTNode)> for ComprehensionSet {
-    fn from((value, prop): (CSTNode, CSTNode)) -> Self {
+impl From<(ASTNode, ASTNode)> for ComprehensionSet {
+    fn from((value, prop): (ASTNode, ASTNode)) -> Self {
         Self { value, prop }
     }
 }
@@ -578,7 +578,7 @@ impl PrefixOperable for ComprehensionSet {}
 impl InfixOperable for ComprehensionSet {
     fn contains(&self, other: &Object) -> Option<Object> {
         let symbol = match &self.value._type {
-            CSTNodeType::Symbol(s) => s,
+            ASTNodeType::Symbol { name } => name,
             _ => unimplemented!(),
         };
 
@@ -1000,9 +1000,9 @@ impl Callable for Function {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct DefinedFunction {
-    patterns: Vec<(Vec<CSTNode>, CSTNode)>,
+    patterns: Vec<(Vec<ASTNode>, ASTNode)>,
     params: Vec<String>,
-    proc: Vec<CSTNode>,
+    proc: Vec<ASTNode>,
 }
 
 impl Hash for DefinedFunction {
@@ -1027,7 +1027,7 @@ impl fmt::Display for DefinedFunction {
 }
 
 impl DefinedFunction {
-    pub fn new(params: Vec<String>, proc: Vec<CSTNode>) -> Self {
+    pub fn new(params: Vec<String>, proc: Vec<ASTNode>) -> Self {
         Self {
             patterns: vec![],
             params,
@@ -1035,7 +1035,7 @@ impl DefinedFunction {
         }
     }
 
-    pub fn add_pattern(&mut self, args: &[CSTNode], value: &CSTNode) {
+    pub fn add_pattern(&mut self, args: &[ASTNode], value: &ASTNode) {
         self.patterns.push((args.to_vec(), value.clone()))
     }
 

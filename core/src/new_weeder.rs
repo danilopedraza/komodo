@@ -1,6 +1,6 @@
 use crate::{
     ast::{self, ASTNode, ASTNodeType},
-    cst::{CSTNode, CSTNodeType, InfixOperator},
+    cst::{CSTNode, CSTNodeType, InfixOperator, PrefixOperator},
     error::Error,
 };
 
@@ -27,7 +27,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeType::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs),
         CSTNodeType::Integer(dec) => integer(dec),
         CSTNodeType::Let(ident, params, val) => _let(*ident, params, *val),
-        CSTNodeType::Prefix(_, _) => todo!(),
+        CSTNodeType::Prefix(op, val) => prefix(op, *val),
         CSTNodeType::Cons(first, tail) => cons(*first, *tail),
         CSTNodeType::Signature(val, constraint) => signature(*val, constraint),
         CSTNodeType::String(str) => string(str),
@@ -180,6 +180,11 @@ fn _let(ident: CSTNode, params: Vec<CSTNode>, val: CSTNode) -> WeederResult<ASTN
     let params = rewrite_vec(params)?;
     let val = Box::new(rewrite(val)?);
     Ok(ASTNodeType::Let { ident, params, val })
+}
+
+fn prefix(op: PrefixOperator, val: CSTNode) -> WeederResult<ASTNodeType> {
+    let val = Box::new(rewrite(val)?);
+    Ok(ASTNodeType::Prefix { op, val })
 }
 
 fn cons(first: CSTNode, tail: CSTNode) -> WeederResult<ASTNodeType> {

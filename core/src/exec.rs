@@ -4,7 +4,8 @@ use crate::object::{
     Kind, Range,
 };
 
-use crate::cst::{CSTNode, CSTNodeType, InfixOperator, PrefixOperator};
+use crate::ast::{ASTNode, ASTNodeType, InfixOperator};
+use crate::cst::PrefixOperator;
 use crate::env::Environment;
 use crate::object::{
     Bool, Char, DefinedFunction, ExtensionSet, Integer, MyString, Object, Symbol, Tuple,
@@ -43,43 +44,53 @@ pub fn truthy(val: &Object) -> bool {
     }
 }
 
-pub fn list(l: &[CSTNode], env: &mut Environment) -> Result<Vec<Object>, Error> {
+pub fn list(l: &[ASTNode], env: &mut Environment) -> Result<Vec<Object>, Error> {
     l.iter().map(|node| exec(node, env)).collect()
 }
 
-fn function(params: &[String], proc: &[CSTNode]) -> Result<Object, Error> {
+fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, Error> {
     Ok(Object::Function(object::Function::DefinedFunction(
         DefinedFunction::new(params.to_owned(), proc.to_owned()),
     )))
 }
 
-pub fn exec(node: &CSTNode, env: &mut Environment) -> Result<Object, Error> {
+pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     let res = match &node._type {
-        CSTNodeType::Symbol(str) => symbol(str, env),
-        CSTNodeType::ExtensionSet(l) => extension_set(l, env),
-        CSTNodeType::Integer(str) => integer(str),
-        CSTNodeType::Function(params, proc) => function(params, proc),
-        CSTNodeType::Infix(op, lhs, rhs) => {
-            infix(*op, &exec(lhs, env)?, &exec(rhs, env)?, node.position)
-        }
-        CSTNodeType::Let(ident, params, value) if params.is_empty() => let_(ident, value, env),
-        CSTNodeType::Let(ident, args, value) => let_function(ident, args, value, env),
-        CSTNodeType::Boolean(val) => boolean(*val),
-        CSTNodeType::Call(func_node, args) => call(func_node, args, env, node.position),
-        CSTNodeType::Char(chr) => char(*chr),
-        CSTNodeType::ComprehensionSet(value, prop) => comprehension_set(value, prop),
-        CSTNodeType::If(cond, first, second) => if_(exec(cond, env)?, first, second, env),
-        CSTNodeType::Prefix(op, node) => prefix(*op, exec(node, env)?, node.position),
-        CSTNodeType::Signature(_, _) => unimplemented!(),
-        CSTNodeType::String(str) => string(str),
-        CSTNodeType::Tuple(l) => tuple(l, env),
-        CSTNodeType::For(symbol, iterable, proc) => for_(symbol, iterable, proc, env),
-        CSTNodeType::ExtensionList(l) => extension_list(l, env),
-        CSTNodeType::ComprehensionList(transform, prop) => comprehension_list(transform, prop, env),
-        CSTNodeType::Wildcard => unimplemented!(),
-        CSTNodeType::Cons(first, most) => prepend(exec(first, env)?, most, env),
-        CSTNodeType::Decimal(int, dec) => decimal(int, dec),
-        CSTNodeType::Fraction(numer, denom) => fraction(numer, denom, node.position, env),
+        ASTNodeType::Symbol { name } => symbol(&name, env),
+        ASTNodeType::ExtensionSet { list } => extension_set(list, env),
+        ASTNodeType::Integer { dec } => integer(dec),
+        ASTNodeType::Function { params, proc } => function(params, proc),
+        ASTNodeType::Infix { op, lhs, rhs } => infix(
+            op.clone(),
+            &exec(lhs, env)?,
+            &exec(rhs, env)?,
+            node.position,
+        ),
+        ASTNodeType::Let { ident, params, val } if params.is_empty() => let_(ident, val, env),
+        ASTNodeType::Let { ident, params, val } => let_function(ident, params, val, env),
+        ASTNodeType::Boolean(val) => boolean(*val),
+        ASTNodeType::Call { called, args } => call(called, args, env, node.position),
+        ASTNodeType::Char(chr) => char(*chr),
+        ASTNodeType::ComprehensionSet { val, prop } => comprehension_set(val, prop),
+        ASTNodeType::If {
+            cond,
+            positive,
+            negative,
+        } => if_(exec(cond, env)?, positive, negative, env),
+        ASTNodeType::Prefix { op, val } => prefix(*op, exec(val, env)?, node.position),
+        ASTNodeType::Signature {
+            val: _,
+            constraint: _,
+        } => todo!(),
+        ASTNodeType::String { str } => string(str),
+        ASTNodeType::Tuple { values } => tuple(values, env),
+        ASTNodeType::For { val, iter, proc } => for_(val, iter, proc, env),
+        ASTNodeType::ExtensionList { list } => extension_list(list, env),
+        ASTNodeType::ComprehensionList { val, prop } => comprehension_list(val, prop, env),
+        ASTNodeType::Wildcard => todo!(),
+        ASTNodeType::Cons { first, tail } => prepend(exec(first, env)?, tail, env),
+        ASTNodeType::Decimal { int, dec } => decimal(int, dec),
+        ASTNodeType::Fraction { numer, denom } => fraction(numer, denom, node.position, env),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -96,7 +107,7 @@ fn decimal(int: &str, dec: &str) -> Result<Object, Error> {
     Ok(Object::Decimal(Decimal::new(int, dec)))
 }
 
-fn prepend(first: Object, most: &CSTNode, env: &mut Environment) -> Result<Object, Error> {
+fn prepend(first: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     match exec(most, env)? {
         Object::ExtensionList(lst) => {
             let mut res = vec![first];
@@ -114,11 +125,11 @@ fn prepend(first: Object, most: &CSTNode, env: &mut Environment) -> Result<Objec
     }
 }
 
-fn extension_list(l: &[CSTNode], env: &mut Environment) -> Result<Object, Error> {
+fn extension_list(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
     list(l, env).map(|lst| Object::ExtensionList(ExtensionList::from(lst)))
 }
 
-fn tuple(l: &[CSTNode], env: &mut Environment) -> Result<Object, Error> {
+fn tuple(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
     list(l, env).map(|lst| Object::Tuple(Tuple::from(lst)))
 }
 
@@ -126,7 +137,7 @@ fn string(str: &str) -> Result<Object, Error> {
     Ok(Object::String(MyString::from(str)))
 }
 
-fn comprehension_set(value: &CSTNode, prop: &CSTNode) -> Result<Object, Error> {
+fn comprehension_set(value: &ASTNode, prop: &ASTNode) -> Result<Object, Error> {
     Ok(Object::ComprehensionSet(ComprehensionSet::from((
         value.clone(),
         prop.clone(),
@@ -141,11 +152,14 @@ fn boolean(val: bool) -> Result<Object, Error> {
     Ok(Object::Boolean(Bool::from(val)))
 }
 
-fn let_(ident: &CSTNode, value: &CSTNode, env: &mut Environment) -> Result<Object, Error> {
+fn let_(ident: &ASTNode, value: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     match &ident._type {
-        CSTNodeType::Symbol(name) => exec_and_set(value, name, env),
-        CSTNodeType::Signature(ident, None) => match &ident._type {
-            CSTNodeType::Symbol(name) => exec_and_set(value, name, env),
+        ASTNodeType::Symbol { name } => exec_and_set(value, name, env),
+        ASTNodeType::Signature {
+            val,
+            constraint: None,
+        } => match &val._type {
+            ASTNodeType::Symbol { name } => exec_and_set(value, name, env),
             _ => todo!(),
         },
         _ => unimplemented!(),
@@ -156,7 +170,7 @@ fn integer(str: &str) -> Result<Object, Error> {
     Ok(Object::Integer(Integer::from(str)))
 }
 
-fn extension_set(l: &[CSTNode], env: &mut Environment) -> Result<Object, Error> {
+fn extension_set(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
     list(l, env).map(|lst| Object::ExtensionSet(ExtensionSet::from(lst)))
 }
 
@@ -168,20 +182,28 @@ fn symbol(str: &str, env: &mut Environment) -> Result<Object, Error> {
 }
 
 fn comprehension_list(
-    transform: &CSTNode,
-    prop: &CSTNode,
+    transform: &ASTNode,
+    prop: &ASTNode,
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let symbol = match &prop._type {
-        CSTNodeType::Infix(InfixOperator::In, lhs, _) => match &lhs._type {
-            CSTNodeType::Symbol(ident) => ident,
+        ASTNodeType::Infix {
+            op: InfixOperator::In,
+            lhs,
+            rhs: _,
+        } => match &lhs._type {
+            ASTNodeType::Symbol { name } => name,
             _ => todo!(),
         },
         _ => todo!(),
     };
 
     let iterator: Vec<Object> = match &prop._type {
-        CSTNodeType::Infix(InfixOperator::In, _, rhs) => get_iterable(rhs, env)?,
+        ASTNodeType::Infix {
+            op: InfixOperator::In,
+            lhs: _,
+            rhs,
+        } => get_iterable(rhs, env)?,
         _ => todo!(),
     };
 
@@ -197,13 +219,13 @@ fn comprehension_list(
 }
 
 fn let_function(
-    ident: &CSTNode,
-    args: &[CSTNode],
-    value: &CSTNode,
+    ident: &ASTNode,
+    args: &[ASTNode],
+    value: &ASTNode,
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let name = match &ident._type {
-        CSTNodeType::Symbol(name) => name,
+        ASTNodeType::Symbol { name } => name,
         _ => unimplemented!(),
     };
 
@@ -230,7 +252,7 @@ fn let_function(
     )))
 }
 
-fn exec_and_set(node: &CSTNode, name: &str, env: &mut Environment) -> Result<Object, Error> {
+fn exec_and_set(node: &ASTNode, name: &str, env: &mut Environment) -> Result<Object, Error> {
     let val = exec(node, env)?;
     env.set(name, val.clone());
     Ok(val)
@@ -238,8 +260,8 @@ fn exec_and_set(node: &CSTNode, name: &str, env: &mut Environment) -> Result<Obj
 
 fn if_(
     cond: Object,
-    first: &CSTNode,
-    second: &CSTNode,
+    first: &ASTNode,
+    second: &ASTNode,
     env: &mut Environment,
 ) -> Result<Object, Error> {
     if truthy(&cond) {
@@ -251,8 +273,8 @@ fn if_(
 
 fn for_(
     symbol: &str,
-    iterable: &CSTNode,
-    proc: &[CSTNode],
+    iterable: &ASTNode,
+    proc: &[ASTNode],
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let iter: Vec<Object> = get_iterable(iterable, env)?;
@@ -272,7 +294,7 @@ fn for_(
     Ok(Object::empty_tuple())
 }
 
-fn get_iterable(node: &CSTNode, env: &mut Environment) -> Result<Vec<Object>, Error> {
+fn get_iterable(node: &ASTNode, env: &mut Environment) -> Result<Vec<Object>, Error> {
     match exec(node, env)? {
         Object::ExtensionSet(set) => Ok(set.set.iter().map(|obj| obj.to_owned()).collect()),
         Object::ExtensionList(list) => Ok(list.list.iter().map(|obj| obj.to_owned()).collect()),
@@ -285,8 +307,8 @@ fn get_iterable(node: &CSTNode, env: &mut Environment) -> Result<Vec<Object>, Er
 }
 
 fn call(
-    func_node: &CSTNode,
-    args: &[CSTNode],
+    func_node: &ASTNode,
+    args: &[ASTNode],
     env: &mut Environment,
     call_pos: Position,
 ) -> Result<Object, Error> {
@@ -329,8 +351,8 @@ fn range(start: &Object, end: &Object) -> Option<Object> {
 }
 
 fn fraction(
-    numer: &CSTNode,
-    denom: &CSTNode,
+    numer: &ASTNode,
+    denom: &ASTNode,
     position: Position,
     env: &mut Environment,
 ) -> Result<Object, Error> {
@@ -365,8 +387,6 @@ fn infix(
     let res = match op {
         InfixOperator::BitwiseAnd => lhs.bitwise_and(rhs),
         InfixOperator::BitwiseXor => lhs.bitwise_xor(rhs),
-        InfixOperator::Call => unimplemented!(),
-        InfixOperator::Correspondence => unimplemented!(),
         InfixOperator::Division => {
             if rhs.is_zero() {
                 return Err(Error::new(EvalError::DenominatorZero.into(), infix_pos));
@@ -392,7 +412,6 @@ fn infix(
         InfixOperator::Sum => lhs.sum(rhs),
         InfixOperator::Dot => unimplemented!(),
         InfixOperator::Range => range(lhs, rhs),
-        InfixOperator::Fraction => unimplemented!(),
     };
 
     match res {
@@ -437,11 +456,12 @@ mod tests {
     use bigdecimal::BigDecimal;
 
     use super::*;
-    use crate::cst::tests::{_pos, boolean, decimal, dummy_pos, function, integer, range};
-    use crate::cst::{
-        _for, call, comprehension_list, comprehension_set, cons, extension_list, extension_set,
-        fraction, infix, let_, prefix, signature, symbol, tuple,
+    use crate::ast::tests::{
+        _for, _if, boolean, call, comprehension_list, comprehension_set, cons, decimal,
+        extension_list, extension_set, fraction, function, infix, integer, let_, pos, prefix,
+        range, signature, symbol, tuple,
     };
+    use crate::cst::tests::dummy_pos;
     use crate::error::ErrorType;
     use crate::object::*;
 
@@ -752,21 +772,15 @@ mod tests {
         let mut env = Environment::default();
         env.set("a", Object::Integer(Integer::from(-5)));
 
-        let node = &CSTNode::new(
-            CSTNodeType::If(
-                Box::new(infix(
-                    InfixOperator::Less,
-                    symbol("a", dummy_pos()),
-                    integer("0", dummy_pos()),
-                    dummy_pos(),
-                )),
-                Box::new(prefix(
-                    PrefixOperator::Minus,
-                    symbol("a", dummy_pos()),
-                    dummy_pos(),
-                )),
-                Box::new(symbol("a", dummy_pos())),
+        let node = &_if(
+            infix(
+                InfixOperator::Less,
+                symbol("a", dummy_pos()),
+                integer("0", dummy_pos()),
+                dummy_pos(),
             ),
+            prefix(PrefixOperator::Minus, symbol("a", dummy_pos()), dummy_pos()),
+            symbol("a", dummy_pos()),
             dummy_pos(),
         );
 
@@ -905,7 +919,7 @@ mod tests {
                 dummy_pos(),
             ),
             vec![integer("1", dummy_pos())],
-            _pos(0, 5),
+            pos(0, 5),
         );
 
         assert_eq!(
@@ -916,7 +930,7 @@ mod tests {
                     actual: 1,
                 }
                 .into(),
-                _pos(0, 5),
+                pos(0, 5),
             ))
         );
     }
@@ -1181,13 +1195,13 @@ mod tests {
     fn denominator_zero() {
         let node = fraction(
             integer("1", dummy_pos()),
-            integer("0", _pos(5, 1)),
+            integer("0", pos(5, 1)),
             dummy_pos(),
         );
 
         assert_eq!(
             exec(&node, &mut Environment::default()),
-            Err(Error::new(EvalError::DenominatorZero.into(), _pos(5, 1))),
+            Err(Error::new(EvalError::DenominatorZero.into(), pos(5, 1))),
         );
     }
 

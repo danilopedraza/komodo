@@ -4,9 +4,9 @@ use crate::{
     error::Error,
     exec::exec,
     lexer::{build_lexer, Token},
+    new_weeder::rewrite,
     object::Object,
     parser::{parser_from, Parser},
-    weeder::postprocess,
 };
 
 fn collect_nodes<T: Iterator<Item = Result<Token, Error>>>(
@@ -28,5 +28,5 @@ pub fn run(source: &str, env: &mut Environment) -> Result<(), Error> {
 }
 
 pub fn run_node(node: CSTNode, env: &mut Environment) -> Result<Object, Error> {
-    exec(&postprocess(node), env)
+    exec(&rewrite(node)?, env)
 }
