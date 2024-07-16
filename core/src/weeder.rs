@@ -139,35 +139,20 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
             function(params, proc)
         }
         InfixOperator::Division => infix_node(ast::InfixOperator::Division, lhs, rhs),
-        InfixOperator::Dot => {
-            let called = rewrite(rhs)?;
-
-            match called._type {
-                ASTNodeType::Call { called, args } => {
-                    let mut new_args = vec![rewrite(lhs)?];
-                    for arg in args {
-                        new_args.push(arg);
-                    }
-
-                    Ok(ASTNodeType::Call {
-                        called,
-                        args: new_args,
-                    })
-                }
-                ASTNodeType::Integer { dec } => {
-                    if let Ok(ASTNode {
-                        _type: ASTNodeType::Integer { dec: int },
-                        position: _,
-                    }) = rewrite(lhs)
-                    {
-                        decimal(int, dec)
-                    } else {
-                        todo!()
-                    }
-                }
-                _ => todo!(),
-            }
-        }
+        InfixOperator::Dot => match (rewrite(lhs)?, rewrite(rhs)?._type) {
+            (
+                ASTNode {
+                    _type: ASTNodeType::Integer { dec: int },
+                    position: _,
+                },
+                ASTNodeType::Integer { dec },
+            ) => decimal(int, dec),
+            (first_arg, ASTNodeType::Call { called, args }) => Ok(ASTNodeType::Call {
+                called,
+                args: vec![first_arg].into_iter().chain(args).collect(),
+            }),
+            _ => todo!(),
+        },
         InfixOperator::Equality => infix_node(ast::InfixOperator::Equality, lhs, rhs),
         InfixOperator::Exponentiation => infix_node(ast::InfixOperator::Exponentiation, lhs, rhs),
         InfixOperator::Fraction => fraction(lhs, rhs),
