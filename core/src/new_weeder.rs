@@ -140,7 +140,24 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
             function(params, proc)
         }
         InfixOperator::Division => infix_node(ast::InfixOperator::Division, lhs, rhs),
-        InfixOperator::Dot => infix_node(ast::InfixOperator::Dot, lhs, rhs),
+        InfixOperator::Dot => {
+            let called = rewrite(rhs)?;
+
+            match called._type {
+                ASTNodeType::Call { called, args } => {
+                    let mut new_args = vec![rewrite(lhs)?];
+                    for arg in args {
+                        new_args.push(arg);
+                    }
+
+                    Ok(ASTNodeType::Call {
+                        called,
+                        args: new_args,
+                    })
+                }
+                _ => todo!(),
+            }
+        }
         InfixOperator::Equality => infix_node(ast::InfixOperator::Equality, lhs, rhs),
         InfixOperator::Exponentiation => infix_node(ast::InfixOperator::Exponentiation, lhs, rhs),
         InfixOperator::Fraction => fraction(lhs, rhs),
@@ -275,6 +292,33 @@ mod tests {
                 ast::tests::integer("2", dummy_pos()),
                 dummy_pos()
             ))
+        );
+    }
+
+    #[test]
+    fn oop_function_call() {
+        let node = cst::infix(
+            InfixOperator::Dot,
+            cst::symbol("set", dummy_pos()),
+            cst::infix(
+                InfixOperator::Call,
+                cst::symbol("map", dummy_pos()),
+                cst::tuple(vec![cst::symbol("func", dummy_pos())], dummy_pos()),
+                dummy_pos(),
+            ),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            rewrite(node),
+            Ok(ast::tests::call(
+                ast::tests::symbol("map", dummy_pos()),
+                vec![
+                    ast::tests::symbol("set", dummy_pos()),
+                    ast::tests::symbol("func", dummy_pos())
+                ],
+                dummy_pos()
+            )),
         );
     }
 }
