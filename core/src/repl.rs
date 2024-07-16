@@ -4,10 +4,10 @@ use crate::{
     env::Environment,
     error::{error_msg, Error, ErrorMessage, ErrorType},
     lexer::build_lexer,
-    new_weeder::rewrite,
     object::Object,
     parser::{parser_from, ParserError},
     run,
+    weeder::rewrite,
 };
 use rustyline::{error::ReadlineError, DefaultEditor};
 

@@ -5,9 +5,9 @@ use crate::{
     error::Error,
     exec::exec,
     lexer::{build_lexer, Token},
-    new_weeder::rewrite,
     object::Object,
     parser::{parser_from, Parser},
+    weeder::rewrite,
 };
 
 fn collect_nodes<T: Iterator<Item = Result<Token, Error>>>(
