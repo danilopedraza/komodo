@@ -349,7 +349,7 @@ impl PrefixOperable for Char {}
 
 impl fmt::Display for Char {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.val)
+        write!(f, "'{}'", self.val)
     }
 }
 
