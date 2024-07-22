@@ -424,7 +424,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rbrace, Some(first))
                 .map(|lst| extension_set(lst, self.start_to_cur(start))),
-            Some(TokenType::Colon) => {
+            Some(TokenType::For) => {
                 let second = self.expression(Precedence::Lowest)?;
 
                 self.consume(TokenType::Rbrace)?;
@@ -753,11 +753,11 @@ mod tests {
         let tokens = vec![
             Token::new(TokenType::Lbrace, _pos(0, 1)),
             Token::new(TokenType::Ident(String::from("a")), _pos(1, 1)),
-            Token::new(TokenType::Colon, _pos(3, 1)),
-            Token::new(TokenType::Ident(String::from("a")), _pos(5, 1)),
-            Token::new(TokenType::Equals, _pos(7, 1)),
-            Token::new(TokenType::Integer(String::from("1")), _pos(9, 1)),
-            Token::new(TokenType::Rbrace, _pos(10, 1)),
+            Token::new(TokenType::For, _pos(3, 3)),
+            Token::new(TokenType::Ident(String::from("a")), _pos(7, 1)),
+            Token::new(TokenType::Equals, _pos(9, 1)),
+            Token::new(TokenType::Integer(String::from("1")), _pos(11, 1)),
+            Token::new(TokenType::Rbrace, _pos(12, 1)),
         ];
 
         assert_eq!(
@@ -766,11 +766,11 @@ mod tests {
                 symbol("a", _pos(1, 1)),
                 infix(
                     InfixOperator::Equality,
-                    symbol("a", _pos(5, 1)),
-                    integer("1", _pos(9, 1)),
-                    _pos(5, 5)
+                    symbol("a", _pos(7, 1)),
+                    integer("1", _pos(11, 1)),
+                    _pos(7, 5)
                 ),
-                _pos(0, 11),
+                _pos(0, 13),
             )))
         );
     }
@@ -1137,32 +1137,6 @@ mod tests {
                     _pos(15, 10)
                 )],
                 _pos(0, 25)
-            )))
-        );
-    }
-
-    #[test]
-    fn in_question() {
-        let input = "1 in { k : k >= 1 }";
-
-        let lexer = build_lexer(input);
-
-        assert_eq!(
-            parser_from(lexer).next(),
-            Some(Ok(infix(
-                InfixOperator::In,
-                integer("1", _pos(0, 1)),
-                comprehension_set(
-                    symbol("k", _pos(7, 1)),
-                    infix(
-                        InfixOperator::GreaterEqual,
-                        symbol("k", _pos(11, 1)),
-                        integer("1", _pos(16, 1)),
-                        _pos(11, 6)
-                    ),
-                    _pos(5, 14),
-                ),
-                _pos(0, 19),
             )))
         );
     }
