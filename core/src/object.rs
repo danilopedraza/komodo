@@ -600,7 +600,7 @@ impl fmt::Display for ComprehensionSet {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct Dictionary {
     pub dict: HashMap<Object, Object>,
 }

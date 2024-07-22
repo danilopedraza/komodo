@@ -1,7 +1,7 @@
 use crate::error::{Error, Position};
 use crate::object::{
-    self, Callable, ComprehensionSet, Decimal, ExtensionList, FailedAssertion, Fraction, Function,
-    Kind, Range,
+    self, Callable, ComprehensionSet, Decimal, Dictionary, ExtensionList, FailedAssertion,
+    Fraction, Function, Kind, Range,
 };
 
 use crate::ast::{ASTNode, ASTNodeType, InfixOperator};
@@ -91,7 +91,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType::Cons { first, tail } => prepend(exec(first, env)?, tail, env),
         ASTNodeType::Decimal { int, dec } => decimal(int, dec),
         ASTNodeType::Fraction { numer, denom } => fraction(numer, denom, node.position, env),
-        ASTNodeType::Dictionary(_) => todo!(),
+        ASTNodeType::Dictionary(pairs) => dictionary(pairs, env),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -102,6 +102,16 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     } else {
         res
     }
+}
+
+fn dictionary(pairs: &Vec<(ASTNode, ASTNode)>, env: &mut Environment) -> Result<Object, Error> {
+    let mut dict = Dictionary::default();
+
+    for (key, value) in pairs {
+        dict.dict.insert(exec(key, env)?, exec(value, env)?);
+    }
+
+    Ok(Object::Dictionary(dict))
 }
 
 fn decimal(int: &str, dec: &str) -> Result<Object, Error> {
