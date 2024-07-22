@@ -1,5 +1,5 @@
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     fmt,
     hash::{Hash, Hasher},
     iter::zip,
@@ -85,6 +85,7 @@ pub enum Object {
     Boolean(Bool),
     Char(Char),
     Decimal(Decimal),
+    Dictionary(Dictionary),
     Error(FailedAssertion),
     ExtensionList(ExtensionList),
     ExtensionSet(ExtensionSet),
@@ -120,6 +121,7 @@ impl fmt::Display for Object {
             Object::Char(chr) => chr.fmt(f),
             Object::ComprehensionSet(set) => set.fmt(f),
             Object::Decimal(dec) => dec.fmt(f),
+            Object::Dictionary(dict) => dict.fmt(f),
             Object::Error(err) => err.fmt(f),
             Object::ExtensionList(list) => list.fmt(f),
             Object::ExtensionSet(es) => es.fmt(f),
@@ -145,6 +147,7 @@ impl Kind for Object {
             Object::Char(_) => "character",
             Object::ComprehensionSet(_) => "comprehension set",
             Object::Decimal(_) => "decimal",
+            Object::Dictionary(_) => "dictionary",
             Object::Error(_) => "error",
             Object::ExtensionList(_) => "extension list",
             Object::ExtensionSet(_) => "extension set",
@@ -168,6 +171,7 @@ macro_rules! derived_object_infix_trait {
                 Self::Char(left) => left.$ident(other),
                 Self::ComprehensionSet(left) => left.$ident(other),
                 Self::Decimal(left) => left.$ident(other),
+                Self::Dictionary(left) => left.$ident(other),
                 Self::Error(left) => left.$ident(other),
                 Self::ExtensionList(left) => left.$ident(other),
                 Self::ExtensionSet(left) => left.$ident(other),
@@ -224,6 +228,7 @@ macro_rules! derived_object_prefix_trait {
                 Self::Char(left) => left.$ident(),
                 Self::ComprehensionSet(left) => left.$ident(),
                 Self::Decimal(left) => left.$ident(),
+                Self::Dictionary(left) => left.$ident(),
                 Self::Error(left) => left.$ident(),
                 Self::ExtensionList(left) => left.$ident(),
                 Self::ExtensionSet(left) => left.$ident(),
@@ -594,6 +599,35 @@ impl fmt::Display for ComprehensionSet {
         write!(f, "set")
     }
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Dictionary {
+    pub dict: HashMap<Object, Object>,
+}
+
+impl Hash for Dictionary {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for (key, val) in &self.dict {
+            key.hash(state);
+            val.hash(state);
+        }
+    }
+}
+
+impl fmt::Display for Dictionary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let pairs = self
+            .dict
+            .iter()
+            .map(|(key, val)| format!("{key}: {val}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        write!(f, "{{{}}}", pairs)
+    }
+}
+
+impl InfixOperable for Dictionary {}
+impl PrefixOperable for Dictionary {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Integer {
