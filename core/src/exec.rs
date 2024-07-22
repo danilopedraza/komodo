@@ -91,6 +91,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType::Cons { first, tail } => prepend(exec(first, env)?, tail, env),
         ASTNodeType::Decimal { int, dec } => decimal(int, dec),
         ASTNodeType::Fraction { numer, denom } => fraction(numer, denom, node.position, env),
+        ASTNodeType::Dictionary(_) => todo!(),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {

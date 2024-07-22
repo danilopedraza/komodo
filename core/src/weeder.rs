@@ -30,7 +30,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeType::Symbol(name) => symbol(name),
         CSTNodeType::Tuple(values) => tuple(values),
         CSTNodeType::Wildcard => wildcard(),
-        CSTNodeType::Dictionary(_) => todo!(),
+        CSTNodeType::Dictionary(pairs) => dictionary(pairs),
     }?;
 
     Ok(ASTNode::new(tp, node.position))
@@ -38,6 +38,13 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
 
 fn rewrite_vec(vec: Vec<CSTNode>) -> WeederResult<Vec<ASTNode>> {
     vec.into_iter().map(rewrite).collect()
+}
+
+fn rewrite_pair((left, right): (CSTNode, CSTNode)) -> WeederResult<(ASTNode, ASTNode)> {
+    let left = rewrite(left)?;
+    let right = rewrite(right)?;
+
+    Ok((left, right))
 }
 
 fn boolean(val: bool) -> WeederResult<ASTNodeType> {
@@ -233,6 +240,13 @@ fn call(called: CSTNode, args: Vec<CSTNode>) -> WeederResult<ASTNodeType> {
     let called = Box::new(rewrite(called)?);
     let args = rewrite_vec(args)?;
     Ok(ASTNodeType::Call { called, args })
+}
+
+fn dictionary(pairs: Vec<(CSTNode, CSTNode)>) -> WeederResult<ASTNodeType> {
+    let pairs: WeederResult<Vec<(ASTNode, ASTNode)>> =
+        pairs.into_iter().map(rewrite_pair).collect();
+
+    Ok(ASTNodeType::Dictionary(pairs?))
 }
 
 #[cfg(test)]

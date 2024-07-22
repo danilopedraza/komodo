@@ -93,6 +93,7 @@ pub enum ASTNodeType {
         int: String,
         dec: String,
     },
+    Dictionary(Vec<(ASTNode, ASTNode)>),
     ExtensionList {
         list: Vec<ASTNode>,
     },
