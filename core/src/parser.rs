@@ -301,7 +301,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         let first = self.expression(Precedence::Lowest)?;
 
         match self.next_token()? {
-            Some(TokenType::Colon) => self.comprehension_list_(first, start),
+            Some(TokenType::For) => self.comprehension_list_(first, start),
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rbrack, Some(first))
                 .map(|lst| extension_list(lst, self.start_to_cur(start))),
@@ -1183,40 +1183,6 @@ mod tests {
     }
 
     #[test]
-    fn comprehension_list_only() {
-        let input = "[ k in [1, 2] : k - 1 = 0 ]";
-
-        let lexer = build_lexer(input);
-
-        assert_eq!(
-            parser_from(lexer).next(),
-            Some(Ok(comprehension_list(
-                infix(
-                    InfixOperator::In,
-                    symbol("k", _pos(2, 1)),
-                    extension_list(
-                        vec![integer("1", _pos(8, 1)), integer("2", _pos(11, 1)),],
-                        _pos(7, 6)
-                    ),
-                    _pos(2, 11)
-                ),
-                infix(
-                    InfixOperator::Equality,
-                    infix(
-                        InfixOperator::Substraction,
-                        symbol("k", _pos(16, 1)),
-                        integer("1", _pos(20, 1)),
-                        _pos(16, 5)
-                    ),
-                    integer("0", _pos(24, 1)),
-                    _pos(16, 9)
-                ),
-                _pos(0, 27)
-            )))
-        );
-    }
-
-    #[test]
     fn singleton_empty_set() {
         let input = "{{}}";
 
@@ -1270,7 +1236,7 @@ mod tests {
 
     #[test]
     fn consume_comprehension_list() {
-        let input = "[a : a in b] + []";
+        let input = "[a for a in b] + []";
         let lexer = build_lexer(input);
 
         assert_eq!(
@@ -1281,14 +1247,14 @@ mod tests {
                     symbol("a", _pos(1, 1)),
                     infix(
                         InfixOperator::In,
-                        symbol("a", _pos(5, 1)),
-                        symbol("b", _pos(10, 1)),
-                        _pos(5, 6)
+                        symbol("a", _pos(7, 1)),
+                        symbol("b", _pos(12, 1)),
+                        _pos(7, 6)
                     ),
-                    _pos(0, 12)
+                    _pos(0, 14)
                 ),
-                extension_list(vec![], _pos(15, 2)),
-                _pos(0, 17)
+                extension_list(vec![], _pos(17, 2)),
+                _pos(0, 19)
             )))
         );
     }
