@@ -1,5 +1,6 @@
 use std::{iter::Peekable, vec};
 
+use crate::cst::dictionary;
 use crate::cst::*;
 use crate::error::{Error, Position};
 use crate::lexer::{Token, TokenType};
@@ -53,7 +54,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 TokenType::True => self.boolean(true),
                 TokenType::False => self.boolean(false),
                 TokenType::Lparen => self.parenthesis(),
-                TokenType::Lbrace => self.set(),
+                TokenType::Lbrace => self.set_or_dict(),
                 TokenType::Lbrack => self.list(),
                 TokenType::Integer(int) => self.integer(int),
                 TokenType::Ident(literal) => self.symbol(literal),
@@ -410,7 +411,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             .map(|expr| prefix(op, expr, self.start_to_cur(start)))
     }
 
-    fn set(&mut self) -> _NodeResult {
+    fn set_or_dict(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
         if matches!(self.peek_token()?, Some(TokenType::Rbrace)) {
@@ -431,6 +432,10 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
                 Ok(comprehension_set(first, second, self.start_to_cur(start)))
             }
+            Some(TokenType::Colon) => {
+                let first = (first, self.expression(Precedence::Lowest)?);
+                self.dict(first, start)
+            }
             Some(TokenType::Rbrace) => Ok(extension_set(vec![first], self.start_to_cur(start))),
             Some(tok) => Err(Error::new(
                 ParserError::UnexpectedToken(
@@ -450,6 +455,42 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 self.cur_pos,
             )),
         }
+    }
+
+    fn dict(&mut self, first: (CSTNode, CSTNode), start: usize) -> _NodeResult {
+        let mut pairs = vec![first];
+
+        loop {
+            match self.peek_token()? {
+                Some(TokenType::Comma) => {
+                    self.next_token()?;
+                    continue;
+                }
+                Some(TokenType::Rbrace) => {
+                    self.next_token()?;
+                    break;
+                }
+                Some(_) => {
+                    let left = self.expression(Precedence::Lowest)?;
+                    self.consume(TokenType::Colon)?;
+                    let right = self.expression(Precedence::Lowest)?;
+                    pairs.push((left, right));
+                }
+                None => {
+                    return Err(Error::new(
+                        ParserError::EOFExpecting(vec![
+                            TokenType::Comma,
+                            TokenType::Colon,
+                            TokenType::Rbrace,
+                        ])
+                        .into(),
+                        self.cur_pos,
+                    ))
+                }
+            }
+        }
+
+        Ok(dictionary(pairs, self.start_to_cur(start)))
     }
 }
 
@@ -1362,6 +1403,23 @@ mod tests {
                     _pos(2, 3)
                 ),
                 _pos(0, 5)
+            )))
+        );
+    }
+
+    #[test]
+    fn dictionary_() {
+        let input = "{'a': 2, 1:5}";
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(dictionary(
+                vec![
+                    (char('a', _pos(1, 3)), integer("2", _pos(6, 1))),
+                    (integer("1", _pos(9, 1)), integer("5", _pos(11, 1)))
+                ],
+                _pos(0, 13)
             )))
         );
     }

@@ -30,6 +30,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeType::Symbol(name) => symbol(name),
         CSTNodeType::Tuple(values) => tuple(values),
         CSTNodeType::Wildcard => wildcard(),
+        CSTNodeType::Dictionary(_) => todo!(),
     }?;
 
     Ok(ASTNode::new(tp, node.position))
