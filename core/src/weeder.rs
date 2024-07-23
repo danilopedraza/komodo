@@ -179,6 +179,7 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
         InfixOperator::RightShift => infix_node(ast::InfixOperator::RightShift, lhs, rhs),
         InfixOperator::Substraction => infix_node(ast::InfixOperator::Substraction, lhs, rhs),
         InfixOperator::Sum => infix_node(ast::InfixOperator::Sum, lhs, rhs),
+        InfixOperator::Element => todo!(),
     }
 }
 

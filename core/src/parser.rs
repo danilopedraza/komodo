@@ -225,24 +225,32 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn infix(&mut self, lhs: CSTNode, op: InfixOperator, start: usize) -> _NodeResult {
-        if op == InfixOperator::Call {
-            let tuple_start = self.cur_pos.start;
+        match op {
+            InfixOperator::Call => {
+                let tuple_start = self.cur_pos.start;
 
-            self.sequence(TokenType::Rparen, None).map(|args| {
-                infix(
-                    op,
-                    lhs,
-                    tuple(args, self.start_to_cur(tuple_start)),
-                    self.start_to_cur(start),
-                )
-            })
-        } else {
-            self.expression(op.precedence()).map(|rhs| {
+                self.sequence(TokenType::Rparen, None).map(|args| {
+                    infix(
+                        op,
+                        lhs,
+                        tuple(args, self.start_to_cur(tuple_start)),
+                        self.start_to_cur(start),
+                    )
+                })
+            }
+            InfixOperator::Element => {
+                let rhs = self.expression(Precedence::Lowest)?;
+
+                self.consume(TokenType::Rbrack)?;
+
+                Ok(infix(op, lhs, rhs, self.start_to_cur(start)))
+            }
+            _ => self.expression(op.precedence()).map(|rhs| {
                 CSTNode::new(
                     CSTNodeType::Infix(op, Box::new(lhs), Box::new(rhs)),
                     self.start_to_cur(start),
                 )
-            })
+            }),
         }
     }
 
@@ -1420,6 +1428,22 @@ mod tests {
                     (integer("1", _pos(9, 1)), integer("5", _pos(11, 1)))
                 ],
                 _pos(0, 13)
+            )))
+        );
+    }
+
+    #[test]
+    fn container_element() {
+        let input = "(list[0])";
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(infix(
+                InfixOperator::Element,
+                symbol("list", _pos(1, 4)),
+                integer("0", _pos(6, 1)),
+                _pos(1, 7)
             )))
         );
     }
