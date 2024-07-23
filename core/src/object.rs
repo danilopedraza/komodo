@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, BTreeSet},
     fmt,
     hash::{Hash, Hasher},
     iter::zip,
@@ -80,7 +80,7 @@ macro_rules! default_prefix_methods {
 
 default_prefix_methods!(bitwise_not, logic_not, inverse);
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)] //, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Object {
     Boolean(Bool),
     Char(Char),
@@ -493,9 +493,9 @@ impl From<BigDecimal> for Decimal {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ExtensionSet {
-    pub set: HashSet<Object>,
+    pub set: BTreeSet<Object>,
 }
 
 impl ExtensionSet {
@@ -517,12 +517,12 @@ impl Hash for ExtensionSet {
     }
 }
 
-impl PartialEq for ExtensionSet {
-    fn eq(&self, other: &Self) -> bool {
-        self.set == other.set
-    }
-}
-impl Eq for ExtensionSet {}
+// impl PartialEq for ExtensionSet {
+//     fn eq(&self, other: &Self) -> bool {
+//         self.set == other.set
+//     }
+// }
+// impl Eq for ExtensionSet {}
 
 impl InfixOperable for ExtensionSet {
     fn sum(&self, other: &Object) -> Option<Object> {
@@ -536,7 +536,7 @@ impl PrefixOperable for ExtensionSet {}
 
 impl From<Vec<Object>> for ExtensionSet {
     fn from(list: Vec<Object>) -> Self {
-        let mut _set = HashSet::new();
+        let mut _set = BTreeSet::new();
 
         for obj in list {
             _set.insert(obj);
@@ -559,7 +559,7 @@ impl fmt::Display for ExtensionSet {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ComprehensionSet {
     value: ASTNode,
     prop: ASTNode,
@@ -600,9 +600,9 @@ impl fmt::Display for ComprehensionSet {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, PartialOrd, Ord)]
 pub struct Dictionary {
-    pub dict: HashMap<Object, Object>,
+    pub dict: BTreeMap<Object, Object>,
 }
 
 impl Dictionary {
@@ -982,7 +982,7 @@ impl InfixOperable for Symbol {
 
 impl PrefixOperable for Symbol {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Tuple {
     list: Vec<Object>,
 }
@@ -1009,7 +1009,7 @@ impl From<Vec<Object>> for Tuple {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Function {
     DefinedFunction(DefinedFunction),
     Effect(Effect),
@@ -1043,7 +1043,7 @@ impl Callable for Function {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DefinedFunction {
     patterns: Vec<(Vec<ASTNode>, ASTNode)>,
     params: Vec<String>,
@@ -1145,7 +1145,7 @@ impl Callable for DefinedFunction {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Effect {
     func: fn(&[Object]) -> Object,
     param_number: usize,
@@ -1173,7 +1173,7 @@ impl Callable for Effect {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct ExtensionList {
     pub list: Vec<Object>,
 }
@@ -1376,9 +1376,9 @@ impl fmt::Display for Fraction {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Range {
+    pub start: Integer,
+    pub end: Integer,
     cur: Integer,
-    start: Integer,
-    end: Integer,
 }
 
 impl Iterator for Range {
@@ -1391,6 +1391,18 @@ impl Iterator for Range {
         } else {
             None
         }
+    }
+}
+
+impl PartialOrd for Range {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(vec![&self.start, &self.end].cmp(&vec![&other.start, &other.end]))
+    }
+}
+
+impl Ord for Range {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        vec![&self.start, &self.end].cmp(&vec![&other.start, &other.end])
     }
 }
 

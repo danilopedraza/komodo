@@ -114,7 +114,7 @@ impl InfixOperator {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum PrefixOperator {
     BitwiseNot,
     LogicNot,

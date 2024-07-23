@@ -1,7 +1,7 @@
 use crate::{cst, error::Position};
 use std::hash::Hash;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum InfixOperator {
     BitwiseAnd,
     BitwiseXor,
@@ -72,8 +72,20 @@ impl Hash for ASTNode {
     }
 }
 
+impl PartialOrd for ASTNode {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self._type.cmp(&other._type))
+    }
+}
+
+impl Ord for ASTNode {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self._type.cmp(&other._type)
+    }
+}
+
 #[allow(unused)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ASTNodeType {
     Boolean(bool),
     Call {
