@@ -42,4 +42,4 @@ let last([first|tail]) := last(tail)
 last([1, 2, 3]) # 3
 ```
 
-The `[first|tail]` expression represents a list whose first element is `first` and `tail` is a list with the rest. This syntax exists in languages like [Prolog](https://en.wikipedia.org/wiki/Prolog) and [Erlang](https://en.wikipedia.org/wiki/Erlang_(programming_language)).
+The `[first|tail]` expression represents a list whose first element is `first` and `tail` is a list with the rest. This syntax exists in languages like [Prolog](https://en.wikipedia.org/wiki/Prolog), [Erlang](https://en.wikipedia.org/wiki/Erlang_(programming_language)), and [Picat](https://picat-lang.org/).
