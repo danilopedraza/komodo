@@ -1,4 +1,7 @@
-use std::{collections::BTreeMap, iter::zip};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    iter::zip,
+};
 
 use crate::{
     ast::{ASTNode, ASTNodeType},
@@ -9,6 +12,27 @@ use crate::{
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Match(pub BTreeMap<String, Object>);
+
+fn key_intersection(m1: &Match, m2: &Match) -> BTreeSet<String> {
+    let Match(m1) = m1;
+    let Match(m2) = m2;
+
+    let mut res = BTreeSet::new();
+
+    for key in m1.keys() {
+        if m2.contains_key(key) {
+            res.insert(key.to_string());
+        }
+    }
+
+    for key in m2.keys() {
+        if m1.contains_key(key) {
+            res.insert(key.to_string());
+        }
+    }
+
+    res
+}
 
 impl From<Vec<(String, Object)>> for Match {
     fn from(map: Vec<(String, Object)>) -> Self {
@@ -27,21 +51,19 @@ pub fn match_call(patterns: &[ASTNode], args: &[Object]) -> Option<Match> {
 }
 
 fn join(map1: Option<Match>, map2: Option<Match>) -> Option<Match> {
-    let Match(v1) = map1?;
-    let Match(v2) = map2?;
-    for (key1, val1) in &v1 {
-        for (key2, val2) in &v2 {
-            if key1 == key2 && val1 != val2 {
-                return None;
-            }
+    let m1 = map1?;
+    let m2 = map2?;
+    for key in key_intersection(&m1, &m2) {
+        if m1.0.get(&key) != m2.0.get(&key) {
+            return None;
         }
     }
 
-    let mut map = vec![];
-    map.extend(v1);
-    map.extend(v2);
+    let mut map = BTreeMap::new();
+    map.extend(m1.0);
+    map.extend(m2.0);
 
-    Some(map.into())
+    Some(Match(map))
 }
 
 fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Option<Match> {
