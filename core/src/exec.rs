@@ -238,7 +238,7 @@ fn comprehension_list(
         _ => todo!(),
     };
 
-    let iterator: Vec<Object> = match &prop._type {
+    let iterator = match &prop._type {
         ASTNodeType::Infix {
             op: InfixOperator::In,
             lhs: _,
@@ -317,7 +317,7 @@ fn for_(
     proc: &[ASTNode],
     env: &mut Environment,
 ) -> Result<Object, Error> {
-    let iter: Vec<Object> = get_iterable(iterable, env)?;
+    let iter = get_iterable(iterable, env)?;
 
     env.push_scope();
 
@@ -334,11 +334,14 @@ fn for_(
     Ok(Object::empty_tuple())
 }
 
-fn get_iterable(node: &ASTNode, env: &mut Environment) -> Result<Vec<Object>, Error> {
+fn get_iterable(
+    node: &ASTNode,
+    env: &mut Environment,
+) -> Result<Box<dyn Iterator<Item = Object>>, Error> {
     match exec(node, env)? {
-        Object::ExtensionSet(set) => Ok(set.set.iter().map(|obj| obj.to_owned()).collect()),
-        Object::ExtensionList(list) => Ok(list.list.iter().map(|obj| obj.to_owned()).collect()),
-        Object::Range(range) => Ok(range.collect()),
+        Object::ExtensionSet(set) => Ok(Box::new(set.set.into_iter())),
+        Object::ExtensionList(list) => Ok(Box::new(list.list.into_iter())),
+        Object::Range(range) => Ok(Box::new(range.into_iter())),
         obj => Err(Error(
             EvalError::NonIterableObject(obj.kind()).into(),
             node.position,
