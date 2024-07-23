@@ -606,8 +606,13 @@ pub struct Dictionary {
 }
 
 impl Dictionary {
-    pub fn get(&self, _index: &Object) -> Result<Object, EvalError> {
-        todo!()
+    pub fn get(&self, index: &Object) -> Result<Object, EvalError> {
+        match self.dict.get(index) {
+            None => Err(EvalError::NonExistentKey {
+                key: index.to_string(),
+            }),
+            Some(val) => Ok(val.to_owned()),
+        }
     }
 }
 

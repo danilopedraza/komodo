@@ -31,6 +31,9 @@ pub enum EvalError {
         actual: usize,
     },
     NonCallableObject(String),
+    NonExistentKey {
+        key: String,
+    },
     NonExistentPrefixOperation {
         op: String,
         rhs: String,

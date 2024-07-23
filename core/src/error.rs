@@ -180,6 +180,7 @@ fn exec_error_msg(err: &EvalError) -> String {
         EvalError::IndexingNonContainer { kind: _ } => todo!(),
         EvalError::ListIndexOutOfBounds => todo!(),
         EvalError::InvalidIndex { kind: _ } => todo!(),
+        EvalError::NonExistentKey { key: _ } => todo!(),
     }
 }
 
