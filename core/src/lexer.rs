@@ -673,4 +673,19 @@ mod tests {
             )))
         );
     }
+
+    #[test]
+    fn container_element() {
+        let code = "list[0]";
+
+        assert_eq!(
+            token_types_from(code),
+            Ok(vec![
+                TokenType::Ident(String::from("list")),
+                TokenType::Lbrack,
+                TokenType::Integer(String::from("0")),
+                TokenType::Rbrack,
+            ])
+        );
+    }
 }
