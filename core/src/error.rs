@@ -177,6 +177,9 @@ fn exec_error_msg(err: &EvalError) -> String {
         EvalError::NonPrependableObject(kind) => non_prependable_object(kind),
         EvalError::NonExistentPrefixOperation { op, rhs } => non_existent_prefix(op, rhs),
         EvalError::NonExistentInfixOperation { op, lhs, rhs } => non_existent_infix(op, lhs, rhs),
+        EvalError::IndexingNonContainer { kind: _ } => todo!(),
+        EvalError::ListIndexOutOfBounds => todo!(),
+        EvalError::InvalidIndex { kind: _ } => todo!(),
     }
 }
 

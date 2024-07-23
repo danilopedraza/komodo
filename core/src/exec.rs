@@ -19,6 +19,13 @@ pub enum EvalError {
     },
     DenominatorZero,
     FailedAssertion(Option<String>),
+    IndexingNonContainer {
+        kind: String,
+    },
+    InvalidIndex {
+        kind: String,
+    },
+    ListIndexOutOfBounds,
     MissingFunctionArguments {
         expected: usize,
         actual: usize,
@@ -93,13 +100,22 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType::Fraction { numer, denom } => fraction(numer, denom, node.position, env),
         ASTNodeType::Dictionary(pairs) => dictionary(pairs, env),
         ASTNodeType::ContainerElement { container, element } => {
-            let container = exec(container, env)?;
-            let element = exec(element, env)?;
+            let container_obj = exec(container, env)?;
+            let element_obj = exec(element, env)?;
 
-            match container {
-                Object::ExtensionList(list) => list.get(&element),
-                Object::Dictionary(dict) => dict.get(&element),
-                _ => todo!(),
+            match container_obj {
+                Object::ExtensionList(list) => match list.get(&element_obj) {
+                    Ok(obj) => Ok(obj),
+                    Err(eval_err) => Err(Error::new(eval_err.into(), element.position)),
+                },
+                Object::Dictionary(dict) => match dict.get(&element_obj) {
+                    Ok(obj) => Ok(obj),
+                    Err(eval_err) => Err(Error::new(eval_err.into(), element.position)),
+                },
+                obj => Err(Error::new(
+                    EvalError::IndexingNonContainer { kind: obj.kind() }.into(),
+                    container.position,
+                )),
             }
         }
     };
@@ -1283,6 +1299,63 @@ mod tests {
         assert_eq!(
             exec(&node, &mut Environment::default()),
             Ok(Object::Integer(23.into()))
+        );
+    }
+
+    #[test]
+    fn not_a_container() {
+        let node = container_element(
+            integer("0", dummy_pos()),
+            integer("0", dummy_pos()),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            exec(&node, &mut Environment::default()),
+            Err(Error::new(
+                EvalError::IndexingNonContainer {
+                    kind: String::from("integer")
+                }
+                .into(),
+                dummy_pos()
+            ))
+        );
+    }
+
+    #[test]
+    fn out_of_bounds() {
+        let node = container_element(
+            ast::tests::extension_list(vec![], dummy_pos()),
+            integer("0", dummy_pos()),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            exec(&node, &mut Environment::default()),
+            Err(Error::new(
+                EvalError::ListIndexOutOfBounds.into(),
+                dummy_pos()
+            ))
+        );
+    }
+
+    #[test]
+    fn not_an_index() {
+        let node = container_element(
+            ast::tests::extension_list(vec![], dummy_pos()),
+            ast::tests::decimal("1", "5", dummy_pos()),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            exec(&node, &mut Environment::default()),
+            Err(Error::new(
+                EvalError::InvalidIndex {
+                    kind: String::from("decimal")
+                }
+                .into(),
+                dummy_pos()
+            ))
         );
     }
 }

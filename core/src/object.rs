@@ -14,7 +14,7 @@ use crate::{
     ast::{ASTNode, ASTNodeType},
     env::Environment,
     error::Error,
-    exec::exec,
+    exec::{exec, EvalError},
     matcher::{match_call, Match},
 };
 
@@ -606,7 +606,7 @@ pub struct Dictionary {
 }
 
 impl Dictionary {
-    pub fn get(&self, _index: &Object) -> Result<Object, Error> {
+    pub fn get(&self, _index: &Object) -> Result<Object, EvalError> {
         todo!()
     }
 }
@@ -643,7 +643,7 @@ pub struct Integer {
 impl Integer {
     fn to_machine_magnitude(&self) -> usize {
         let max = usize::MAX;
-        if self.val < BigInt::from(0) {
+        if self.val <= BigInt::from(0) {
             0
         } else if self.val < BigInt::from(max) {
             self.val.iter_u64_digits().last().unwrap() as usize
@@ -1185,8 +1185,17 @@ impl ExtensionList {
         Object::ExtensionList(list.into())
     }
 
-    pub fn get(&self, _index: &Object) -> Result<Object, Error> {
-        Ok(self.list.first().unwrap().to_owned())
+    pub fn get(&self, index: &Object) -> Result<Object, EvalError> {
+        match index {
+            Object::Integer(int) => {
+                let index = int.to_machine_magnitude();
+                match self.list.get(index) {
+                    Some(val) => Ok(val.to_owned()),
+                    None => Err(EvalError::ListIndexOutOfBounds),
+                }
+            }
+            obj => Err(EvalError::InvalidIndex { kind: obj.kind() }),
+        }
     }
 }
 
