@@ -1,4 +1,4 @@
-use std::iter::zip;
+use std::{collections::BTreeMap, iter::zip};
 
 use crate::{
     ast::{ASTNode, ASTNodeType},
@@ -8,7 +8,19 @@ use crate::{
 };
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Match(pub Vec<(String, Object)>);
+pub struct Match(pub BTreeMap<String, Object>);
+
+impl From<Vec<(String, Object)>> for Match {
+    fn from(map: Vec<(String, Object)>) -> Self {
+        let mut res = BTreeMap::new();
+
+        for (key, value) in map {
+            res.insert(key, value);
+        }
+
+        Self(res)
+    }
+}
 
 pub fn match_call(patterns: &[ASTNode], args: &[Object]) -> Option<Match> {
     match_list(patterns, args)
@@ -29,7 +41,7 @@ fn join(map1: Option<Match>, map2: Option<Match>) -> Option<Match> {
     map.extend(v1);
     map.extend(v2);
 
-    Some(Match(map))
+    Some(map.into())
 }
 
 fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Option<Match> {
@@ -53,11 +65,11 @@ fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
 }
 
 fn single_match(name: &str, val: &Object) -> Option<Match> {
-    Some(Match(vec![(name.to_string(), val.clone())]))
+    Some(Match::from(vec![(name.to_string(), val.clone())]))
 }
 
 fn empty_match() -> Option<Match> {
-    Some(Match(vec![]))
+    Some(Match::from(vec![]))
 }
 
 fn match_extension_list(pattern: &[ASTNode], val: &Object) -> Option<Match> {
@@ -117,7 +129,7 @@ mod tests {
 
         assert_eq!(
             match_list(&patterns, &args),
-            Some(Match(vec![
+            Some(Match::from(vec![
                 (String::from("a"), Object::Integer(Integer::from(1))),
                 (String::from("b"), Object::Integer(Integer::from(2)))
             ]))
@@ -137,7 +149,7 @@ mod tests {
 
         assert_eq!(
             match_(&pattern, &value),
-            Some(Match(vec![
+            Some(Match::from(vec![
                 (String::from("first"), Object::Integer(Integer::from(4))),
                 (
                     String::from("most"),
