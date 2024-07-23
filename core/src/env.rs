@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use crate::object::Object;
 
 #[derive(Debug, Default)]
 pub struct Scope {
-    dict: HashMap<String, Object>,
+    dict: BTreeMap<String, Object>,
 }
 
 impl Scope {
