@@ -89,6 +89,10 @@ pub enum ASTNodeType {
         val: Box<ASTNode>,
         prop: Box<ASTNode>,
     },
+    ContainerElement {
+        container: Box<ASTNode>,
+        element: Box<ASTNode>,
+    },
     Decimal {
         int: String,
         dec: String,
@@ -273,6 +277,16 @@ pub mod tests {
                 positive,
                 negative,
             },
+            position,
+        )
+    }
+
+    pub fn container_element(container: ASTNode, element: ASTNode, position: Position) -> ASTNode {
+        let container = Box::new(container);
+        let element = Box::new(element);
+
+        ASTNode::new(
+            ASTNodeType::ContainerElement { container, element },
             position,
         )
     }

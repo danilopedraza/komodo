@@ -179,8 +179,14 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
         InfixOperator::RightShift => infix_node(ast::InfixOperator::RightShift, lhs, rhs),
         InfixOperator::Substraction => infix_node(ast::InfixOperator::Substraction, lhs, rhs),
         InfixOperator::Sum => infix_node(ast::InfixOperator::Sum, lhs, rhs),
-        InfixOperator::Element => todo!(),
+        InfixOperator::Element => container_element(lhs, rhs),
     }
+}
+
+fn container_element(container: CSTNode, element: CSTNode) -> WeederResult<ASTNodeType> {
+    let container = Box::new(rewrite(container)?);
+    let element = Box::new(rewrite(element)?);
+    Ok(ASTNodeType::ContainerElement { container, element })
 }
 
 fn infix_node(op: ast::InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTNodeType> {
@@ -255,7 +261,7 @@ mod tests {
     use crate::{
         ast,
         cst::{
-            self,
+            self, symbol,
             tests::{dummy_pos, integer},
             InfixOperator,
         },
@@ -349,6 +355,25 @@ mod tests {
         assert_eq!(
             rewrite(node),
             Ok(ast::tests::decimal("1", "5", dummy_pos()))
+        );
+    }
+
+    #[test]
+    fn container_element() {
+        let node = cst::infix(
+            InfixOperator::Element,
+            symbol("list", dummy_pos()),
+            integer("0", dummy_pos()),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            rewrite(node),
+            Ok(ast::tests::container_element(
+                ast::tests::symbol("list", dummy_pos()),
+                ast::tests::integer("0", dummy_pos()),
+                dummy_pos()
+            ))
         );
     }
 }
