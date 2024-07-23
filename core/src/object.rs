@@ -80,7 +80,7 @@ macro_rules! default_prefix_methods {
 
 default_prefix_methods!(bitwise_not, logic_not, inverse);
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)] //, PartialOrd, Ord)]
 pub enum Object {
     Boolean(Bool),
     Char(Char),
@@ -257,7 +257,7 @@ macro_rules! derived_object_prefix_traits {
 
 derived_object_prefix_traits!(bitwise_not, logic_not, inverse);
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Bool {
     val: bool,
 }
@@ -304,7 +304,7 @@ impl From<bool> for Bool {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Char {
     val: char,
 }
@@ -359,7 +359,7 @@ impl From<char> for Char {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Decimal {
     val: BigDecimal,
 }
@@ -640,7 +640,7 @@ impl fmt::Display for Dictionary {
 impl InfixOperable for Dictionary {}
 impl PrefixOperable for Dictionary {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Integer {
     val: BigInt,
 }
@@ -892,7 +892,7 @@ impl PrefixOperable for Integer {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct MyString {
     val: String,
 }
@@ -954,7 +954,7 @@ impl From<&str> for MyString {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Symbol {
     val: String,
 }
@@ -1263,7 +1263,7 @@ impl fmt::Display for ExtensionList {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Fraction {
     val: BigRational,
 }
@@ -1423,7 +1423,7 @@ impl fmt::Display for Range {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct FailedAssertion(pub Option<String>);
 
 impl fmt::Display for FailedAssertion {
