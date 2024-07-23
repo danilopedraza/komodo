@@ -65,7 +65,7 @@ fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, Error> {
 }
 
 pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
-    let res = match &node._type {
+    let res = match &node.kind {
         ASTNodeType::Symbol { name } => symbol(name, env),
         ASTNodeType::ExtensionSet { list } => extension_set(list, env),
         ASTNodeType::Integer { dec } => integer(dec),
@@ -193,12 +193,12 @@ fn boolean(val: bool) -> Result<Object, Error> {
 }
 
 fn let_(ident: &ASTNode, value: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
-    match &ident._type {
+    match &ident.kind {
         ASTNodeType::Symbol { name } => exec_and_set(value, name, env),
         ASTNodeType::Signature {
             val,
             constraint: None,
-        } => match &val._type {
+        } => match &val.kind {
             ASTNodeType::Symbol { name } => exec_and_set(value, name, env),
             _ => todo!(),
         },
@@ -226,19 +226,19 @@ fn comprehension_list(
     prop: &ASTNode,
     env: &mut Environment,
 ) -> Result<Object, Error> {
-    let symbol = match &prop._type {
+    let symbol = match &prop.kind {
         ASTNodeType::Infix {
             op: InfixOperator::In,
             lhs,
             rhs: _,
-        } => match &lhs._type {
+        } => match &lhs.kind {
             ASTNodeType::Symbol { name } => name,
             _ => todo!(),
         },
         _ => todo!(),
     };
 
-    let iterator = match &prop._type {
+    let iterator = match &prop.kind {
         ASTNodeType::Infix {
             op: InfixOperator::In,
             lhs: _,
@@ -264,7 +264,7 @@ fn let_function(
     value: &ASTNode,
     env: &mut Environment,
 ) -> Result<Object, Error> {
-    let name = match &ident._type {
+    let name = match &ident.kind {
         ASTNodeType::Symbol { name } => name,
         _ => unimplemented!(),
     };

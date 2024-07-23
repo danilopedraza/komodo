@@ -567,8 +567,8 @@ pub struct ComprehensionSet {
 
 impl Hash for ComprehensionSet {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.value._type.hash(state);
-        self.prop._type.hash(state);
+        self.value.kind.hash(state);
+        self.prop.kind.hash(state);
     }
 }
 
@@ -582,7 +582,7 @@ impl PrefixOperable for ComprehensionSet {}
 
 impl InfixOperable for ComprehensionSet {
     fn contains(&self, other: &Object) -> Option<Object> {
-        let symbol = match &self.value._type {
+        let symbol = match &self.value.kind {
             ASTNodeType::Symbol { name } => name,
             _ => unimplemented!(),
         };
@@ -1054,10 +1054,10 @@ impl Hash for DefinedFunction {
     fn hash<H: Hasher>(&self, state: &mut H) {
         for (rule, res) in &self.patterns {
             for member in rule {
-                member._type.hash(state);
+                member.kind.hash(state);
             }
 
-            res._type.hash(state);
+            res.kind.hash(state);
         }
     }
 }

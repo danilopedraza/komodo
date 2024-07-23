@@ -77,7 +77,7 @@ fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Option<Match> {
 }
 
 fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
-    match &pattern._type {
+    match &pattern.kind {
         ASTNodeType::Wildcard => empty_match(),
         ASTNodeType::Symbol { name } => single_match(name, val),
         ASTNodeType::ExtensionList { list } => match_extension_list(list, val),

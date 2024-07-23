@@ -143,19 +143,19 @@ impl PrefixOperator {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CSTNode {
-    pub _type: CSTNodeType,
+    pub kind: CSTNodeType,
     pub position: Position,
 }
 
 impl CSTNode {
-    pub fn new(_type: CSTNodeType, position: Position) -> Self {
-        Self { _type, position }
+    pub fn new(kind: CSTNodeType, position: Position) -> Self {
+        Self { kind, position }
     }
 }
 
 impl Hash for CSTNode {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self._type.hash(state);
+        self.kind.hash(state);
     }
 }
 

@@ -11,7 +11,7 @@ type WeederResult<T> = Result<T, Error>;
 
 #[allow(unused)]
 pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
-    let tp: ASTNodeType = match node._type {
+    let tp: ASTNodeType = match node.kind {
         CSTNodeType::Boolean(bool) => boolean(bool),
         CSTNodeType::Char(chr) => char(chr),
         CSTNodeType::ComprehensionSet(val, prop) => comprehension_set(*val, *prop),
@@ -114,7 +114,7 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
         InfixOperator::BitwiseAnd => infix_node(ast::InfixOperator::BitwiseAnd, lhs, rhs),
         InfixOperator::BitwiseXor => infix_node(ast::InfixOperator::BitwiseXor, lhs, rhs),
         InfixOperator::Call => {
-            let args = match rhs._type {
+            let args = match rhs.kind {
                 CSTNodeType::Tuple(v) => v,
                 _ => todo!(),
             };
@@ -122,13 +122,13 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
             call(lhs, args)
         }
         InfixOperator::Correspondence => {
-            let params = match lhs._type {
+            let params = match lhs.kind {
                 CSTNodeType::Symbol(s) => vec![s.to_string()],
                 CSTNodeType::Tuple(tuple_params) => {
                     let mut res = vec![];
 
                     for param in tuple_params {
-                        match param._type {
+                        match param.kind {
                             CSTNodeType::Symbol(s) => res.push(s),
                             _ => todo!(),
                         }
@@ -139,7 +139,7 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
                 _ => todo!(),
             };
 
-            let proc = match rhs._type {
+            let proc = match rhs.kind {
                 CSTNodeType::Tuple(v) => v,
                 _ => vec![rhs],
             };
@@ -147,10 +147,10 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
             function(params, proc)
         }
         InfixOperator::Division => infix_node(ast::InfixOperator::Division, lhs, rhs),
-        InfixOperator::Dot => match (rewrite(lhs)?, rewrite(rhs)?._type) {
+        InfixOperator::Dot => match (rewrite(lhs)?, rewrite(rhs)?.kind) {
             (
                 ASTNode {
-                    _type: ASTNodeType::Integer { dec: int },
+                    kind: ASTNodeType::Integer { dec: int },
                     position: _,
                 },
                 ASTNodeType::Integer { dec },

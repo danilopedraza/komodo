@@ -56,31 +56,31 @@ impl InfixOperator {
 #[allow(unused)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ASTNode {
-    pub _type: ASTNodeType,
+    pub kind: ASTNodeType,
     pub position: Position,
 }
 
 impl ASTNode {
-    pub fn new(_type: ASTNodeType, position: Position) -> Self {
-        Self { _type, position }
+    pub fn new(kind: ASTNodeType, position: Position) -> Self {
+        Self { kind, position }
     }
 }
 
 impl Hash for ASTNode {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self._type.hash(state);
+        self.kind.hash(state);
     }
 }
 
 impl PartialOrd for ASTNode {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self._type.cmp(&other._type))
+        Some(self.kind.cmp(&other.kind))
     }
 }
 
 impl Ord for ASTNode {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self._type.cmp(&other._type)
+        self.kind.cmp(&other.kind)
     }
 }
 

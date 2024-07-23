@@ -365,9 +365,9 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
         self.consume(TokenType::Colon)?;
 
-        let CSTNode { _type, position } = self.expression(Precedence::Lowest)?;
+        let CSTNode { kind, position } = self.expression(Precedence::Lowest)?;
 
-        let proc = match _type {
+        let proc = match kind {
             CSTNodeType::Tuple(v) => v,
             node => vec![CSTNode::new(node, position)],
         };
