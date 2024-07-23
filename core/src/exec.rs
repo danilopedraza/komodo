@@ -92,10 +92,16 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType::Decimal { int, dec } => decimal(int, dec),
         ASTNodeType::Fraction { numer, denom } => fraction(numer, denom, node.position, env),
         ASTNodeType::Dictionary(pairs) => dictionary(pairs, env),
-        ASTNodeType::ContainerElement {
-            container: _,
-            element: _,
-        } => todo!(),
+        ASTNodeType::ContainerElement { container, element } => {
+            let container = exec(container, env)?;
+            let element = exec(element, env)?;
+
+            match container {
+                Object::ExtensionList(list) => list.get(&element),
+                Object::Dictionary(dict) => dict.get(&element),
+                _ => todo!(),
+            }
+        }
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -471,13 +477,13 @@ mod tests {
 
     use super::*;
     use crate::ast::tests::{
-        _for, _if, boolean, call, comprehension_list, comprehension_set, cons, decimal,
-        extension_list, extension_set, fraction, function, infix, integer, let_, pos, prefix,
-        range, signature, symbol, tuple,
+        _for, _if, boolean, call, comprehension_list, comprehension_set, cons, container_element,
+        decimal, extension_list, extension_set, fraction, function, infix, integer, let_, pos,
+        prefix, range, signature, symbol, tuple,
     };
     use crate::cst::tests::dummy_pos;
     use crate::error::ErrorType;
-    use crate::object::*;
+    use crate::{ast, object::*};
 
     #[test]
     fn symbol_() {
@@ -1263,6 +1269,20 @@ mod tests {
         assert_eq!(
             exec(&node, &mut Environment::default()),
             Err(Error::new(EvalError::DenominatorZero.into(), dummy_pos())),
+        );
+    }
+
+    #[test]
+    fn container_element_() {
+        let node = container_element(
+            ast::tests::extension_list(vec![integer("23", dummy_pos())], dummy_pos()),
+            integer("0", dummy_pos()),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            exec(&node, &mut Environment::default()),
+            Ok(Object::Integer(23.into()))
         );
     }
 }

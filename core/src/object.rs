@@ -605,6 +605,12 @@ pub struct Dictionary {
     pub dict: HashMap<Object, Object>,
 }
 
+impl Dictionary {
+    pub fn get(&self, _index: &Object) -> Result<Object, Error> {
+        todo!()
+    }
+}
+
 impl Hash for Dictionary {
     fn hash<H: Hasher>(&self, state: &mut H) {
         for (key, val) in &self.dict {
@@ -1177,6 +1183,10 @@ impl ExtensionList {
         }
 
         Object::ExtensionList(list.into())
+    }
+
+    pub fn get(&self, _index: &Object) -> Result<Object, Error> {
+        Ok(self.list.first().unwrap().to_owned())
     }
 }
 
