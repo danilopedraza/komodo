@@ -18,17 +18,16 @@ fn collect_nodes<T: Iterator<Item = Result<Token, Error>>>(
     cst_nodes?.into_iter().map(rewrite).collect()
 }
 
-pub fn run(source: &str, env: &mut Environment) -> Result<Object, Error> {
+pub fn run(source: &str, env: &mut Environment) -> Result<(), Error> {
     let lexer = build_lexer(source);
     let parser = parser_from(lexer);
     let nodes = collect_nodes(parser)?;
 
-    let mut res = Object::empty_tuple();
     for node in nodes {
-        res = run_node(node, env)?;
+        run_node(node, env)?;
     }
 
-    Ok(res)
+    Ok(())
 }
 
 pub fn run_node(node: ASTNode, env: &mut Environment) -> Result<Object, Error> {
