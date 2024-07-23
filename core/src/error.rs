@@ -177,11 +177,23 @@ fn exec_error_msg(err: &EvalError) -> String {
         EvalError::NonPrependableObject(kind) => non_prependable_object(kind),
         EvalError::NonExistentPrefixOperation { op, rhs } => non_existent_prefix(op, rhs),
         EvalError::NonExistentInfixOperation { op, lhs, rhs } => non_existent_infix(op, lhs, rhs),
-        EvalError::IndexingNonContainer { kind: _ } => todo!(),
-        EvalError::ListIndexOutOfBounds => todo!(),
-        EvalError::InvalidIndex { kind: _ } => todo!(),
-        EvalError::NonExistentKey { key: _ } => todo!(),
+        EvalError::IndexingNonContainer { kind } => indexing_non_container(kind),
+        EvalError::ListIndexOutOfBounds => "List index out of bounds".into(),
+        EvalError::InvalidIndex { kind } => invalid_index(kind),
+        EvalError::NonExistentKey { key } => non_existent_key(key),
     }
+}
+
+fn indexing_non_container(kind: &str) -> String {
+    format!("Cannot get elements from `{kind}`")
+}
+
+fn invalid_index(kind: &str) -> String {
+    format!("Cannot use `{kind}` as an index")
+}
+
+fn non_existent_key(key: &str) -> String {
+    format!("The key `{key}` is not in the dictionary")
 }
 
 fn failed_assertion(msg: &Option<String>) -> String {
