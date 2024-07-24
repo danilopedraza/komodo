@@ -27,20 +27,20 @@ pub fn match_call(patterns: &[ASTNode], args: &[Object]) -> Option<Match> {
 }
 
 fn join(match1: Option<Match>, match2: Option<Match>) -> Option<Match> {
-    let Match(map1) = match1?;
-    let Match(mut map2) = match2?;
+    let Match(mut map1) = match1?;
+    let Match(map2) = match2?;
 
-    for (key, val) in map1 {
-        match map2.get(&key) {
+    for (key, val) in map2 {
+        match map1.get(&key) {
             None => {
-                map2.insert(key, val);
+                map1.insert(key, val);
             }
             Some(other_val) if *other_val != val => return None,
             Some(_) => continue,
         }
     }
 
-    Some(Match(map2))
+    Some(Match(map1))
 }
 
 fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Option<Match> {
