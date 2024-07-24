@@ -59,7 +59,7 @@ fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
         ASTNodeType::Symbol { name } => single_match(name, val),
         ASTNodeType::ExtensionList { list } => match_extension_list(list, val),
         ASTNodeType::Cons { first, tail } => match_prefix_crop(first, tail, val),
-        ASTNodeType::Dictionary { pairs, complete: _ } => match_dictionary(pairs, val),
+        ASTNodeType::Dictionary { pairs, complete } => match_dictionary(pairs, *complete, val),
         _ => match_constant(pattern, val),
     }
 }
@@ -93,15 +93,23 @@ fn match_prefix_crop(first: &ASTNode, most: &ASTNode, val: &Object) -> Option<Ma
     }
 }
 
-fn match_dictionary(pairs: &Vec<(ASTNode, ASTNode)>, val: &Object) -> Option<Match> {
+fn match_dictionary(
+    pairs: &Vec<(ASTNode, ASTNode)>,
+    must_match_all: bool,
+    val: &Object,
+) -> Option<Match> {
     match val {
-        Object::Dictionary(dict) => match_dict(pairs, dict),
+        Object::Dictionary(dict) => match_dict(pairs, dict, must_match_all),
         _ => None,
     }
 }
 
-fn match_dict(pairs: &Vec<(ASTNode, ASTNode)>, dict: &Dictionary) -> Option<Match> {
-    if pairs.len() != dict.dict.len() {
+fn match_dict(
+    pairs: &Vec<(ASTNode, ASTNode)>,
+    dict: &Dictionary,
+    must_match_all: bool,
+) -> Option<Match> {
+    if pairs.len() != dict.dict.len() && must_match_all {
         return None;
     }
 
@@ -293,8 +301,19 @@ mod tests {
         assert_eq!(match_(&pattern, &value), empty_match());
     }
 
-    // #[test]
-    // fn incomplete_dict() {
-    //     let pattern = dictionary(vec![], false, dummy_pos());
-    // }
+    #[test]
+    fn incomplete_dict() {
+        let pattern = dictionary(
+            vec![(integer("5", dummy_pos()), integer("10", dummy_pos()))],
+            false,
+            dummy_pos(),
+        );
+
+        let value = Object::Dictionary(Dictionary::from(vec![
+            (Object::Integer(5.into()), Object::Integer(10.into())),
+            (Object::String("foo".into()), Object::Integer(11.into())),
+        ]));
+
+        assert_eq!(match_(&pattern, &value), empty_match(),);
+    }
 }
