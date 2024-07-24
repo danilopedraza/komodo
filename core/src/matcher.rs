@@ -59,7 +59,7 @@ fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
         ASTNodeType::Symbol { name } => single_match(name, val),
         ASTNodeType::ExtensionList { list } => match_extension_list(list, val),
         ASTNodeType::Cons { first, tail } => match_prefix_crop(first, tail, val),
-        ASTNodeType::Dictionary(pairs) => match_dictionary(pairs, val),
+        ASTNodeType::Dictionary { pairs, complete: _ } => match_dictionary(pairs, val),
         _ => match_constant(pattern, val),
     }
 }
@@ -214,7 +214,7 @@ mod tests {
 
     #[test]
     fn match_empty_dict() {
-        let pattern = dictionary(vec![], dummy_pos());
+        let pattern = dictionary(vec![], true, dummy_pos());
         let value = Object::Dictionary(Dictionary::from(vec![]));
 
         assert_eq!(match_(&pattern, &value), empty_match(),);
@@ -224,6 +224,7 @@ mod tests {
     fn match_single_pair_dict() {
         let pattern = dictionary(
             vec![(string("foo", dummy_pos()), symbol("bar", dummy_pos()))],
+            true,
             dummy_pos(),
         );
 
@@ -242,6 +243,7 @@ mod tests {
     fn match_dict_key() {
         let pattern = dictionary(
             vec![(wildcard(dummy_pos()), symbol("a", dummy_pos()))],
+            true,
             dummy_pos(),
         );
 
@@ -260,6 +262,7 @@ mod tests {
     fn match_dict_of_same_length() {
         let pattern = dictionary(
             vec![(string("foo", dummy_pos()), symbol("a", dummy_pos()))],
+            true,
             dummy_pos(),
         );
 
@@ -278,6 +281,7 @@ mod tests {
                 extension_list(vec![wildcard(dummy_pos())], dummy_pos()),
                 integer("10", dummy_pos()),
             )],
+            true,
             dummy_pos(),
         );
 
@@ -288,4 +292,9 @@ mod tests {
 
         assert_eq!(match_(&pattern, &value), empty_match());
     }
+
+    // #[test]
+    // fn incomplete_dict() {
+    //     let pattern = dictionary(vec![], false, dummy_pos());
+    // }
 }

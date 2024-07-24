@@ -29,7 +29,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeType::Symbol(name) => symbol(name),
         CSTNodeType::Tuple(values) => tuple(values),
         CSTNodeType::Wildcard => wildcard(),
-        CSTNodeType::Dictionary { pairs, complete: _ } => dictionary(pairs),
+        CSTNodeType::Dictionary { pairs, complete } => dictionary(pairs, complete),
         CSTNodeType::AdInfinitum => ad_infinitum(),
     }?;
 
@@ -249,11 +249,14 @@ fn call(called: CSTNode, args: Vec<CSTNode>) -> WeederResult<ASTNodeType> {
     Ok(ASTNodeType::Call { called, args })
 }
 
-fn dictionary(pairs: Vec<(CSTNode, CSTNode)>) -> WeederResult<ASTNodeType> {
+fn dictionary(pairs: Vec<(CSTNode, CSTNode)>, complete: bool) -> WeederResult<ASTNodeType> {
     let pairs: WeederResult<Vec<(ASTNode, ASTNode)>> =
         pairs.into_iter().map(rewrite_pair).collect();
 
-    Ok(ASTNodeType::Dictionary(pairs?))
+    Ok(ASTNodeType::Dictionary {
+        pairs: pairs?,
+        complete,
+    })
 }
 
 fn ad_infinitum() -> WeederResult<ASTNodeType> {

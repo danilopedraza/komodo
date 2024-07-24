@@ -102,7 +102,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType::Cons { first, tail } => prepend(exec(first, env)?, tail, env),
         ASTNodeType::Decimal { int, dec } => decimal(int, dec),
         ASTNodeType::Fraction { numer, denom } => fraction(numer, denom, node.position, env),
-        ASTNodeType::Dictionary(pairs) => dictionary(pairs, env),
+        ASTNodeType::Dictionary { pairs, complete: _ } => dictionary(pairs, env),
         ASTNodeType::ContainerElement { container, element } => {
             let container_obj = exec(container, env)?;
             let element_obj = exec(element, env)?;

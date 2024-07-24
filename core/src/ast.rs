@@ -108,7 +108,10 @@ pub enum ASTNodeType {
         int: String,
         dec: String,
     },
-    Dictionary(Vec<(ASTNode, ASTNode)>),
+    Dictionary {
+        pairs: Vec<(ASTNode, ASTNode)>,
+        complete: bool,
+    },
     ExtensionList {
         list: Vec<ASTNode>,
     },
@@ -302,8 +305,12 @@ pub mod tests {
         )
     }
 
-    pub fn dictionary(pairs: Vec<(ASTNode, ASTNode)>, position: Position) -> ASTNode {
-        ASTNode::new(ASTNodeType::Dictionary(pairs), position)
+    pub fn dictionary(
+        pairs: Vec<(ASTNode, ASTNode)>,
+        complete: bool,
+        position: Position,
+    ) -> ASTNode {
+        ASTNode::new(ASTNodeType::Dictionary { pairs, complete }, position)
     }
 
     pub fn string(str: &str, position: Position) -> ASTNode {
