@@ -485,6 +485,11 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 }
                 Some(_) => {
                     let left = self.expression(Precedence::Lowest)?;
+                    if left.kind == CSTNodeType::AdInfinitum {
+                        self.consume(TokenType::Rbrace)?;
+                        return Ok(dictionary(pairs, false, self.start_to_cur(start)));
+                    }
+
                     self.consume(TokenType::Colon)?;
                     let right = self.expression(Precedence::Lowest)?;
                     pairs.push((left, right));
@@ -1472,18 +1477,18 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn ad_infinitum_dict() {
-    //     let input = "{1: 5,..}";
-    //     let lexer = build_lexer(input);
+    #[test]
+    fn ad_infinitum_dict() {
+        let input = "{1: 5,..}";
+        let lexer = build_lexer(input);
 
-    //     assert_eq!(
-    //         parser_from(lexer).next(),
-    //         Some(Ok(dictionary(
-    //             vec![(integer("1", _pos(1, 1)), integer("5", _pos(4, 1)),),],
-    //             false,
-    //             _pos(0, 9)
-    //         ))),
-    //     );
-    // }
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(dictionary(
+                vec![(integer("1", _pos(1, 1)), integer("5", _pos(4, 1)),),],
+                false,
+                _pos(0, 9)
+            ))),
+        );
+    }
 }
