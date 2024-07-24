@@ -300,4 +300,13 @@ pub mod tests {
             position,
         )
     }
+
+    pub fn dictionary(pairs: Vec<(ASTNode, ASTNode)>, position: Position) -> ASTNode {
+        ASTNode::new(ASTNodeType::Dictionary(pairs), position)
+    }
+
+    pub fn string(str: &str, position: Position) -> ASTNode {
+        let str = str.to_string();
+        ASTNode::new(ASTNodeType::String { str }, position)
+    }
 }

@@ -7,7 +7,7 @@ use crate::{
     ast::{ASTNode, ASTNodeType},
     env::Environment,
     exec::exec,
-    object::{ExtensionList, Object},
+    object::{Dictionary, ExtensionList, Object},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -82,6 +82,7 @@ fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
         ASTNodeType::Symbol { name } => single_match(name, val),
         ASTNodeType::ExtensionList { list } => match_extension_list(list, val),
         ASTNodeType::Cons { first, tail } => match_prefix_crop(first, tail, val),
+        ASTNodeType::Dictionary(pairs) => match_dictionary(pairs, val),
         _ => match_constant(pattern, val),
     }
 }
@@ -115,20 +116,48 @@ fn match_prefix_crop(first: &ASTNode, most: &ASTNode, val: &Object) -> Option<Ma
     }
 }
 
+fn match_dictionary(pairs: &Vec<(ASTNode, ASTNode)>, val: &Object) -> Option<Match> {
+    match val {
+        Object::Dictionary(dict) => match_dict(pairs, dict),
+        _ => None,
+    }
+}
+
+fn match_dict(pairs: &Vec<(ASTNode, ASTNode)>, dict: &Dictionary) -> Option<Match> {
+    let mut res = empty_match();
+    for (key, value) in pairs {
+        let actual_value = dict.dict.get(&isolated_unchecked_exec(key))?;
+
+        match &value.kind {
+            ASTNodeType::Symbol { name } => res = join(res, single_match(name, actual_value)),
+            _ => {
+                res = join(res, match_constant(value, actual_value));
+                res.as_ref()?; // return None if res is None
+            }
+        }
+    }
+
+    res
+}
+
 fn match_constant(pattern: &ASTNode, val: &Object) -> Option<Match> {
-    if exec(pattern, &mut Environment::default()).unwrap() == *val {
+    if isolated_unchecked_exec(pattern) == *val {
         empty_match()
     } else {
         None
     }
 }
 
+fn isolated_unchecked_exec(node: &ASTNode) -> Object {
+    exec(node, &mut Environment::default()).unwrap()
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::tests::{cons, extension_list, symbol},
+        ast::tests::{cons, dictionary, extension_list, string, symbol},
         cst::tests::dummy_pos,
-        object::Integer,
+        object::{Dictionary, Integer},
     };
 
     use super::*;
@@ -191,5 +220,31 @@ mod tests {
         ];
 
         assert_eq!(match_call(&patterns, &values), None);
+    }
+
+    #[test]
+    fn match_empty_dict() {
+        let pattern = dictionary(vec![], dummy_pos());
+        let value = Object::Dictionary(Dictionary::from(vec![]));
+
+        assert_eq!(match_(&pattern, &value), empty_match(),);
+    }
+
+    #[test]
+    fn match_single_pair_dict() {
+        let pattern = dictionary(
+            vec![(string("foo", dummy_pos()), symbol("bar", dummy_pos()))],
+            dummy_pos(),
+        );
+
+        let value = Object::Dictionary(Dictionary::from(vec![(
+            Object::String("foo".into()),
+            Object::Integer(5.into()),
+        )]));
+
+        assert_eq!(
+            match_(&pattern, &value),
+            single_match("bar", &Object::Integer(5.into())),
+        );
     }
 }

@@ -605,6 +605,18 @@ pub struct Dictionary {
     pub dict: BTreeMap<Object, Object>,
 }
 
+impl From<Vec<(Object, Object)>> for Dictionary {
+    fn from(pairs: Vec<(Object, Object)>) -> Self {
+        let mut dict = BTreeMap::new();
+
+        for (key, value) in pairs {
+            dict.insert(key, value);
+        }
+
+        Self { dict }
+    }
+}
+
 impl Dictionary {
     pub fn get(&self, index: &Object) -> Result<Object, EvalError> {
         match self.dict.get(index) {
