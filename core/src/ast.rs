@@ -309,4 +309,8 @@ pub mod tests {
         let str = str.to_string();
         ASTNode::new(ASTNodeType::String { str }, position)
     }
+
+    pub fn wildcard(position: Position) -> ASTNode {
+        ASTNode::new(ASTNodeType::Wildcard, position)
+    }
 }

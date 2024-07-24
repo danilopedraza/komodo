@@ -103,8 +103,26 @@ fn match_dictionary(pairs: &Vec<(ASTNode, ASTNode)>, val: &Object) -> Option<Mat
 fn match_dict(pairs: &Vec<(ASTNode, ASTNode)>, dict: &Dictionary) -> Option<Match> {
     let mut res = empty_match();
     for (key, value) in pairs {
-        let actual_value = dict.dict.get(&isolated_unchecked_exec(key))?;
-        res = join(res, match_(value, actual_value));
+        if key.kind == ASTNodeType::Wildcard {
+            let mut match_found = false;
+
+            for some_value in dict.dict.values() {
+                let right_match = match_(value, some_value);
+
+                if right_match.is_some() {
+                    match_found = true;
+                    res = join(res, right_match);
+                    break;
+                }
+            }
+
+            if !match_found {
+                return None;
+            }
+        } else {
+            let actual_value = dict.dict.get(&isolated_unchecked_exec(key))?;
+            res = join(res, match_(value, actual_value));
+        }
         res.as_ref()?; // return None if res is None
     }
 
@@ -126,7 +144,7 @@ fn isolated_unchecked_exec(node: &ASTNode) -> Object {
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::tests::{cons, dictionary, extension_list, string, symbol},
+        ast::tests::{cons, dictionary, extension_list, string, symbol, wildcard},
         cst::tests::dummy_pos,
         object::{Dictionary, Integer},
     };
@@ -216,6 +234,24 @@ mod tests {
         assert_eq!(
             match_(&pattern, &value),
             single_match("bar", &Object::Integer(5.into())),
+        );
+    }
+
+    #[test]
+    fn match_dict_key() {
+        let pattern = dictionary(
+            vec![(wildcard(dummy_pos()), symbol("a", dummy_pos()))],
+            dummy_pos(),
+        );
+
+        let value = Object::Dictionary(Dictionary::from(vec![(
+            Object::String("foo".into()),
+            Object::Integer(5.into()),
+        )]));
+
+        assert_eq!(
+            match_(&pattern, &value),
+            single_match("a", &Object::Integer(5.into()))
         );
     }
 }
