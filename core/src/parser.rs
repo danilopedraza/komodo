@@ -48,6 +48,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             None => self.err_with_cur(ParserError::EOFReached),
             Some(tok) => match tok {
                 TokenType::Char(chr) => self.char(chr),
+                TokenType::DotDot => self.ad_infinitum(),
                 TokenType::For => self.for_(),
                 TokenType::If => self.if_(),
                 TokenType::Let => self.let_(),
@@ -80,6 +81,10 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
 
         Ok(expr)
+    }
+
+    fn ad_infinitum(&self) -> _NodeResult {
+        self.node_with_cur(CSTNodeType::AdInfinitum)
     }
 
     fn wildcard(&self) -> _NodeResult {
@@ -513,7 +518,7 @@ pub fn parser_from<T: Iterator<Item = Result<Token, Error>>>(tokens: T) -> Parse
 mod tests {
     use super::*;
     use crate::{
-        cst::tests::{_pos, boolean, char, integer, string},
+        cst::tests::{_pos, ad_infinitum, boolean, char, integer, string},
         error::Position,
         lexer::build_lexer,
     };
@@ -1444,6 +1449,24 @@ mod tests {
                 symbol("list", _pos(1, 4)),
                 integer("0", _pos(6, 1)),
                 _pos(1, 7)
+            )))
+        );
+    }
+
+    #[test]
+    fn ad_infinitum_() {
+        let input = "[1, 2,..]";
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(extension_list(
+                vec![
+                    integer("1", _pos(1, 1)),
+                    integer("2", _pos(4, 1)),
+                    ad_infinitum(_pos(6, 2))
+                ],
+                _pos(0, 9)
             )))
         );
     }

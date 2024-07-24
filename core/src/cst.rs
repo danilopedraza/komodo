@@ -161,6 +161,7 @@ impl Hash for CSTNode {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum CSTNodeType {
+    AdInfinitum,
     Boolean(bool),
     Char(char),
     ComprehensionSet(Box<CSTNode>, Box<CSTNode>),
@@ -295,6 +296,10 @@ pub mod tests {
 
     pub fn integer(int: &str, position: Position) -> CSTNode {
         CSTNode::new(CSTNodeType::Integer(int.into()), position)
+    }
+
+    pub fn ad_infinitum(position: Position) -> CSTNode {
+        CSTNode::new(CSTNodeType::AdInfinitum, position)
     }
 
     // pub fn function(params: Vec<&str>, proc: Vec<CSTNode>, position: Position) -> CSTNode {
