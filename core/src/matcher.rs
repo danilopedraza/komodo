@@ -23,7 +23,7 @@ impl From<Vec<(String, Object)>> for Match {
 }
 
 pub fn match_call(patterns: &[ASTNode], args: &[Object]) -> Option<Match> {
-    match_list(patterns, args)
+    match_sequence(patterns, args)
 }
 
 fn join(match1: Option<Match>, match2: Option<Match>) -> Option<Match> {
@@ -43,7 +43,7 @@ fn join(match1: Option<Match>, match2: Option<Match>) -> Option<Match> {
     Some(Match(map1))
 }
 
-fn match_list(patterns: &[ASTNode], vals: &[Object]) -> Option<Match> {
+fn match_sequence(patterns: &[ASTNode], vals: &[Object]) -> Option<Match> {
     if patterns.len() != vals.len() {
         None
     } else {
@@ -74,8 +74,20 @@ fn empty_match() -> Option<Match> {
 
 fn match_extension_list(pattern: &[ASTNode], val: &Object) -> Option<Match> {
     match val {
-        Object::ExtensionList(ExtensionList { list: al }) => match_list(pattern, al),
+        Object::ExtensionList(ExtensionList { list }) => match_list(pattern, list),
         _ => None,
+    }
+}
+
+fn match_list(pattern: &[ASTNode], list: &[Object]) -> Option<Match> {
+    match pattern.last() {
+        Some(ASTNode {
+            kind: ASTNodeType::AdInfinitum,
+            position: _,
+        }) => zip(&pattern[..pattern.len() - 1], list)
+            .map(|(pattern, val)| match_(pattern, val))
+            .fold(empty_match(), join),
+        _ => match_sequence(pattern, list),
     }
 }
 
@@ -153,7 +165,9 @@ fn isolated_unchecked_exec(node: &ASTNode) -> Object {
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::tests::{cons, dictionary, extension_list, integer, string, symbol, wildcard},
+        ast::tests::{
+            ad_infinitum, cons, dictionary, extension_list, integer, string, symbol, wildcard,
+        },
         cst::tests::dummy_pos,
         object::{Dictionary, Integer},
     };
@@ -177,7 +191,7 @@ mod tests {
         ];
 
         assert_eq!(
-            match_list(&patterns, &args),
+            match_sequence(&patterns, &args),
             Some(Match::from(vec![
                 (String::from("a"), Object::Integer(Integer::from(1))),
                 (String::from("b"), Object::Integer(Integer::from(2)))
@@ -313,6 +327,20 @@ mod tests {
             (Object::Integer(5.into()), Object::Integer(10.into())),
             (Object::String("foo".into()), Object::Integer(11.into())),
         ]));
+
+        assert_eq!(match_(&pattern, &value), empty_match(),);
+    }
+
+    #[test]
+    fn incomplete_list() {
+        let pattern = extension_list(
+            vec![wildcard(dummy_pos()), ad_infinitum(dummy_pos())],
+            dummy_pos(),
+        );
+
+        let value = Object::ExtensionList(
+            vec![Object::Integer(1.into()), Object::Integer(2.into())].into(),
+        );
 
         assert_eq!(match_(&pattern, &value), empty_match(),);
     }

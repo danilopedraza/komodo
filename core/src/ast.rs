@@ -321,4 +321,8 @@ pub mod tests {
     pub fn wildcard(position: Position) -> ASTNode {
         ASTNode::new(ASTNodeType::Wildcard, position)
     }
+
+    pub fn ad_infinitum(position: Position) -> ASTNode {
+        ASTNode::new(ASTNodeType::AdInfinitum, position)
+    }
 }
