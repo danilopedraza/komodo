@@ -166,7 +166,10 @@ pub enum CSTNodeType {
     Char(char),
     ComprehensionSet(Box<CSTNode>, Box<CSTNode>),
     ComprehensionList(Box<CSTNode>, Box<CSTNode>),
-    Dictionary(Vec<(CSTNode, CSTNode)>),
+    Dictionary {
+        pairs: Vec<(CSTNode, CSTNode)>,
+        complete: bool,
+    },
     ExtensionList(Vec<CSTNode>),
     ExtensionSet(Vec<CSTNode>),
     For(String, Box<CSTNode>, Vec<CSTNode>),
@@ -256,8 +259,8 @@ pub fn comprehension_set(val: CSTNode, prop: CSTNode, position: Position) -> CST
     )
 }
 
-pub fn dictionary(pairs: Vec<(CSTNode, CSTNode)>, position: Position) -> CSTNode {
-    CSTNode::new(CSTNodeType::Dictionary(pairs), position)
+pub fn dictionary(pairs: Vec<(CSTNode, CSTNode)>, complete: bool, position: Position) -> CSTNode {
+    CSTNode::new(CSTNodeType::Dictionary { pairs, complete }, position)
 }
 
 // pub fn call(called: CSTNode, args: Vec<CSTNode>, position: Position) -> CSTNode {

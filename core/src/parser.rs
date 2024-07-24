@@ -503,7 +503,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             }
         }
 
-        Ok(dictionary(pairs, self.start_to_cur(start)))
+        Ok(dictionary(pairs, true, self.start_to_cur(start)))
     }
 }
 
@@ -1432,6 +1432,7 @@ mod tests {
                     (char('a', _pos(1, 3)), integer("2", _pos(6, 1))),
                     (integer("1", _pos(9, 1)), integer("5", _pos(11, 1)))
                 ],
+                true,
                 _pos(0, 13)
             )))
         );
@@ -1464,10 +1465,25 @@ mod tests {
                 vec![
                     integer("1", _pos(1, 1)),
                     integer("2", _pos(4, 1)),
-                    ad_infinitum(_pos(6, 2))
+                    ad_infinitum(_pos(6, 2)),
                 ],
                 _pos(0, 9)
             )))
         );
     }
+
+    // #[test]
+    // fn ad_infinitum_dict() {
+    //     let input = "{1: 5,..}";
+    //     let lexer = build_lexer(input);
+
+    //     assert_eq!(
+    //         parser_from(lexer).next(),
+    //         Some(Ok(dictionary(
+    //             vec![(integer("1", _pos(1, 1)), integer("5", _pos(4, 1)),),],
+    //             false,
+    //             _pos(0, 9)
+    //         ))),
+    //     );
+    // }
 }
