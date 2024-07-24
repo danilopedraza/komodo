@@ -85,6 +85,7 @@ impl Ord for ASTNode {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ASTNodeType {
+    AdInfinitum,
     Boolean(bool),
     Call {
         called: Box<ASTNode>,
