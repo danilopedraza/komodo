@@ -101,6 +101,10 @@ fn match_dictionary(pairs: &Vec<(ASTNode, ASTNode)>, val: &Object) -> Option<Mat
 }
 
 fn match_dict(pairs: &Vec<(ASTNode, ASTNode)>, dict: &Dictionary) -> Option<Match> {
+    if pairs.len() != dict.dict.len() {
+        return None;
+    }
+
     let mut res = empty_match();
     for (key, value) in pairs {
         if key.kind == ASTNodeType::Wildcard {
@@ -253,5 +257,20 @@ mod tests {
             match_(&pattern, &value),
             single_match("a", &Object::Integer(5.into()))
         );
+    }
+
+    #[test]
+    fn match_dict_of_same_length() {
+        let pattern = dictionary(
+            vec![(string("foo", dummy_pos()), symbol("a", dummy_pos()))],
+            dummy_pos(),
+        );
+
+        let value = Object::Dictionary(Dictionary::from(vec![
+            (Object::String("foo".into()), Object::Integer(5.into())),
+            (Object::String("bar".into()), Object::Integer(6.into())),
+        ]));
+
+        assert_eq!(match_(&pattern, &value), None,);
     }
 }
