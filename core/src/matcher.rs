@@ -106,28 +106,25 @@ fn match_dict(pairs: &Vec<(ASTNode, ASTNode)>, dict: &Dictionary) -> Option<Matc
     }
 
     let mut res = empty_match();
+
     for (key, value) in pairs {
-        if key.kind == ASTNodeType::Wildcard {
-            let mut match_found = false;
+        let mut match_found = false;
 
-            for some_value in dict.dict.values() {
-                let right_match = match_(value, some_value);
+        for (some_key, some_value) in &dict.dict {
+            let left_match = match_(key, some_key);
+            let right_match = match_(value, some_value);
+            let whole_match = join(left_match, right_match);
 
-                if right_match.is_some() {
-                    match_found = true;
-                    res = join(res, right_match);
-                    break;
-                }
+            if whole_match.is_some() {
+                match_found = true;
+                res = join(res, whole_match);
+                break;
             }
-
-            if !match_found {
-                return None;
-            }
-        } else {
-            let actual_value = dict.dict.get(&isolated_unchecked_exec(key))?;
-            res = join(res, match_(value, actual_value));
         }
-        res.as_ref()?; // return None if res is None
+
+        if !match_found {
+            return None;
+        }
     }
 
     res
@@ -148,7 +145,7 @@ fn isolated_unchecked_exec(node: &ASTNode) -> Object {
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::tests::{cons, dictionary, extension_list, string, symbol, wildcard},
+        ast::tests::{cons, dictionary, extension_list, integer, string, symbol, wildcard},
         cst::tests::dummy_pos,
         object::{Dictionary, Integer},
     };
@@ -272,5 +269,23 @@ mod tests {
         ]));
 
         assert_eq!(match_(&pattern, &value), None,);
+    }
+
+    #[test]
+    fn dict_composite_key() {
+        let pattern = dictionary(
+            vec![(
+                extension_list(vec![wildcard(dummy_pos())], dummy_pos()),
+                integer("10", dummy_pos()),
+            )],
+            dummy_pos(),
+        );
+
+        let value = Object::Dictionary(Dictionary::from(vec![(
+            Object::ExtensionList(ExtensionList::from(vec![Object::Integer(1.into())])),
+            Object::Integer(10.into()),
+        )]));
+
+        assert_eq!(match_(&pattern, &value), empty_match());
     }
 }
