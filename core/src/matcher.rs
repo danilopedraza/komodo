@@ -104,14 +104,8 @@ fn match_dict(pairs: &Vec<(ASTNode, ASTNode)>, dict: &Dictionary) -> Option<Matc
     let mut res = empty_match();
     for (key, value) in pairs {
         let actual_value = dict.dict.get(&isolated_unchecked_exec(key))?;
-
-        match &value.kind {
-            ASTNodeType::Symbol { name } => res = join(res, single_match(name, actual_value)),
-            _ => {
-                res = join(res, match_constant(value, actual_value));
-                res.as_ref()?; // return None if res is None
-            }
-        }
+        res = join(res, match_(value, actual_value));
+        res.as_ref()?; // return None if res is None
     }
 
     res
