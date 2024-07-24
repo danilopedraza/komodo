@@ -9,7 +9,6 @@ pub enum WeederError {}
 
 type WeederResult<T> = Result<T, Error>;
 
-#[allow(unused)]
 pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
     let tp: ASTNodeType = match node.kind {
         CSTNodeType::Boolean(bool) => boolean(bool),

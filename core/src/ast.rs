@@ -53,7 +53,6 @@ impl InfixOperator {
     }
 }
 
-#[allow(unused)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ASTNode {
     pub kind: ASTNodeType,
@@ -84,7 +83,6 @@ impl Ord for ASTNode {
     }
 }
 
-#[allow(unused)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ASTNodeType {
     Boolean(bool),
