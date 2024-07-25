@@ -80,7 +80,7 @@ pub fn error_msg(Error(err, pos): &Error) -> ErrorMessage {
 
 fn found_a(tok: &TokenType) -> String {
     match tok {
-        TokenType::Rparen => "a left parenthesis: `)`".into(),
+        TokenType::Rparen => "a right parenthesis: `)`".into(),
         TokenType::Arrow => "an arrow: `->`".into(),
         TokenType::Assign => "an assignment symbol: `:=`".into(),
         TokenType::Bang => "a bang: `!`".into(),
@@ -317,8 +317,8 @@ mod tests {
     #[test]
     fn expected_expression_() {
         assert_eq!(
-            expected_expression("a left parenthesis: `)`".into()),
-            String::from("Expected an expression, but found a left parenthesis: `)`"),
+            expected_expression("a right parenthesis: `)`".into()),
+            String::from("Expected an expression, but found a right parenthesis: `)`"),
         );
     }
 
