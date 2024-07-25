@@ -65,6 +65,7 @@ fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
             lhs,
             rhs,
         } => match_range(lhs, rhs, val),
+        ASTNodeType::SetCons { some, most } => set_cons(some, most, val),
         _ => match_constant(pattern, val),
     }
 }
@@ -165,6 +166,28 @@ fn match_range(lhs: &ASTNode, rhs: &ASTNode, val: &Object) -> Option<Match> {
     }
 }
 
+fn set_cons(some: &ASTNode, most: &ASTNode, val: &Object) -> Option<Match> {
+    match val {
+        Object::ExtensionSet(set) => {
+            for val in &set.set {
+                let mut new_set = set.set.clone();
+                new_set.remove(val);
+                let res = join(
+                    match_(some, val),
+                    match_(most, &Object::ExtensionSet(new_set.into())),
+                );
+
+                if res.is_some() {
+                    return res;
+                }
+            }
+
+            None
+        }
+        _ => None,
+    }
+}
+
 fn match_constant(pattern: &ASTNode, val: &Object) -> Option<Match> {
     if isolated_unchecked_exec(pattern) == *val {
         empty_match()
@@ -181,8 +204,8 @@ fn isolated_unchecked_exec(node: &ASTNode) -> Object {
 mod tests {
     use crate::{
         ast::tests::{
-            ad_infinitum, cons, dictionary, extension_list, integer, range, string, symbol,
-            wildcard,
+            ad_infinitum, cons, dictionary, extension_list, integer, range, set_cons, string,
+            symbol, wildcard,
         },
         cst::tests::dummy_pos,
         object::{Dictionary, Integer, Range},
@@ -377,6 +400,22 @@ mod tests {
                 single_match("a", &Object::Integer(0.into())),
                 single_match("b", &Object::Integer(1.into()))
             ),
+        );
+    }
+
+    #[test]
+    fn set_cons_() {
+        let pattern = set_cons(
+            symbol("val", dummy_pos()),
+            wildcard(dummy_pos()),
+            dummy_pos(),
+        );
+
+        let value = Object::ExtensionSet(vec![Object::Integer(0.into())].into());
+
+        assert_eq!(
+            match_(&pattern, &value),
+            single_match("val", &Object::Integer(0.into())),
         );
     }
 }
