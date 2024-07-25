@@ -84,26 +84,26 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn ad_infinitum(&self) -> _NodeResult {
-        self.node_with_cur(CSTNodeType::AdInfinitum)
+        self.node_with_cur(CSTNodeKind::AdInfinitum)
     }
 
     fn wildcard(&self) -> _NodeResult {
-        self.node_with_cur(CSTNodeType::Wildcard)
+        self.node_with_cur(CSTNodeKind::Wildcard)
     }
 
     fn char(&self, chr: char) -> _NodeResult {
-        self.node_with_cur(CSTNodeType::Char(chr))
+        self.node_with_cur(CSTNodeKind::Char(chr))
     }
 
     fn string(&self, str: String) -> _NodeResult {
-        self.node_with_cur(CSTNodeType::String(str))
+        self.node_with_cur(CSTNodeKind::String(str))
     }
 
     fn boolean(&self, val: bool) -> _NodeResult {
-        self.node_with_cur(CSTNodeType::Boolean(val))
+        self.node_with_cur(CSTNodeKind::Boolean(val))
     }
 
-    fn node_with_cur(&self, node: CSTNodeType) -> _NodeResult {
+    fn node_with_cur(&self, node: CSTNodeKind) -> _NodeResult {
         Ok(CSTNode::new(node, self.cur_pos))
     }
 
@@ -112,7 +112,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn symbol(&self, literal: String) -> _NodeResult {
-        self.node_with_cur(CSTNodeType::Symbol(literal))
+        self.node_with_cur(CSTNodeKind::Symbol(literal))
     }
 
     fn let_(&mut self) -> _NodeResult {
@@ -252,7 +252,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             }
             _ => self.expression(op.precedence()).map(|rhs| {
                 CSTNode::new(
-                    CSTNodeType::Infix(op, Box::new(lhs), Box::new(rhs)),
+                    CSTNodeKind::Infix(op, Box::new(lhs), Box::new(rhs)),
                     self.start_to_cur(start),
                 )
             }),
@@ -260,7 +260,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn integer(&mut self, int: String) -> _NodeResult {
-        self.node_with_cur(CSTNodeType::Integer(int))
+        self.node_with_cur(CSTNodeKind::Integer(int))
     }
 
     fn parenthesis(&mut self) -> _NodeResult {
@@ -373,7 +373,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         let CSTNode { kind, position } = self.expression(Precedence::Lowest)?;
 
         let proc = match kind {
-            CSTNodeType::Tuple(v) => v,
+            CSTNodeKind::Tuple(v) => v,
             node => vec![CSTNode::new(node, position)],
         };
 
@@ -477,7 +477,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         self.consume(TokenType::Rbrace)?;
 
         Ok(CSTNode::new(
-            CSTNodeType::SetCons { some, most },
+            CSTNodeKind::SetCons { some, most },
             self.start_to_cur(start),
         ))
     }
@@ -497,7 +497,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 }
                 Some(_) => {
                     let left = self.expression(Precedence::Lowest)?;
-                    if left.kind == CSTNodeType::AdInfinitum {
+                    if left.kind == CSTNodeKind::AdInfinitum {
                         self.consume(TokenType::Rbrace)?;
                         return Ok(dictionary(pairs, false, self.start_to_cur(start)));
                     }
@@ -1254,7 +1254,7 @@ mod tests {
                 vec![
                     symbol("a", _pos(1, 1)),
                     integer("1", _pos(4, 1)),
-                    CSTNode::new(CSTNodeType::Wildcard, _pos(7, 1)),
+                    CSTNode::new(CSTNodeKind::Wildcard, _pos(7, 1)),
                 ],
                 _pos(0, 9)
             ),)),

@@ -143,12 +143,12 @@ impl PrefixOperator {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CSTNode {
-    pub kind: CSTNodeType,
+    pub kind: CSTNodeKind,
     pub position: Position,
 }
 
 impl CSTNode {
-    pub fn new(kind: CSTNodeType, position: Position) -> Self {
+    pub fn new(kind: CSTNodeKind, position: Position) -> Self {
         Self { kind, position }
     }
 }
@@ -160,7 +160,7 @@ impl Hash for CSTNode {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum CSTNodeType {
+pub enum CSTNodeKind {
     AdInfinitum,
     Boolean(bool),
     Char(char),
@@ -192,79 +192,79 @@ pub enum CSTNodeType {
 
 pub fn let_(ident: CSTNode, params: Vec<CSTNode>, val: CSTNode, position: Position) -> CSTNode {
     CSTNode::new(
-        CSTNodeType::Let(Box::new(ident), params, Box::new(val)),
+        CSTNodeKind::Let(Box::new(ident), params, Box::new(val)),
         position,
     )
 }
 
 pub fn signature(symbol: CSTNode, type_: Option<CSTNode>, position: Position) -> CSTNode {
     CSTNode::new(
-        CSTNodeType::Signature(Box::new(symbol), type_.map(Box::new)),
+        CSTNodeKind::Signature(Box::new(symbol), type_.map(Box::new)),
         position,
     )
 }
 
 pub fn symbol(name: &str, position: Position) -> CSTNode {
-    CSTNode::new(CSTNodeType::Symbol(name.into()), position)
+    CSTNode::new(CSTNodeKind::Symbol(name.into()), position)
 }
 
 pub fn infix(op: InfixOperator, lhs: CSTNode, rhs: CSTNode, position: Position) -> CSTNode {
     CSTNode::new(
-        CSTNodeType::Infix(op, Box::new(lhs), Box::new(rhs)),
+        CSTNodeKind::Infix(op, Box::new(lhs), Box::new(rhs)),
         position,
     )
 }
 
 pub fn tuple(list: Vec<CSTNode>, position: Position) -> CSTNode {
-    CSTNode::new(CSTNodeType::Tuple(list), position)
+    CSTNode::new(CSTNodeKind::Tuple(list), position)
 }
 
 pub fn extension_list(list: Vec<CSTNode>, position: Position) -> CSTNode {
-    CSTNode::new(CSTNodeType::ExtensionList(list), position)
+    CSTNode::new(CSTNodeKind::ExtensionList(list), position)
 }
 
 pub fn extension_set(list: Vec<CSTNode>, position: Position) -> CSTNode {
-    CSTNode::new(CSTNodeType::ExtensionSet(list), position)
+    CSTNode::new(CSTNodeKind::ExtensionSet(list), position)
 }
 
 pub fn comprehension_list(val: CSTNode, prop: CSTNode, position: Position) -> CSTNode {
     CSTNode::new(
-        CSTNodeType::ComprehensionList(Box::new(val), Box::new(prop)),
+        CSTNodeKind::ComprehensionList(Box::new(val), Box::new(prop)),
         position,
     )
 }
 
 pub fn cons(first: CSTNode, most: CSTNode, position: Position) -> CSTNode {
-    CSTNode::new(CSTNodeType::Cons(Box::new(first), Box::new(most)), position)
+    CSTNode::new(CSTNodeKind::Cons(Box::new(first), Box::new(most)), position)
 }
 
 pub fn _for(var: &str, iter: CSTNode, block: Vec<CSTNode>, position: Position) -> CSTNode {
     CSTNode::new(
-        CSTNodeType::For(var.into(), Box::new(iter), block),
+        CSTNodeKind::For(var.into(), Box::new(iter), block),
         position,
     )
 }
 
 pub fn _if(cond: CSTNode, first_res: CSTNode, second_res: CSTNode, position: Position) -> CSTNode {
     CSTNode::new(
-        CSTNodeType::If(Box::new(cond), Box::new(first_res), Box::new(second_res)),
+        CSTNodeKind::If(Box::new(cond), Box::new(first_res), Box::new(second_res)),
         position,
     )
 }
 
 pub fn prefix(op: PrefixOperator, val: CSTNode, position: Position) -> CSTNode {
-    CSTNode::new(CSTNodeType::Prefix(op, Box::new(val)), position)
+    CSTNode::new(CSTNodeKind::Prefix(op, Box::new(val)), position)
 }
 
 pub fn comprehension_set(val: CSTNode, prop: CSTNode, position: Position) -> CSTNode {
     CSTNode::new(
-        CSTNodeType::ComprehensionSet(Box::new(val), Box::new(prop)),
+        CSTNodeKind::ComprehensionSet(Box::new(val), Box::new(prop)),
         position,
     )
 }
 
 pub fn dictionary(pairs: Vec<(CSTNode, CSTNode)>, complete: bool, position: Position) -> CSTNode {
-    CSTNode::new(CSTNodeType::Dictionary { pairs, complete }, position)
+    CSTNode::new(CSTNodeKind::Dictionary { pairs, complete }, position)
 }
 
 // pub fn call(called: CSTNode, args: Vec<CSTNode>, position: Position) -> CSTNode {
@@ -290,33 +290,33 @@ pub mod tests {
     }
 
     pub fn boolean(val: bool, position: Position) -> CSTNode {
-        CSTNode::new(CSTNodeType::Boolean(val), position)
+        CSTNode::new(CSTNodeKind::Boolean(val), position)
     }
 
     pub fn char(val: char, position: Position) -> CSTNode {
-        CSTNode::new(CSTNodeType::Char(val), position)
+        CSTNode::new(CSTNodeKind::Char(val), position)
     }
 
     pub fn string(str: &str, position: Position) -> CSTNode {
-        CSTNode::new(CSTNodeType::String(str.into()), position)
+        CSTNode::new(CSTNodeKind::String(str.into()), position)
     }
 
     pub fn integer(int: &str, position: Position) -> CSTNode {
-        CSTNode::new(CSTNodeType::Integer(int.into()), position)
+        CSTNode::new(CSTNodeKind::Integer(int.into()), position)
     }
 
     pub fn ad_infinitum(position: Position) -> CSTNode {
-        CSTNode::new(CSTNodeType::AdInfinitum, position)
+        CSTNode::new(CSTNodeKind::AdInfinitum, position)
     }
 
     pub fn wildcard(position: Position) -> CSTNode {
-        CSTNode::new(CSTNodeType::Wildcard, position)
+        CSTNode::new(CSTNodeKind::Wildcard, position)
     }
 
     pub fn set_cons(some: CSTNode, most: CSTNode, position: Position) -> CSTNode {
         let some = Box::new(some);
         let most = Box::new(most);
-        CSTNode::new(CSTNodeType::SetCons { some, most }, position)
+        CSTNode::new(CSTNodeKind::SetCons { some, most }, position)
     }
 
     // pub fn function(params: Vec<&str>, proc: Vec<CSTNode>, position: Position) -> CSTNode {

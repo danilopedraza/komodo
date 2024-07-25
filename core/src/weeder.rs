@@ -1,6 +1,6 @@
 use crate::{
     ast::{self, ASTNode, ASTNodeKind},
-    cst::{CSTNode, CSTNodeType, InfixOperator, PrefixOperator},
+    cst::{CSTNode, CSTNodeKind, InfixOperator, PrefixOperator},
     error::Error,
 };
 
@@ -11,27 +11,27 @@ type WeederResult<T> = Result<T, Error>;
 
 pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
     let tp: ASTNodeKind = match node.kind {
-        CSTNodeType::Boolean(bool) => boolean(bool),
-        CSTNodeType::Char(chr) => char(chr),
-        CSTNodeType::ComprehensionSet(val, prop) => comprehension_set(*val, *prop),
-        CSTNodeType::ComprehensionList(val, prop) => comprehension_list(*val, *prop),
-        CSTNodeType::ExtensionList(list) => extension_list(list),
-        CSTNodeType::ExtensionSet(list) => extension_set(list),
-        CSTNodeType::For(val, iter, proc) => _for(val, *iter, proc),
-        CSTNodeType::If(cond, positive, negative) => _if(*cond, *positive, *negative),
-        CSTNodeType::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs),
-        CSTNodeType::Integer(dec) => integer(dec),
-        CSTNodeType::Let(ident, params, val) => _let(*ident, params, *val),
-        CSTNodeType::Prefix(op, val) => prefix(op, *val),
-        CSTNodeType::Cons(first, tail) => cons(*first, *tail),
-        CSTNodeType::Signature(val, constraint) => signature(*val, constraint),
-        CSTNodeType::String(str) => string(str),
-        CSTNodeType::Symbol(name) => symbol(name),
-        CSTNodeType::Tuple(values) => tuple(values),
-        CSTNodeType::Wildcard => wildcard(),
-        CSTNodeType::Dictionary { pairs, complete } => dictionary(pairs, complete),
-        CSTNodeType::AdInfinitum => ad_infinitum(),
-        CSTNodeType::SetCons { some, most } => set_cons(*some, *most),
+        CSTNodeKind::Boolean(bool) => boolean(bool),
+        CSTNodeKind::Char(chr) => char(chr),
+        CSTNodeKind::ComprehensionSet(val, prop) => comprehension_set(*val, *prop),
+        CSTNodeKind::ComprehensionList(val, prop) => comprehension_list(*val, *prop),
+        CSTNodeKind::ExtensionList(list) => extension_list(list),
+        CSTNodeKind::ExtensionSet(list) => extension_set(list),
+        CSTNodeKind::For(val, iter, proc) => _for(val, *iter, proc),
+        CSTNodeKind::If(cond, positive, negative) => _if(*cond, *positive, *negative),
+        CSTNodeKind::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs),
+        CSTNodeKind::Integer(dec) => integer(dec),
+        CSTNodeKind::Let(ident, params, val) => _let(*ident, params, *val),
+        CSTNodeKind::Prefix(op, val) => prefix(op, *val),
+        CSTNodeKind::Cons(first, tail) => cons(*first, *tail),
+        CSTNodeKind::Signature(val, constraint) => signature(*val, constraint),
+        CSTNodeKind::String(str) => string(str),
+        CSTNodeKind::Symbol(name) => symbol(name),
+        CSTNodeKind::Tuple(values) => tuple(values),
+        CSTNodeKind::Wildcard => wildcard(),
+        CSTNodeKind::Dictionary { pairs, complete } => dictionary(pairs, complete),
+        CSTNodeKind::AdInfinitum => ad_infinitum(),
+        CSTNodeKind::SetCons { some, most } => set_cons(*some, *most),
     }?;
 
     Ok(ASTNode::new(tp, node.position))
@@ -116,7 +116,7 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
         InfixOperator::BitwiseXor => infix_node(ast::InfixOperator::BitwiseXor, lhs, rhs),
         InfixOperator::Call => {
             let args = match rhs.kind {
-                CSTNodeType::Tuple(v) => v,
+                CSTNodeKind::Tuple(v) => v,
                 _ => todo!(),
             };
 
@@ -124,13 +124,13 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
         }
         InfixOperator::Correspondence => {
             let params = match lhs.kind {
-                CSTNodeType::Symbol(s) => vec![s.to_string()],
-                CSTNodeType::Tuple(tuple_params) => {
+                CSTNodeKind::Symbol(s) => vec![s.to_string()],
+                CSTNodeKind::Tuple(tuple_params) => {
                     let mut res = vec![];
 
                     for param in tuple_params {
                         match param.kind {
-                            CSTNodeType::Symbol(s) => res.push(s),
+                            CSTNodeKind::Symbol(s) => res.push(s),
                             _ => todo!(),
                         }
                     }
@@ -141,7 +141,7 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
             };
 
             let proc = match rhs.kind {
-                CSTNodeType::Tuple(v) => v,
+                CSTNodeKind::Tuple(v) => v,
                 _ => vec![rhs],
             };
 
