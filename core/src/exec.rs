@@ -101,7 +101,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeType::ComprehensionList { val, prop } => comprehension_list(val, prop, env),
         ASTNodeType::Wildcard => unimplemented!(),
         ASTNodeType::AdInfinitum => unimplemented!(),
-        ASTNodeType::Cons { first, tail } => prepend(exec(first, env)?, tail, env),
+        ASTNodeType::Cons { first, tail } => cons(exec(first, env)?, tail, env),
         ASTNodeType::Decimal { int, dec } => decimal(int, dec),
         ASTNodeType::Fraction { numer, denom } => fraction(numer, denom, node.position, env),
         ASTNodeType::Dictionary { pairs, complete: _ } => dictionary(pairs, env),
@@ -124,7 +124,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
                 )),
             }
         }
-        ASTNodeType::SetCons { some, most } => set_cons(&exec(some, env)?, most, env),
+        ASTNodeType::SetCons { some, most } => set_cons(exec(some, env)?, most, env),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -137,11 +137,11 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     }
 }
 
-fn set_cons(some: &Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
+fn set_cons(some: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     match exec(most, env)? {
         Object::ExtensionList(lst) => {
             let mut res = BTreeSet::new();
-            res.insert(some.to_owned());
+            res.insert(some);
 
             for obj in lst.list {
                 res.insert(obj.to_owned());
@@ -151,7 +151,7 @@ fn set_cons(some: &Object, most: &ASTNode, env: &mut Environment) -> Result<Obje
         }
         Object::ExtensionSet(set) => {
             let mut res = BTreeSet::new();
-            res.insert(some.to_owned());
+            res.insert(some);
 
             for obj in set.set {
                 res.insert(obj.to_owned());
@@ -180,13 +180,22 @@ fn decimal(int: &str, dec: &str) -> Result<Object, Error> {
     Ok(Object::Decimal(Decimal::new(int, dec)))
 }
 
-fn prepend(first: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
+fn cons(first: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     match exec(most, env)? {
         Object::ExtensionList(lst) => {
             let mut res = vec![first];
 
             for obj in lst.list {
-                res.push(obj.clone());
+                res.push(obj.to_owned());
+            }
+
+            Ok(Object::ExtensionList(res.into()))
+        }
+        Object::ExtensionSet(set) => {
+            let mut res = vec![first];
+
+            for obj in set.set {
+                res.push(obj.to_owned());
             }
 
             Ok(Object::ExtensionList(res.into()))
