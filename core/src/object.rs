@@ -11,7 +11,7 @@ use num_bigint::{BigInt, BigUint};
 use num_rational::BigRational;
 
 use crate::{
-    ast::{ASTNode, ASTNodeType},
+    ast::{ASTNode, ASTNodeKind},
     env::Environment,
     error::Error,
     exec::{exec, EvalError},
@@ -589,7 +589,7 @@ impl PrefixOperable for ComprehensionSet {}
 impl InfixOperable for ComprehensionSet {
     fn contains(&self, other: &Object) -> Option<Object> {
         let symbol = match &self.value.kind {
-            ASTNodeType::Symbol { name } => name,
+            ASTNodeKind::Symbol { name } => name,
             _ => unimplemented!(),
         };
 

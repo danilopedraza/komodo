@@ -55,12 +55,12 @@ impl InfixOperator {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ASTNode {
-    pub kind: ASTNodeType,
+    pub kind: ASTNodeKind,
     pub position: Position,
 }
 
 impl ASTNode {
-    pub fn new(kind: ASTNodeType, position: Position) -> Self {
+    pub fn new(kind: ASTNodeKind, position: Position) -> Self {
         Self { kind, position }
     }
 }
@@ -84,7 +84,7 @@ impl Ord for ASTNode {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum ASTNodeType {
+pub enum ASTNodeKind {
     AdInfinitum,
     Boolean(bool),
     Call {
@@ -184,50 +184,50 @@ pub mod tests {
     use super::*;
     pub fn call(called: ASTNode, args: Vec<ASTNode>, position: Position) -> ASTNode {
         let called = Box::new(called);
-        ASTNode::new(ASTNodeType::Call { called, args }, position)
+        ASTNode::new(ASTNodeKind::Call { called, args }, position)
     }
 
     pub fn function(params: Vec<&str>, proc: Vec<ASTNode>, position: Position) -> ASTNode {
         let params = params.into_iter().map(|str| str.to_string()).collect();
-        ASTNode::new(ASTNodeType::Function { params, proc }, position)
+        ASTNode::new(ASTNodeKind::Function { params, proc }, position)
     }
 
     pub fn fraction(numer: ASTNode, denom: ASTNode, position: Position) -> ASTNode {
         let numer = Box::new(numer);
         let denom = Box::new(denom);
-        ASTNode::new(ASTNodeType::Fraction { numer, denom }, position)
+        ASTNode::new(ASTNodeKind::Fraction { numer, denom }, position)
     }
 
     pub fn symbol(name: &str, position: Position) -> ASTNode {
         let name = name.to_string();
-        ASTNode::new(ASTNodeType::Symbol { name }, position)
+        ASTNode::new(ASTNodeKind::Symbol { name }, position)
     }
 
     pub fn integer(dec: &str, position: Position) -> ASTNode {
         let dec = dec.to_string();
-        ASTNode::new(ASTNodeType::Integer { dec }, position)
+        ASTNode::new(ASTNodeKind::Integer { dec }, position)
     }
 
     pub fn cons(first: ASTNode, tail: ASTNode, position: Position) -> ASTNode {
         let first = Box::new(first);
         let tail = Box::new(tail);
-        ASTNode::new(ASTNodeType::Cons { first, tail }, position)
+        ASTNode::new(ASTNodeKind::Cons { first, tail }, position)
     }
 
     pub fn extension_list(list: Vec<ASTNode>, position: Position) -> ASTNode {
-        ASTNode::new(ASTNodeType::ExtensionList { list }, position)
+        ASTNode::new(ASTNodeKind::ExtensionList { list }, position)
     }
 
     pub fn _for(val: &str, iter: ASTNode, proc: Vec<ASTNode>, position: Position) -> ASTNode {
         let val = val.to_string();
         let iter = Box::new(iter);
-        ASTNode::new(ASTNodeType::For { val, iter, proc }, position)
+        ASTNode::new(ASTNodeKind::For { val, iter, proc }, position)
     }
 
     pub fn infix(op: InfixOperator, lhs: ASTNode, rhs: ASTNode, position: Position) -> ASTNode {
         let lhs = Box::new(lhs);
         let rhs = Box::new(rhs);
-        ASTNode::new(ASTNodeType::Infix { op, lhs, rhs }, position)
+        ASTNode::new(ASTNodeKind::Infix { op, lhs, rhs }, position)
     }
 
     pub fn pos(start: usize, length: usize) -> Position {
@@ -235,50 +235,50 @@ pub mod tests {
     }
 
     pub fn boolean(val: bool, position: Position) -> ASTNode {
-        ASTNode::new(ASTNodeType::Boolean(val), position)
+        ASTNode::new(ASTNodeKind::Boolean(val), position)
     }
 
     pub fn comprehension_list(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
         let val = Box::new(val);
         let prop = Box::new(prop);
-        ASTNode::new(ASTNodeType::ComprehensionList { val, prop }, position)
+        ASTNode::new(ASTNodeKind::ComprehensionList { val, prop }, position)
     }
 
     pub fn comprehension_set(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
         let val = Box::new(val);
         let prop = Box::new(prop);
-        ASTNode::new(ASTNodeType::ComprehensionSet { val, prop }, position)
+        ASTNode::new(ASTNodeKind::ComprehensionSet { val, prop }, position)
     }
 
     pub fn decimal(int: &str, dec: &str, position: Position) -> ASTNode {
         let int = int.to_string();
         let dec = dec.to_string();
-        ASTNode::new(ASTNodeType::Decimal { int, dec }, position)
+        ASTNode::new(ASTNodeKind::Decimal { int, dec }, position)
     }
 
     pub fn extension_set(list: Vec<ASTNode>, position: Position) -> ASTNode {
-        ASTNode::new(ASTNodeType::ExtensionSet { list }, position)
+        ASTNode::new(ASTNodeKind::ExtensionSet { list }, position)
     }
 
     pub fn let_(ident: ASTNode, params: Vec<ASTNode>, val: ASTNode, position: Position) -> ASTNode {
         let ident = Box::new(ident);
         let val = Box::new(val);
-        ASTNode::new(ASTNodeType::Let { ident, params, val }, position)
+        ASTNode::new(ASTNodeKind::Let { ident, params, val }, position)
     }
 
     pub fn prefix(op: PrefixOperator, val: ASTNode, position: Position) -> ASTNode {
         let val = Box::new(val);
-        ASTNode::new(ASTNodeType::Prefix { op, val }, position)
+        ASTNode::new(ASTNodeKind::Prefix { op, val }, position)
     }
 
     pub fn signature(val: ASTNode, constraint: Option<ASTNode>, position: Position) -> ASTNode {
         let val = Box::new(val);
         let constraint = constraint.map(Box::new);
-        ASTNode::new(ASTNodeType::Signature { val, constraint }, position)
+        ASTNode::new(ASTNodeKind::Signature { val, constraint }, position)
     }
 
     pub fn tuple(values: Vec<ASTNode>, position: Position) -> ASTNode {
-        ASTNode::new(ASTNodeType::Tuple { values }, position)
+        ASTNode::new(ASTNodeKind::Tuple { values }, position)
     }
 
     pub fn range(start: ASTNode, end: ASTNode, position: Position) -> ASTNode {
@@ -290,7 +290,7 @@ pub mod tests {
         let positive = Box::new(positive);
         let negative = Box::new(negative);
         ASTNode::new(
-            ASTNodeType::If {
+            ASTNodeKind::If {
                 cond,
                 positive,
                 negative,
@@ -304,7 +304,7 @@ pub mod tests {
         let element = Box::new(element);
 
         ASTNode::new(
-            ASTNodeType::ContainerElement { container, element },
+            ASTNodeKind::ContainerElement { container, element },
             position,
         )
     }
@@ -314,26 +314,26 @@ pub mod tests {
         complete: bool,
         position: Position,
     ) -> ASTNode {
-        ASTNode::new(ASTNodeType::Dictionary { pairs, complete }, position)
+        ASTNode::new(ASTNodeKind::Dictionary { pairs, complete }, position)
     }
 
     pub fn string(str: &str, position: Position) -> ASTNode {
         let str = str.to_string();
-        ASTNode::new(ASTNodeType::String { str }, position)
+        ASTNode::new(ASTNodeKind::String { str }, position)
     }
 
     pub fn wildcard(position: Position) -> ASTNode {
-        ASTNode::new(ASTNodeType::Wildcard, position)
+        ASTNode::new(ASTNodeKind::Wildcard, position)
     }
 
     pub fn ad_infinitum(position: Position) -> ASTNode {
-        ASTNode::new(ASTNodeType::AdInfinitum, position)
+        ASTNode::new(ASTNodeKind::AdInfinitum, position)
     }
 
     pub fn set_cons(some: ASTNode, most: ASTNode, position: Position) -> ASTNode {
         let some = Box::new(some);
         let most = Box::new(most);
 
-        ASTNode::new(ASTNodeType::SetCons { some, most }, position)
+        ASTNode::new(ASTNodeKind::SetCons { some, most }, position)
     }
 }

@@ -6,7 +6,7 @@ use crate::object::{
     Fraction, Function, Kind, Range,
 };
 
-use crate::ast::{ASTNode, ASTNodeType, InfixOperator};
+use crate::ast::{ASTNode, ASTNodeKind, InfixOperator};
 use crate::cst::PrefixOperator;
 use crate::env::Environment;
 use crate::object::{
@@ -68,44 +68,44 @@ fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, Error> {
 
 pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     let res = match &node.kind {
-        ASTNodeType::Symbol { name } => symbol(name, env),
-        ASTNodeType::ExtensionSet { list } => extension_set(list, env),
-        ASTNodeType::Integer { dec } => integer(dec),
-        ASTNodeType::Function { params, proc } => function(params, proc),
-        ASTNodeType::Infix { op, lhs, rhs } => infix(
+        ASTNodeKind::Symbol { name } => symbol(name, env),
+        ASTNodeKind::ExtensionSet { list } => extension_set(list, env),
+        ASTNodeKind::Integer { dec } => integer(dec),
+        ASTNodeKind::Function { params, proc } => function(params, proc),
+        ASTNodeKind::Infix { op, lhs, rhs } => infix(
             op.clone(),
             &exec(lhs, env)?,
             &exec(rhs, env)?,
             node.position,
         ),
-        ASTNodeType::Let { ident, params, val } if params.is_empty() => let_(ident, val, env),
-        ASTNodeType::Let { ident, params, val } => let_function(ident, params, val, env),
-        ASTNodeType::Boolean(val) => boolean(*val),
-        ASTNodeType::Call { called, args } => call(called, args, env, node.position),
-        ASTNodeType::Char(chr) => char(*chr),
-        ASTNodeType::ComprehensionSet { val, prop } => comprehension_set(val, prop),
-        ASTNodeType::If {
+        ASTNodeKind::Let { ident, params, val } if params.is_empty() => let_(ident, val, env),
+        ASTNodeKind::Let { ident, params, val } => let_function(ident, params, val, env),
+        ASTNodeKind::Boolean(val) => boolean(*val),
+        ASTNodeKind::Call { called, args } => call(called, args, env, node.position),
+        ASTNodeKind::Char(chr) => char(*chr),
+        ASTNodeKind::ComprehensionSet { val, prop } => comprehension_set(val, prop),
+        ASTNodeKind::If {
             cond,
             positive,
             negative,
         } => if_(exec(cond, env)?, positive, negative, env),
-        ASTNodeType::Prefix { op, val } => prefix(*op, exec(val, env)?, node.position),
-        ASTNodeType::Signature {
+        ASTNodeKind::Prefix { op, val } => prefix(*op, exec(val, env)?, node.position),
+        ASTNodeKind::Signature {
             val: _,
             constraint: _,
         } => todo!(),
-        ASTNodeType::String { str } => string(str),
-        ASTNodeType::Tuple { values } => tuple(values, env),
-        ASTNodeType::For { val, iter, proc } => for_(val, iter, proc, env),
-        ASTNodeType::ExtensionList { list } => extension_list(list, env),
-        ASTNodeType::ComprehensionList { val, prop } => comprehension_list(val, prop, env),
-        ASTNodeType::Wildcard => unimplemented!(),
-        ASTNodeType::AdInfinitum => unimplemented!(),
-        ASTNodeType::Cons { first, tail } => cons(exec(first, env)?, tail, env),
-        ASTNodeType::Decimal { int, dec } => decimal(int, dec),
-        ASTNodeType::Fraction { numer, denom } => fraction(numer, denom, node.position, env),
-        ASTNodeType::Dictionary { pairs, complete: _ } => dictionary(pairs, env),
-        ASTNodeType::ContainerElement { container, element } => {
+        ASTNodeKind::String { str } => string(str),
+        ASTNodeKind::Tuple { values } => tuple(values, env),
+        ASTNodeKind::For { val, iter, proc } => for_(val, iter, proc, env),
+        ASTNodeKind::ExtensionList { list } => extension_list(list, env),
+        ASTNodeKind::ComprehensionList { val, prop } => comprehension_list(val, prop, env),
+        ASTNodeKind::Wildcard => unimplemented!(),
+        ASTNodeKind::AdInfinitum => unimplemented!(),
+        ASTNodeKind::Cons { first, tail } => cons(exec(first, env)?, tail, env),
+        ASTNodeKind::Decimal { int, dec } => decimal(int, dec),
+        ASTNodeKind::Fraction { numer, denom } => fraction(numer, denom, node.position, env),
+        ASTNodeKind::Dictionary { pairs, complete: _ } => dictionary(pairs, env),
+        ASTNodeKind::ContainerElement { container, element } => {
             let container_obj = exec(container, env)?;
             let element_obj = exec(element, env)?;
 
@@ -124,7 +124,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
                 )),
             }
         }
-        ASTNodeType::SetCons { some, most } => set_cons(exec(some, env)?, most, env),
+        ASTNodeKind::SetCons { some, most } => set_cons(exec(some, env)?, most, env),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -236,12 +236,12 @@ fn boolean(val: bool) -> Result<Object, Error> {
 
 fn let_(ident: &ASTNode, value: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     match &ident.kind {
-        ASTNodeType::Symbol { name } => exec_and_set(value, name, env),
-        ASTNodeType::Signature {
+        ASTNodeKind::Symbol { name } => exec_and_set(value, name, env),
+        ASTNodeKind::Signature {
             val,
             constraint: None,
         } => match &val.kind {
-            ASTNodeType::Symbol { name } => exec_and_set(value, name, env),
+            ASTNodeKind::Symbol { name } => exec_and_set(value, name, env),
             _ => todo!(),
         },
         _ => unimplemented!(),
@@ -269,19 +269,19 @@ fn comprehension_list(
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let symbol = match &prop.kind {
-        ASTNodeType::Infix {
+        ASTNodeKind::Infix {
             op: InfixOperator::In,
             lhs,
             rhs: _,
         } => match &lhs.kind {
-            ASTNodeType::Symbol { name } => name,
+            ASTNodeKind::Symbol { name } => name,
             _ => todo!(),
         },
         _ => todo!(),
     };
 
     let iterator = match &prop.kind {
-        ASTNodeType::Infix {
+        ASTNodeKind::Infix {
             op: InfixOperator::In,
             lhs: _,
             rhs,
@@ -307,7 +307,7 @@ fn let_function(
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let name = match &ident.kind {
-        ASTNodeType::Symbol { name } => name,
+        ASTNodeKind::Symbol { name } => name,
         _ => unimplemented!(),
     };
 

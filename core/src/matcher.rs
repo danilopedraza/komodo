@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, iter::zip};
 
 use crate::{
-    ast::{ASTNode, ASTNodeType, InfixOperator},
+    ast::{ASTNode, ASTNodeKind, InfixOperator},
     env::Environment,
     exec::exec,
     object::{Dictionary, ExtensionList, Object},
@@ -55,18 +55,18 @@ fn match_sequence(patterns: &[ASTNode], vals: &[Object]) -> Option<Match> {
 
 fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
     match &pattern.kind {
-        ASTNodeType::Wildcard => empty_match(),
-        ASTNodeType::Symbol { name } => single_match(name, val),
-        ASTNodeType::ExtensionList { list } => match_extension_list(list, val),
-        ASTNodeType::Cons { first, tail } => match_prefix_crop(first, tail, val),
-        ASTNodeType::Dictionary { pairs, complete } => match_dictionary(pairs, *complete, val),
-        ASTNodeType::Infix {
+        ASTNodeKind::Wildcard => empty_match(),
+        ASTNodeKind::Symbol { name } => single_match(name, val),
+        ASTNodeKind::ExtensionList { list } => match_extension_list(list, val),
+        ASTNodeKind::Cons { first, tail } => match_prefix_crop(first, tail, val),
+        ASTNodeKind::Dictionary { pairs, complete } => match_dictionary(pairs, *complete, val),
+        ASTNodeKind::Infix {
             op: InfixOperator::Range,
             lhs,
             rhs,
         } => match_range(lhs, rhs, val),
-        ASTNodeType::SetCons { some, most } => set_cons(some, most, val),
-        ASTNodeType::Fraction { numer, denom } => fraction(numer, denom, val),
+        ASTNodeKind::SetCons { some, most } => set_cons(some, most, val),
+        ASTNodeKind::Fraction { numer, denom } => fraction(numer, denom, val),
         _ => match_constant(pattern, val),
     }
 }
@@ -89,7 +89,7 @@ fn match_extension_list(pattern: &[ASTNode], val: &Object) -> Option<Match> {
 fn match_list(pattern: &[ASTNode], list: &[Object]) -> Option<Match> {
     match pattern.last() {
         Some(ASTNode {
-            kind: ASTNodeType::AdInfinitum,
+            kind: ASTNodeKind::AdInfinitum,
             position: _,
         }) => zip(&pattern[..pattern.len() - 1], list)
             .map(|(pattern, val)| match_(pattern, val))

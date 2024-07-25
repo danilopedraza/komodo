@@ -1,5 +1,5 @@
 use crate::{
-    ast::{self, ASTNode, ASTNodeType},
+    ast::{self, ASTNode, ASTNodeKind},
     cst::{CSTNode, CSTNodeType, InfixOperator, PrefixOperator},
     error::Error,
 };
@@ -10,7 +10,7 @@ pub enum WeederError {}
 type WeederResult<T> = Result<T, Error>;
 
 pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
-    let tp: ASTNodeType = match node.kind {
+    let tp: ASTNodeKind = match node.kind {
         CSTNodeType::Boolean(bool) => boolean(bool),
         CSTNodeType::Char(chr) => char(chr),
         CSTNodeType::ComprehensionSet(val, prop) => comprehension_set(*val, *prop),
@@ -48,69 +48,69 @@ fn rewrite_pair((left, right): (CSTNode, CSTNode)) -> WeederResult<(ASTNode, AST
     Ok((left, right))
 }
 
-fn boolean(val: bool) -> WeederResult<ASTNodeType> {
-    Ok(ASTNodeType::Boolean(val))
+fn boolean(val: bool) -> WeederResult<ASTNodeKind> {
+    Ok(ASTNodeKind::Boolean(val))
 }
 
-fn char(chr: char) -> WeederResult<ASTNodeType> {
-    Ok(ASTNodeType::Char(chr))
+fn char(chr: char) -> WeederResult<ASTNodeKind> {
+    Ok(ASTNodeKind::Char(chr))
 }
 
-fn comprehension_set(val: CSTNode, prop: CSTNode) -> WeederResult<ASTNodeType> {
+fn comprehension_set(val: CSTNode, prop: CSTNode) -> WeederResult<ASTNodeKind> {
     let val = Box::new(rewrite(val)?);
     let prop = Box::new(rewrite(prop)?);
-    Ok(ASTNodeType::ComprehensionSet { val, prop })
+    Ok(ASTNodeKind::ComprehensionSet { val, prop })
 }
 
-fn comprehension_list(val: CSTNode, prop: CSTNode) -> WeederResult<ASTNodeType> {
+fn comprehension_list(val: CSTNode, prop: CSTNode) -> WeederResult<ASTNodeKind> {
     let val = Box::new(rewrite(val)?);
     let prop = Box::new(rewrite(prop)?);
-    Ok(ASTNodeType::ComprehensionList { val, prop })
+    Ok(ASTNodeKind::ComprehensionList { val, prop })
 }
 
-fn decimal(int: String, dec: String) -> WeederResult<ASTNodeType> {
-    Ok(ASTNodeType::Decimal { int, dec })
+fn decimal(int: String, dec: String) -> WeederResult<ASTNodeKind> {
+    Ok(ASTNodeKind::Decimal { int, dec })
 }
 
-fn extension_list(list: Vec<CSTNode>) -> WeederResult<ASTNodeType> {
+fn extension_list(list: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
     let list = rewrite_vec(list)?;
-    Ok(ASTNodeType::ExtensionList { list })
+    Ok(ASTNodeKind::ExtensionList { list })
 }
 
-fn extension_set(list: Vec<CSTNode>) -> WeederResult<ASTNodeType> {
+fn extension_set(list: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
     let list = rewrite_vec(list)?;
-    Ok(ASTNodeType::ExtensionSet { list })
+    Ok(ASTNodeKind::ExtensionSet { list })
 }
 
-fn _for(val: String, iter: CSTNode, proc: Vec<CSTNode>) -> WeederResult<ASTNodeType> {
+fn _for(val: String, iter: CSTNode, proc: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
     let iter = Box::new(rewrite(iter)?);
     let proc = rewrite_vec(proc)?;
-    Ok(ASTNodeType::For { val, iter, proc })
+    Ok(ASTNodeKind::For { val, iter, proc })
 }
 
-fn function(params: Vec<String>, proc: Vec<CSTNode>) -> WeederResult<ASTNodeType> {
+fn function(params: Vec<String>, proc: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
     let proc = rewrite_vec(proc)?;
-    Ok(ASTNodeType::Function { params, proc })
+    Ok(ASTNodeKind::Function { params, proc })
 }
 
-fn fraction(numer: CSTNode, denom: CSTNode) -> WeederResult<ASTNodeType> {
+fn fraction(numer: CSTNode, denom: CSTNode) -> WeederResult<ASTNodeKind> {
     let numer = Box::new(rewrite(numer)?);
     let denom = Box::new(rewrite(denom)?);
-    Ok(ASTNodeType::Fraction { numer, denom })
+    Ok(ASTNodeKind::Fraction { numer, denom })
 }
 
-fn _if(cond: CSTNode, positive: CSTNode, negative: CSTNode) -> WeederResult<ASTNodeType> {
+fn _if(cond: CSTNode, positive: CSTNode, negative: CSTNode) -> WeederResult<ASTNodeKind> {
     let cond = Box::new(rewrite(cond)?);
     let positive = Box::new(rewrite(positive)?);
     let negative = Box::new(rewrite(negative)?);
-    Ok(ASTNodeType::If {
+    Ok(ASTNodeKind::If {
         cond,
         positive,
         negative,
     })
 }
 
-fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTNodeType> {
+fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTNodeKind> {
     match cst_op {
         InfixOperator::BitwiseAnd => infix_node(ast::InfixOperator::BitwiseAnd, lhs, rhs),
         InfixOperator::BitwiseXor => infix_node(ast::InfixOperator::BitwiseXor, lhs, rhs),
@@ -151,12 +151,12 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
         InfixOperator::Dot => match (rewrite(lhs)?, rewrite(rhs)?.kind) {
             (
                 ASTNode {
-                    kind: ASTNodeType::Integer { dec: int },
+                    kind: ASTNodeKind::Integer { dec: int },
                     position: _,
                 },
-                ASTNodeType::Integer { dec },
+                ASTNodeKind::Integer { dec },
             ) => decimal(int, dec),
-            (first_arg, ASTNodeType::Call { called, args }) => Ok(ASTNodeType::Call {
+            (first_arg, ASTNodeKind::Call { called, args }) => Ok(ASTNodeKind::Call {
                 called,
                 args: vec![first_arg].into_iter().chain(args).collect(),
             }),
@@ -184,91 +184,91 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
     }
 }
 
-fn container_element(container: CSTNode, element: CSTNode) -> WeederResult<ASTNodeType> {
+fn container_element(container: CSTNode, element: CSTNode) -> WeederResult<ASTNodeKind> {
     let container = Box::new(rewrite(container)?);
     let element = Box::new(rewrite(element)?);
-    Ok(ASTNodeType::ContainerElement { container, element })
+    Ok(ASTNodeKind::ContainerElement { container, element })
 }
 
-fn infix_node(op: ast::InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTNodeType> {
+fn infix_node(op: ast::InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTNodeKind> {
     let lhs = Box::new(rewrite(lhs)?);
     let rhs = Box::new(rewrite(rhs)?);
-    Ok(ASTNodeType::Infix { op, lhs, rhs })
+    Ok(ASTNodeKind::Infix { op, lhs, rhs })
 }
 
-fn integer(dec: String) -> WeederResult<ASTNodeType> {
-    Ok(ASTNodeType::Integer { dec })
+fn integer(dec: String) -> WeederResult<ASTNodeKind> {
+    Ok(ASTNodeKind::Integer { dec })
 }
 
-fn _let(ident: CSTNode, params: Vec<CSTNode>, val: CSTNode) -> WeederResult<ASTNodeType> {
+fn _let(ident: CSTNode, params: Vec<CSTNode>, val: CSTNode) -> WeederResult<ASTNodeKind> {
     let ident = Box::new(rewrite(ident)?);
     let params = rewrite_vec(params)?;
     let val = Box::new(rewrite(val)?);
-    Ok(ASTNodeType::Let { ident, params, val })
+    Ok(ASTNodeKind::Let { ident, params, val })
 }
 
-fn prefix(op: PrefixOperator, val: CSTNode) -> WeederResult<ASTNodeType> {
+fn prefix(op: PrefixOperator, val: CSTNode) -> WeederResult<ASTNodeKind> {
     let val = Box::new(rewrite(val)?);
-    Ok(ASTNodeType::Prefix { op, val })
+    Ok(ASTNodeKind::Prefix { op, val })
 }
 
-fn cons(first: CSTNode, tail: CSTNode) -> WeederResult<ASTNodeType> {
+fn cons(first: CSTNode, tail: CSTNode) -> WeederResult<ASTNodeKind> {
     let first = Box::new(rewrite(first)?);
     let tail = Box::new(rewrite(tail)?);
-    Ok(ASTNodeType::Cons { first, tail })
+    Ok(ASTNodeKind::Cons { first, tail })
 }
 
-fn signature(val: CSTNode, constraint: Option<Box<CSTNode>>) -> WeederResult<ASTNodeType> {
+fn signature(val: CSTNode, constraint: Option<Box<CSTNode>>) -> WeederResult<ASTNodeKind> {
     let val = Box::new(rewrite(val)?);
     let constraint = match constraint {
         None => None,
         Some(node) => Some(Box::new(rewrite(*node)?)),
     };
-    Ok(ASTNodeType::Signature { val, constraint })
+    Ok(ASTNodeKind::Signature { val, constraint })
 }
 
-fn string(str: String) -> WeederResult<ASTNodeType> {
-    Ok(ASTNodeType::String { str })
+fn string(str: String) -> WeederResult<ASTNodeKind> {
+    Ok(ASTNodeKind::String { str })
 }
 
-fn symbol(name: String) -> WeederResult<ASTNodeType> {
-    Ok(ASTNodeType::Symbol { name })
+fn symbol(name: String) -> WeederResult<ASTNodeKind> {
+    Ok(ASTNodeKind::Symbol { name })
 }
 
-fn tuple(values: Vec<CSTNode>) -> WeederResult<ASTNodeType> {
+fn tuple(values: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
     let values = rewrite_vec(values)?;
-    Ok(ASTNodeType::Tuple { values })
+    Ok(ASTNodeKind::Tuple { values })
 }
 
-fn wildcard() -> WeederResult<ASTNodeType> {
-    Ok(ASTNodeType::Wildcard)
+fn wildcard() -> WeederResult<ASTNodeKind> {
+    Ok(ASTNodeKind::Wildcard)
 }
 
-fn call(called: CSTNode, args: Vec<CSTNode>) -> WeederResult<ASTNodeType> {
+fn call(called: CSTNode, args: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
     let called = Box::new(rewrite(called)?);
     let args = rewrite_vec(args)?;
-    Ok(ASTNodeType::Call { called, args })
+    Ok(ASTNodeKind::Call { called, args })
 }
 
-fn dictionary(pairs: Vec<(CSTNode, CSTNode)>, complete: bool) -> WeederResult<ASTNodeType> {
+fn dictionary(pairs: Vec<(CSTNode, CSTNode)>, complete: bool) -> WeederResult<ASTNodeKind> {
     let pairs: WeederResult<Vec<(ASTNode, ASTNode)>> =
         pairs.into_iter().map(rewrite_pair).collect();
 
-    Ok(ASTNodeType::Dictionary {
+    Ok(ASTNodeKind::Dictionary {
         pairs: pairs?,
         complete,
     })
 }
 
-fn ad_infinitum() -> WeederResult<ASTNodeType> {
-    Ok(ASTNodeType::AdInfinitum)
+fn ad_infinitum() -> WeederResult<ASTNodeKind> {
+    Ok(ASTNodeKind::AdInfinitum)
 }
 
-fn set_cons(some: CSTNode, most: CSTNode) -> WeederResult<ASTNodeType> {
+fn set_cons(some: CSTNode, most: CSTNode) -> WeederResult<ASTNodeKind> {
     let some = Box::new(rewrite(some)?);
     let most = Box::new(rewrite(most)?);
 
-    Ok(ASTNodeType::SetCons { some, most })
+    Ok(ASTNodeKind::SetCons { some, most })
 }
 
 #[cfg(test)]
