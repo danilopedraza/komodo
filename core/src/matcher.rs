@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, iter::zip};
 
 use crate::{
-    ast::{ASTNode, ASTNodeType},
+    ast::{ASTNode, ASTNodeType, InfixOperator},
     env::Environment,
     exec::exec,
     object::{Dictionary, ExtensionList, Object},
@@ -60,6 +60,11 @@ fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
         ASTNodeType::ExtensionList { list } => match_extension_list(list, val),
         ASTNodeType::Cons { first, tail } => match_prefix_crop(first, tail, val),
         ASTNodeType::Dictionary { pairs, complete } => match_dictionary(pairs, *complete, val),
+        ASTNodeType::Infix {
+            op: InfixOperator::Range,
+            lhs,
+            rhs,
+        } => match_range(lhs, rhs, val),
         _ => match_constant(pattern, val),
     }
 }
@@ -150,6 +155,16 @@ fn match_dict(
     res
 }
 
+fn match_range(lhs: &ASTNode, rhs: &ASTNode, val: &Object) -> Option<Match> {
+    match val {
+        Object::Range(range) => join(
+            match_(lhs, &Object::Integer(range.start.to_owned())),
+            match_(rhs, &Object::Integer(range.end.to_owned())),
+        ),
+        _ => None,
+    }
+}
+
 fn match_constant(pattern: &ASTNode, val: &Object) -> Option<Match> {
     if isolated_unchecked_exec(pattern) == *val {
         empty_match()
@@ -166,10 +181,11 @@ fn isolated_unchecked_exec(node: &ASTNode) -> Object {
 mod tests {
     use crate::{
         ast::tests::{
-            ad_infinitum, cons, dictionary, extension_list, integer, string, symbol, wildcard,
+            ad_infinitum, cons, dictionary, extension_list, integer, range, string, symbol,
+            wildcard,
         },
         cst::tests::dummy_pos,
-        object::{Dictionary, Integer},
+        object::{Dictionary, Integer, Range},
     };
 
     use super::*;
@@ -343,5 +359,24 @@ mod tests {
         );
 
         assert_eq!(match_(&pattern, &value), empty_match(),);
+    }
+
+    #[test]
+    fn range_() {
+        let pattern = range(
+            symbol("a", dummy_pos()),
+            symbol("b", dummy_pos()),
+            dummy_pos(),
+        );
+
+        let value = Object::Range(Range::new(&Integer::from(0), &Integer::from(1)));
+
+        assert_eq!(
+            match_(&pattern, &value),
+            join(
+                single_match("a", &Object::Integer(0.into())),
+                single_match("b", &Object::Integer(1.into()))
+            ),
+        );
     }
 }
