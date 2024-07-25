@@ -53,7 +53,10 @@ case "$POSITIONAL_ARG" in
     (cd vsc-extension; vsce publish --skip-duplicate)
     ;;
   shortlist)
-    echo build-core-wasm test-core lint-core lint-core-browser test-core-browser build-book deploy-book serve-book deploy-site deploy-vsc-extension shortlist
+    echo build-core-wasm test-core lint-core lint-core-browser test-core-browser build-book deploy-book serve-book deploy-site deploy-vsc-extension run-repl shortlist
+    ;;
+  run-repl)
+    (cd core; cargo run --all-features --quiet)
     ;;
   *)
     echo "Unknown option: $POSITIONAL_ARG"
