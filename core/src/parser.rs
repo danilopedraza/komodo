@@ -445,6 +445,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
                 Ok(comprehension_set(first, second, self.start_to_cur(start)))
             }
+            Some(TokenType::VerticalBar) => self.set_cons(first, start),
             Some(TokenType::Colon) => {
                 let first = (first, self.expression(Precedence::Lowest)?);
                 self.dict(first, start)
@@ -468,6 +469,17 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 self.cur_pos,
             )),
         }
+    }
+
+    fn set_cons(&mut self, first: CSTNode, start: usize) -> _NodeResult {
+        let some = Box::new(first);
+        let most = Box::new(self.expression(Precedence::Lowest)?);
+        self.consume(TokenType::Rbrace)?;
+
+        Ok(CSTNode::new(
+            CSTNodeType::SetCons { some, most },
+            self.start_to_cur(start),
+        ))
     }
 
     fn dict(&mut self, first: (CSTNode, CSTNode), start: usize) -> _NodeResult {
@@ -523,7 +535,7 @@ pub fn parser_from<T: Iterator<Item = Result<Token, Error>>>(tokens: T) -> Parse
 mod tests {
     use super::*;
     use crate::{
-        cst::tests::{_pos, ad_infinitum, boolean, char, integer, string},
+        cst::tests::{_pos, ad_infinitum, boolean, char, integer, set_cons, string, wildcard},
         error::Position,
         lexer::build_lexer,
     };
@@ -1231,7 +1243,7 @@ mod tests {
     }
 
     #[test]
-    fn wildcard() {
+    fn wildcard_() {
         let input = "[a, 1, _]";
 
         let lexer = build_lexer(input);
@@ -1487,6 +1499,21 @@ mod tests {
             Some(Ok(dictionary(
                 vec![(integer("1", _pos(1, 1)), integer("5", _pos(4, 1)),),],
                 false,
+                _pos(0, 9)
+            ))),
+        );
+    }
+
+    #[test]
+    fn set_cons_() {
+        let input = "{first|_}";
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(set_cons(
+                symbol("first", _pos(1, 5)),
+                wildcard(_pos(7, 1)),
                 _pos(0, 9)
             ))),
         );

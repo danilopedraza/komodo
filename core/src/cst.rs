@@ -179,6 +179,10 @@ pub enum CSTNodeType {
     Let(Box<CSTNode>, Vec<CSTNode>, Box<CSTNode>),
     Prefix(PrefixOperator, Box<CSTNode>),
     Cons(Box<CSTNode>, Box<CSTNode>),
+    SetCons {
+        some: Box<CSTNode>,
+        most: Box<CSTNode>,
+    },
     Signature(Box<CSTNode>, Option<Box<CSTNode>>),
     String(String),
     Symbol(String),
@@ -303,6 +307,16 @@ pub mod tests {
 
     pub fn ad_infinitum(position: Position) -> CSTNode {
         CSTNode::new(CSTNodeType::AdInfinitum, position)
+    }
+
+    pub fn wildcard(position: Position) -> CSTNode {
+        CSTNode::new(CSTNodeType::Wildcard, position)
+    }
+
+    pub fn set_cons(some: CSTNode, most: CSTNode, position: Position) -> CSTNode {
+        let some = Box::new(some);
+        let most = Box::new(most);
+        CSTNode::new(CSTNodeType::SetCons { some, most }, position)
     }
 
     // pub fn function(params: Vec<&str>, proc: Vec<CSTNode>, position: Position) -> CSTNode {
