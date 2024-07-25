@@ -1283,7 +1283,7 @@ impl fmt::Display for ExtensionList {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Fraction {
-    val: BigRational,
+    pub val: BigRational,
 }
 
 impl Fraction {

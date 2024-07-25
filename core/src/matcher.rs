@@ -66,6 +66,7 @@ fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
             rhs,
         } => match_range(lhs, rhs, val),
         ASTNodeType::SetCons { some, most } => set_cons(some, most, val),
+        ASTNodeType::Fraction { numer, denom } => fraction(numer, denom, val),
         _ => match_constant(pattern, val),
     }
 }
@@ -188,6 +189,18 @@ fn set_cons(some: &ASTNode, most: &ASTNode, val: &Object) -> Option<Match> {
     }
 }
 
+fn fraction(numer: &ASTNode, denom: &ASTNode, val: &Object) -> Option<Match> {
+    match val {
+        Object::Fraction(frac) => {
+            let numer_val = Object::Integer(frac.val.numer().to_owned().into());
+            let denom_val = Object::Integer(frac.val.denom().to_owned().into());
+
+            join(match_(numer, &numer_val), match_(denom, &denom_val))
+        }
+        _ => None,
+    }
+}
+
 fn match_constant(pattern: &ASTNode, val: &Object) -> Option<Match> {
     if isolated_unchecked_exec(pattern) == *val {
         empty_match()
@@ -204,11 +217,11 @@ fn isolated_unchecked_exec(node: &ASTNode) -> Object {
 mod tests {
     use crate::{
         ast::tests::{
-            ad_infinitum, cons, dictionary, extension_list, integer, range, set_cons, string,
-            symbol, wildcard,
+            ad_infinitum, cons, dictionary, extension_list, fraction, integer, range, set_cons,
+            string, symbol, wildcard,
         },
         cst::tests::dummy_pos,
-        object::{Dictionary, Integer, Range},
+        object::{Dictionary, Fraction, Integer, Range},
     };
 
     use super::*;
@@ -416,6 +429,22 @@ mod tests {
         assert_eq!(
             match_(&pattern, &value),
             single_match("val", &Object::Integer(0.into())),
+        );
+    }
+
+    #[test]
+    fn fraction_() {
+        let pattern = fraction(
+            integer("1", dummy_pos()),
+            symbol("denom", dummy_pos()),
+            dummy_pos(),
+        );
+
+        let value = Object::Fraction(Fraction::new(1.into(), 2.into()));
+
+        assert_eq!(
+            match_(&pattern, &value),
+            single_match("denom", &Object::Integer(2.into()))
         );
     }
 }
