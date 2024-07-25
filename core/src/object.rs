@@ -546,6 +546,12 @@ impl From<Vec<Object>> for ExtensionSet {
     }
 }
 
+impl From<BTreeSet<Object>> for ExtensionSet {
+    fn from(set: BTreeSet<Object>) -> Self {
+        Self { set }
+    }
+}
+
 impl fmt::Display for ExtensionSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let list = self

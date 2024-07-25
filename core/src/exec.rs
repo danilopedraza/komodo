@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::error::{Error, Position};
 use crate::object::{
     self, Callable, ComprehensionSet, Decimal, Dictionary, ExtensionList, FailedAssertion,
@@ -122,7 +124,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
                 )),
             }
         }
-        ASTNodeType::SetCons { some: _, most: _ } => todo!(),
+        ASTNodeType::SetCons { some, most } => set_cons(&exec(some, env)?, most, env),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -132,6 +134,35 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ))
     } else {
         res
+    }
+}
+
+fn set_cons(some: &Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
+    match exec(most, env)? {
+        Object::ExtensionList(lst) => {
+            let mut res = BTreeSet::new();
+            res.insert(some.to_owned());
+
+            for obj in lst.list {
+                res.insert(obj.to_owned());
+            }
+
+            Ok(Object::ExtensionSet(res.into()))
+        }
+        Object::ExtensionSet(set) => {
+            let mut res = BTreeSet::new();
+            res.insert(some.to_owned());
+
+            for obj in set.set {
+                res.insert(obj.to_owned());
+            }
+
+            Ok(Object::ExtensionSet(res.into()))
+        }
+        obj => Err(Error(
+            EvalError::NonPrependableObject(obj.kind()).into(),
+            most.position,
+        )),
     }
 }
 
@@ -503,7 +534,7 @@ mod tests {
     use crate::ast::tests::{
         _for, _if, boolean, call, comprehension_list, comprehension_set, cons, container_element,
         decimal, extension_list, extension_set, fraction, function, infix, integer, let_, pos,
-        prefix, range, signature, symbol, tuple,
+        prefix, range, set_cons, signature, symbol, tuple,
     };
     use crate::cst::tests::dummy_pos;
     use crate::error::ErrorType;
@@ -1364,6 +1395,23 @@ mod tests {
                 .into(),
                 dummy_pos()
             ))
+        );
+    }
+
+    #[test]
+    fn set_cons_() {
+        let node = set_cons(
+            ast::tests::integer("1", dummy_pos()),
+            ast::tests::extension_set(vec![integer("2", dummy_pos())], dummy_pos()),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            exec(&node, &mut Environment::default()),
+            Ok(Object::ExtensionSet(ExtensionSet::from(vec![
+                Object::Integer(1.into()),
+                Object::Integer(2.into())
+            ]))),
         );
     }
 }

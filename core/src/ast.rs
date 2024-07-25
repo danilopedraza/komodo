@@ -329,4 +329,11 @@ pub mod tests {
     pub fn ad_infinitum(position: Position) -> ASTNode {
         ASTNode::new(ASTNodeType::AdInfinitum, position)
     }
+
+    pub fn set_cons(some: ASTNode, most: ASTNode, position: Position) -> ASTNode {
+        let some = Box::new(some);
+        let most = Box::new(most);
+
+        ASTNode::new(ASTNodeType::SetCons { some, most }, position)
+    }
 }
