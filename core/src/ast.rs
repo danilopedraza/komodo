@@ -157,6 +157,10 @@ pub enum ASTNodeType {
         first: Box<ASTNode>,
         tail: Box<ASTNode>,
     },
+    SetCons {
+        some: Box<ASTNode>,
+        most: Box<ASTNode>,
+    },
     Signature {
         val: Box<ASTNode>,
         constraint: Option<Box<ASTNode>>,

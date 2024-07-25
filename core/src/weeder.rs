@@ -31,7 +31,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeType::Wildcard => wildcard(),
         CSTNodeType::Dictionary { pairs, complete } => dictionary(pairs, complete),
         CSTNodeType::AdInfinitum => ad_infinitum(),
-        CSTNodeType::SetCons { some: _, most: _ } => todo!(),
+        CSTNodeType::SetCons { some, most } => set_cons(*some, *most),
     }?;
 
     Ok(ASTNode::new(tp, node.position))
@@ -262,6 +262,13 @@ fn dictionary(pairs: Vec<(CSTNode, CSTNode)>, complete: bool) -> WeederResult<AS
 
 fn ad_infinitum() -> WeederResult<ASTNodeType> {
     Ok(ASTNodeType::AdInfinitum)
+}
+
+fn set_cons(some: CSTNode, most: CSTNode) -> WeederResult<ASTNodeType> {
+    let some = Box::new(rewrite(some)?);
+    let most = Box::new(rewrite(most)?);
+
+    Ok(ASTNodeType::SetCons { some, most })
 }
 
 #[cfg(test)]

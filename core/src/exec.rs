@@ -122,6 +122,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
                 )),
             }
         }
+        ASTNodeType::SetCons { some: _, most: _ } => todo!(),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
