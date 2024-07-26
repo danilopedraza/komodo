@@ -128,6 +128,9 @@ fn found_a(tok: &TokenType) -> String {
         TokenType::True => "a boolean: `true`".into(),
         TokenType::Unknown => "an unknown symbol".into(),
         TokenType::Wildcard => "a wildcard: `_`".into(),
+        TokenType::As => "the `as` keyword".into(),
+        TokenType::From => "the `from` keyword".into(),
+        TokenType::Import => "the `import` keyword".into(),
     }
 }
 

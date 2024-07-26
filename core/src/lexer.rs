@@ -25,6 +25,7 @@ impl Token {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TokenType {
     Arrow,
+    As,
     Assign,
     Bang,
     BitwiseAnd,
@@ -39,10 +40,12 @@ pub enum TokenType {
     Equals,
     False,
     For,
+    From,
     Greater,
     GreaterEqual,
     Ident(String),
     If,
+    Import,
     In,
     Integer(String),
     Lbrace,
@@ -234,10 +237,13 @@ impl Lexer<'_> {
 
     fn keyword(literal: &str) -> Option<TokenType> {
         match literal {
+            "as" => Some(TokenType::As),
             "else" => Some(TokenType::Else),
             "false" => Some(TokenType::False),
             "for" => Some(TokenType::For),
+            "from" => Some(TokenType::From),
             "if" => Some(TokenType::If),
+            "import" => Some(TokenType::Import),
             "in" => Some(TokenType::In),
             "let" => Some(TokenType::Let),
             "then" => Some(TokenType::Then),
@@ -685,6 +691,23 @@ mod tests {
                 TokenType::Lbrack,
                 TokenType::Integer(String::from("0")),
                 TokenType::Rbrack,
+            ])
+        );
+    }
+
+    #[test]
+    fn import_statement() {
+        let code = "from foo import bar as baz";
+
+        assert_eq!(
+            token_types_from(code),
+            Ok(vec![
+                TokenType::From,
+                TokenType::Ident(String::from("foo")),
+                TokenType::Import,
+                TokenType::Ident(String::from("bar")),
+                TokenType::As,
+                TokenType::Ident(String::from("baz"))
             ])
         );
     }
