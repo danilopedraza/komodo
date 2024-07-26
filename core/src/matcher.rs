@@ -4,7 +4,7 @@ use crate::{
     ast::{ASTNode, ASTNodeKind, InfixOperator},
     env::Environment,
     exec::exec,
-    object::{Dictionary, ExtensionList, Object},
+    object::{Dictionary, ExtensionList, ExtensionSet, Object},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -58,6 +58,7 @@ fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
         ASTNodeKind::Wildcard => empty_match(),
         ASTNodeKind::Symbol { name } => single_match(name, val),
         ASTNodeKind::ExtensionList { list } => match_extension_list(list, val),
+        ASTNodeKind::ExtensionSet { list } => match_extension_set(list, val),
         ASTNodeKind::Cons { first, tail } => match_prefix_crop(first, tail, val),
         ASTNodeKind::Dictionary { pairs, complete } => match_dictionary(pairs, *complete, val),
         ASTNodeKind::Infix {
@@ -82,6 +83,21 @@ fn empty_match() -> Option<Match> {
 fn match_extension_list(pattern: &[ASTNode], val: &Object) -> Option<Match> {
     match val {
         Object::ExtensionList(ExtensionList { list }) => match_list(pattern, list),
+        _ => None,
+    }
+}
+
+fn match_extension_set(patterns: &[ASTNode], val: &Object) -> Option<Match> {
+    match val {
+        Object::ExtensionSet(ExtensionSet { set }) => {
+            let mut res = empty_match();
+
+            for (pattern, val) in zip(patterns, set) {
+                res = join(res, match_(pattern, val));
+            }
+
+            res
+        }
         _ => None,
     }
 }
@@ -217,11 +233,11 @@ fn isolated_unchecked_exec(node: &ASTNode) -> Object {
 mod tests {
     use crate::{
         ast::tests::{
-            ad_infinitum, cons, dictionary, extension_list, fraction, integer, range, set_cons,
-            string, symbol, wildcard,
+            ad_infinitum, cons, dictionary, extension_list, extension_set, fraction, integer,
+            range, set_cons, string, symbol, wildcard,
         },
         cst::tests::dummy_pos,
-        object::{Dictionary, Fraction, Integer, Range},
+        object::{Dictionary, ExtensionSet, Fraction, Integer, Range},
     };
 
     use super::*;
@@ -446,5 +462,20 @@ mod tests {
             match_(&pattern, &value),
             single_match("denom", &Object::Integer(2.into()))
         );
+    }
+
+    #[test]
+    fn full_set() {
+        let pattern = extension_set(
+            vec![wildcard(dummy_pos()), wildcard(dummy_pos())],
+            dummy_pos(),
+        );
+
+        let value = Object::ExtensionSet(ExtensionSet::from(vec![
+            Object::Integer(0.into()),
+            Object::Integer(1.into()),
+        ]));
+
+        assert_eq!(match_(&pattern, &value), empty_match(),);
     }
 }
