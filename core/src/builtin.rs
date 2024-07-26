@@ -1,5 +1,5 @@
 use crate::{
-    env::Environment,
+    env::{Environment, ExecContext},
     exec::truthy,
     object::{Effect, FailedAssertion, Function, MyString, Object, Tuple},
 };
@@ -29,8 +29,8 @@ pub fn smtc_assert(args: &[Object]) -> Object {
     }
 }
 
-fn env_with(assets: Vec<(&str, Object)>) -> Environment {
-    let mut env = Environment::default();
+fn env_with(assets: Vec<(&str, Object)>, ctx: ExecContext) -> Environment {
+    let mut env = Environment::new(ctx);
 
     for (name, value) in assets {
         env.set(name, value);
@@ -39,19 +39,22 @@ fn env_with(assets: Vec<(&str, Object)>) -> Environment {
     env
 }
 
-pub fn standard_env() -> Environment {
-    env_with(vec![
-        (
-            "println",
-            Object::Function(Function::Effect(Effect::new(smtc_println, 1))),
-        ),
-        (
-            "getln",
-            Object::Function(Function::Effect(Effect::new(smtc_getln, 0))),
-        ),
-        (
-            "assert",
-            Object::Function(Function::Effect(Effect::new(smtc_assert, 1))),
-        ),
-    ])
+pub fn standard_env(ctx: ExecContext) -> Environment {
+    env_with(
+        vec![
+            (
+                "println",
+                Object::Function(Function::Effect(Effect::new(smtc_println, 1))),
+            ),
+            (
+                "getln",
+                Object::Function(Function::Effect(Effect::new(smtc_getln, 0))),
+            ),
+            (
+                "assert",
+                Object::Function(Function::Effect(Effect::new(smtc_assert, 1))),
+            ),
+        ],
+        ctx,
+    )
 }

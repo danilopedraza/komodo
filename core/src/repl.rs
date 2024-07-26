@@ -1,7 +1,7 @@
 use crate::{
     ast::ASTNode,
     builtin::standard_env,
-    env::Environment,
+    env::{Environment, ExecContext},
     error::{error_msg, Error, ErrorMessage, ErrorType},
     lexer::build_lexer,
     object::Object,
@@ -28,7 +28,7 @@ struct Repl {
 impl Repl {
     fn standard_repl() -> Self {
         Self {
-            env: standard_env(),
+            env: standard_env(ExecContext::Repl),
             code: String::new(),
         }
     }

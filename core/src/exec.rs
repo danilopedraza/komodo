@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use std::fs;
 
 use crate::error::{Error, Position};
 use crate::object::{
@@ -8,10 +9,11 @@ use crate::object::{
 
 use crate::ast::{ASTNode, ASTNodeKind, InfixOperator};
 use crate::cst::PrefixOperator;
-use crate::env::Environment;
+use crate::env::{Environment, ExecContext};
 use crate::object::{
     Bool, Char, DefinedFunction, ExtensionSet, Integer, MyString, Object, Symbol, Tuple,
 };
+use crate::run;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvalError {
@@ -125,7 +127,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             }
         }
         ASTNodeKind::SetCons { some, most } => set_cons(exec(some, env)?, most, env),
-        ASTNodeKind::ImportFrom { source: _, values: _ } => todo!(),
+        ASTNodeKind::ImportFrom { source, values } => import_from(source, values, env),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -135,6 +137,18 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ))
     } else {
         res
+    }
+}
+
+fn import_from(module: &str, values: &[String], env: &mut Environment) -> Result<Object, Error> {
+    match &env.ctx {
+        ExecContext::File { reference_path } => {
+            let source = fs::read_to_string(format!("{reference_path}/{module}.smtc")).unwrap();
+
+            run::import_from(&source, values, env)?;
+            Ok(Object::empty_tuple())
+        }
+        _ => Ok(Object::empty_tuple()),
     }
 }
 

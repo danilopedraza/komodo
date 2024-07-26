@@ -17,19 +17,37 @@ impl Scope {
     }
 }
 
+pub enum ExecContext {
+    Repl,
+    File {
+        reference_path: String,
+    },
+    #[cfg(test)]
+    Test,
+}
+
 pub struct Environment {
     scopes: Vec<Scope>,
+    pub ctx: ExecContext,
 }
 
 impl Default for Environment {
     fn default() -> Self {
         Self {
             scopes: vec![Scope::default()],
+            ctx: ExecContext::Repl,
         }
     }
 }
 
 impl Environment {
+    pub fn new(ctx: ExecContext) -> Self {
+        Self {
+            scopes: vec![Scope::default()],
+            ctx,
+        }
+    }
+
     pub fn get(&mut self, name: &str) -> Option<&mut Object> {
         for scope in self.scopes.iter_mut().rev() {
             match scope.get(name) {
