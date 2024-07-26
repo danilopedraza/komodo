@@ -32,6 +32,11 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeKind::Dictionary { pairs, complete } => dictionary(pairs, complete),
         CSTNodeKind::AdInfinitum => ad_infinitum(),
         CSTNodeKind::SetCons { some, most } => set_cons(*some, *most),
+        CSTNodeKind::Import { name: _, alias: _ } => todo!(),
+        CSTNodeKind::ImportFrom {
+            source: _,
+            values: _,
+        } => todo!(),
     }?;
 
     Ok(ASTNode::new(tp, node.position))

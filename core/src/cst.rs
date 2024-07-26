@@ -174,6 +174,14 @@ pub enum CSTNodeKind {
     ExtensionSet(Vec<CSTNode>),
     For(String, Box<CSTNode>, Vec<CSTNode>),
     If(Box<CSTNode>, Box<CSTNode>, Box<CSTNode>),
+    Import {
+        name: String,
+        alias: Option<String>,
+    },
+    ImportFrom {
+        source: String,
+        values: Vec<String>,
+    },
     Infix(InfixOperator, Box<CSTNode>, Box<CSTNode>),
     Integer(String),
     Let(Box<CSTNode>, Vec<CSTNode>, Box<CSTNode>),
@@ -317,6 +325,18 @@ pub mod tests {
         let some = Box::new(some);
         let most = Box::new(most);
         CSTNode::new(CSTNodeKind::SetCons { some, most }, position)
+    }
+
+    pub fn import(name: &str, alias: Option<&str>, position: Position) -> CSTNode {
+        let name = name.to_string();
+        let alias = alias.map(|s| s.to_string());
+        CSTNode::new(CSTNodeKind::Import { name, alias }, position)
+    }
+
+    pub fn import_from(source: &str, values: Vec<&str>, position: Position) -> CSTNode {
+        let source = source.to_string();
+        let values = values.into_iter().map(|s| s.to_string()).collect();
+        CSTNode::new(CSTNodeKind::ImportFrom { source, values }, position)
     }
 
     // pub fn function(params: Vec<&str>, proc: Vec<CSTNode>, position: Position) -> CSTNode {

@@ -50,7 +50,9 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 TokenType::Char(chr) => self.char(chr),
                 TokenType::DotDot => self.ad_infinitum(),
                 TokenType::For => self.for_(),
+                TokenType::From => self.import_from(),
                 TokenType::If => self.if_(),
+                TokenType::Import => self.import(),
                 TokenType::Let => self.let_(),
                 TokenType::True => self.boolean(true),
                 TokenType::False => self.boolean(false),
@@ -380,6 +382,51 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         Ok(_for(&ident, iter, proc, self.start_to_cur(start)))
     }
 
+    fn import_from(&mut self) -> _NodeResult {
+        let start = self.cur_pos.start;
+        match self.next_token()? {
+            Some(TokenType::Ident(source)) => {
+                self.consume(TokenType::Import)?;
+                match self.expression(Precedence::Lowest)? {
+                    CSTNode {
+                        kind: CSTNodeKind::Symbol(val),
+                        position: _,
+                    } => Ok(CSTNode::new(
+                        CSTNodeKind::ImportFrom {
+                            source,
+                            values: vec![val],
+                        },
+                        self.start_to_cur(start),
+                    )),
+                    CSTNode {
+                        kind: CSTNodeKind::Tuple(vals),
+                        position: _,
+                    } => {
+                        let mut values = vec![];
+                        for val in vals {
+                            if let CSTNode {
+                                kind: CSTNodeKind::Symbol(name),
+                                position: _,
+                            } = val
+                            {
+                                values.push(name);
+                            } else {
+                                todo!()
+                            }
+                        }
+
+                        Ok(CSTNode::new(
+                            CSTNodeKind::ImportFrom { source, values },
+                            self.start_to_cur(start),
+                        ))
+                    }
+                    _ => todo!(),
+                }
+            }
+            _ => todo!(),
+        }
+    }
+
     fn consume(&mut self, expected_tok: TokenType) -> Result<(), Error> {
         match self.next_token()? {
             Some(tok) if tok == expected_tok => Ok(()),
@@ -408,6 +455,31 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         let second_res = self.expression(Precedence::Lowest)?;
 
         Ok(_if(cond, first_res, second_res, self.start_to_cur(start)))
+    }
+
+    fn import(&mut self) -> _NodeResult {
+        let start = self.cur_pos.start;
+
+        match (self.next_token()?, self.peek_token()) {
+            (Some(TokenType::Ident(name)), Ok(Some(TokenType::As))) => {
+                self.next_token()?;
+                match self.next_token()? {
+                    Some(TokenType::Ident(alias)) => Ok(CSTNode::new(
+                        CSTNodeKind::Import {
+                            name,
+                            alias: Some(alias),
+                        },
+                        self.start_to_cur(start),
+                    )),
+                    _ => todo!(),
+                }
+            }
+            (Some(TokenType::Ident(name)), _) => Ok(CSTNode::new(
+                CSTNodeKind::Import { name, alias: None },
+                self.start_to_cur(start),
+            )),
+            _ => todo!(),
+        }
     }
 
     fn current_infix(&mut self) -> Option<InfixOperator> {
@@ -535,7 +607,10 @@ pub fn parser_from<T: Iterator<Item = Result<Token, Error>>>(tokens: T) -> Parse
 mod tests {
     use super::*;
     use crate::{
-        cst::tests::{_pos, ad_infinitum, boolean, char, integer, set_cons, string, wildcard},
+        cst::tests::{
+            _pos, ad_infinitum, boolean, char, import, import_from, integer, set_cons, string,
+            wildcard,
+        },
         error::Position,
         lexer::build_lexer,
     };
@@ -1516,6 +1591,50 @@ mod tests {
                 wildcard(_pos(7, 1)),
                 _pos(0, 9)
             ))),
+        );
+    }
+
+    #[test]
+    fn import_statement() {
+        let input = "import foo";
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(import("foo", None, _pos(0, 10)))),
+        );
+    }
+
+    #[test]
+    fn import_with_alias() {
+        let input = "import foo as bar";
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(import("foo", Some("bar"), _pos(0, 17))))
+        );
+    }
+
+    #[test]
+    fn import_from_() {
+        let input = "from foo import bar";
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(import_from("foo", vec!["bar"], _pos(0, 19)))),
+        );
+    }
+
+    #[test]
+    fn import_several_values() {
+        let input = "from foo import (bar, baz)";
+        let lexer = build_lexer(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(import_from("foo", vec!["bar", "baz"], _pos(0, 26))))
         );
     }
 }
