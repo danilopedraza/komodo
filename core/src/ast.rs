@@ -136,6 +136,10 @@ pub enum ASTNodeKind {
         positive: Box<ASTNode>,
         negative: Box<ASTNode>,
     },
+    ImportFrom {
+        source: String,
+        values: Vec<String>,
+    },
     Infix {
         op: InfixOperator,
         lhs: Box<ASTNode>,

@@ -33,10 +33,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeKind::AdInfinitum => ad_infinitum(),
         CSTNodeKind::SetCons { some, most } => set_cons(*some, *most),
         CSTNodeKind::Import { name: _, alias: _ } => todo!(),
-        CSTNodeKind::ImportFrom {
-            source: _,
-            values: _,
-        } => todo!(),
+        CSTNodeKind::ImportFrom { source, values } => import_from(source, values),
     }?;
 
     Ok(ASTNode::new(tp, node.position))
@@ -274,6 +271,10 @@ fn set_cons(some: CSTNode, most: CSTNode) -> WeederResult<ASTNodeKind> {
     let most = Box::new(rewrite(most)?);
 
     Ok(ASTNodeKind::SetCons { some, most })
+}
+
+fn import_from(source: String, values: Vec<String>) -> WeederResult<ASTNodeKind> {
+    Ok(ASTNodeKind::ImportFrom { source, values })
 }
 
 #[cfg(test)]

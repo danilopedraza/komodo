@@ -125,6 +125,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             }
         }
         ASTNodeKind::SetCons { some, most } => set_cons(exec(some, env)?, most, env),
+        ASTNodeKind::ImportFrom { source: _, values: _ } => todo!(),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
