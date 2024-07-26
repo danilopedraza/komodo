@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::PathBuf};
 
 use crate::object::Object;
 
@@ -20,7 +20,7 @@ impl Scope {
 pub enum ExecContext {
     Repl,
     File {
-        reference_path: String,
+        reference_path: PathBuf,
     },
     #[cfg(test)]
     Test,

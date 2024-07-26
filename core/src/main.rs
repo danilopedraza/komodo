@@ -1,6 +1,6 @@
 use std::env::current_dir;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use symstatic::error::error_msg;
@@ -9,17 +9,17 @@ use symstatic::repl::{repl, MyCLI};
 use symstatic::run::run;
 use symstatic::{builtin::standard_env, env::ExecContext};
 
-fn get_reference_path(path: &str) -> String {
+fn get_reference_path(path: &str) -> PathBuf {
     let path = Path::new(path);
     if path.is_absolute() {
         match path.parent() {
-            None => String::from("/"),
-            Some(parent) => parent.to_str().unwrap().to_owned(),
+            None => Path::new("/").to_owned(),
+            Some(parent) => parent.to_path_buf(),
         }
     } else {
-        let exec_dir = current_dir().unwrap().to_str().unwrap().to_owned();
-        let path_parent = path.parent().unwrap().to_str().unwrap().to_owned();
-        format!("{exec_dir}/{path_parent}")
+        let exec_dir = current_dir().unwrap();
+        let path_parent = path.parent().unwrap();
+        exec_dir.join(path_parent)
     }
 }
 

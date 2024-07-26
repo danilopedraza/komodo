@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 use std::fs;
+use std::path::Path;
 
 use crate::error::{Error, Position};
 use crate::object::{
@@ -143,7 +144,9 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
 fn import_from(module: &str, values: &[String], env: &mut Environment) -> Result<Object, Error> {
     match &env.ctx {
         ExecContext::File { reference_path } => {
-            let source = fs::read_to_string(format!("{reference_path}/{module}.smtc")).unwrap();
+            let source =
+                fs::read_to_string(reference_path.join(Path::new(&format!("{module}.smtc"))))
+                    .unwrap();
 
             run::import_from(&source, values, env)?;
             Ok(Object::empty_tuple())
