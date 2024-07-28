@@ -317,7 +317,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         let first = self.expression(Precedence::Lowest)?;
 
         match self.next_token()? {
-            Some(TokenType::For) => self.comprehension_list_(first, start),
+            Some(TokenType::For) => self.comprehension(first, ComprehensionKind::List, start),
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rbrack, Some(first))
                 .map(|lst| extension_list(lst, self.start_to_cur(start))),
@@ -336,20 +336,28 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
     }
 
-    fn comprehension_list_(&mut self, first: CSTNode, start: usize) -> _NodeResult {
+    fn comprehension(
+        &mut self,
+        first: CSTNode,
+        kind: ComprehensionKind,
+        start: usize,
+    ) -> _NodeResult {
         let variable = match self.next_token()? {
             Some(TokenType::Ident(name)) => Ok(name),
             _ => todo!(),
         }?;
         self.consume(TokenType::In)?;
         let iterator = self.expression(Precedence::Lowest)?;
-        self.consume(TokenType::Rbrack)?;
+        self.consume(match kind {
+            ComprehensionKind::List => TokenType::Rbrack,
+            ComprehensionKind::Set => TokenType::Rbrace,
+        })?;
 
         Ok(comprehension(
             first,
             variable,
             iterator,
-            ComprehensionKind::List,
+            kind,
             self.start_to_cur(start),
         ))
     }
@@ -521,13 +529,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rbrace, Some(first))
                 .map(|lst| extension_set(lst, self.start_to_cur(start))),
-            Some(TokenType::For) => {
-                let second = self.expression(Precedence::Lowest)?;
-
-                self.consume(TokenType::Rbrace)?;
-
-                Ok(comprehension_set(first, second, self.start_to_cur(start)))
-            }
+            Some(TokenType::For) => self.comprehension(first, ComprehensionKind::Set, start),
             Some(TokenType::VerticalBar) => self.set_cons(first, start),
             Some(TokenType::Colon) => {
                 let first = (first, self.expression(Precedence::Lowest)?);
@@ -907,27 +909,17 @@ mod tests {
 
     #[test]
     fn set_comprehension() {
-        let tokens = vec![
-            Token::new(TokenType::Lbrace, _pos(0, 1)),
-            Token::new(TokenType::Ident(String::from("a")), _pos(1, 1)),
-            Token::new(TokenType::For, _pos(3, 3)),
-            Token::new(TokenType::Ident(String::from("a")), _pos(7, 1)),
-            Token::new(TokenType::Equals, _pos(9, 1)),
-            Token::new(TokenType::Integer(String::from("1")), _pos(11, 1)),
-            Token::new(TokenType::Rbrace, _pos(12, 1)),
-        ];
+        let input = "{a for a in S}";
+        let lexer = build_lexer(input);
 
         assert_eq!(
-            parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(comprehension_set(
+            parser_from(lexer).next(),
+            Some(Ok(comprehension(
                 symbol("a", _pos(1, 1)),
-                infix(
-                    InfixOperator::Equality,
-                    symbol("a", _pos(7, 1)),
-                    integer("1", _pos(11, 1)),
-                    _pos(7, 5)
-                ),
-                _pos(0, 13),
+                "a".into(),
+                symbol("S", _pos(12, 1)),
+                ComprehensionKind::Set,
+                _pos(0, 14),
             )))
         );
     }

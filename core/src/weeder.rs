@@ -13,7 +13,6 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
     let tp: ASTNodeKind = match node.kind {
         CSTNodeKind::Boolean(bool) => boolean(bool),
         CSTNodeKind::Char(chr) => char(chr),
-        CSTNodeKind::ComprehensionSet(val, prop) => comprehension_set(*val, *prop),
         CSTNodeKind::ExtensionList(list) => extension_list(list),
         CSTNodeKind::ExtensionSet(list) => extension_set(list),
         CSTNodeKind::For(val, iter, proc) => _for(val, *iter, proc),
@@ -61,12 +60,6 @@ fn boolean(val: bool) -> WeederResult<ASTNodeKind> {
 
 fn char(chr: char) -> WeederResult<ASTNodeKind> {
     Ok(ASTNodeKind::Char(chr))
-}
-
-fn comprehension_set(val: CSTNode, prop: CSTNode) -> WeederResult<ASTNodeKind> {
-    let val = Box::new(rewrite(val)?);
-    let prop = Box::new(rewrite(prop)?);
-    Ok(ASTNodeKind::ComprehensionSet { val, prop })
 }
 
 fn comprehension(

@@ -170,7 +170,6 @@ pub enum CSTNodeKind {
     AdInfinitum,
     Boolean(bool),
     Char(char),
-    ComprehensionSet(Box<CSTNode>, Box<CSTNode>),
     Comprehension {
         kind: ComprehensionKind,
         element: Box<CSTNode>,
@@ -287,13 +286,6 @@ pub fn _if(cond: CSTNode, first_res: CSTNode, second_res: CSTNode, position: Pos
 
 pub fn prefix(op: PrefixOperator, val: CSTNode, position: Position) -> CSTNode {
     CSTNode::new(CSTNodeKind::Prefix(op, Box::new(val)), position)
-}
-
-pub fn comprehension_set(val: CSTNode, prop: CSTNode, position: Position) -> CSTNode {
-    CSTNode::new(
-        CSTNodeKind::ComprehensionSet(Box::new(val), Box::new(prop)),
-        position,
-    )
 }
 
 pub fn dictionary(pairs: Vec<(CSTNode, CSTNode)>, complete: bool, position: Position) -> CSTNode {
