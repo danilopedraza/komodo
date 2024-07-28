@@ -290,20 +290,35 @@ fn comprehension(
     element: &ASTNode,
     variable: &str,
     iterator: &ASTNode,
-    _kind: ComprehensionKind,
+    kind: ComprehensionKind,
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let iterator = get_iterable(iterator, env)?;
 
-    let mut new_list = vec![];
-    env.push_scope();
+    match kind {
+        ComprehensionKind::List => {
+            let mut new_list = vec![];
+            env.push_scope();
 
-    for val in iterator {
-        env.set(variable, val);
-        new_list.push(exec(element, env)?);
+            for val in iterator {
+                env.set(variable, val);
+                new_list.push(exec(element, env)?);
+            }
+
+            Ok(Object::ExtensionList(ExtensionList::from(new_list)))
+        }
+        ComprehensionKind::Set => {
+            let mut new_set = BTreeSet::new();
+            env.push_scope();
+
+            for val in iterator {
+                env.set(variable, val);
+                new_set.insert(exec(element, env)?);
+            }
+
+            Ok(Object::ExtensionSet(ExtensionSet::from(new_set)))
+        }
     }
-
-    Ok(Object::ExtensionList(ExtensionList::from(new_list)))
 }
 
 fn let_function(
@@ -1421,6 +1436,22 @@ mod tests {
                 Object::Integer(1.into()),
                 Object::Integer(2.into())
             ]))),
+        );
+    }
+
+    #[test]
+    fn set_comprehension() {
+        let node = comprehension(
+            symbol("a", dummy_pos()),
+            "a".into(),
+            extension_list(vec![], dummy_pos()),
+            ComprehensionKind::Set,
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            exec(&node, &mut Environment::default()),
+            Ok(Object::ExtensionSet(ExtensionSet::from(vec![]))),
         );
     }
 }
