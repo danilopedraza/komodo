@@ -9,7 +9,7 @@ use crate::object::{
 };
 
 use crate::ast::{ASTNode, ASTNodeKind, InfixOperator};
-use crate::cst::PrefixOperator;
+use crate::cst::{ComprehensionKind, PrefixOperator};
 use crate::env::{Environment, ExecContext};
 use crate::object::{
     Bool, Char, DefinedFunction, ExtensionSet, Integer, MyString, Object, Symbol, Tuple,
@@ -128,11 +128,12 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         }
         ASTNodeKind::SetCons { some, most } => set_cons(exec(some, env)?, most, env),
         ASTNodeKind::ImportFrom { source, values } => import_from(source, values, env),
-        ASTNodeKind::ComprehensionList {
+        ASTNodeKind::Comprehension {
             element,
             variable,
             iterator,
-        } => comprehension_list(element, variable, iterator, env),
+            kind,
+        } => comprehension(element, variable, iterator, *kind, env),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -285,10 +286,11 @@ fn symbol(str: &str, env: &mut Environment) -> Result<Object, Error> {
     }
 }
 
-fn comprehension_list(
+fn comprehension(
     element: &ASTNode,
     variable: &str,
     iterator: &ASTNode,
+    _kind: ComprehensionKind,
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let iterator = get_iterable(iterator, env)?;
@@ -545,7 +547,7 @@ mod tests {
 
     use super::*;
     use crate::ast::tests::{
-        _for, _if, boolean, call, comprehension_list, comprehension_set, cons, container_element,
+        _for, _if, boolean, call, comprehension, comprehension_set, cons, container_element,
         decimal, extension_list, extension_set, fraction, function, infix, integer, let_, pos,
         prefix, range, set_cons, signature, symbol, tuple,
     };
@@ -1166,7 +1168,7 @@ mod tests {
 
     #[test]
     fn comprehension_list_() {
-        let node = &comprehension_list(
+        let node = &comprehension(
             infix(
                 InfixOperator::Sum,
                 symbol("k", dummy_pos()),
@@ -1178,6 +1180,7 @@ mod tests {
                 vec![integer("0", dummy_pos()), integer("1", dummy_pos())],
                 dummy_pos(),
             ),
+            ComprehensionKind::List,
             dummy_pos(),
         );
 
@@ -1291,7 +1294,7 @@ mod tests {
 
     #[test]
     fn list_from_range() {
-        let node = comprehension_list(
+        let node = comprehension(
             infix(
                 InfixOperator::Sum,
                 symbol("k", dummy_pos()),
@@ -1304,6 +1307,7 @@ mod tests {
                 integer("3", dummy_pos()),
                 dummy_pos(),
             ),
+            ComprehensionKind::List,
             dummy_pos(),
         );
 

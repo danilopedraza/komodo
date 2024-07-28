@@ -1,4 +1,7 @@
-use crate::{cst, error::Position};
+use crate::{
+    cst::{self, ComprehensionKind},
+    error::Position,
+};
 use std::hash::Hash;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -92,10 +95,11 @@ pub enum ASTNodeKind {
         args: Vec<ASTNode>,
     },
     Char(char),
-    ComprehensionList {
+    Comprehension {
         element: Box<ASTNode>,
         variable: String,
         iterator: Box<ASTNode>,
+        kind: ComprehensionKind,
     },
     ComprehensionSet {
         val: Box<ASTNode>,
@@ -243,19 +247,21 @@ pub mod tests {
         ASTNode::new(ASTNodeKind::Boolean(val), position)
     }
 
-    pub fn comprehension_list(
+    pub fn comprehension(
         element: ASTNode,
         variable: String,
         iterator: ASTNode,
+        kind: ComprehensionKind,
         position: Position,
     ) -> ASTNode {
         let element = Box::new(element);
         let iterator = Box::new(iterator);
         ASTNode::new(
-            ASTNodeKind::ComprehensionList {
+            ASTNodeKind::Comprehension {
                 element,
                 variable,
                 iterator,
+                kind,
             },
             position,
         )

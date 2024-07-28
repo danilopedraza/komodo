@@ -345,10 +345,11 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         let iterator = self.expression(Precedence::Lowest)?;
         self.consume(TokenType::Rbrack)?;
 
-        Ok(comprehension_list(
+        Ok(comprehension(
             first,
             variable,
             iterator,
+            ComprehensionKind::List,
             self.start_to_cur(start),
         ))
     }
@@ -1373,10 +1374,11 @@ mod tests {
             parser_from(lexer).next(),
             Some(Ok(infix(
                 InfixOperator::Sum,
-                comprehension_list(
+                comprehension(
                     symbol("a", _pos(1, 1)),
                     "a".into(),
                     symbol("b", _pos(12, 1)),
+                    ComprehensionKind::List,
                     _pos(0, 14),
                 ),
                 extension_list(vec![], _pos(17, 2)),

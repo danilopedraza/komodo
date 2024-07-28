@@ -1,6 +1,6 @@
 use crate::{
     ast::{self, ASTNode, ASTNodeKind},
-    cst::{CSTNode, CSTNodeKind, InfixOperator, PrefixOperator},
+    cst::{CSTNode, CSTNodeKind, ComprehensionKind, InfixOperator, PrefixOperator},
     error::Error,
 };
 
@@ -33,11 +33,12 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeKind::SetCons { some, most } => set_cons(*some, *most),
         CSTNodeKind::Import { name: _, alias: _ } => todo!(),
         CSTNodeKind::ImportFrom { source, values } => import_from(source, values),
-        CSTNodeKind::ComprehensionList {
+        CSTNodeKind::Comprehension {
             element,
             variable,
             iterator,
-        } => comprehension_list(*element, variable, *iterator),
+            kind,
+        } => comprehension(*element, variable, *iterator, kind),
     }?;
 
     Ok(ASTNode::new(tp, node.position))
@@ -68,22 +69,21 @@ fn comprehension_set(val: CSTNode, prop: CSTNode) -> WeederResult<ASTNodeKind> {
     Ok(ASTNodeKind::ComprehensionSet { val, prop })
 }
 
-fn comprehension_list(
+fn comprehension(
     element: CSTNode,
     variable: String,
     iterator: CSTNode,
+    kind: ComprehensionKind,
 ) -> WeederResult<ASTNodeKind> {
     let element = Box::new(rewrite(element)?);
     let iterator = Box::new(rewrite(iterator)?);
 
-    Ok(ASTNodeKind::ComprehensionList {
+    Ok(ASTNodeKind::Comprehension {
         element,
         variable,
         iterator,
+        kind,
     })
-    // let val = Box::new(rewrite(val)?);
-    // let prop = Box::new(rewrite(prop)?);
-    // Ok(ASTNodeKind::ComprehensionList { val, prop })
 }
 
 fn decimal(int: String, dec: String) -> WeederResult<ASTNodeKind> {

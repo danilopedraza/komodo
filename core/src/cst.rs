@@ -159,13 +159,20 @@ impl Hash for CSTNode {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum ComprehensionKind {
+    List,
+    Set,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum CSTNodeKind {
     AdInfinitum,
     Boolean(bool),
     Char(char),
     ComprehensionSet(Box<CSTNode>, Box<CSTNode>),
-    ComprehensionList {
+    Comprehension {
+        kind: ComprehensionKind,
         element: Box<CSTNode>,
         variable: String,
         iterator: Box<CSTNode>,
@@ -239,20 +246,22 @@ pub fn extension_set(list: Vec<CSTNode>, position: Position) -> CSTNode {
     CSTNode::new(CSTNodeKind::ExtensionSet(list), position)
 }
 
-pub fn comprehension_list(
+pub fn comprehension(
     element: CSTNode,
     variable: String,
     iterator: CSTNode,
+    kind: ComprehensionKind,
     position: Position,
 ) -> CSTNode {
     let element = Box::new(element);
     let iterator = Box::new(iterator);
 
     CSTNode::new(
-        CSTNodeKind::ComprehensionList {
+        CSTNodeKind::Comprehension {
             element,
             variable,
             iterator,
+            kind,
         },
         position,
     )
