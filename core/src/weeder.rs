@@ -85,12 +85,12 @@ fn decimal(int: String, dec: String) -> WeederResult<ASTNodeKind> {
 
 fn extension_list(list: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
     let list = rewrite_vec(list)?;
-    Ok(ASTNodeKind::ExtensionList { list })
+    Ok(ASTNodeKind::List { list })
 }
 
 fn extension_set(list: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
     let list = rewrite_vec(list)?;
-    Ok(ASTNodeKind::ExtensionSet { list })
+    Ok(ASTNodeKind::Set { list })
 }
 
 fn _for(val: String, iter: CSTNode, proc: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {

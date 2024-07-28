@@ -72,7 +72,7 @@ fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, Error> {
 pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     let res = match &node.kind {
         ASTNodeKind::Symbol { name } => symbol(name, env),
-        ASTNodeKind::ExtensionSet { list } => extension_set(list, env),
+        ASTNodeKind::Set { list } => extension_set(list, env),
         ASTNodeKind::Integer { dec } => integer(dec),
         ASTNodeKind::Function { params, proc } => function(params, proc),
         ASTNodeKind::Infix { op, lhs, rhs } => infix(
@@ -99,7 +99,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeKind::String { str } => string(str),
         ASTNodeKind::Tuple { values } => tuple(values, env),
         ASTNodeKind::For { val, iter, proc } => for_(val, iter, proc, env),
-        ASTNodeKind::ExtensionList { list } => extension_list(list, env),
+        ASTNodeKind::List { list } => extension_list(list, env),
         ASTNodeKind::Wildcard => unimplemented!(),
         ASTNodeKind::AdInfinitum => unimplemented!(),
         ASTNodeKind::Cons { first, tail } => cons(exec(first, env)?, tail, env),

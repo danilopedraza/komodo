@@ -113,10 +113,10 @@ pub enum ASTNodeKind {
         pairs: Vec<(ASTNode, ASTNode)>,
         complete: bool,
     },
-    ExtensionList {
+    List {
         list: Vec<ASTNode>,
     },
-    ExtensionSet {
+    Set {
         list: Vec<ASTNode>,
     },
     For {
@@ -220,7 +220,7 @@ pub mod tests {
     }
 
     pub fn extension_list(list: Vec<ASTNode>, position: Position) -> ASTNode {
-        ASTNode::new(ASTNodeKind::ExtensionList { list }, position)
+        ASTNode::new(ASTNodeKind::List { list }, position)
     }
 
     pub fn _for(val: &str, iter: ASTNode, proc: Vec<ASTNode>, position: Position) -> ASTNode {
@@ -270,7 +270,7 @@ pub mod tests {
     }
 
     pub fn extension_set(list: Vec<ASTNode>, position: Position) -> ASTNode {
-        ASTNode::new(ASTNodeKind::ExtensionSet { list }, position)
+        ASTNode::new(ASTNodeKind::Set { list }, position)
     }
 
     pub fn let_(ident: ASTNode, params: Vec<ASTNode>, val: ASTNode, position: Position) -> ASTNode {

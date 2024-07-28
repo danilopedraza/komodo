@@ -57,8 +57,8 @@ fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
     match &pattern.kind {
         ASTNodeKind::Wildcard => empty_match(),
         ASTNodeKind::Symbol { name } => single_match(name, val),
-        ASTNodeKind::ExtensionList { list } => match_extension_list(list, val),
-        ASTNodeKind::ExtensionSet { list } => match_extension_set(list, val),
+        ASTNodeKind::List { list } => match_extension_list(list, val),
+        ASTNodeKind::Set { list } => match_extension_set(list, val),
         ASTNodeKind::Cons { first, tail } => match_prefix_crop(first, tail, val),
         ASTNodeKind::Dictionary { pairs, complete } => match_dictionary(pairs, *complete, val),
         ASTNodeKind::Infix {
