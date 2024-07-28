@@ -113,6 +113,12 @@ impl Object {
     }
 }
 
+impl From<bool> for Object {
+    fn from(val: bool) -> Self {
+        Object::Boolean(val.into())
+    }
+}
+
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -285,6 +291,13 @@ impl InfixOperable for Bool {
             _ => None,
         }
     }
+
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Boolean(boolean) => Some((self == boolean).into()),
+            _ => None,
+        }
+    }
 }
 
 impl PrefixOperable for Bool {
@@ -336,6 +349,13 @@ impl InfixOperable for Char {
     fn product(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Integer(num) => Some(self.multiply(num)),
+            _ => None,
+        }
+    }
+
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Char(char) => Some((self == char).into()),
             _ => None,
         }
     }
@@ -474,6 +494,13 @@ impl InfixOperable for Decimal {
             _ => None,
         }
     }
+
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Decimal(num) => Some((self == num).into()),
+            _ => None,
+        }
+    }
 }
 
 impl fmt::Display for Decimal {
@@ -516,6 +543,13 @@ impl InfixOperable for ExtensionSet {
     fn sum(&self, other: &Object) -> Option<Object> {
         match other {
             Object::ExtensionSet(set) => Some(self.union(set)),
+            _ => None,
+        }
+    }
+
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::ExtensionSet(set) => Some((self == set).into()),
             _ => None,
         }
     }
@@ -602,7 +636,14 @@ impl fmt::Display for Dictionary {
     }
 }
 
-impl InfixOperable for Dictionary {}
+impl InfixOperable for Dictionary {
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Dictionary(dict) => Some((self == dict).into()),
+            _ => None,
+        }
+    }
+}
 impl PrefixOperable for Dictionary {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -901,6 +942,13 @@ impl InfixOperable for MyString {
             _ => None,
         }
     }
+
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::String(str) => Some((self == str).into()),
+            _ => None,
+        }
+    }
 }
 
 impl PrefixOperable for MyString {}
@@ -952,7 +1000,14 @@ pub struct Tuple {
     list: Vec<Object>,
 }
 
-impl InfixOperable for Tuple {}
+impl InfixOperable for Tuple {
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Tuple(tuple) => Some((self == tuple).into()),
+            _ => None,
+        }
+    }
+}
 impl PrefixOperable for Tuple {}
 
 impl fmt::Display for Tuple {
@@ -980,7 +1035,14 @@ pub enum Function {
     Effect(Effect),
 }
 
-impl InfixOperable for Function {}
+impl InfixOperable for Function {
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Function(func) => Some((self == func).into()),
+            _ => None,
+        }
+    }
+}
 impl PrefixOperable for Function {}
 
 impl fmt::Display for Function {
@@ -1322,6 +1384,13 @@ impl InfixOperable for Fraction {
             _ => None,
         }
     }
+
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Fraction(frac) => Some((self == frac).into()),
+            _ => None,
+        }
+    }
 }
 
 impl PrefixOperable for Fraction {
@@ -1390,7 +1459,14 @@ impl Range {
 }
 
 impl PrefixOperable for Range {}
-impl InfixOperable for Range {}
+impl InfixOperable for Range {
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Range(range) => Some((self == range).into()),
+            _ => None,
+        }
+    }
+}
 
 impl fmt::Display for Range {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1413,7 +1489,11 @@ impl fmt::Display for FailedAssertion {
 }
 
 impl PrefixOperable for FailedAssertion {}
-impl InfixOperable for FailedAssertion {}
+impl InfixOperable for FailedAssertion {
+    fn equality(&self, _other: &Object) -> Option<Object> {
+        Some(Object::Boolean(false.into()))
+    }
+}
 
 #[cfg(test)]
 mod tests {
