@@ -165,7 +165,11 @@ pub enum CSTNodeKind {
     Boolean(bool),
     Char(char),
     ComprehensionSet(Box<CSTNode>, Box<CSTNode>),
-    ComprehensionList(Box<CSTNode>, Box<CSTNode>),
+    ComprehensionList {
+        element: Box<CSTNode>,
+        variable: String,
+        iterator: Box<CSTNode>,
+    },
     Dictionary {
         pairs: Vec<(CSTNode, CSTNode)>,
         complete: bool,
@@ -235,9 +239,21 @@ pub fn extension_set(list: Vec<CSTNode>, position: Position) -> CSTNode {
     CSTNode::new(CSTNodeKind::ExtensionSet(list), position)
 }
 
-pub fn comprehension_list(val: CSTNode, prop: CSTNode, position: Position) -> CSTNode {
+pub fn comprehension_list(
+    element: CSTNode,
+    variable: String,
+    iterator: CSTNode,
+    position: Position,
+) -> CSTNode {
+    let element = Box::new(element);
+    let iterator = Box::new(iterator);
+
     CSTNode::new(
-        CSTNodeKind::ComprehensionList(Box::new(val), Box::new(prop)),
+        CSTNodeKind::ComprehensionList {
+            element,
+            variable,
+            iterator,
+        },
         position,
     )
 }

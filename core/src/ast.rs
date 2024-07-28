@@ -93,8 +93,9 @@ pub enum ASTNodeKind {
     },
     Char(char),
     ComprehensionList {
-        val: Box<ASTNode>,
-        prop: Box<ASTNode>,
+        element: Box<ASTNode>,
+        variable: String,
+        iterator: Box<ASTNode>,
     },
     ComprehensionSet {
         val: Box<ASTNode>,
@@ -242,10 +243,22 @@ pub mod tests {
         ASTNode::new(ASTNodeKind::Boolean(val), position)
     }
 
-    pub fn comprehension_list(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
-        let val = Box::new(val);
-        let prop = Box::new(prop);
-        ASTNode::new(ASTNodeKind::ComprehensionList { val, prop }, position)
+    pub fn comprehension_list(
+        element: ASTNode,
+        variable: String,
+        iterator: ASTNode,
+        position: Position,
+    ) -> ASTNode {
+        let element = Box::new(element);
+        let iterator = Box::new(iterator);
+        ASTNode::new(
+            ASTNodeKind::ComprehensionList {
+                element,
+                variable,
+                iterator,
+            },
+            position,
+        )
     }
 
     pub fn comprehension_set(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {

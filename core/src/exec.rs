@@ -101,7 +101,6 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeKind::Tuple { values } => tuple(values, env),
         ASTNodeKind::For { val, iter, proc } => for_(val, iter, proc, env),
         ASTNodeKind::ExtensionList { list } => extension_list(list, env),
-        ASTNodeKind::ComprehensionList { val, prop } => comprehension_list(val, prop, env),
         ASTNodeKind::Wildcard => unimplemented!(),
         ASTNodeKind::AdInfinitum => unimplemented!(),
         ASTNodeKind::Cons { first, tail } => cons(exec(first, env)?, tail, env),
@@ -129,6 +128,11 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         }
         ASTNodeKind::SetCons { some, most } => set_cons(exec(some, env)?, most, env),
         ASTNodeKind::ImportFrom { source, values } => import_from(source, values, env),
+        ASTNodeKind::ComprehensionList {
+            element,
+            variable,
+            iterator,
+        } => comprehension_list(element, variable, iterator, env),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -282,37 +286,19 @@ fn symbol(str: &str, env: &mut Environment) -> Result<Object, Error> {
 }
 
 fn comprehension_list(
-    transform: &ASTNode,
-    prop: &ASTNode,
+    element: &ASTNode,
+    variable: &str,
+    iterator: &ASTNode,
     env: &mut Environment,
 ) -> Result<Object, Error> {
-    let symbol = match &prop.kind {
-        ASTNodeKind::Infix {
-            op: InfixOperator::In,
-            lhs,
-            rhs: _,
-        } => match &lhs.kind {
-            ASTNodeKind::Symbol { name } => name,
-            _ => todo!(),
-        },
-        _ => todo!(),
-    };
-
-    let iterator = match &prop.kind {
-        ASTNodeKind::Infix {
-            op: InfixOperator::In,
-            lhs: _,
-            rhs,
-        } => get_iterable(rhs, env)?,
-        _ => todo!(),
-    };
+    let iterator = get_iterable(iterator, env)?;
 
     let mut new_list = vec![];
     env.push_scope();
 
     for val in iterator {
-        env.set(symbol, val);
-        new_list.push(exec(transform, env)?);
+        env.set(variable, val);
+        new_list.push(exec(element, env)?);
     }
 
     Ok(Object::ExtensionList(ExtensionList::from(new_list)))
@@ -1187,13 +1173,9 @@ mod tests {
                 integer("1", dummy_pos()),
                 dummy_pos(),
             ),
-            infix(
-                InfixOperator::In,
-                symbol("k", dummy_pos()),
-                extension_list(
-                    vec![integer("0", dummy_pos()), integer("1", dummy_pos())],
-                    dummy_pos(),
-                ),
+            "k".into(),
+            extension_list(
+                vec![integer("0", dummy_pos()), integer("1", dummy_pos())],
                 dummy_pos(),
             ),
             dummy_pos(),
@@ -1316,14 +1298,10 @@ mod tests {
                 integer("1", dummy_pos()),
                 dummy_pos(),
             ),
-            infix(
-                InfixOperator::In,
-                symbol("k", dummy_pos()),
-                range(
-                    integer("0", dummy_pos()),
-                    integer("3", dummy_pos()),
-                    dummy_pos(),
-                ),
+            "k".into(),
+            range(
+                integer("0", dummy_pos()),
+                integer("3", dummy_pos()),
                 dummy_pos(),
             ),
             dummy_pos(),

@@ -337,10 +337,20 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn comprehension_list_(&mut self, first: CSTNode, start: usize) -> _NodeResult {
-        let last = self.expression(Precedence::Lowest)?;
+        let variable = match self.next_token()? {
+            Some(TokenType::Ident(name)) => Ok(name),
+            _ => todo!(),
+        }?;
+        self.consume(TokenType::In)?;
+        let iterator = self.expression(Precedence::Lowest)?;
         self.consume(TokenType::Rbrack)?;
 
-        Ok(comprehension_list(first, last, self.start_to_cur(start)))
+        Ok(comprehension_list(
+            first,
+            variable,
+            iterator,
+            self.start_to_cur(start),
+        ))
     }
 
     fn prepend_(&mut self, first: CSTNode, start: usize) -> _NodeResult {
@@ -1365,13 +1375,9 @@ mod tests {
                 InfixOperator::Sum,
                 comprehension_list(
                     symbol("a", _pos(1, 1)),
-                    infix(
-                        InfixOperator::In,
-                        symbol("a", _pos(7, 1)),
-                        symbol("b", _pos(12, 1)),
-                        _pos(7, 6)
-                    ),
-                    _pos(0, 14)
+                    "a".into(),
+                    symbol("b", _pos(12, 1)),
+                    _pos(0, 14),
                 ),
                 extension_list(vec![], _pos(17, 2)),
                 _pos(0, 19)
