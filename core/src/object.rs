@@ -11,7 +11,7 @@ use num_bigint::{BigInt, BigUint};
 use num_rational::BigRational;
 
 use crate::{
-    ast::{ASTNode, ASTNodeKind},
+    ast::ASTNode,
     env::Environment,
     error::Error,
     exec::{exec, EvalError},
@@ -91,7 +91,6 @@ pub enum Object {
     ExtensionSet(ExtensionSet),
     Fraction(Fraction),
     Function(Function),
-    ComprehensionSet(ComprehensionSet),
     Integer(Integer),
     Range(Range),
     String(MyString),
@@ -119,7 +118,6 @@ impl fmt::Display for Object {
         match self {
             Object::Boolean(boolean) => boolean.fmt(f),
             Object::Char(chr) => chr.fmt(f),
-            Object::ComprehensionSet(set) => set.fmt(f),
             Object::Decimal(dec) => dec.fmt(f),
             Object::Dictionary(dict) => dict.fmt(f),
             Object::Error(err) => err.fmt(f),
@@ -145,7 +143,6 @@ impl Kind for Object {
         match self {
             Object::Boolean(_) => "boolean",
             Object::Char(_) => "character",
-            Object::ComprehensionSet(_) => "comprehension set",
             Object::Decimal(_) => "decimal",
             Object::Dictionary(_) => "dictionary",
             Object::Error(_) => "error",
@@ -169,7 +166,6 @@ macro_rules! derived_object_infix_trait {
             match self {
                 Self::Boolean(left) => left.$ident(other),
                 Self::Char(left) => left.$ident(other),
-                Self::ComprehensionSet(left) => left.$ident(other),
                 Self::Decimal(left) => left.$ident(other),
                 Self::Dictionary(left) => left.$ident(other),
                 Self::Error(left) => left.$ident(other),
@@ -226,7 +222,6 @@ macro_rules! derived_object_prefix_trait {
             match self {
                 Self::Boolean(left) => left.$ident(),
                 Self::Char(left) => left.$ident(),
-                Self::ComprehensionSet(left) => left.$ident(),
                 Self::Decimal(left) => left.$ident(),
                 Self::Dictionary(left) => left.$ident(),
                 Self::Error(left) => left.$ident(),
@@ -562,47 +557,6 @@ impl fmt::Display for ExtensionSet {
             .join(", ");
 
         write!(f, "{{{}}}", list)
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ComprehensionSet {
-    value: ASTNode,
-    prop: ASTNode,
-}
-
-impl Hash for ComprehensionSet {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.value.kind.hash(state);
-        self.prop.kind.hash(state);
-    }
-}
-
-impl From<(ASTNode, ASTNode)> for ComprehensionSet {
-    fn from((value, prop): (ASTNode, ASTNode)) -> Self {
-        Self { value, prop }
-    }
-}
-
-impl PrefixOperable for ComprehensionSet {}
-
-impl InfixOperable for ComprehensionSet {
-    fn contains(&self, other: &Object) -> Option<Object> {
-        let symbol = match &self.value.kind {
-            ASTNodeKind::Symbol { name } => name,
-            _ => unimplemented!(),
-        };
-
-        let mut env = Environment::default();
-        env.set(symbol, other.to_owned());
-
-        Some(exec(&self.prop, &mut env).unwrap())
-    }
-}
-
-impl fmt::Display for ComprehensionSet {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "set")
     }
 }
 

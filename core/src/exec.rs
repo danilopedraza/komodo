@@ -4,8 +4,8 @@ use std::path::Path;
 
 use crate::error::{Error, Position};
 use crate::object::{
-    self, Callable, ComprehensionSet, Decimal, Dictionary, ExtensionList, FailedAssertion,
-    Fraction, Function, Kind, Range,
+    self, Callable, Decimal, Dictionary, ExtensionList, FailedAssertion, Fraction, Function, Kind,
+    Range,
 };
 
 use crate::ast::{ASTNode, ASTNodeKind, InfixOperator};
@@ -86,7 +86,6 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeKind::Boolean(val) => boolean(*val),
         ASTNodeKind::Call { called, args } => call(called, args, env, node.position),
         ASTNodeKind::Char(chr) => char(*chr),
-        ASTNodeKind::ComprehensionSet { val, prop } => comprehension_set(val, prop),
         ASTNodeKind::If {
             cond,
             positive,
@@ -240,13 +239,6 @@ fn tuple(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
 
 fn string(str: &str) -> Result<Object, Error> {
     Ok(Object::String(MyString::from(str)))
-}
-
-fn comprehension_set(value: &ASTNode, prop: &ASTNode) -> Result<Object, Error> {
-    Ok(Object::ComprehensionSet(ComprehensionSet::from((
-        value.clone(),
-        prop.clone(),
-    ))))
 }
 
 fn char(chr: char) -> Result<Object, Error> {
@@ -562,9 +554,9 @@ mod tests {
 
     use super::*;
     use crate::ast::tests::{
-        _for, _if, boolean, call, comprehension, comprehension_set, cons, container_element,
-        decimal, extension_list, extension_set, fraction, function, infix, integer, let_, pos,
-        prefix, range, set_cons, signature, symbol, tuple,
+        _for, _if, boolean, call, comprehension, cons, container_element, decimal, extension_list,
+        extension_set, fraction, function, infix, integer, let_, pos, prefix, range, set_cons,
+        signature, symbol, tuple,
     };
     use crate::cst::tests::dummy_pos;
     use crate::error::ErrorType;
@@ -1079,57 +1071,6 @@ mod tests {
         assert_eq!(
             *ARGS.lock().unwrap(),
             vec![String::from("1"), String::from("2"), String::from("3"),]
-        );
-    }
-
-    #[test]
-    fn comprehension_set_() {
-        let node = &comprehension_set(
-            symbol("k", dummy_pos()),
-            infix(
-                InfixOperator::Greater,
-                symbol("k", dummy_pos()),
-                integer("1", dummy_pos()),
-                dummy_pos(),
-            ),
-            dummy_pos(),
-        );
-
-        assert_eq!(
-            exec(node, &mut Environment::default()),
-            Ok(Object::ComprehensionSet(ComprehensionSet::from((
-                symbol("k", dummy_pos()),
-                infix(
-                    InfixOperator::Greater,
-                    symbol("k", dummy_pos()),
-                    integer("1", dummy_pos()),
-                    dummy_pos()
-                )
-            )))),
-        );
-    }
-
-    #[test]
-    fn comprehension_set_question() {
-        let node = &infix(
-            InfixOperator::In,
-            integer("1", dummy_pos()),
-            comprehension_set(
-                symbol("k", dummy_pos()),
-                infix(
-                    InfixOperator::GreaterEqual,
-                    symbol("k", dummy_pos()),
-                    integer("1", dummy_pos()),
-                    dummy_pos(),
-                ),
-                dummy_pos(),
-            ),
-            dummy_pos(),
-        );
-
-        assert_eq!(
-            exec(node, &mut Environment::default()),
-            Ok(Object::Boolean(crate::object::Bool::from(true))),
         );
     }
 

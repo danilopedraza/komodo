@@ -101,10 +101,6 @@ pub enum ASTNodeKind {
         iterator: Box<ASTNode>,
         kind: ComprehensionKind,
     },
-    ComprehensionSet {
-        val: Box<ASTNode>,
-        prop: Box<ASTNode>,
-    },
     ContainerElement {
         container: Box<ASTNode>,
         element: Box<ASTNode>,
@@ -265,12 +261,6 @@ pub mod tests {
             },
             position,
         )
-    }
-
-    pub fn comprehension_set(val: ASTNode, prop: ASTNode, position: Position) -> ASTNode {
-        let val = Box::new(val);
-        let prop = Box::new(prop);
-        ASTNode::new(ASTNodeKind::ComprehensionSet { val, prop }, position)
     }
 
     pub fn decimal(int: &str, dec: &str, position: Position) -> ASTNode {
