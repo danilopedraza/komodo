@@ -512,13 +512,6 @@ impl Hash for ExtensionSet {
     }
 }
 
-// impl PartialEq for ExtensionSet {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.set == other.set
-//     }
-// }
-// impl Eq for ExtensionSet {}
-
 impl InfixOperable for ExtensionSet {
     fn sum(&self, other: &Object) -> Option<Object> {
         match other {
