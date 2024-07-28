@@ -4,16 +4,13 @@ use std::path::Path;
 
 use crate::error::{Error, Position};
 use crate::object::{
-    self, Callable, Decimal, Dictionary, ExtensionList, FailedAssertion, Fraction, Function, Kind,
-    Range,
+    self, Callable, Decimal, Dictionary, FailedAssertion, Fraction, Function, Kind, List, Range,
 };
 
 use crate::ast::{ASTNode, ASTNodeKind, InfixOperator};
 use crate::cst::{ComprehensionKind, PrefixOperator};
 use crate::env::{Environment, ExecContext};
-use crate::object::{
-    Bool, Char, DefinedFunction, ExtensionSet, Integer, MyString, Object, Symbol, Tuple,
-};
+use crate::object::{Bool, Char, DefinedFunction, Integer, MyString, Object, Set, Symbol, Tuple};
 use crate::run;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -111,7 +108,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             let element_obj = exec(element, env)?;
 
             match container_obj {
-                Object::ExtensionList(list) => match list.get(&element_obj) {
+                Object::List(list) => match list.get(&element_obj) {
                     Ok(obj) => Ok(obj),
                     Err(eval_err) => Err(Error::new(eval_err.into(), element.position)),
                 },
@@ -161,7 +158,7 @@ fn import_from(module: &str, values: &[String], env: &mut Environment) -> Result
 
 fn set_cons(some: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     match exec(most, env)? {
-        Object::ExtensionList(lst) => {
+        Object::List(lst) => {
             let mut res = BTreeSet::new();
             res.insert(some);
 
@@ -169,9 +166,9 @@ fn set_cons(some: Object, most: &ASTNode, env: &mut Environment) -> Result<Objec
                 res.insert(obj.to_owned());
             }
 
-            Ok(Object::ExtensionSet(res.into()))
+            Ok(Object::Set(res.into()))
         }
-        Object::ExtensionSet(set) => {
+        Object::Set(set) => {
             let mut res = BTreeSet::new();
             res.insert(some);
 
@@ -179,7 +176,7 @@ fn set_cons(some: Object, most: &ASTNode, env: &mut Environment) -> Result<Objec
                 res.insert(obj.to_owned());
             }
 
-            Ok(Object::ExtensionSet(res.into()))
+            Ok(Object::Set(res.into()))
         }
         obj => Err(Error(
             EvalError::NonPrependableObject(obj.kind()).into(),
@@ -204,23 +201,23 @@ fn decimal(int: &str, dec: &str) -> Result<Object, Error> {
 
 fn cons(first: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     match exec(most, env)? {
-        Object::ExtensionList(lst) => {
+        Object::List(lst) => {
             let mut res = vec![first];
 
             for obj in lst.list {
                 res.push(obj.to_owned());
             }
 
-            Ok(Object::ExtensionList(res.into()))
+            Ok(Object::List(res.into()))
         }
-        Object::ExtensionSet(set) => {
+        Object::Set(set) => {
             let mut res = vec![first];
 
             for obj in set.set {
                 res.push(obj.to_owned());
             }
 
-            Ok(Object::ExtensionList(res.into()))
+            Ok(Object::List(res.into()))
         }
         obj => Err(Error(
             EvalError::NonPrependableObject(obj.kind()).into(),
@@ -230,7 +227,7 @@ fn cons(first: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, 
 }
 
 fn extension_list(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
-    list(l, env).map(|lst| Object::ExtensionList(ExtensionList::from(lst)))
+    list(l, env).map(|lst| Object::List(List::from(lst)))
 }
 
 fn tuple(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
@@ -268,7 +265,7 @@ fn integer(str: &str) -> Result<Object, Error> {
 }
 
 fn extension_set(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
-    list(l, env).map(|lst| Object::ExtensionSet(ExtensionSet::from(lst)))
+    list(l, env).map(|lst| Object::Set(Set::from(lst)))
 }
 
 fn symbol(str: &str, env: &mut Environment) -> Result<Object, Error> {
@@ -297,7 +294,7 @@ fn comprehension(
                 new_list.push(exec(element, env)?);
             }
 
-            Ok(Object::ExtensionList(ExtensionList::from(new_list)))
+            Ok(Object::List(List::from(new_list)))
         }
         ComprehensionKind::Set => {
             let mut new_set = BTreeSet::new();
@@ -308,7 +305,7 @@ fn comprehension(
                 new_set.insert(exec(element, env)?);
             }
 
-            Ok(Object::ExtensionSet(ExtensionSet::from(new_set)))
+            Ok(Object::Set(Set::from(new_set)))
         }
     }
 }
@@ -394,8 +391,8 @@ fn get_iterable(
     env: &mut Environment,
 ) -> Result<Box<dyn Iterator<Item = Object>>, Error> {
     match exec(node, env)? {
-        Object::ExtensionSet(set) => Ok(Box::new(set.set.into_iter())),
-        Object::ExtensionList(list) => Ok(Box::new(list.list.into_iter())),
+        Object::Set(set) => Ok(Box::new(set.set.into_iter())),
+        Object::List(list) => Ok(Box::new(list.list.into_iter())),
         Object::Range(range) => Ok(Box::new(range.into_iter())),
         obj => Err(Error(
             EvalError::NonIterableObject(obj.kind()).into(),
@@ -580,7 +577,7 @@ mod tests {
 
         assert_eq!(
             exec(&node, &mut Default::default()),
-            Ok(Object::ExtensionSet(ExtensionSet::from(vec![
+            Ok(Object::Set(Set::from(vec![
                 Object::Symbol(Symbol::from("a")),
                 Object::Symbol(Symbol::from("a")),
             ]))),
@@ -1080,9 +1077,9 @@ mod tests {
 
         assert_eq!(
             exec(node, &mut Environment::default()),
-            Ok(Object::ExtensionList(crate::object::ExtensionList::from(
-                vec![Object::Integer(crate::object::Integer::from(1)),]
-            ))),
+            Ok(Object::List(crate::object::List::from(vec![
+                Object::Integer(crate::object::Integer::from(1)),
+            ]))),
         )
     }
 
@@ -1142,7 +1139,7 @@ mod tests {
 
         assert_eq!(
             exec(node, &mut Environment::default()),
-            Ok(Object::ExtensionList(ExtensionList::from(vec![
+            Ok(Object::List(List::from(vec![
                 Object::Integer(Integer::from(1)),
                 Object::Integer(Integer::from(2)),
             ])))
@@ -1157,7 +1154,7 @@ mod tests {
             dummy_pos(),
         );
 
-        let obj = Object::ExtensionList(
+        let obj = Object::List(
             vec![
                 Object::Integer(Integer::from(1)),
                 Object::Symbol(Symbol::from("s")),
@@ -1269,7 +1266,7 @@ mod tests {
 
         assert_eq!(
             exec(&node, &mut Environment::default()),
-            Ok(Object::ExtensionList(ExtensionList::from(vec![
+            Ok(Object::List(List::from(vec![
                 Object::Integer(1.into()),
                 Object::Integer(2.into()),
                 Object::Integer(3.into()),
@@ -1373,7 +1370,7 @@ mod tests {
 
         assert_eq!(
             exec(&node, &mut Environment::default()),
-            Ok(Object::ExtensionSet(ExtensionSet::from(vec![
+            Ok(Object::Set(Set::from(vec![
                 Object::Integer(1.into()),
                 Object::Integer(2.into())
             ]))),
@@ -1392,7 +1389,7 @@ mod tests {
 
         assert_eq!(
             exec(&node, &mut Environment::default()),
-            Ok(Object::ExtensionSet(ExtensionSet::from(vec![]))),
+            Ok(Object::Set(Set::from(vec![]))),
         );
     }
 }

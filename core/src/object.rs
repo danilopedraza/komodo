@@ -87,8 +87,8 @@ pub enum Object {
     Decimal(Decimal),
     Dictionary(Dictionary),
     Error(FailedAssertion),
-    ExtensionList(ExtensionList),
-    ExtensionSet(ExtensionSet),
+    List(List),
+    Set(Set),
     Fraction(Fraction),
     Function(Function),
     Integer(Integer),
@@ -127,8 +127,8 @@ impl fmt::Display for Object {
             Object::Decimal(dec) => dec.fmt(f),
             Object::Dictionary(dict) => dict.fmt(f),
             Object::Error(err) => err.fmt(f),
-            Object::ExtensionList(list) => list.fmt(f),
-            Object::ExtensionSet(es) => es.fmt(f),
+            Object::List(list) => list.fmt(f),
+            Object::Set(es) => es.fmt(f),
             Object::Fraction(frac) => frac.fmt(f),
             Object::Function(func) => func.fmt(f),
             Object::Integer(int) => int.fmt(f),
@@ -152,8 +152,8 @@ impl Kind for Object {
             Object::Decimal(_) => "decimal",
             Object::Dictionary(_) => "dictionary",
             Object::Error(_) => "error",
-            Object::ExtensionList(_) => "extension list",
-            Object::ExtensionSet(_) => "extension set",
+            Object::List(_) => "extension list",
+            Object::Set(_) => "extension set",
             Object::Fraction(_) => "fraction",
             Object::Function(_) => "function",
             Object::Integer(_) => "integer",
@@ -175,8 +175,8 @@ macro_rules! derived_object_infix_trait {
                 Self::Decimal(left) => left.$ident(other),
                 Self::Dictionary(left) => left.$ident(other),
                 Self::Error(left) => left.$ident(other),
-                Self::ExtensionList(left) => left.$ident(other),
-                Self::ExtensionSet(left) => left.$ident(other),
+                Self::List(left) => left.$ident(other),
+                Self::Set(left) => left.$ident(other),
                 Self::Fraction(left) => left.$ident(other),
                 Self::Function(left) => left.$ident(other),
                 Self::Integer(left) => left.$ident(other),
@@ -231,8 +231,8 @@ macro_rules! derived_object_prefix_trait {
                 Self::Decimal(left) => left.$ident(),
                 Self::Dictionary(left) => left.$ident(),
                 Self::Error(left) => left.$ident(),
-                Self::ExtensionList(left) => left.$ident(),
-                Self::ExtensionSet(left) => left.$ident(),
+                Self::List(left) => left.$ident(),
+                Self::Set(left) => left.$ident(),
                 Self::Fraction(left) => left.$ident(),
                 Self::Function(left) => left.$ident(),
                 Self::Integer(left) => left.$ident(),
@@ -516,22 +516,22 @@ impl From<BigDecimal> for Decimal {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ExtensionSet {
+pub struct Set {
     pub set: BTreeSet<Object>,
 }
 
-impl ExtensionSet {
-    fn union(&self, other: &ExtensionSet) -> Object {
+impl Set {
+    fn union(&self, other: &Set) -> Object {
         let set = self
             .set
             .union(&other.set)
             .map(|val| val.to_owned())
             .collect();
-        Object::ExtensionSet(ExtensionSet { set })
+        Object::Set(Set { set })
     }
 }
 
-impl Hash for ExtensionSet {
+impl Hash for Set {
     fn hash<H: Hasher>(&self, state: &mut H) {
         for obj in &self.set {
             obj.hash(state);
@@ -539,24 +539,24 @@ impl Hash for ExtensionSet {
     }
 }
 
-impl InfixOperable for ExtensionSet {
+impl InfixOperable for Set {
     fn sum(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::ExtensionSet(set) => Some(self.union(set)),
+            Object::Set(set) => Some(self.union(set)),
             _ => None,
         }
     }
 
     fn equality(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::ExtensionSet(set) => Some((self == set).into()),
+            Object::Set(set) => Some((self == set).into()),
             _ => None,
         }
     }
 }
-impl PrefixOperable for ExtensionSet {}
+impl PrefixOperable for Set {}
 
-impl From<Vec<Object>> for ExtensionSet {
+impl From<Vec<Object>> for Set {
     fn from(list: Vec<Object>) -> Self {
         let mut _set = BTreeSet::new();
 
@@ -568,13 +568,13 @@ impl From<Vec<Object>> for ExtensionSet {
     }
 }
 
-impl From<BTreeSet<Object>> for ExtensionSet {
+impl From<BTreeSet<Object>> for Set {
     fn from(set: BTreeSet<Object>) -> Self {
         Self { set }
     }
 }
 
-impl fmt::Display for ExtensionSet {
+impl fmt::Display for Set {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let list = self
             .set
@@ -879,7 +879,7 @@ impl InfixOperable for Integer {
             }
             Object::Char(chr) => Some(chr.multiply(self)),
             Object::String(str) => Some(str.multiply(self)),
-            Object::ExtensionList(lst) => Some(lst.multiply(self)),
+            Object::List(lst) => Some(lst.multiply(self)),
             Object::Fraction(Fraction { val }) => Some(Object::Fraction(
                 (&BigRational::from_integer(self.val.to_owned()) * val).into(),
             )),
@@ -1201,11 +1201,11 @@ impl Callable for Effect {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
-pub struct ExtensionList {
+pub struct List {
     pub list: Vec<Object>,
 }
 
-impl ExtensionList {
+impl List {
     fn multiply(&self, num: &Integer) -> Object {
         let times = num.to_machine_magnitude();
         let mut list = vec![];
@@ -1214,7 +1214,7 @@ impl ExtensionList {
             list.extend(self.list.clone());
         }
 
-        Object::ExtensionList(list.into())
+        Object::List(list.into())
     }
 
     pub fn get(&self, index: &Object) -> Result<Object, EvalError> {
@@ -1231,22 +1231,22 @@ impl ExtensionList {
     }
 }
 
-impl Kind for ExtensionList {
+impl Kind for List {
     fn kind(&self) -> String {
         "extension list".into()
     }
 }
 
-impl From<Vec<Object>> for ExtensionList {
+impl From<Vec<Object>> for List {
     fn from(list: Vec<Object>) -> Self {
         Self { list }
     }
 }
 
-impl InfixOperable for ExtensionList {
+impl InfixOperable for List {
     fn sum(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::ExtensionList(ExtensionList { list: other_list }) => {
+            Object::List(List { list: other_list }) => {
                 let list: Vec<Object> = self
                     .list
                     .iter()
@@ -1254,7 +1254,7 @@ impl InfixOperable for ExtensionList {
                     .map(|obj| obj.to_owned())
                     .collect();
 
-                Some(Object::ExtensionList(list.into()))
+                Some(Object::List(list.into()))
             }
             _ => None,
         }
@@ -1269,15 +1269,15 @@ impl InfixOperable for ExtensionList {
 
     fn equality(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::ExtensionList(list) => Some(Object::Boolean((self.list == list.list).into())),
+            Object::List(list) => Some(Object::Boolean((self.list == list.list).into())),
             _ => Some(Object::Boolean(false.into())),
         }
     }
 }
 
-impl PrefixOperable for ExtensionList {}
+impl PrefixOperable for List {}
 
-impl fmt::Display for ExtensionList {
+impl fmt::Display for List {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let list = self
             .list
@@ -1549,12 +1549,12 @@ mod tests {
 
     #[test]
     fn concat_lists() {
-        let l1 = Object::ExtensionList(vec![Object::String("hola".into())].into());
-        let l2 = Object::ExtensionList(vec![Object::Integer(1.into())].into());
+        let l1 = Object::List(vec![Object::String("hola".into())].into());
+        let l2 = Object::List(vec![Object::Integer(1.into())].into());
 
         assert_eq!(
             l1.sum(&l2),
-            Some(Object::ExtensionList(
+            Some(Object::List(
                 vec![Object::String("hola".into()), Object::Integer(1.into())].into()
             ))
         );
@@ -1562,12 +1562,12 @@ mod tests {
 
     #[test]
     fn multiply_lists() {
-        let l = Object::ExtensionList(vec![Object::Integer(0.into())].into());
+        let l = Object::List(vec![Object::Integer(0.into())].into());
         let num = Object::Integer(3.into());
 
         assert_eq!(
             l.product(&num),
-            Some(Object::ExtensionList(
+            Some(Object::List(
                 vec![
                     Object::Integer(0.into()),
                     Object::Integer(0.into()),
@@ -1581,14 +1581,12 @@ mod tests {
 
     #[test]
     fn sum_sets() {
-        let s1 =
-            Object::ExtensionSet(vec![Object::Integer(1.into()), Object::Integer(2.into())].into());
-        let s2 =
-            Object::ExtensionSet(vec![Object::Integer(2.into()), Object::Integer(3.into())].into());
+        let s1 = Object::Set(vec![Object::Integer(1.into()), Object::Integer(2.into())].into());
+        let s2 = Object::Set(vec![Object::Integer(2.into()), Object::Integer(3.into())].into());
 
         assert_eq!(
             s1.sum(&s2),
-            Some(Object::ExtensionSet(
+            Some(Object::Set(
                 vec![
                     Object::Integer(1.into()),
                     Object::Integer(2.into()),

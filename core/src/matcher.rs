@@ -4,7 +4,7 @@ use crate::{
     ast::{ASTNode, ASTNodeKind, InfixOperator},
     env::Environment,
     exec::exec,
-    object::{Dictionary, ExtensionList, ExtensionSet, Object},
+    object::{Dictionary, List, Object, Set},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -82,14 +82,14 @@ fn empty_match() -> Option<Match> {
 
 fn match_extension_list(pattern: &[ASTNode], val: &Object) -> Option<Match> {
     match val {
-        Object::ExtensionList(ExtensionList { list }) => match_list(pattern, list),
+        Object::List(List { list }) => match_list(pattern, list),
         _ => None,
     }
 }
 
 fn match_extension_set(patterns: &[ASTNode], val: &Object) -> Option<Match> {
     match val {
-        Object::ExtensionSet(ExtensionSet { set }) => {
+        Object::Set(Set { set }) => {
             let mut res = empty_match();
 
             for (pattern, val) in zip(patterns, set) {
@@ -116,10 +116,10 @@ fn match_list(pattern: &[ASTNode], list: &[Object]) -> Option<Match> {
 
 fn match_prefix_crop(first: &ASTNode, most: &ASTNode, val: &Object) -> Option<Match> {
     match val {
-        Object::ExtensionList(ExtensionList { list }) if !list.is_empty() => {
+        Object::List(List { list }) if !list.is_empty() => {
             let first_match = match_(first, &list[0]);
 
-            let last_list = Object::ExtensionList(ExtensionList::from(list[1..].to_owned()));
+            let last_list = Object::List(List::from(list[1..].to_owned()));
             let last_match = match_(most, &last_list);
 
             join(first_match, last_match)
@@ -185,13 +185,13 @@ fn match_range(lhs: &ASTNode, rhs: &ASTNode, val: &Object) -> Option<Match> {
 
 fn set_cons(some: &ASTNode, most: &ASTNode, val: &Object) -> Option<Match> {
     match val {
-        Object::ExtensionSet(set) => {
+        Object::Set(set) => {
             for val in &set.set {
                 let mut new_set = set.set.clone();
                 new_set.remove(val);
                 let res = join(
                     match_(some, val),
-                    match_(most, &Object::ExtensionSet(new_set.into())),
+                    match_(most, &Object::Set(new_set.into())),
                 );
 
                 if res.is_some() {
@@ -237,7 +237,7 @@ mod tests {
             range, set_cons, string, symbol, wildcard,
         },
         cst::tests::dummy_pos,
-        object::{Dictionary, ExtensionSet, Fraction, Integer, Range},
+        object::{Dictionary, Fraction, Integer, Range, Set},
     };
 
     use super::*;
@@ -250,10 +250,10 @@ mod tests {
         ];
 
         let args = [
-            Object::ExtensionList(ExtensionList {
+            Object::List(List {
                 list: vec![Object::Integer(Integer::from(1))],
             }),
-            Object::ExtensionList(ExtensionList {
+            Object::List(List {
                 list: vec![Object::Integer(Integer::from(2))],
             }),
         ];
@@ -275,17 +275,13 @@ mod tests {
             dummy_pos(),
         );
 
-        let value =
-            Object::ExtensionList(ExtensionList::from(vec![Object::Integer(Integer::from(4))]));
+        let value = Object::List(List::from(vec![Object::Integer(Integer::from(4))]));
 
         assert_eq!(
             match_(&pattern, &value),
             Some(Match::from(vec![
                 (String::from("first"), Object::Integer(Integer::from(4))),
-                (
-                    String::from("most"),
-                    Object::ExtensionList(ExtensionList::from(vec![]))
-                ),
+                (String::from("most"), Object::List(List::from(vec![]))),
             ])),
         );
     }
@@ -376,7 +372,7 @@ mod tests {
         );
 
         let value = Object::Dictionary(Dictionary::from(vec![(
-            Object::ExtensionList(ExtensionList::from(vec![Object::Integer(1.into())])),
+            Object::List(List::from(vec![Object::Integer(1.into())])),
             Object::Integer(10.into()),
         )]));
 
@@ -406,9 +402,7 @@ mod tests {
             dummy_pos(),
         );
 
-        let value = Object::ExtensionList(
-            vec![Object::Integer(1.into()), Object::Integer(2.into())].into(),
-        );
+        let value = Object::List(vec![Object::Integer(1.into()), Object::Integer(2.into())].into());
 
         assert_eq!(match_(&pattern, &value), empty_match(),);
     }
@@ -440,7 +434,7 @@ mod tests {
             dummy_pos(),
         );
 
-        let value = Object::ExtensionSet(vec![Object::Integer(0.into())].into());
+        let value = Object::Set(vec![Object::Integer(0.into())].into());
 
         assert_eq!(
             match_(&pattern, &value),
@@ -471,7 +465,7 @@ mod tests {
             dummy_pos(),
         );
 
-        let value = Object::ExtensionSet(ExtensionSet::from(vec![
+        let value = Object::Set(Set::from(vec![
             Object::Integer(0.into()),
             Object::Integer(1.into()),
         ]));
