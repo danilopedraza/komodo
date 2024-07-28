@@ -1,7 +1,7 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt,
-    hash::{Hash, Hasher},
+    hash::Hash,
     iter::zip,
     vec,
 };
@@ -515,7 +515,7 @@ impl From<BigDecimal> for Decimal {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Set {
     pub set: BTreeSet<Object>,
 }
@@ -537,14 +537,6 @@ impl Set {
             .map(|val| val.to_owned())
             .collect();
         Object::Set(Set { set })
-    }
-}
-
-impl Hash for Set {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for obj in &self.set {
-            obj.hash(state);
-        }
     }
 }
 
@@ -603,7 +595,7 @@ impl fmt::Display for Set {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Default, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, PartialOrd, Ord, Hash)]
 pub struct Dictionary {
     pub dict: BTreeMap<Object, Object>,
 }
@@ -627,15 +619,6 @@ impl Dictionary {
                 key: index.to_string(),
             }),
             Some(val) => Ok(val.to_owned()),
-        }
-    }
-}
-
-impl Hash for Dictionary {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for (key, val) in &self.dict {
-            key.hash(state);
-            val.hash(state);
         }
     }
 }
@@ -1086,23 +1069,11 @@ impl Callable for Function {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DefinedFunction {
     patterns: Vec<(Vec<ASTNode>, ASTNode)>,
     params: Vec<String>,
     proc: Vec<ASTNode>,
-}
-
-impl Hash for DefinedFunction {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for (rule, res) in &self.patterns {
-            for member in rule {
-                member.kind.hash(state);
-            }
-
-            res.kind.hash(state);
-        }
-    }
 }
 
 impl InfixOperable for DefinedFunction {}
