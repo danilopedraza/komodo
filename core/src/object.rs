@@ -529,6 +529,15 @@ impl Set {
             .collect();
         Object::Set(Set { set })
     }
+
+    fn difference(&self, other: &Set) -> Object {
+        let set = self
+            .set
+            .difference(&other.set)
+            .map(|val| val.to_owned())
+            .collect();
+        Object::Set(Set { set })
+    }
 }
 
 impl Hash for Set {
@@ -550,6 +559,13 @@ impl InfixOperable for Set {
     fn equality(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Set(set) => Some((self == set).into()),
+            _ => None,
+        }
+    }
+
+    fn substraction(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Set(set) => Some(self.difference(set)),
             _ => None,
         }
     }
