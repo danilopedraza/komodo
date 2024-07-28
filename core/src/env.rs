@@ -19,11 +19,7 @@ impl Scope {
 
 pub enum ExecContext {
     Repl,
-    File {
-        reference_path: PathBuf,
-    },
-    #[cfg(test)]
-    Test,
+    File { reference_path: PathBuf },
 }
 
 pub struct Environment {
