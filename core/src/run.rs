@@ -43,10 +43,8 @@ pub fn import_from(source: &str, values: &[String], env: &mut Environment) -> Re
 
     for node in nodes {
         match &node.kind {
-            ASTNodeKind::Let { left: _, right: _ } => {
-                run_node(node, &mut temp_env)?;
-            }
-            ASTNodeKind::ImportFrom {
+            ASTNodeKind::Let { left: _, right: _ }
+            | ASTNodeKind::ImportFrom {
                 source: _,
                 values: _,
             } => {
