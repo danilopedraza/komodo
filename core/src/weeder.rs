@@ -19,7 +19,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeKind::If(cond, positive, negative) => _if(*cond, *positive, *negative),
         CSTNodeKind::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs),
         CSTNodeKind::Integer(dec) => integer(dec),
-        CSTNodeKind::Let_(left, right) => _let(*left, right.map(|node| *node)),
+        CSTNodeKind::Let(left, right) => _let(*left, right.map(|node| *node)),
         CSTNodeKind::Prefix(op, val) => prefix(op, *val),
         CSTNodeKind::Cons(first, tail) => cons(*first, *tail),
         CSTNodeKind::Signature(val, constraint) => signature(*val, *constraint),
@@ -217,7 +217,7 @@ fn _let(left: CSTNode, right: Option<CSTNode>) -> WeederResult<ASTNodeKind> {
         Some(right) => Some(Box::new(rewrite(right)?)),
         None => None,
     };
-    Ok(ASTNodeKind::Let_ { left, right })
+    Ok(ASTNodeKind::Let { left, right })
 }
 
 fn prefix(op: PrefixOperator, val: CSTNode) -> WeederResult<ASTNodeKind> {

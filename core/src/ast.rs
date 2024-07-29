@@ -149,7 +149,7 @@ pub enum ASTNodeKind {
     Integer {
         dec: String,
     },
-    Let_ {
+    Let {
         left: Box<ASTNode>,
         right: Option<Box<ASTNode>>,
     },
@@ -275,7 +275,7 @@ pub mod tests {
     pub fn let_(left: ASTNode, right: Option<ASTNode>, position: Position) -> ASTNode {
         let left = Box::new(left);
         let right = right.map(Box::new);
-        ASTNode::new(ASTNodeKind::Let_ { left, right }, position)
+        ASTNode::new(ASTNodeKind::Let { left, right }, position)
     }
 
     pub fn prefix(op: PrefixOperator, val: ASTNode, position: Position) -> ASTNode {

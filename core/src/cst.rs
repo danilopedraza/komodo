@@ -194,8 +194,7 @@ pub enum CSTNodeKind {
     },
     Infix(InfixOperator, Box<CSTNode>, Box<CSTNode>),
     Integer(String),
-    // Let(Box<CSTNode>, Vec<CSTNode>, Box<CSTNode>),
-    Let_(Box<CSTNode>, Option<Box<CSTNode>>),
+    Let(Box<CSTNode>, Option<Box<CSTNode>>),
     Prefix(PrefixOperator, Box<CSTNode>),
     Cons(Box<CSTNode>, Box<CSTNode>),
     SetCons {
@@ -342,7 +341,7 @@ pub mod tests {
     pub fn let_(left: CSTNode, right: Option<CSTNode>, position: Position) -> CSTNode {
         let left = Box::new(left);
         let right = right.map(Box::new);
-        CSTNode::new(CSTNodeKind::Let_(left, right), position)
+        CSTNode::new(CSTNodeKind::Let(left, right), position)
     }
 
     pub fn signature(symbol: CSTNode, type_: CSTNode, position: Position) -> CSTNode {

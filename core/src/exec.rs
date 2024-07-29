@@ -128,7 +128,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             iterator,
             kind,
         } => comprehension(element, variable, iterator, *kind, env),
-        ASTNodeKind::Let_ { left, right } => match right {
+        ASTNodeKind::Let { left, right } => match right {
             Some(right) => let_(left, right, env),
             _ => todo!(),
         },

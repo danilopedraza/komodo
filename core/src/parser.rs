@@ -131,7 +131,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         };
 
         Ok(CSTNode::new(
-            CSTNodeKind::Let_(left, right),
+            CSTNodeKind::Let(left, right),
             self.start_to_cur(start),
         ))
     }
