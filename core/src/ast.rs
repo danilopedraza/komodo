@@ -149,10 +149,9 @@ pub enum ASTNodeKind {
     Integer {
         dec: String,
     },
-    Let {
-        ident: Box<ASTNode>,
-        params: Vec<ASTNode>,
-        val: Box<ASTNode>,
+    Let_ {
+        left: Box<ASTNode>,
+        right: Option<Box<ASTNode>>,
     },
     Prefix {
         op: cst::PrefixOperator,
@@ -168,7 +167,7 @@ pub enum ASTNodeKind {
     },
     Signature {
         val: Box<ASTNode>,
-        constraint: Option<Box<ASTNode>>,
+        constraint: Box<ASTNode>,
     },
     String {
         str: String,
@@ -273,10 +272,10 @@ pub mod tests {
         ASTNode::new(ASTNodeKind::Set { list }, position)
     }
 
-    pub fn let_(ident: ASTNode, params: Vec<ASTNode>, val: ASTNode, position: Position) -> ASTNode {
-        let ident = Box::new(ident);
-        let val = Box::new(val);
-        ASTNode::new(ASTNodeKind::Let { ident, params, val }, position)
+    pub fn let_(left: ASTNode, right: Option<ASTNode>, position: Position) -> ASTNode {
+        let left = Box::new(left);
+        let right = right.map(Box::new);
+        ASTNode::new(ASTNodeKind::Let_ { left, right }, position)
     }
 
     pub fn prefix(op: PrefixOperator, val: ASTNode, position: Position) -> ASTNode {
@@ -284,11 +283,11 @@ pub mod tests {
         ASTNode::new(ASTNodeKind::Prefix { op, val }, position)
     }
 
-    pub fn signature(val: ASTNode, constraint: Option<ASTNode>, position: Position) -> ASTNode {
-        let val = Box::new(val);
-        let constraint = constraint.map(Box::new);
-        ASTNode::new(ASTNodeKind::Signature { val, constraint }, position)
-    }
+    // pub fn signature(val: ASTNode, constraint: ASTNode, position: Position) -> ASTNode {
+    //     let val = Box::new(val);
+    //     let constraint = Box::new(constraint);
+    //     ASTNode::new(ASTNodeKind::Signature { val, constraint }, position)
+    // }
 
     pub fn tuple(values: Vec<ASTNode>, position: Position) -> ASTNode {
         ASTNode::new(ASTNodeKind::Tuple { values }, position)

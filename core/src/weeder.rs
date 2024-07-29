@@ -19,10 +19,10 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeKind::If(cond, positive, negative) => _if(*cond, *positive, *negative),
         CSTNodeKind::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs),
         CSTNodeKind::Integer(dec) => integer(dec),
-        CSTNodeKind::Let(ident, params, val) => _let(*ident, params, *val),
+        CSTNodeKind::Let_(left, right) => _let(*left, right.map(|node| *node)),
         CSTNodeKind::Prefix(op, val) => prefix(op, *val),
         CSTNodeKind::Cons(first, tail) => cons(*first, *tail),
-        CSTNodeKind::Signature(val, constraint) => signature(*val, constraint),
+        CSTNodeKind::Signature(val, constraint) => signature(*val, *constraint),
         CSTNodeKind::String(str) => string(str),
         CSTNodeKind::Symbol(name) => symbol(name),
         CSTNodeKind::Tuple(values) => tuple(values),
@@ -211,11 +211,13 @@ fn integer(dec: String) -> WeederResult<ASTNodeKind> {
     Ok(ASTNodeKind::Integer { dec })
 }
 
-fn _let(ident: CSTNode, params: Vec<CSTNode>, val: CSTNode) -> WeederResult<ASTNodeKind> {
-    let ident = Box::new(rewrite(ident)?);
-    let params = rewrite_vec(params)?;
-    let val = Box::new(rewrite(val)?);
-    Ok(ASTNodeKind::Let { ident, params, val })
+fn _let(left: CSTNode, right: Option<CSTNode>) -> WeederResult<ASTNodeKind> {
+    let left = Box::new(rewrite(left)?);
+    let right = match right {
+        Some(right) => Some(Box::new(rewrite(right)?)),
+        None => None,
+    };
+    Ok(ASTNodeKind::Let_ { left, right })
 }
 
 fn prefix(op: PrefixOperator, val: CSTNode) -> WeederResult<ASTNodeKind> {
@@ -229,12 +231,9 @@ fn cons(first: CSTNode, tail: CSTNode) -> WeederResult<ASTNodeKind> {
     Ok(ASTNodeKind::Cons { first, tail })
 }
 
-fn signature(val: CSTNode, constraint: Option<Box<CSTNode>>) -> WeederResult<ASTNodeKind> {
+fn signature(val: CSTNode, constraint: CSTNode) -> WeederResult<ASTNodeKind> {
     let val = Box::new(rewrite(val)?);
-    let constraint = match constraint {
-        None => None,
-        Some(node) => Some(Box::new(rewrite(*node)?)),
-    };
+    let constraint = Box::new(rewrite(constraint)?);
     Ok(ASTNodeKind::Signature { val, constraint })
 }
 
@@ -291,8 +290,8 @@ mod tests {
     use crate::{
         ast,
         cst::{
-            self, symbol,
-            tests::{dummy_pos, integer},
+            self,
+            tests::{dummy_pos, integer, symbol},
             InfixOperator,
         },
     };
@@ -305,8 +304,8 @@ mod tests {
             InfixOperator::Call,
             cst::infix(
                 InfixOperator::Correspondence,
-                cst::symbol("x", dummy_pos()),
-                cst::symbol("x", dummy_pos()),
+                symbol("x", dummy_pos()),
+                symbol("x", dummy_pos()),
                 dummy_pos(),
             ),
             cst::tuple(vec![cst::tests::integer("1", dummy_pos())], dummy_pos()),
@@ -350,11 +349,11 @@ mod tests {
     fn oop_function_call() {
         let node = cst::infix(
             InfixOperator::Dot,
-            cst::symbol("set", dummy_pos()),
+            symbol("set", dummy_pos()),
             cst::infix(
                 InfixOperator::Call,
-                cst::symbol("map", dummy_pos()),
-                cst::tuple(vec![cst::symbol("func", dummy_pos())], dummy_pos()),
+                symbol("map", dummy_pos()),
+                cst::tuple(vec![symbol("func", dummy_pos())], dummy_pos()),
                 dummy_pos(),
             ),
             dummy_pos(),

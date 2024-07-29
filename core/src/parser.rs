@@ -120,42 +120,20 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     fn let_(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
-        let sg = self.signature()?;
+        let left = Box::new(self.signature()?);
 
-        match self.next_token()? {
-            Some(TokenType::Assign) => self
-                .expression(Precedence::Lowest)
-                .map(|res| let_(sg, vec![], res, self.start_to_cur(start))),
-            Some(TokenType::Lparen) => {
-                let (sg, params, val) = self.let_function_with_arguments_(sg)?;
-
-                Ok(let_(sg, params, val, self.start_to_cur(start)))
+        let right = match self.peek_token() {
+            Ok(Some(TokenType::Assign)) => {
+                self.next_token()?;
+                Some(Box::new(self.expression(Precedence::Lowest)?))
             }
-            _ => Ok(sg),
-        }
-    }
+            _ => None,
+        };
 
-    fn let_function_with_arguments_(
-        &mut self,
-        name: CSTNode,
-    ) -> Result<(CSTNode, Vec<CSTNode>, CSTNode), Error> {
-        let args_res = self.sequence(TokenType::Rparen, None);
-
-        match (args_res, self.next_token()?) {
-            (Ok(args), Some(TokenType::Assign)) => match self.expression(Precedence::Lowest) {
-                Ok(expr) => Ok((name, args, expr)),
-                Err(err) => Err(err),
-            },
-            (Err(err), _) => Err(err),
-            (_, Some(tok)) => Err(Error::new(
-                ParserError::UnexpectedToken(vec![TokenType::Assign], tok).into(),
-                self.cur_pos,
-            )),
-            (Ok(_), None) => Err(Error::new(
-                ParserError::EOFExpecting(vec![TokenType::Assign]).into(),
-                self.cur_pos,
-            )),
-        }
+        Ok(CSTNode::new(
+            CSTNodeKind::Let_(left, right),
+            self.start_to_cur(start),
+        ))
     }
 
     fn sequence(
@@ -200,31 +178,21 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn signature(&mut self) -> _NodeResult {
-        match (self.next_token()?, self.peek_token()?) {
-            (Some(TokenType::Ident(name)), Some(TokenType::Colon)) => {
-                let symbol_pos = self.cur_pos;
-                self.next_token()?;
-                self.type__().map(|tp| {
-                    signature(
-                        symbol(&name, symbol_pos),
-                        Some(tp),
-                        self.start_to_cur(symbol_pos.start),
-                    )
-                })
-            }
-            (Some(TokenType::Ident(name)), _) => Ok(symbol(&name, self.cur_pos)),
-            (Some(tok), _) => self.err_with_cur(ParserError::UnexpectedToken(
-                vec![TokenType::Ident(String::from(""))],
-                tok,
-            )),
-            (None, _) => self.err_with_cur(ParserError::EOFExpecting(vec![TokenType::Ident(
-                String::from(""),
-            )])),
-        }
-    }
+        let left = self.expression(Precedence::Lowest)?;
+        match self.peek_token() {
+            Ok(Some(TokenType::Colon)) => {
+                let start = left.position.start;
 
-    fn type__(&mut self) -> _NodeResult {
-        self.expression(Precedence::Lowest)
+                self.next_token()?;
+
+                let right = Box::new(self.expression(Precedence::Lowest)?);
+                Ok(CSTNode::new(
+                    CSTNodeKind::Signature(Box::new(left), right),
+                    self.start_to_cur(start),
+                ))
+            }
+            _ => Ok(left),
+        }
     }
 
     fn start_to_cur(&self, start: usize) -> Position {
@@ -621,8 +589,8 @@ mod tests {
     use super::*;
     use crate::{
         cst::tests::{
-            _pos, ad_infinitum, boolean, char, import, import_from, integer, set_cons, string,
-            wildcard,
+            _pos, ad_infinitum, boolean, char, import, import_from, integer, let_, set_cons,
+            signature, string, symbol, wildcard,
         },
         error::Position,
         lexer::build_lexer,
@@ -769,8 +737,7 @@ mod tests {
             parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(let_(
                 symbol("x", _pos(4, 1)),
-                vec![],
-                integer("1", _pos(9, 1)),
+                Some(integer("1", _pos(9, 1))),
                 _pos(0, 10)
             )))
         );
@@ -828,14 +795,21 @@ mod tests {
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(let_(
-                symbol("f", _pos(4, 1)),
-                vec![symbol("x", _pos(6, 1)), symbol("y", _pos(9, 1))],
                 infix(
+                    InfixOperator::Call,
+                    symbol("f", _pos(4, 1)),
+                    tuple(
+                        vec![symbol("x", _pos(6, 1)), symbol("y", _pos(9, 1))],
+                        _pos(5, 6)
+                    ),
+                    _pos(4, 7)
+                ),
+                Some(infix(
                     InfixOperator::Sum,
                     symbol("x", _pos(15, 1)),
                     symbol("y", _pos(19, 1)),
                     _pos(15, 5)
-                ),
+                )),
                 _pos(0, 20),
             ))),
         );
@@ -944,11 +918,10 @@ mod tests {
             Some(Ok(let_(
                 signature(
                     symbol("x", _pos(4, 1)),
-                    Some(symbol("Real", _pos(8, 4))),
+                    symbol("Real", _pos(8, 4)),
                     _pos(4, 8)
                 ),
-                vec![],
-                infix(
+                Some(infix(
                     InfixOperator::Sum,
                     integer("1", _pos(16, 1)),
                     infix(
@@ -958,7 +931,7 @@ mod tests {
                         _pos(20, 5)
                     ),
                     _pos(16, 9),
-                ),
+                )),
                 _pos(0, 25),
             )))
         );

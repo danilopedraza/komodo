@@ -194,36 +194,19 @@ pub enum CSTNodeKind {
     },
     Infix(InfixOperator, Box<CSTNode>, Box<CSTNode>),
     Integer(String),
-    Let(Box<CSTNode>, Vec<CSTNode>, Box<CSTNode>),
+    // Let(Box<CSTNode>, Vec<CSTNode>, Box<CSTNode>),
+    Let_(Box<CSTNode>, Option<Box<CSTNode>>),
     Prefix(PrefixOperator, Box<CSTNode>),
     Cons(Box<CSTNode>, Box<CSTNode>),
     SetCons {
         some: Box<CSTNode>,
         most: Box<CSTNode>,
     },
-    Signature(Box<CSTNode>, Option<Box<CSTNode>>),
+    Signature(Box<CSTNode>, Box<CSTNode>),
     String(String),
     Symbol(String),
     Tuple(Vec<CSTNode>),
     Wildcard,
-}
-
-pub fn let_(ident: CSTNode, params: Vec<CSTNode>, val: CSTNode, position: Position) -> CSTNode {
-    CSTNode::new(
-        CSTNodeKind::Let(Box::new(ident), params, Box::new(val)),
-        position,
-    )
-}
-
-pub fn signature(symbol: CSTNode, type_: Option<CSTNode>, position: Position) -> CSTNode {
-    CSTNode::new(
-        CSTNodeKind::Signature(Box::new(symbol), type_.map(Box::new)),
-        position,
-    )
-}
-
-pub fn symbol(name: &str, position: Position) -> CSTNode {
-    CSTNode::new(CSTNodeKind::Symbol(name.into()), position)
 }
 
 pub fn infix(op: InfixOperator, lhs: CSTNode, rhs: CSTNode, position: Position) -> CSTNode {
@@ -354,6 +337,23 @@ pub mod tests {
         let source = source.to_string();
         let values = values.into_iter().map(|s| s.to_string()).collect();
         CSTNode::new(CSTNodeKind::ImportFrom { source, values }, position)
+    }
+
+    pub fn let_(left: CSTNode, right: Option<CSTNode>, position: Position) -> CSTNode {
+        let left = Box::new(left);
+        let right = right.map(Box::new);
+        CSTNode::new(CSTNodeKind::Let_(left, right), position)
+    }
+
+    pub fn signature(symbol: CSTNode, type_: CSTNode, position: Position) -> CSTNode {
+        CSTNode::new(
+            CSTNodeKind::Signature(Box::new(symbol), Box::new(type_)),
+            position,
+        )
+    }
+
+    pub fn symbol(name: &str, position: Position) -> CSTNode {
+        CSTNode::new(CSTNodeKind::Symbol(name.into()), position)
     }
 
     // pub fn function(params: Vec<&str>, proc: Vec<CSTNode>, position: Position) -> CSTNode {

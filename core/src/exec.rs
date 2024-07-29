@@ -78,8 +78,6 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             &exec(rhs, env)?,
             node.position,
         ),
-        ASTNodeKind::Let { ident, params, val } if params.is_empty() => let_(ident, val, env),
-        ASTNodeKind::Let { ident, params, val } => let_function(ident, params, val, env),
         ASTNodeKind::Boolean(val) => boolean(*val),
         ASTNodeKind::Call { called, args } => call(called, args, env, node.position),
         ASTNodeKind::Char(chr) => char(*chr),
@@ -130,6 +128,10 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             iterator,
             kind,
         } => comprehension(element, variable, iterator, *kind, env),
+        ASTNodeKind::Let_ { left, right } => match right {
+            Some(right) => let_(left, right, env),
+            _ => todo!(),
+        },
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -246,16 +248,17 @@ fn boolean(val: bool) -> Result<Object, Error> {
     Ok(Object::Boolean(Bool::from(val)))
 }
 
-fn let_(ident: &ASTNode, value: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
-    match &ident.kind {
-        ASTNodeKind::Symbol { name } => exec_and_set(value, name, env),
-        ASTNodeKind::Signature {
-            val,
-            constraint: None,
-        } => match &val.kind {
-            ASTNodeKind::Symbol { name } => exec_and_set(value, name, env),
-            _ => todo!(),
-        },
+fn let_(left: &ASTNode, right: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
+    match &left.kind {
+        ASTNodeKind::Symbol { name } => exec_and_set(right, name, env),
+        // ASTNodeKind::Signature {
+        //     val,
+        //     constraint: None,
+        // } => match &val.kind {
+        //     ASTNodeKind::Symbol { name } => exec_and_set(right, name, env),
+        //     _ => todo!(),
+        // },
+        ASTNodeKind::Call { called, args } => let_function(called, args, right, env),
         _ => unimplemented!(),
     }
 }
@@ -553,7 +556,7 @@ mod tests {
     use crate::ast::tests::{
         _for, _if, boolean, call, comprehension, cons, container_element, decimal, extension_list,
         extension_set, fraction, function, infix, integer, let_, pos, prefix, range, set_cons,
-        signature, symbol, tuple,
+        symbol, tuple,
     };
     use crate::cst::tests::dummy_pos;
     use crate::error::ErrorType;
@@ -647,9 +650,8 @@ mod tests {
     #[test]
     fn let_expression() {
         let node = &let_(
-            signature(symbol("x", dummy_pos()), None, dummy_pos()),
-            vec![],
-            integer("0", dummy_pos()),
+            symbol("x", dummy_pos()),
+            Some(integer("0", dummy_pos())),
             dummy_pos(),
         );
 
@@ -898,8 +900,7 @@ mod tests {
 
         let node = &let_(
             symbol("x", dummy_pos()),
-            vec![],
-            integer("0", dummy_pos()),
+            Some(integer("0", dummy_pos())),
             dummy_pos(),
         );
 
@@ -1091,13 +1092,12 @@ mod tests {
                 vec![
                     let_(
                         symbol("y", dummy_pos()),
-                        vec![],
-                        infix(
+                        Some(infix(
                             InfixOperator::Product,
                             integer("2", dummy_pos()),
                             symbol("x", dummy_pos()),
                             dummy_pos(),
-                        ),
+                        )),
                         dummy_pos(),
                     ),
                     infix(
@@ -1170,9 +1170,12 @@ mod tests {
     fn missing_args_2() {
         let mut env = Environment::default();
         let func = let_(
-            symbol("f", dummy_pos()),
-            vec![symbol("x", dummy_pos())],
-            symbol("x", dummy_pos()),
+            call(
+                symbol("f", dummy_pos()),
+                vec![symbol("x", dummy_pos())],
+                dummy_pos(),
+            ),
+            Some(symbol("x", dummy_pos())),
             dummy_pos(),
         );
 
