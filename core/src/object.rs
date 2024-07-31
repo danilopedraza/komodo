@@ -1000,7 +1000,7 @@ impl PrefixOperable for Symbol {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Tuple {
-    list: Vec<Object>,
+    pub list: Vec<Object>,
 }
 
 impl InfixOperable for Tuple {

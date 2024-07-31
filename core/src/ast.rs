@@ -176,7 +176,7 @@ pub enum ASTNodeKind {
         name: String,
     },
     Tuple {
-        values: Vec<ASTNode>,
+        list: Vec<ASTNode>,
     },
     Wildcard,
 }
@@ -296,7 +296,7 @@ pub mod tests {
     }
 
     pub fn tuple(values: Vec<ASTNode>, position: Position) -> ASTNode {
-        ASTNode::new(ASTNodeKind::Tuple { values }, position)
+        ASTNode::new(ASTNodeKind::Tuple { list: values }, position)
     }
 
     pub fn range(start: ASTNode, end: ASTNode, position: Position) -> ASTNode {

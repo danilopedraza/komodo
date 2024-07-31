@@ -89,7 +89,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         } => if_(exec(cond, env)?, positive, negative, env),
         ASTNodeKind::Prefix { op, val } => prefix(*op, exec(val, env)?, node.position),
         ASTNodeKind::String { str } => string(str),
-        ASTNodeKind::Tuple { values } => tuple(values, env),
+        ASTNodeKind::Tuple { list: values } => tuple(values, env),
         ASTNodeKind::For { val, iter, proc } => for_(val, iter, proc, env),
         ASTNodeKind::List { list } => extension_list(list, env),
         ASTNodeKind::Wildcard => unimplemented!(),

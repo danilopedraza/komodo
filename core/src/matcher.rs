@@ -4,7 +4,7 @@ use crate::{
     ast::{ASTNode, ASTNodeKind, InfixOperator},
     env::Environment,
     exec::exec,
-    object::{Dictionary, List, Object, Set},
+    object::{Dictionary, List, Object, Set, Tuple},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -72,6 +72,7 @@ pub fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
         ASTNodeKind::Wildcard => empty_match(),
         ASTNodeKind::Symbol { name } => single_match(name, val),
         ASTNodeKind::List { list } => match_extension_list(list, val),
+        ASTNodeKind::Tuple { list } => match_tuple(list, val),
         ASTNodeKind::Set { list } => match_extension_set(list, val),
         ASTNodeKind::Cons { first, tail } => match_prefix_crop(first, tail, val),
         ASTNodeKind::Dictionary { pairs, complete } => match_dictionary(pairs, *complete, val),
@@ -97,6 +98,13 @@ fn empty_match() -> Option<Match> {
 fn match_extension_list(pattern: &[ASTNode], val: &Object) -> Option<Match> {
     match val {
         Object::List(List { list }) => match_list(pattern, list),
+        _ => None,
+    }
+}
+
+fn match_tuple(pattern: &[ASTNode], val: &Object) -> Option<Match> {
+    match val {
+        Object::Tuple(Tuple { list }) => match_list(pattern, list),
         _ => None,
     }
 }

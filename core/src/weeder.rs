@@ -250,7 +250,7 @@ fn symbol(name: String) -> WeederResult<ASTNodeKind> {
 
 fn tuple(values: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
     let values = rewrite_vec(values)?;
-    Ok(ASTNodeKind::Tuple { values })
+    Ok(ASTNodeKind::Tuple { list: values })
 }
 
 fn wildcard() -> WeederResult<ASTNodeKind> {
