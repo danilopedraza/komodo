@@ -198,7 +198,10 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
 fn container_element(container: CSTNode, element: CSTNode) -> WeederResult<ASTNodeKind> {
     let container = Box::new(rewrite(container)?);
     let element = Box::new(rewrite(element)?);
-    Ok(ASTNodeKind::ContainerElement { container, element })
+    Ok(ASTNodeKind::IndexNotation {
+        container,
+        index: element,
+    })
 }
 
 fn infix_node(op: ast::InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTNodeKind> {

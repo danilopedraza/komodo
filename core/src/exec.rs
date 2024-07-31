@@ -97,18 +97,18 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeKind::Decimal { int, dec } => decimal(int, dec),
         ASTNodeKind::Fraction { numer, denom } => fraction(numer, denom, node.position, env),
         ASTNodeKind::Dictionary { pairs, complete: _ } => dictionary(pairs, env),
-        ASTNodeKind::ContainerElement { container, element } => {
+        ASTNodeKind::IndexNotation { container, index } => {
             let container_obj = exec(container, env)?;
-            let element_obj = exec(element, env)?;
+            let element_obj = exec(index, env)?;
 
             match container_obj {
                 Object::List(list) => match list.get(&element_obj) {
                     Ok(obj) => Ok(obj),
-                    Err(eval_err) => Err(Error::new(eval_err.into(), element.position)),
+                    Err(eval_err) => Err(Error::new(eval_err.into(), index.position)),
                 },
                 Object::Dictionary(dict) => match dict.get(&element_obj) {
                     Ok(obj) => Ok(obj),
-                    Err(eval_err) => Err(Error::new(eval_err.into(), element.position)),
+                    Err(eval_err) => Err(Error::new(eval_err.into(), index.position)),
                 },
                 obj => Err(Error::new(
                     EvalError::IndexingNonContainer { kind: obj.kind() }.into(),

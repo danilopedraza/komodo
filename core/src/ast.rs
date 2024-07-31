@@ -101,9 +101,9 @@ pub enum ASTNodeKind {
         iterator: Box<ASTNode>,
         kind: ComprehensionKind,
     },
-    ContainerElement {
+    IndexNotation {
         container: Box<ASTNode>,
-        element: Box<ASTNode>,
+        index: Box<ASTNode>,
     },
     Decimal {
         int: String,
@@ -316,7 +316,10 @@ pub mod tests {
         let element = Box::new(element);
 
         ASTNode::new(
-            ASTNodeKind::ContainerElement { container, element },
+            ASTNodeKind::IndexNotation {
+                container,
+                index: element,
+            },
             position,
         )
     }
