@@ -19,7 +19,7 @@ pub enum Precedence {
     Exponentiation,
     Dot,
     Call,
-    Highest,
+    // Highest,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

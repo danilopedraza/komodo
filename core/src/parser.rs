@@ -483,7 +483,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     fn prefix(&mut self, op: PrefixOperator) -> _NodeResult {
         let start = self.cur_pos.start;
 
-        self.expression(Precedence::Highest)
+        self.non_infix()
             .map(|expr| prefix(op, expr, self.start_to_cur(start)))
     }
 
