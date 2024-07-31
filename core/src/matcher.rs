@@ -60,7 +60,7 @@ fn satisfies(obj: &Object, constraint: &Option<String>) -> bool {
     }
 }
 
-fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
+pub fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
     match &pattern.kind {
         ASTNodeKind::Pattern { exp, constraint } => {
             if satisfies(val, constraint) {

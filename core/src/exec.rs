@@ -3,6 +3,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::error::{Error, Position};
+use crate::matcher::{match_, Match};
 use crate::object::{
     self, Callable, Decimal, Dictionary, FailedAssertion, Fraction, Function, Kind, List, Range,
 };
@@ -124,10 +125,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             iterator,
             kind,
         } => comprehension(element, variable, iterator, *kind, env),
-        ASTNodeKind::Let { left, right } => match right {
-            Some(right) => let_(left, right, env),
-            _ => todo!(),
-        },
+        ASTNodeKind::Let { left, right } => let_(left, right, env),
         ASTNodeKind::Pattern {
             exp: _,
             constraint: _,
@@ -248,18 +246,27 @@ fn boolean(val: bool) -> Result<Object, Error> {
     Ok(Object::Boolean(Bool::from(val)))
 }
 
-fn let_(left: &ASTNode, right: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
-    match &left.kind {
-        ASTNodeKind::Symbol { name } => exec_and_set(right, name, env),
-        // ASTNodeKind::Signature {
-        //     val,
-        //     constraint: None,
-        // } => match &val.kind {
-        //     ASTNodeKind::Symbol { name } => exec_and_set(right, name, env),
-        //     _ => todo!(),
-        // },
-        ASTNodeKind::Call { called, args } => let_function(called, args, right, env),
-        _ => unimplemented!(),
+fn let_(
+    left: &ASTNode,
+    right: &Option<Box<ASTNode>>,
+    env: &mut Environment,
+) -> Result<Object, Error> {
+    match (&left.kind, right) {
+        (ASTNodeKind::Call { called, args }, Some(value)) => let_function(called, args, value, env),
+        (_, Some(value)) => {
+            let value = exec(value, env)?;
+            match match_(left, &value) {
+                Some(Match(map)) => {
+                    for (name, val) in map {
+                        env.set(&name, val);
+                    }
+
+                    Ok(value)
+                }
+                None => todo!(),
+            }
+        }
+        _ => todo!(),
     }
 }
 
@@ -347,11 +354,11 @@ fn let_function(
     )))
 }
 
-fn exec_and_set(node: &ASTNode, name: &str, env: &mut Environment) -> Result<Object, Error> {
-    let val = exec(node, env)?;
-    env.set(name, val.clone());
-    Ok(val)
-}
+// fn exec_and_set(node: &ASTNode, name: &str, env: &mut Environment) -> Result<Object, Error> {
+//     let val = exec(node, env)?;
+//     env.set(name, val.clone());
+//     Ok(val)
+// }
 
 fn if_(
     cond: Object,
