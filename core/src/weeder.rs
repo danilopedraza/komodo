@@ -22,7 +22,6 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeKind::Let(left, right) => _let(*left, right.map(|node| *node)),
         CSTNodeKind::Prefix(op, val) => prefix(op, *val),
         CSTNodeKind::Cons(first, tail) => cons(*first, *tail),
-        CSTNodeKind::Signature(val, constraint) => signature(*val, *constraint),
         CSTNodeKind::String(str) => string(str),
         CSTNodeKind::Symbol(name) => symbol(name),
         CSTNodeKind::Tuple(values) => tuple(values),
@@ -38,6 +37,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
             iterator,
             kind,
         } => comprehension(*element, variable, *iterator, kind),
+        CSTNodeKind::Pattern(pat, constraint) => pattern(*pat, constraint.map(|val| *val)),
     }?;
 
     Ok(ASTNode::new(tp, node.position))
@@ -231,10 +231,10 @@ fn cons(first: CSTNode, tail: CSTNode) -> WeederResult<ASTNodeKind> {
     Ok(ASTNodeKind::Cons { first, tail })
 }
 
-fn signature(val: CSTNode, constraint: CSTNode) -> WeederResult<ASTNodeKind> {
+fn pattern(val: CSTNode, constraint: Option<CSTNode>) -> WeederResult<ASTNodeKind> {
     let val = Box::new(rewrite(val)?);
-    let constraint = Box::new(rewrite(constraint)?);
-    Ok(ASTNodeKind::Signature { val, constraint })
+    let constraint = constraint.map(rewrite).transpose()?.map(Box::new);
+    Ok(ASTNodeKind::Pattern { val, constraint })
 }
 
 fn string(str: String) -> WeederResult<ASTNodeKind> {

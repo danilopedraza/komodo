@@ -87,10 +87,6 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             negative,
         } => if_(exec(cond, env)?, positive, negative, env),
         ASTNodeKind::Prefix { op, val } => prefix(*op, exec(val, env)?, node.position),
-        ASTNodeKind::Signature {
-            val: _,
-            constraint: _,
-        } => todo!(),
         ASTNodeKind::String { str } => string(str),
         ASTNodeKind::Tuple { values } => tuple(values, env),
         ASTNodeKind::For { val, iter, proc } => for_(val, iter, proc, env),
@@ -132,6 +128,10 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             Some(right) => let_(left, right, env),
             _ => todo!(),
         },
+        ASTNodeKind::Pattern {
+            val: _,
+            constraint: _,
+        } => todo!(),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {

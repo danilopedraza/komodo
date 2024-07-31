@@ -153,6 +153,10 @@ pub enum ASTNodeKind {
         left: Box<ASTNode>,
         right: Option<Box<ASTNode>>,
     },
+    Pattern {
+        val: Box<ASTNode>,
+        constraint: Option<Box<ASTNode>>,
+    },
     Prefix {
         op: cst::PrefixOperator,
         val: Box<ASTNode>,
@@ -164,10 +168,6 @@ pub enum ASTNodeKind {
     SetCons {
         some: Box<ASTNode>,
         most: Box<ASTNode>,
-    },
-    Signature {
-        val: Box<ASTNode>,
-        constraint: Box<ASTNode>,
     },
     String {
         str: String,
