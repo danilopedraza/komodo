@@ -41,10 +41,8 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
     }
 
-    fn expression(&mut self, precedence: Precedence) -> _NodeResult {
-        let start = self.peek_pos().start;
-
-        let mut expr = match self.next_token()? {
+    fn non_infix(&mut self) -> _NodeResult {
+        match self.next_token()? {
             None => self.err_with_cur(ParserError::EOFReached),
             Some(tok) => match tok {
                 TokenType::Char(chr) => self.char(chr),
@@ -71,7 +69,13 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                     }
                 }
             },
-        }?;
+        }
+    }
+
+    fn expression(&mut self, precedence: Precedence) -> _NodeResult {
+        let start = self.peek_pos().start;
+
+        let mut expr = self.non_infix()?;
 
         while let Some(op) = self.current_infix() {
             if precedence < op.precedence() {
