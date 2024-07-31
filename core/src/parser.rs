@@ -189,11 +189,20 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
                 self.next_token()?;
 
-                let right = Box::new(self.non_infix()?);
-                Ok(CSTNode::new(
-                    CSTNodeKind::Pattern(Box::new(left), Some(right)),
-                    self.start_to_cur(start),
-                ))
+                match self.next_token()? {
+                    Some(TokenType::Ident(name)) => Ok(CSTNode::new(
+                        CSTNodeKind::Pattern(Box::new(left), Some(name)),
+                        self.start_to_cur(start),
+                    )),
+                    Some(tok) => Err(Error::new(
+                        ParserError::UnexpectedToken(vec![TokenType::Ident("".into())], tok).into(),
+                        self.cur_pos,
+                    )),
+                    None => Err(Error::new(
+                        ParserError::EOFExpecting(vec![TokenType::Ident("".into())]).into(),
+                        self.cur_pos,
+                    )),
+                }
             }
             (CSTNodeKind::Symbol(_), Ok(Some(TokenType::Lparen))) => {
                 let start = self.cur_pos.start;
@@ -976,11 +985,7 @@ mod tests {
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(let_(
-                pattern(
-                    symbol("x", _pos(4, 1)),
-                    Some(symbol("Real", _pos(8, 4))),
-                    _pos(4, 8)
-                ),
+                pattern(symbol("x", _pos(4, 1)), Some("Real"), _pos(4, 8)),
                 Some(infix(
                     InfixOperator::Sum,
                     integer("1", _pos(16, 1)),

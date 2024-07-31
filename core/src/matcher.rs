@@ -53,20 +53,17 @@ fn match_sequence(patterns: &[ASTNode], vals: &[Object]) -> Option<Match> {
     }
 }
 
-fn satisfies(obj: &Object, constraint: Option<&ASTNode>) -> bool {
+fn satisfies(obj: &Object, constraint: &Option<String>) -> bool {
     match constraint {
         None => true,
-        Some(constraint) => match &constraint.kind {
-            ASTNodeKind::Symbol { name } => obj.has_property(name),
-            _ => false,
-        },
+        Some(name) => obj.has_property(name),
     }
 }
 
 fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
     match &pattern.kind {
         ASTNodeKind::Pattern { exp, constraint } => {
-            if satisfies(val, constraint.as_deref()) {
+            if satisfies(val, constraint) {
                 match_(exp, val)
             } else {
                 None
@@ -492,11 +489,7 @@ mod tests {
 
     #[test]
     fn match_property() {
-        let pattern = pattern(
-            wildcard(dummy_pos()),
-            Some(symbol("String", dummy_pos())),
-            dummy_pos(),
-        );
+        let pattern = pattern(wildcard(dummy_pos()), Some("String"), dummy_pos());
 
         let value = Object::String("".into());
 
@@ -505,11 +498,7 @@ mod tests {
 
     #[test]
     fn unsatisfied_constraint() {
-        let pattern = pattern(
-            wildcard(dummy_pos()),
-            Some(symbol("String", dummy_pos())),
-            dummy_pos(),
-        );
+        let pattern = pattern(wildcard(dummy_pos()), Some("String"), dummy_pos());
 
         let value = Object::Integer(0.into());
 

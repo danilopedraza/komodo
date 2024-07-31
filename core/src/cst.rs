@@ -195,7 +195,7 @@ pub enum CSTNodeKind {
     Infix(InfixOperator, Box<CSTNode>, Box<CSTNode>),
     Integer(String),
     Let(Box<CSTNode>, Option<Box<CSTNode>>),
-    Pattern(Box<CSTNode>, Option<Box<CSTNode>>),
+    Pattern(Box<CSTNode>, Option<String>),
     Prefix(PrefixOperator, Box<CSTNode>),
     Cons(Box<CSTNode>, Box<CSTNode>),
     SetCons {
@@ -344,10 +344,10 @@ pub mod tests {
         CSTNode::new(CSTNodeKind::Let(left, right), position)
     }
 
-    pub fn pattern(symbol: CSTNode, type_: Option<CSTNode>, position: Position) -> CSTNode {
+    pub fn pattern(symbol: CSTNode, constraint: Option<&str>, position: Position) -> CSTNode {
         let symbol = Box::new(symbol);
-        let type_ = type_.map(Box::new);
-        CSTNode::new(CSTNodeKind::Pattern(symbol, type_), position)
+        let constraint = constraint.map(|str| str.to_string());
+        CSTNode::new(CSTNodeKind::Pattern(symbol, constraint), position)
     }
 
     pub fn symbol(name: &str, position: Position) -> CSTNode {

@@ -155,7 +155,7 @@ pub enum ASTNodeKind {
     },
     Pattern {
         exp: Box<ASTNode>,
-        constraint: Option<Box<ASTNode>>,
+        constraint: Option<String>,
     },
     Prefix {
         op: cst::PrefixOperator,
@@ -283,9 +283,9 @@ pub mod tests {
         ASTNode::new(ASTNodeKind::Prefix { op, val }, position)
     }
 
-    pub fn pattern(val: ASTNode, constraint: Option<ASTNode>, position: Position) -> ASTNode {
+    pub fn pattern(val: ASTNode, constraint: Option<&str>, position: Position) -> ASTNode {
         let val = Box::new(val);
-        let constraint = constraint.map(Box::new);
+        let constraint = constraint.map(|str| str.to_string());
         ASTNode::new(
             ASTNodeKind::Pattern {
                 exp: val,
