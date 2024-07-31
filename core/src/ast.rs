@@ -154,7 +154,7 @@ pub enum ASTNodeKind {
         right: Option<Box<ASTNode>>,
     },
     Pattern {
-        val: Box<ASTNode>,
+        exp: Box<ASTNode>,
         constraint: Option<Box<ASTNode>>,
     },
     Prefix {
@@ -283,11 +283,17 @@ pub mod tests {
         ASTNode::new(ASTNodeKind::Prefix { op, val }, position)
     }
 
-    // pub fn signature(val: ASTNode, constraint: ASTNode, position: Position) -> ASTNode {
-    //     let val = Box::new(val);
-    //     let constraint = Box::new(constraint);
-    //     ASTNode::new(ASTNodeKind::Signature { val, constraint }, position)
-    // }
+    pub fn pattern(val: ASTNode, constraint: Option<ASTNode>, position: Position) -> ASTNode {
+        let val = Box::new(val);
+        let constraint = constraint.map(Box::new);
+        ASTNode::new(
+            ASTNodeKind::Pattern {
+                exp: val,
+                constraint,
+            },
+            position,
+        )
+    }
 
     pub fn tuple(values: Vec<ASTNode>, position: Position) -> ASTNode {
         ASTNode::new(ASTNodeKind::Tuple { values }, position)

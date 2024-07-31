@@ -111,6 +111,10 @@ impl Object {
             _ => false,
         }
     }
+
+    pub fn has_property(&self, prop: &str) -> bool {
+        prop == self.kind()
+    }
 }
 
 impl From<bool> for Object {
@@ -147,20 +151,20 @@ pub trait Kind {
 impl Kind for Object {
     fn kind(&self) -> String {
         match self {
-            Object::Boolean(_) => "boolean",
-            Object::Char(_) => "character",
-            Object::Decimal(_) => "decimal",
-            Object::Dictionary(_) => "dictionary",
-            Object::Error(_) => "error",
-            Object::List(_) => "extension list",
-            Object::Set(_) => "extension set",
-            Object::Fraction(_) => "fraction",
-            Object::Function(_) => "function",
-            Object::Integer(_) => "integer",
-            Object::Range(_) => "range",
-            Object::String(_) => "string",
-            Object::Symbol(_) => "symbol",
-            Object::Tuple(_) => "tuple",
+            Object::Boolean(_) => "Boolean",
+            Object::Char(_) => "Character",
+            Object::Decimal(_) => "Decimal",
+            Object::Dictionary(_) => "Dictionary",
+            Object::Error(_) => "Error",
+            Object::List(_) => "List",
+            Object::Set(_) => "Set",
+            Object::Fraction(_) => "Fraction",
+            Object::Function(_) => "Function",
+            Object::Integer(_) => "Integer",
+            Object::Range(_) => "Range",
+            Object::String(_) => "String",
+            Object::Symbol(_) => "Symbol",
+            Object::Tuple(_) => "Tuple",
         }
         .into()
     }

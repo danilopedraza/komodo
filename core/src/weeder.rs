@@ -237,7 +237,10 @@ fn cons(first: CSTNode, tail: CSTNode) -> WeederResult<ASTNodeKind> {
 fn pattern(val: CSTNode, constraint: Option<CSTNode>) -> WeederResult<ASTNodeKind> {
     let val = Box::new(rewrite(val)?);
     let constraint = constraint.map(rewrite).transpose()?.map(Box::new);
-    Ok(ASTNodeKind::Pattern { val, constraint })
+    Ok(ASTNodeKind::Pattern {
+        exp: val,
+        constraint,
+    })
 }
 
 fn string(str: String) -> WeederResult<ASTNodeKind> {

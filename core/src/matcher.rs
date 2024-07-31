@@ -53,8 +53,25 @@ fn match_sequence(patterns: &[ASTNode], vals: &[Object]) -> Option<Match> {
     }
 }
 
+fn satisfies(obj: &Object, constraint: Option<&ASTNode>) -> bool {
+    match constraint {
+        None => true,
+        Some(constraint) => match &constraint.kind {
+            ASTNodeKind::Symbol { name } => obj.has_property(name),
+            _ => false,
+        },
+    }
+}
+
 fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
     match &pattern.kind {
+        ASTNodeKind::Pattern { exp, constraint } => {
+            if satisfies(val, constraint.as_deref()) {
+                match_(exp, val)
+            } else {
+                None
+            }
+        }
         ASTNodeKind::Wildcard => empty_match(),
         ASTNodeKind::Symbol { name } => single_match(name, val),
         ASTNodeKind::List { list } => match_extension_list(list, val),
@@ -234,7 +251,7 @@ mod tests {
     use crate::{
         ast::tests::{
             ad_infinitum, cons, dictionary, extension_list, extension_set, fraction, integer,
-            range, set_cons, string, symbol, wildcard,
+            pattern, range, set_cons, string, symbol, wildcard,
         },
         cst::tests::dummy_pos,
         object::{Dictionary, Fraction, Integer, Range, Set},
@@ -471,5 +488,31 @@ mod tests {
         ]));
 
         assert_eq!(match_(&pattern, &value), empty_match(),);
+    }
+
+    #[test]
+    fn match_property() {
+        let pattern = pattern(
+            wildcard(dummy_pos()),
+            Some(symbol("String", dummy_pos())),
+            dummy_pos(),
+        );
+
+        let value = Object::String("".into());
+
+        assert_eq!(match_(&pattern, &value), empty_match(),);
+    }
+
+    #[test]
+    fn unsatisfied_constraint() {
+        let pattern = pattern(
+            wildcard(dummy_pos()),
+            Some(symbol("String", dummy_pos())),
+            dummy_pos(),
+        );
+
+        let value = Object::Integer(0.into());
+
+        assert_eq!(match_(&pattern, &value), None);
     }
 }

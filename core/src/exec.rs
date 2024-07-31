@@ -129,7 +129,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             _ => todo!(),
         },
         ASTNodeKind::Pattern {
-            val: _,
+            exp: _,
             constraint: _,
         } => todo!(),
     };
@@ -1318,7 +1318,7 @@ mod tests {
             exec(&node, &mut Environment::default()),
             Err(Error::new(
                 EvalError::IndexingNonContainer {
-                    kind: String::from("integer")
+                    kind: String::from("Integer")
                 }
                 .into(),
                 dummy_pos()
@@ -1355,7 +1355,7 @@ mod tests {
             exec(&node, &mut Environment::default()),
             Err(Error::new(
                 EvalError::InvalidIndex {
-                    kind: String::from("decimal")
+                    kind: String::from("Decimal")
                 }
                 .into(),
                 dummy_pos()
