@@ -117,7 +117,7 @@ fn found_a(tok: &TokenType) -> String {
         TokenType::Over => "a division operator: `/`".into(),
         TokenType::Plus => "a plus operator: `+`".into(),
         TokenType::Rbrace => "a right brace: `}`".into(),
-        TokenType::Rbrack => "a right bracket: `{`".into(),
+        TokenType::Rbrack => "a right bracket: `]`".into(),
         TokenType::RightShift => "a right shift operator: `>>`".into(),
         TokenType::SlashSlash => "a fraction operator: `//`".into(),
         TokenType::String(val) => format!("a string: `{val}`"),

@@ -361,12 +361,11 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             Some(TokenType::Rbrack) => Ok(extension_list(vec![first], self.start_to_cur(start))),
             Some(TokenType::VerticalBar) => self.prepend_(first, start),
             Some(tok) => self.err_with_cur(ParserError::UnexpectedToken(
-                vec![TokenType::Colon, TokenType::Comma, TokenType::Rbrack],
+                vec![TokenType::For, TokenType::Comma, TokenType::Rbrack],
                 tok,
             )),
             None => self.err_with_cur(ParserError::EOFExpecting(vec![
-                TokenType::Colon,
-                TokenType::Comma,
+                TokenType::For,
                 TokenType::Comma,
                 TokenType::Rbrack,
             ])),
