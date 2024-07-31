@@ -182,7 +182,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn pattern(&mut self) -> _NodeResult {
-        let left = self.non_infix()?;
+        let left = self.expression(Precedence::Lowest)?;
         match (&left.kind, self.peek_token()) {
             (_, Ok(Some(TokenType::Colon))) => {
                 let start = left.position.start;
