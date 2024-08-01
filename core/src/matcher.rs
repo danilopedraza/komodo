@@ -22,6 +22,14 @@ impl From<Vec<(String, Object)>> for Match {
     }
 }
 
+impl From<(String, Object)> for Match {
+    fn from((key, value): (String, Object)) -> Self {
+        let mut res = BTreeMap::new();
+        res.insert(key, value);
+        Self(res)
+    }
+}
+
 pub fn match_call(patterns: &[ASTNode], args: &[Object]) -> Option<Match> {
     match_sequence(patterns, args)
 }
@@ -88,7 +96,7 @@ pub fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
 }
 
 fn single_match(name: &str, val: &Object) -> Option<Match> {
-    Some(Match::from(vec![(name.to_string(), val.clone())]))
+    Some(Match::from((name.to_string(), val.clone())))
 }
 
 fn empty_match() -> Option<Match> {
