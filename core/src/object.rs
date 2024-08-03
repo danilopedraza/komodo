@@ -1035,7 +1035,7 @@ impl From<Vec<Object>> for Tuple {
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Function {
     Anonymous(AnonFunction),
-    Named(NamedFunction),
+    Pattern(PatternFunction),
     Effect(Effect),
 }
 
@@ -1058,7 +1058,7 @@ impl fmt::Display for Function {
 impl Callable for Function {
     fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error> {
         match self {
-            Self::Named(f) => f.call(args, env),
+            Self::Pattern(f) => f.call(args, env),
             Self::Anonymous(f) => f.call(args, env),
             Self::Effect(ef) => ef.call(args, env),
         }
@@ -1066,7 +1066,7 @@ impl Callable for Function {
 
     fn param_number(&self) -> usize {
         match self {
-            Self::Named(f) => f.param_number(),
+            Self::Pattern(f) => f.param_number(),
             Self::Anonymous(f) => f.param_number(),
             Self::Effect(f) => f.param_number(),
         }
@@ -1074,12 +1074,12 @@ impl Callable for Function {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
-pub struct NamedFunction {
+pub struct PatternFunction {
     patterns: Vec<(Vec<ASTNode>, ASTNode)>,
     params: usize,
 }
 
-impl NamedFunction {
+impl PatternFunction {
     pub fn add_pattern(&mut self, args: &[ASTNode], value: &ASTNode) -> Result<(), Error> {
         if let Some(last) = self.patterns.last() {
             if args.len() == last.0.len() {
@@ -1096,7 +1096,7 @@ impl NamedFunction {
     }
 }
 
-impl Callable for NamedFunction {
+impl Callable for PatternFunction {
     fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error> {
         for (patterns, val) in &self.patterns {
             if let Some(Match(v)) = match_call(patterns, args) {

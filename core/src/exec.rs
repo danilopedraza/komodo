@@ -6,7 +6,7 @@ use crate::error::{Error, Position};
 use crate::matcher::{match_, Match};
 use crate::object::{
     self, AnonFunction, Callable, Decimal, Dictionary, FailedAssertion, Fraction, Function, Kind,
-    List, NamedFunction, Range,
+    List, PatternFunction, Range,
 };
 
 use crate::ast::{ASTNode, ASTNodeKind, InfixOperator};
@@ -332,25 +332,25 @@ fn let_function(
         _ => unimplemented!(),
     };
 
-    let function: &mut NamedFunction = match env.get(name) {
+    let function: &mut PatternFunction = match env.get(name) {
         None => {
             env.set(
                 name,
-                Object::Function(Function::Named(NamedFunction::default())),
+                Object::Function(Function::Pattern(PatternFunction::default())),
             );
 
             match env.get(name) {
-                Some(Object::Function(Function::Named(f))) => f,
+                Some(Object::Function(Function::Pattern(f))) => f,
                 _ => unimplemented!(),
             }
         }
-        Some(Object::Function(Function::Named(f))) => f,
+        Some(Object::Function(Function::Pattern(f))) => f,
         _ => unimplemented!(),
     };
 
     function.add_pattern(args, value)?;
 
-    Ok(Object::Function(Function::Named(function.clone())))
+    Ok(Object::Function(Function::Pattern(function.clone())))
 }
 
 fn if_(
