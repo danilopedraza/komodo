@@ -1080,8 +1080,19 @@ pub struct NamedFunction {
 }
 
 impl NamedFunction {
-    pub fn add_pattern(&mut self, args: &[ASTNode], value: &ASTNode) {
-        self.patterns.push((args.to_vec(), value.clone()))
+    pub fn add_pattern(&mut self, args: &[ASTNode], value: &ASTNode) -> Result<(), Error> {
+        if let Some(last) = self.patterns.last() {
+            if args.len() == last.0.len() {
+                self.patterns.push((args.to_vec(), value.clone()));
+                Ok(())
+            } else {
+                todo!()
+            }
+        } else {
+            self.patterns.push((args.to_vec(), value.clone()));
+            self.params = args.len();
+            Ok(())
+        }
     }
 }
 

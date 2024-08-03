@@ -348,7 +348,7 @@ fn let_function(
         _ => unimplemented!(),
     };
 
-    function.add_pattern(args, value);
+    function.add_pattern(args, value)?;
 
     Ok(Object::Function(Function::Named(function.clone())))
 }
@@ -1166,7 +1166,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn missing_args_2() {
         let mut env = Environment::default();
         let func = let_(
