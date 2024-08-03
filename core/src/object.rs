@@ -1034,7 +1034,8 @@ impl From<Vec<Object>> for Tuple {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Function {
-    DefinedFunction(DefinedFunction),
+    Anonymous(AnonFunction),
+    Named(NamedFunction),
     Effect(Effect),
 }
 
@@ -1050,63 +1051,84 @@ impl PrefixOperable for Function {}
 
 impl fmt::Display for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::DefinedFunction(func) => func.fmt(f),
-            Self::Effect(ef) => ef.fmt(f),
-        }
+        write!(f, "function")
     }
 }
 
 impl Callable for Function {
     fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error> {
         match self {
-            Self::DefinedFunction(f) => f.call(args, env),
+            Self::Named(f) => f.call(args, env),
+            Self::Anonymous(f) => f.call(args, env),
             Self::Effect(ef) => ef.call(args, env),
         }
     }
 
     fn param_number(&self) -> usize {
         match self {
-            Self::DefinedFunction(f) => f.param_number(),
+            Self::Named(f) => f.param_number(),
+            Self::Anonymous(f) => f.param_number(),
             Self::Effect(f) => f.param_number(),
         }
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct DefinedFunction {
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
+pub struct NamedFunction {
     patterns: Vec<(Vec<ASTNode>, ASTNode)>,
+    params: usize,
+}
+
+impl NamedFunction {
+    pub fn add_pattern(&mut self, args: &[ASTNode], value: &ASTNode) {
+        self.patterns.push((args.to_vec(), value.clone()))
+    }
+}
+
+impl Callable for NamedFunction {
+    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error> {
+        for (patterns, val) in &self.patterns {
+            if let Some(Match(v)) = match_call(patterns, args) {
+                env.push_scope();
+
+                for (name, pattern_val) in v {
+                    env.set(&name, pattern_val);
+                }
+
+                let res = exec(val, env);
+
+                env.pop_scope();
+
+                return res;
+            }
+        }
+
+        todo!()
+    }
+
+    fn param_number(&self) -> usize {
+        self.params
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct AnonFunction {
     params: Vec<String>,
     proc: Vec<ASTNode>,
 }
 
-impl InfixOperable for DefinedFunction {}
-impl PrefixOperable for DefinedFunction {}
-
-impl fmt::Display for DefinedFunction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "function")
+impl AnonFunction {
+    pub fn new(params: Vec<String>, proc: Vec<ASTNode>) -> Self {
+        Self { params, proc }
     }
 }
 
-impl DefinedFunction {
-    pub fn new(params: Vec<String>, proc: Vec<ASTNode>) -> Self {
-        Self {
-            patterns: vec![],
-            params,
-            proc,
-        }
-    }
-
-    pub fn add_pattern(&mut self, args: &[ASTNode], value: &ASTNode) {
-        self.patterns.push((args.to_vec(), value.clone()))
-    }
-
-    fn default_call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error> {
+impl Callable for AnonFunction {
+    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error> {
         env.push_scope();
 
-        for (arg, param) in zip(args, self.params.clone()) {
-            env.set(&param, arg.clone());
+        for (arg, param) in zip(args, &self.params) {
+            env.set(param, arg.clone());
         }
 
         let mut res = Object::empty_tuple();
@@ -1120,47 +1142,14 @@ impl DefinedFunction {
         Ok(res)
     }
 
-    fn pattern_call(
-        &self,
-        args: &[Object],
-        env: &mut Environment,
-    ) -> Option<Result<Object, Error>> {
-        for (patterns, val) in &self.patterns {
-            if let Some(Match(v)) = match_call(patterns, args) {
-                env.push_scope();
-
-                for (name, pattern_val) in v {
-                    env.set(&name, pattern_val);
-                }
-
-                let res = Some(exec(val, env));
-
-                env.pop_scope();
-
-                return res;
-            }
-        }
-
-        None
+    fn param_number(&self) -> usize {
+        self.params.len()
     }
 }
 
 pub trait Callable {
     fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error>;
     fn param_number(&self) -> usize;
-}
-
-impl Callable for DefinedFunction {
-    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error> {
-        match self.pattern_call(args, env) {
-            Some(res) => res,
-            None => self.default_call(args, env),
-        }
-    }
-
-    fn param_number(&self) -> usize {
-        self.params.len()
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -1172,12 +1161,6 @@ pub struct Effect {
 impl Effect {
     pub fn new(func: fn(&[Object]) -> Object, param_number: usize) -> Self {
         Self { func, param_number }
-    }
-}
-
-impl fmt::Display for Effect {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "effect")
     }
 }
 

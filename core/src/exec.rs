@@ -5,13 +5,14 @@ use std::path::Path;
 use crate::error::{Error, Position};
 use crate::matcher::{match_, Match};
 use crate::object::{
-    self, Callable, Decimal, Dictionary, FailedAssertion, Fraction, Function, Kind, List, Range,
+    self, AnonFunction, Callable, Decimal, Dictionary, FailedAssertion, Fraction, Function, Kind,
+    List, NamedFunction, Range,
 };
 
 use crate::ast::{ASTNode, ASTNodeKind, InfixOperator};
 use crate::cst::{ComprehensionKind, PrefixOperator};
 use crate::env::{Environment, ExecContext};
-use crate::object::{Bool, Char, DefinedFunction, Integer, MyString, Object, Set, Symbol, Tuple};
+use crate::object::{Bool, Char, Integer, MyString, Object, Set, Symbol, Tuple};
 use crate::run;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -62,8 +63,8 @@ pub fn list(l: &[ASTNode], env: &mut Environment) -> Result<Vec<Object>, Error> 
 }
 
 fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, Error> {
-    Ok(Object::Function(object::Function::DefinedFunction(
-        DefinedFunction::new(params.to_owned(), proc.to_owned()),
+    Ok(Object::Function(object::Function::Anonymous(
+        AnonFunction::new(params.to_owned(), proc.to_owned()),
     )))
 }
 
@@ -331,34 +332,26 @@ fn let_function(
         _ => unimplemented!(),
     };
 
-    let function: &mut DefinedFunction = match env.get(name) {
+    let function: &mut NamedFunction = match env.get(name) {
         None => {
             env.set(
                 name,
-                Object::Function(Function::DefinedFunction(DefinedFunction::default())),
+                Object::Function(Function::Named(NamedFunction::default())),
             );
 
             match env.get(name) {
-                Some(Object::Function(Function::DefinedFunction(f))) => f,
+                Some(Object::Function(Function::Named(f))) => f,
                 _ => unimplemented!(),
             }
         }
-        Some(Object::Function(Function::DefinedFunction(f))) => f,
+        Some(Object::Function(Function::Named(f))) => f,
         _ => unimplemented!(),
     };
 
     function.add_pattern(args, value);
 
-    Ok(Object::Function(Function::DefinedFunction(
-        function.clone(),
-    )))
+    Ok(Object::Function(Function::Named(function.clone())))
 }
-
-// fn exec_and_set(node: &ASTNode, name: &str, env: &mut Environment) -> Result<Object, Error> {
-//     let val = exec(node, env)?;
-//     env.set(name, val.clone());
-//     Ok(val)
-// }
 
 fn if_(
     cond: Object,
@@ -947,8 +940,8 @@ mod tests {
 
         assert_eq!(
             exec(node, &mut Environment::default()),
-            Ok(Object::Function(object::Function::DefinedFunction(
-                DefinedFunction::new(
+            Ok(Object::Function(object::Function::Anonymous(
+                AnonFunction::new(
                     vec![String::from("x"),],
                     vec![infix(
                         InfixOperator::Product,
