@@ -972,25 +972,29 @@ impl From<&str> for MyString {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Symbol {
-    val: String,
+    pub name: String,
+    pub property: Option<String>,
 }
 
 impl From<&str> for Symbol {
     fn from(val: &str) -> Self {
-        Self { val: val.into() }
+        Self {
+            name: val.into(),
+            property: None,
+        }
     }
 }
 
 impl fmt::Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.val)
+        write!(f, "{}", self.name)
     }
 }
 
 impl InfixOperable for Symbol {
     fn equality(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Symbol(symbol) => Some(Object::Boolean(Bool::from(self.val == symbol.val))),
+            Object::Symbol(symbol) => Some(Object::Boolean(Bool::from(self.name == symbol.name))),
             _ => None,
         }
     }

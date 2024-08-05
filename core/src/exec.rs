@@ -267,6 +267,23 @@ fn let_(
                 None => todo!(),
             }
         }
+        (
+            ASTNodeKind::Pattern {
+                exp,
+                constraint: Some(name),
+            },
+            None,
+        ) => let_property_only(exp, name),
+        _ => todo!(),
+    }
+}
+
+fn let_property_only(exp: &ASTNode, property: &str) -> Result<Object, Error> {
+    match &exp.kind {
+        ASTNodeKind::Symbol { name } => Ok(Object::Symbol(Symbol {
+            name: name.to_owned(),
+            property: Some(property.to_owned()),
+        })),
         _ => todo!(),
     }
 }
@@ -555,8 +572,8 @@ mod tests {
     use super::*;
     use crate::ast::tests::{
         _for, _if, boolean, call, comprehension, cons, container_element, decimal, extension_list,
-        extension_set, fraction, function, infix, integer, let_, pos, prefix, range, set_cons,
-        symbol, tuple,
+        extension_set, fraction, function, infix, integer, let_, pattern, pos, prefix, range,
+        set_cons, symbol, tuple,
     };
     use crate::cst::tests::dummy_pos;
     use crate::error::ErrorType;
@@ -1392,6 +1409,23 @@ mod tests {
         assert_eq!(
             exec(&node, &mut Environment::default()),
             Ok(Object::Set(Set::from(vec![]))),
+        );
+    }
+
+    #[test]
+    fn symbol_with_property() {
+        let node = let_(
+            pattern(symbol("x", dummy_pos()), Some("Real"), dummy_pos()),
+            None,
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            exec(&node, &mut Environment::default()),
+            Ok(Object::Symbol(Symbol {
+                name: String::from("x"),
+                property: Some(String::from("Real"))
+            }))
         );
     }
 }
