@@ -75,7 +75,7 @@
 				},
 				{
 					"name": "keyword.control.smtc",
-					"match": "\\b(for|if|else|then)\\b"
+					"match": "\\b(for|if|else|then|from|import)\\b"
 				}
 			]
 		},
