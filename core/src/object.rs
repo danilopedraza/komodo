@@ -1,4 +1,5 @@
 use std::{
+    cmp::min,
     collections::{BTreeMap, BTreeSet},
     fmt,
     hash::Hash,
@@ -1084,19 +1085,14 @@ pub struct PatternFunction {
 }
 
 impl PatternFunction {
-    pub fn add_pattern(&mut self, args: &[ASTNode], value: &ASTNode) -> Result<(), Error> {
-        if let Some(last) = self.patterns.last() {
-            if args.len() == last.0.len() {
-                self.patterns.push((args.to_vec(), value.clone()));
-                Ok(())
-            } else {
-                todo!()
-            }
-        } else {
-            self.patterns.push((args.to_vec(), value.clone()));
+    pub fn add_pattern(&mut self, args: &[ASTNode], value: &ASTNode) {
+        if self.patterns.is_empty() {
             self.params = args.len();
-            Ok(())
+        } else {
+            self.params = min(self.params, args.len())
         }
+
+        self.patterns.push((args.to_vec(), value.clone()));
     }
 }
 

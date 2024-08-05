@@ -369,7 +369,7 @@ fn let_function(
         _ => unimplemented!(),
     };
 
-    function.add_pattern(args, value)?;
+    function.add_pattern(args, value);
 
     Ok(Object::Function(Function::Pattern(function.clone())))
 }
