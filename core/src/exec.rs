@@ -283,7 +283,7 @@ fn let_property_only(exp: &ASTNode, property: &str) -> Result<Object, Error> {
     match &exp.kind {
         ASTNodeKind::Symbol { name } => Ok(Object::Symbol(Symbol {
             name: name.to_owned(),
-            property: Some(property.to_owned()),
+            property: property.to_owned(),
         })),
         _ => todo!(),
     }
@@ -663,8 +663,8 @@ mod tests {
         );
 
         let mut env = Environment::default();
-        env.set("a", Object::Symbol(Symbol::from("a")));
-        env.set("b", Object::Symbol(Symbol::from("b")));
+        env.set("a", Object::Symbol(Symbol::new("a".into(), "Foo".into())));
+        env.set("b", Object::Symbol(Symbol::new("b".into(), "Foo".into())));
 
         assert_eq!(exec(node, &mut env), Ok(Object::Boolean(false.into())));
     }
@@ -1423,7 +1423,7 @@ mod tests {
             exec(&node, &mut Environment::default()),
             Ok(Object::Symbol(Symbol {
                 name: String::from("x"),
-                property: Some(String::from("Real"))
+                property: String::from("Real")
             }))
         );
     }

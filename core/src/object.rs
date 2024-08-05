@@ -973,15 +973,12 @@ impl From<&str> for MyString {
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Symbol {
     pub name: String,
-    pub property: Option<String>,
+    pub property: String,
 }
 
-impl From<&str> for Symbol {
-    fn from(val: &str) -> Self {
-        Self {
-            name: val.into(),
-            property: None,
-        }
+impl Symbol {
+    pub fn new(name: String, property: String) -> Self {
+        Self { name, property }
     }
 }
 
