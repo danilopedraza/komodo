@@ -267,7 +267,7 @@ mod tests {
             pattern, range, set_cons, string, symbol, wildcard,
         },
         cst::tests::dummy_pos,
-        object::{Dictionary, Fraction, Integer, Range, Set},
+        object::{Dictionary, Fraction, Integer, Range, Set, Symbol},
     };
 
     use super::*;
@@ -519,5 +519,17 @@ mod tests {
         let value = Object::Integer(0.into());
 
         assert_eq!(match_(&pattern, &value), None);
+    }
+
+    #[test]
+    fn symbol_with_property() {
+        let pattern = pattern(symbol("a", dummy_pos()), Some("Real"), dummy_pos());
+
+        let value = Object::Symbol(Symbol::new("a".into(), "Real".into()));
+
+        assert_eq!(
+            match_(&pattern, &value),
+            single_match("a", &Object::Symbol(Symbol::new("a".into(), "Real".into())),)
+        );
     }
 }

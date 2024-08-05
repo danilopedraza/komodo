@@ -113,7 +113,10 @@ impl Object {
     }
 
     pub fn has_property(&self, prop: &str) -> bool {
-        prop == self.kind()
+        match self {
+            Object::Symbol(symbol) => symbol.property == prop,
+            _ => prop == self.kind(),
+        }
     }
 }
 
