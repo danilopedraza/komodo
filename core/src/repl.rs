@@ -214,17 +214,6 @@ mod tests {
     }
 
     #[test]
-    fn symbol() {
-        let input = Ok(String::from("x"));
-        let mut repl = Repl::default();
-
-        assert_eq!(
-            repl.response(input),
-            (String::from("x"), ReplResponse::Continue)
-        );
-    }
-
-    #[test]
     fn language_error_communicated() {
         let mut repl = Repl::standard_repl();
 
@@ -259,11 +248,11 @@ mod tests {
     fn eval_completed_expression() {
         let mut repl = Repl::default();
 
-        repl.response(Ok(String::from("if 1 + 1 = 2 then a")));
+        repl.response(Ok(String::from("if 1 + 1 = 2 then 2")));
 
         assert_eq!(
-            repl.response(Ok(String::from("else b"))),
-            (String::from("a"), ReplResponse::Continue),
+            repl.response(Ok(String::from("else 1"))),
+            (String::from("2"), ReplResponse::Continue),
         );
     }
 
@@ -298,8 +287,8 @@ mod tests {
         repl.response(Ok(String::from("let f([val]) := val")));
 
         assert_eq!(
-            repl.response(Ok(String::from("f([x])"))),
-            (String::from("x"), ReplResponse::Continue),
+            repl.response(Ok(String::from("f([0])"))),
+            (String::from("0"), ReplResponse::Continue),
         );
     }
 

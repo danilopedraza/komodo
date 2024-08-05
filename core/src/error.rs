@@ -184,7 +184,12 @@ fn exec_error_msg(err: &EvalError) -> String {
         EvalError::ListIndexOutOfBounds => "List index out of bounds".into(),
         EvalError::InvalidIndex { kind } => invalid_index(kind),
         EvalError::NonExistentKey { key } => non_existent_key(key),
+        EvalError::UnknownValue(value) => unknown_value(value),
     }
+}
+
+fn unknown_value(value: &str) -> String {
+    format!("Unknown value: `{value}`")
 }
 
 fn indexing_non_container(kind: &str) -> String {

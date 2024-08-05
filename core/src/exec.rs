@@ -49,6 +49,7 @@ pub enum EvalError {
     },
     NonIterableObject(String),
     NonPrependableObject(String),
+    UnknownValue(String),
 }
 
 pub fn truthy(val: &Object) -> bool {
@@ -70,7 +71,7 @@ fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, Error> {
 
 pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     let res = match &node.kind {
-        ASTNodeKind::Symbol { name } => symbol(name, env),
+        ASTNodeKind::Symbol { name } => symbol(name, env, node.position),
         ASTNodeKind::Set { list } => extension_set(list, env),
         ASTNodeKind::Integer { dec } => integer(dec),
         ASTNodeKind::Function { params, proc } => function(params, proc),
@@ -296,10 +297,13 @@ fn extension_set(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> 
     list(l, env).map(|lst| Object::Set(Set::from(lst)))
 }
 
-fn symbol(str: &str, env: &mut Environment) -> Result<Object, Error> {
+fn symbol(str: &str, env: &mut Environment, position: Position) -> Result<Object, Error> {
     match env.get(str) {
         Some(obj) => Ok(obj.clone()),
-        None => Ok(Object::Symbol(Symbol::from(str))),
+        None => Err(Error::new(
+            EvalError::UnknownValue(str.to_owned()).into(),
+            position,
+        )),
     }
 }
 
@@ -580,27 +584,27 @@ mod tests {
     use crate::{ast, object::*};
 
     #[test]
-    fn symbol_() {
+    fn unknown_value() {
         let node = symbol("a", dummy_pos());
         assert_eq!(
             exec(&node, &mut Default::default()),
-            Ok(Object::Symbol(Symbol::from("a")))
+            Err(Error::new(
+                EvalError::UnknownValue(String::from("a")).into(),
+                dummy_pos()
+            ))
         );
     }
 
     #[test]
     fn set_by_extension() {
         let node = extension_set(
-            vec![symbol("a", dummy_pos()), symbol("a", dummy_pos())],
+            vec![integer("1", dummy_pos()), integer("1", dummy_pos())],
             dummy_pos(),
         );
 
         assert_eq!(
             exec(&node, &mut Default::default()),
-            Ok(Object::Set(Set::from(vec![
-                Object::Symbol(Symbol::from("a")),
-                Object::Symbol(Symbol::from("a")),
-            ]))),
+            Ok(Object::Set(Set::from(vec![Object::Integer(1.into()),]))),
         );
     }
 
@@ -658,10 +662,11 @@ mod tests {
             dummy_pos(),
         );
 
-        assert_eq!(
-            exec(node, &mut Default::default()),
-            Ok(Object::Boolean(Bool::from(false)))
-        );
+        let mut env = Environment::default();
+        env.set("a", Object::Symbol(Symbol::from("a")));
+        env.set("b", Object::Symbol(Symbol::from("b")));
+
+        assert_eq!(exec(node, &mut env), Ok(Object::Boolean(false.into())));
     }
 
     #[test]
@@ -1167,17 +1172,11 @@ mod tests {
     fn prepend() {
         let node = cons(
             integer("1", dummy_pos()),
-            extension_list(vec![symbol("s", dummy_pos())], dummy_pos()),
+            extension_list(vec![integer("2", dummy_pos())], dummy_pos()),
             dummy_pos(),
         );
 
-        let obj = Object::List(
-            vec![
-                Object::Integer(Integer::from(1)),
-                Object::Symbol(Symbol::from("s")),
-            ]
-            .into(),
-        );
+        let obj = Object::List(vec![Object::Integer(1.into()), Object::Integer(2.into())].into());
 
         assert_eq!(exec(&node, &mut Environment::default()), Ok(obj));
     }
