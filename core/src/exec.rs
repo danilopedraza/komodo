@@ -3,6 +3,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::error::{Error, Position};
+use crate::lexer::Radix;
 use crate::matcher::{match_, Match};
 use crate::object::{
     self, AnonFunction, Callable, Decimal, Dictionary, FailedAssertion, Fraction, Function, Kind,
@@ -73,7 +74,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     let res = match &node.kind {
         ASTNodeKind::Symbol { name } => symbol(name, env, node.position),
         ASTNodeKind::Set { list } => extension_set(list, env),
-        ASTNodeKind::Integer { dec, radix: _ } => integer(dec),
+        ASTNodeKind::Integer { literal, radix } => integer(literal, *radix),
         ASTNodeKind::Function { params, proc } => function(params, proc),
         ASTNodeKind::Infix { op, lhs, rhs } => infix(
             op.clone(),
@@ -289,8 +290,8 @@ fn let_property_only(exp: &ASTNode, property: &str) -> Result<Object, Error> {
     }
 }
 
-fn integer(str: &str) -> Result<Object, Error> {
-    Ok(Object::Integer(Integer::from(str)))
+fn integer(str: &str, radix: Radix) -> Result<Object, Error> {
+    Ok(Object::Integer(Integer::new(str, radix)))
 }
 
 fn extension_set(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {

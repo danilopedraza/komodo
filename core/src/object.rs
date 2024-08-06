@@ -16,6 +16,7 @@ use crate::{
     env::Environment,
     error::Error,
     exec::{exec, EvalError},
+    lexer::Radix,
     matcher::{match_call, Match},
 };
 
@@ -659,6 +660,17 @@ pub struct Integer {
 }
 
 impl Integer {
+    pub fn new(literal: &str, radix: Radix) -> Self {
+        let radix = match radix {
+            Radix::Decimal => 10,
+            Radix::Hex => 16,
+        };
+
+        let val = BigInt::parse_bytes(literal.as_bytes(), radix).unwrap();
+
+        Self { val }
+    }
+
     fn to_machine_magnitude(&self) -> usize {
         let max = usize::MAX;
         if self.val <= BigInt::from(0) {

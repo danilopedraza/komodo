@@ -148,7 +148,7 @@ pub enum ASTNodeKind {
         rhs: Box<ASTNode>,
     },
     Integer {
-        dec: String,
+        literal: String,
         radix: Radix,
     },
     Let {
@@ -213,7 +213,7 @@ pub mod tests {
         let dec = dec.to_string();
         ASTNode::new(
             ASTNodeKind::Integer {
-                dec,
+                literal: dec,
                 radix: Radix::Decimal,
             },
             position,

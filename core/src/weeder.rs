@@ -163,10 +163,17 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
         InfixOperator::Dot => match (rewrite(lhs)?, rewrite(rhs)?.kind) {
             (
                 ASTNode {
-                    kind: ASTNodeKind::Integer { dec: int, radix: _ },
+                    kind:
+                        ASTNodeKind::Integer {
+                            literal: int,
+                            radix: _,
+                        },
                     position: _,
                 },
-                ASTNodeKind::Integer { dec, radix: _ },
+                ASTNodeKind::Integer {
+                    literal: dec,
+                    radix: _,
+                },
             ) => decimal(int, dec),
             (first_arg, ASTNodeKind::Call { called, args }) => Ok(ASTNodeKind::Call {
                 called,
@@ -212,7 +219,10 @@ fn infix_node(op: ast::InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResul
 }
 
 fn integer(dec: String, radix: Radix) -> WeederResult<ASTNodeKind> {
-    Ok(ASTNodeKind::Integer { dec, radix })
+    Ok(ASTNodeKind::Integer {
+        literal: dec,
+        radix,
+    })
 }
 
 fn _let(left: CSTNode, right: Option<CSTNode>) -> WeederResult<ASTNodeKind> {
