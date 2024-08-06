@@ -161,14 +161,13 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 res.push(expr);
 
                 match self.next_token()? {
-                    Some(TokenType::Comma) => {
-                        if let Ok(Some(TokenType::Rparen)) = self.peek_token() {
+                    Some(TokenType::Comma) => match self.peek_token() {
+                        Ok(Some(tok)) if tok == terminator => {
                             self.next_token()?;
                             break Ok(res);
-                        } else {
-                            continue;
                         }
-                    }
+                        _ => continue,
+                    },
                     Some(tok) if tok == terminator => break Ok(res),
                     Some(tok) => {
                         break Err(Error::new(
