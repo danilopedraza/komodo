@@ -101,7 +101,7 @@ fn found_a(tok: &TokenType) -> String {
         TokenType::Ident(ident) => format!("a symbol: `{ident}`"),
         TokenType::If => "the `if` keyword".into(),
         TokenType::In => "the `in` keyword".into(),
-        TokenType::Integer(val) => format!("an integer: `{val}`"),
+        TokenType::Integer(val, _) => format!("an integer: `{val}`"),
         TokenType::Lbrace => "a left brace: `{`".into(),
         TokenType::Lbrack => "a left bracket: `[`".into(),
         TokenType::LeftShift => "a left shift operator: `<<`".into(),

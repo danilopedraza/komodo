@@ -57,7 +57,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 TokenType::Lparen => self.parenthesis(),
                 TokenType::Lbrace => self.set_or_dict(),
                 TokenType::Lbrack => self.list(),
-                TokenType::Integer(int) => self.integer(int),
+                TokenType::Integer(int, _) => self.integer(int),
                 TokenType::Ident(literal) => self.symbol(literal),
                 TokenType::String(str) => self.string(str),
                 TokenType::Wildcard => self.wildcard(),
@@ -668,7 +668,7 @@ mod tests {
             set_cons, string, symbol, wildcard,
         },
         error::Position,
-        lexer::build_lexer,
+        lexer::{build_lexer, Radix},
     };
     use std::iter;
 
@@ -683,7 +683,7 @@ mod tests {
     #[test]
     fn integer_alone() {
         let tokens = vec![Token::new(
-            TokenType::Integer(String::from("0")),
+            TokenType::Integer(String::from("0"), Radix::Decimal),
             _pos(0, 1),
         )];
         assert_eq!(
@@ -696,7 +696,10 @@ mod tests {
     fn integer_in_parenthesis() {
         let tokens = vec![
             Token::new(TokenType::Lparen, _pos(0, 1)),
-            Token::new(TokenType::Integer(String::from("365")), _pos(1, 3)),
+            Token::new(
+                TokenType::Integer(String::from("365"), Radix::Decimal),
+                _pos(1, 3),
+            ),
             Token::new(TokenType::Rparen, _pos(4, 1)),
         ];
         assert_eq!(
@@ -709,7 +712,10 @@ mod tests {
     fn unbalanced_left_parenthesis() {
         let tokens = vec![
             Token::new(TokenType::Lparen, _pos(0, 1)),
-            Token::new(TokenType::Integer(String::from("65")), _pos(1, 2)),
+            Token::new(
+                TokenType::Integer(String::from("65"), Radix::Decimal),
+                _pos(1, 2),
+            ),
         ];
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
@@ -723,9 +729,15 @@ mod tests {
     #[test]
     fn simple_sum() {
         let tokens = vec![
-            Token::new(TokenType::Integer(String::from("1")), _pos(0, 1)),
+            Token::new(
+                TokenType::Integer(String::from("1"), Radix::Decimal),
+                _pos(0, 1),
+            ),
             Token::new(TokenType::Plus, _pos(2, 1)),
-            Token::new(TokenType::Integer(String::from("1")), _pos(4, 1)),
+            Token::new(
+                TokenType::Integer(String::from("1"), Radix::Decimal),
+                _pos(4, 1),
+            ),
         ];
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
@@ -741,7 +753,10 @@ mod tests {
     #[test]
     fn incomplete_sum() {
         let tokens = vec![
-            Token::new(TokenType::Integer(String::from("1")), _pos(0, 1)),
+            Token::new(
+                TokenType::Integer(String::from("1"), Radix::Decimal),
+                _pos(0, 1),
+            ),
             Token::new(TokenType::Plus, _pos(1, 1)),
         ];
         assert_eq!(
@@ -753,11 +768,20 @@ mod tests {
     #[test]
     fn product_and_power() {
         let tokens = vec![
-            Token::new(TokenType::Integer(String::from("1")), _pos(0, 1)),
+            Token::new(
+                TokenType::Integer(String::from("1"), Radix::Decimal),
+                _pos(0, 1),
+            ),
             Token::new(TokenType::Times, _pos(1, 1)),
-            Token::new(TokenType::Integer(String::from("2")), _pos(2, 1)),
+            Token::new(
+                TokenType::Integer(String::from("2"), Radix::Decimal),
+                _pos(2, 1),
+            ),
             Token::new(TokenType::ToThe, _pos(4, 2)),
-            Token::new(TokenType::Integer(String::from("2")), _pos(7, 1)),
+            Token::new(
+                TokenType::Integer(String::from("2"), Radix::Decimal),
+                _pos(7, 1),
+            ),
         ];
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
@@ -778,11 +802,20 @@ mod tests {
     #[test]
     fn division_and_sum() {
         let tokens = vec![
-            Token::new(TokenType::Integer(String::from("1")), _pos(0, 1)),
+            Token::new(
+                TokenType::Integer(String::from("1"), Radix::Decimal),
+                _pos(0, 1),
+            ),
             Token::new(TokenType::Over, _pos(1, 1)),
-            Token::new(TokenType::Integer(String::from("1")), _pos(2, 1)),
+            Token::new(
+                TokenType::Integer(String::from("1"), Radix::Decimal),
+                _pos(2, 1),
+            ),
             Token::new(TokenType::Plus, _pos(4, 1)),
-            Token::new(TokenType::Integer(String::from("1")), _pos(6, 1)),
+            Token::new(
+                TokenType::Integer(String::from("1"), Radix::Decimal),
+                _pos(6, 1),
+            ),
         ];
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
@@ -806,7 +839,10 @@ mod tests {
             Token::new(TokenType::Let, Position::new(0, 3)),
             Token::new(TokenType::Ident(String::from('x')), Position::new(4, 1)),
             Token::new(TokenType::Assign, Position::new(6, 2)),
-            Token::new(TokenType::Integer(String::from("1")), Position::new(9, 1)),
+            Token::new(
+                TokenType::Integer(String::from("1"), Radix::Decimal),
+                Position::new(9, 1),
+            ),
         ];
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
@@ -821,13 +857,25 @@ mod tests {
     #[test]
     fn comparison_precedence() {
         let tokens = vec![
-            Token::new(TokenType::Integer(String::from("1")), _pos(0, 1)),
+            Token::new(
+                TokenType::Integer(String::from("1"), Radix::Decimal),
+                _pos(0, 1),
+            ),
             Token::new(TokenType::Plus, _pos(2, 1)),
-            Token::new(TokenType::Integer(String::from("5")), _pos(4, 1)),
+            Token::new(
+                TokenType::Integer(String::from("5"), Radix::Decimal),
+                _pos(4, 1),
+            ),
             Token::new(TokenType::NotEqual, _pos(6, 2)),
-            Token::new(TokenType::Integer(String::from("6")), _pos(9, 1)),
+            Token::new(
+                TokenType::Integer(String::from("6"), Radix::Decimal),
+                _pos(9, 1),
+            ),
             Token::new(TokenType::Percent, _pos(11, 1)),
-            Token::new(TokenType::Integer(String::from("2")), _pos(13, 1)),
+            Token::new(
+                TokenType::Integer(String::from("2"), Radix::Decimal),
+                _pos(13, 1),
+            ),
         ];
 
         assert_eq!(
@@ -981,11 +1029,20 @@ mod tests {
             Token::new(TokenType::Colon, _pos(6, 1)),
             Token::new(TokenType::Ident(String::from("Real")), _pos(8, 4)),
             Token::new(TokenType::Assign, _pos(13, 2)),
-            Token::new(TokenType::Integer(String::from("1")), _pos(16, 1)),
+            Token::new(
+                TokenType::Integer(String::from("1"), Radix::Decimal),
+                _pos(16, 1),
+            ),
             Token::new(TokenType::Plus, _pos(18, 1)),
-            Token::new(TokenType::Integer(String::from("0")), _pos(20, 1)),
+            Token::new(
+                TokenType::Integer(String::from("0"), Radix::Decimal),
+                _pos(20, 1),
+            ),
             Token::new(TokenType::Percent, _pos(22, 1)),
-            Token::new(TokenType::Integer(String::from("2")), _pos(24, 1)),
+            Token::new(
+                TokenType::Integer(String::from("2"), Radix::Decimal),
+                _pos(24, 1),
+            ),
         ];
 
         assert_eq!(
@@ -1013,9 +1070,15 @@ mod tests {
         let tokens = vec![
             Token::new(TokenType::Ident(String::from('x')), _pos(0, 1)),
             Token::new(TokenType::Minus, _pos(2, 1)),
-            Token::new(TokenType::Integer(String::from('1')), _pos(4, 1)),
+            Token::new(
+                TokenType::Integer(String::from('1'), Radix::Decimal),
+                _pos(4, 1),
+            ),
             Token::new(TokenType::LeftShift, _pos(6, 2)),
-            Token::new(TokenType::Integer(String::from('1')), _pos(9, 1)),
+            Token::new(
+                TokenType::Integer(String::from('1'), Radix::Decimal),
+                _pos(9, 1),
+            ),
         ];
 
         assert_eq!(
@@ -1191,7 +1254,10 @@ mod tests {
             Token::new(TokenType::If, _pos(0, 2)),
             Token::new(TokenType::Ident(String::from("a")), _pos(3, 1)),
             Token::new(TokenType::Less, _pos(5, 1)),
-            Token::new(TokenType::Integer(String::from("0")), _pos(7, 1)),
+            Token::new(
+                TokenType::Integer(String::from("0"), Radix::Decimal),
+                _pos(7, 1),
+            ),
             Token::new(TokenType::Then, _pos(9, 4)),
             Token::new(TokenType::Minus, _pos(14, 1)),
             Token::new(TokenType::Ident(String::from("a")), _pos(15, 1)),

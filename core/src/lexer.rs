@@ -22,6 +22,12 @@ impl Token {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Radix {
+    Decimal,
+    Hex,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TokenType {
     Arrow,
@@ -47,7 +53,7 @@ pub enum TokenType {
     If,
     Import,
     In,
-    Integer(String),
+    Integer(String, Radix),
     Lbrace,
     Lbrack,
     LeftShift,
@@ -263,19 +269,39 @@ impl Lexer<'_> {
         def
     }
 
+    fn is_digit(chr: char, radix: Radix) -> bool {
+        match radix {
+            Radix::Decimal => chr.is_ascii_digit(),
+            Radix::Hex => chr.is_ascii_digit() || matches!(chr, 'a'..='f'),
+        }
+    }
+
     fn integer(&mut self, first: char) -> TokenType {
-        if first == '0' {
-            return TokenType::Integer(String::from(first));
+        let radix = match first {
+            '0' => match self.input.peek() {
+                Some('x') => Radix::Hex,
+                _ => return TokenType::Integer('0'.into(), Radix::Decimal),
+            },
+            _ => Radix::Decimal,
+        };
+
+        let mut literal = String::new();
+        if radix != Radix::Decimal {
+            self.input.next();
+        } else {
+            literal.push(first);
         }
 
-        let mut number = String::from(first);
-
-        while let Some(chr) = self.input.by_ref().next_if(|c| c.is_ascii_digit()) {
+        while let Some(chr) = self.input.by_ref().next_if(|c| Self::is_digit(*c, radix)) {
             self.cur_pos += 1;
-            number.push(chr);
+            literal.push(chr);
         }
 
-        TokenType::Integer(number)
+        if literal.is_empty() {
+            todo!()
+        } else {
+            TokenType::Integer(literal, radix)
+        }
     }
 }
 
@@ -345,9 +371,15 @@ mod tests {
                 Token::new(TokenType::Let, Position::new(0, 3)),
                 Token::new(TokenType::Ident(String::from('x')), Position::new(4, 1)),
                 Token::new(TokenType::Assign, Position::new(6, 2)),
-                Token::new(TokenType::Integer(String::from('1')), Position::new(9, 1)),
+                Token::new(
+                    TokenType::Integer(String::from('1'), Radix::Decimal),
+                    Position::new(9, 1)
+                ),
                 Token::new(TokenType::Over, Position::new(11, 1)),
-                Token::new(TokenType::Integer(String::from('2')), Position::new(13, 1)),
+                Token::new(
+                    TokenType::Integer(String::from('2'), Radix::Decimal),
+                    Position::new(13, 1)
+                ),
                 Token::new(TokenType::Dot, Position::new(14, 1)),
             ]),
         );
@@ -364,9 +396,15 @@ mod tests {
                 Token::new(TokenType::Ident(String::from('y')), Position::new(5, 1)),
                 Token::new(TokenType::Rparen, Position::new(6, 1)),
                 Token::new(TokenType::Equals, Position::new(8, 1)),
-                Token::new(TokenType::Integer(String::from("23")), Position::new(10, 2)),
+                Token::new(
+                    TokenType::Integer(String::from("23"), Radix::Decimal),
+                    Position::new(10, 2)
+                ),
                 Token::new(TokenType::Percent, Position::new(13, 1)),
-                Token::new(TokenType::Integer(String::from("2")), Position::new(15, 1)),
+                Token::new(
+                    TokenType::Integer(String::from("2"), Radix::Decimal),
+                    Position::new(15, 1)
+                ),
             ]),
         );
     }
@@ -420,12 +458,12 @@ mod tests {
             token_types_from("(1 << 2) >> 2"),
             Ok(vec![
                 TokenType::Lparen,
-                TokenType::Integer(String::from("1")),
+                TokenType::Integer(String::from("1"), Radix::Decimal),
                 TokenType::LeftShift,
-                TokenType::Integer(String::from("2")),
+                TokenType::Integer(String::from("2"), Radix::Decimal),
                 TokenType::Rparen,
                 TokenType::RightShift,
-                TokenType::Integer(String::from("2"))
+                TokenType::Integer(String::from("2"), Radix::Decimal)
             ]),
         );
     }
@@ -441,7 +479,10 @@ mod tests {
                 Token::new(TokenType::Comma, Position::new(3, 1)),
                 Token::new(TokenType::Ident(String::from('y')), Position::new(4, 1)),
                 Token::new(TokenType::ToThe, Position::new(6, 2)),
-                Token::new(TokenType::Integer(String::from('2')), Position::new(9, 1)),
+                Token::new(
+                    TokenType::Integer(String::from('2'), Radix::Decimal),
+                    Position::new(9, 1)
+                ),
                 Token::new(TokenType::Rparen, Position::new(10, 1)),
             ]),
         );
@@ -466,8 +507,8 @@ mod tests {
         assert_eq!(
             token_types_from("01"),
             Ok(vec![
-                TokenType::Integer(String::from('0')),
-                TokenType::Integer(String::from('1'))
+                TokenType::Integer(String::from('0'), Radix::Decimal),
+                TokenType::Integer(String::from('1'), Radix::Decimal)
             ]),
         );
     }
@@ -502,7 +543,7 @@ mod tests {
                 TokenType::If,
                 TokenType::Ident(String::from("a")),
                 TokenType::Less,
-                TokenType::Integer(String::from("0")),
+                TokenType::Integer(String::from("0"), Radix::Decimal),
                 TokenType::Then,
                 TokenType::Minus,
                 TokenType::Ident(String::from("a")),
@@ -582,9 +623,9 @@ mod tests {
             token_types_from(code),
             Ok(vec![
                 TokenType::Lbrack,
-                TokenType::Integer(String::from("1")),
+                TokenType::Integer(String::from("1"), Radix::Decimal),
                 TokenType::Comma,
-                TokenType::Integer(String::from("2")),
+                TokenType::Integer(String::from("2"), Radix::Decimal),
                 TokenType::Rbrack,
             ]),
         );
@@ -616,9 +657,9 @@ mod tests {
         assert_eq!(
             token_types_from(code),
             Ok(vec![
-                TokenType::Integer(String::from("0")),
+                TokenType::Integer(String::from("0"), Radix::Decimal),
                 TokenType::DotDot,
-                TokenType::Integer(String::from("10")),
+                TokenType::Integer(String::from("10"), Radix::Decimal),
             ]),
         );
     }
@@ -630,9 +671,9 @@ mod tests {
         assert_eq!(
             token_types_from(code),
             Ok(vec![
-                TokenType::Integer(String::from("1")),
+                TokenType::Integer(String::from("1"), Radix::Decimal),
                 TokenType::SlashSlash,
-                TokenType::Integer(String::from("2")),
+                TokenType::Integer(String::from("2"), Radix::Decimal),
             ]),
         );
     }
@@ -689,7 +730,7 @@ mod tests {
             Ok(vec![
                 TokenType::Ident(String::from("list")),
                 TokenType::Lbrack,
-                TokenType::Integer(String::from("0")),
+                TokenType::Integer(String::from("0"), Radix::Decimal),
                 TokenType::Rbrack,
             ])
         );
@@ -709,6 +750,19 @@ mod tests {
                 TokenType::As,
                 TokenType::Ident(String::from("baz"))
             ])
+        );
+    }
+
+    #[test]
+    fn hex() {
+        let code = "0x123456789abcdef0";
+
+        assert_eq!(
+            token_types_from(code),
+            Ok(vec![TokenType::Integer(
+                String::from("123456789abcdef0"),
+                Radix::Hex
+            )])
         );
     }
 }
