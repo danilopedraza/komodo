@@ -2,6 +2,7 @@ use crate::{
     ast::{self, ASTNode, ASTNodeKind},
     cst::{CSTNode, CSTNodeKind, ComprehensionKind, InfixOperator, PrefixOperator},
     error::Error,
+    lexer::Radix,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -18,7 +19,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeKind::For(val, iter, proc) => _for(val, *iter, proc),
         CSTNodeKind::If(cond, positive, negative) => _if(*cond, *positive, *negative),
         CSTNodeKind::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs),
-        CSTNodeKind::Integer(dec) => integer(dec),
+        CSTNodeKind::Integer(dec, radix) => integer(dec, radix),
         CSTNodeKind::Let(left, right) => _let(*left, right.map(|node| *node)),
         CSTNodeKind::Prefix(op, val) => prefix(op, *val),
         CSTNodeKind::Cons(first, tail) => cons(*first, *tail),
@@ -162,10 +163,10 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
         InfixOperator::Dot => match (rewrite(lhs)?, rewrite(rhs)?.kind) {
             (
                 ASTNode {
-                    kind: ASTNodeKind::Integer { dec: int },
+                    kind: ASTNodeKind::Integer { dec: int, radix: _ },
                     position: _,
                 },
-                ASTNodeKind::Integer { dec },
+                ASTNodeKind::Integer { dec, radix: _ },
             ) => decimal(int, dec),
             (first_arg, ASTNodeKind::Call { called, args }) => Ok(ASTNodeKind::Call {
                 called,
@@ -210,8 +211,8 @@ fn infix_node(op: ast::InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResul
     Ok(ASTNodeKind::Infix { op, lhs, rhs })
 }
 
-fn integer(dec: String) -> WeederResult<ASTNodeKind> {
-    Ok(ASTNodeKind::Integer { dec })
+fn integer(dec: String, radix: Radix) -> WeederResult<ASTNodeKind> {
+    Ok(ASTNodeKind::Integer { dec, radix })
 }
 
 fn _let(left: CSTNode, right: Option<CSTNode>) -> WeederResult<ASTNodeKind> {
@@ -294,7 +295,7 @@ mod tests {
         ast,
         cst::{
             self,
-            tests::{dummy_pos, integer, symbol},
+            tests::{dec_integer, dummy_pos, symbol},
             InfixOperator,
         },
     };
@@ -311,7 +312,7 @@ mod tests {
                 symbol("x", dummy_pos()),
                 dummy_pos(),
             ),
-            cst::tuple(vec![cst::tests::integer("1", dummy_pos())], dummy_pos()),
+            cst::tuple(vec![cst::tests::dec_integer("1", dummy_pos())], dummy_pos()),
             dummy_pos(),
         );
 
@@ -323,7 +324,7 @@ mod tests {
                     vec![ast::tests::symbol("x", dummy_pos())],
                     dummy_pos()
                 ),
-                vec![ast::tests::integer("1", dummy_pos())],
+                vec![ast::tests::dec_integer("1", dummy_pos())],
                 dummy_pos()
             ))
         );
@@ -333,16 +334,16 @@ mod tests {
     fn fraction_() {
         let node = cst::infix(
             InfixOperator::Fraction,
-            cst::tests::integer("1", dummy_pos()),
-            cst::tests::integer("2", dummy_pos()),
+            cst::tests::dec_integer("1", dummy_pos()),
+            cst::tests::dec_integer("2", dummy_pos()),
             dummy_pos(),
         );
 
         assert_eq!(
             rewrite(node),
             Ok(ast::tests::fraction(
-                ast::tests::integer("1", dummy_pos()),
-                ast::tests::integer("2", dummy_pos()),
+                ast::tests::dec_integer("1", dummy_pos()),
+                ast::tests::dec_integer("2", dummy_pos()),
                 dummy_pos()
             ))
         );
@@ -379,8 +380,8 @@ mod tests {
     fn decimal() {
         let node = cst::infix(
             InfixOperator::Dot,
-            integer("1", dummy_pos()),
-            integer("5", dummy_pos()),
+            dec_integer("1", dummy_pos()),
+            dec_integer("5", dummy_pos()),
             dummy_pos(),
         );
 
@@ -395,7 +396,7 @@ mod tests {
         let node = cst::infix(
             InfixOperator::Element,
             symbol("list", dummy_pos()),
-            integer("0", dummy_pos()),
+            dec_integer("0", dummy_pos()),
             dummy_pos(),
         );
 
@@ -403,7 +404,7 @@ mod tests {
             rewrite(node),
             Ok(ast::tests::container_element(
                 ast::tests::symbol("list", dummy_pos()),
-                ast::tests::integer("0", dummy_pos()),
+                ast::tests::dec_integer("0", dummy_pos()),
                 dummy_pos()
             ))
         );

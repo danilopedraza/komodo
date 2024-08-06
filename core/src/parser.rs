@@ -3,7 +3,7 @@ use std::{iter::Peekable, vec};
 use crate::cst::dictionary;
 use crate::cst::*;
 use crate::error::{Error, Position};
-use crate::lexer::{Token, TokenType};
+use crate::lexer::{Radix, Token, TokenType};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParserError {
@@ -57,7 +57,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 TokenType::Lparen => self.parenthesis(),
                 TokenType::Lbrace => self.set_or_dict(),
                 TokenType::Lbrack => self.list(),
-                TokenType::Integer(int, _) => self.integer(int),
+                TokenType::Integer(int, radix) => self.integer(int, radix),
                 TokenType::Ident(literal) => self.symbol(literal),
                 TokenType::String(str) => self.string(str),
                 TokenType::Wildcard => self.wildcard(),
@@ -305,8 +305,8 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
     }
 
-    fn integer(&mut self, int: String) -> _NodeResult {
-        self.node_with_cur(CSTNodeKind::Integer(int))
+    fn integer(&mut self, int: String, radix: Radix) -> _NodeResult {
+        self.node_with_cur(CSTNodeKind::Integer(int, radix))
     }
 
     fn parenthesis(&mut self) -> _NodeResult {
@@ -664,7 +664,7 @@ mod tests {
     use super::*;
     use crate::{
         cst::tests::{
-            _pos, ad_infinitum, boolean, char, import, import_from, integer, let_, pattern,
+            _pos, ad_infinitum, boolean, char, dec_integer, import, import_from, let_, pattern,
             set_cons, string, symbol, wildcard,
         },
         error::Position,
@@ -688,7 +688,7 @@ mod tests {
         )];
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(integer("0", _pos(0, 1))))
+            Some(Ok(dec_integer("0", _pos(0, 1))))
         );
     }
 
@@ -704,7 +704,7 @@ mod tests {
         ];
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
-            Some(Ok(integer("365", _pos(1, 3)))),
+            Some(Ok(dec_integer("365", _pos(1, 3)))),
         );
     }
 
@@ -743,8 +743,8 @@ mod tests {
             parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(infix(
                 InfixOperator::Sum,
-                integer("1", _pos(0, 1)),
-                integer("1", _pos(4, 1)),
+                dec_integer("1", _pos(0, 1)),
+                dec_integer("1", _pos(4, 1)),
                 _pos(0, 5)
             )))
         );
@@ -787,11 +787,11 @@ mod tests {
             parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(infix(
                 InfixOperator::Product,
-                integer("1", _pos(0, 1)),
+                dec_integer("1", _pos(0, 1)),
                 infix(
                     InfixOperator::Exponentiation,
-                    integer("2", _pos(2, 1)),
-                    integer("2", _pos(7, 1)),
+                    dec_integer("2", _pos(2, 1)),
+                    dec_integer("2", _pos(7, 1)),
                     _pos(2, 6),
                 ),
                 _pos(0, 8)
@@ -823,11 +823,11 @@ mod tests {
                 InfixOperator::Sum,
                 infix(
                     InfixOperator::Division,
-                    integer("1", _pos(0, 1)),
-                    integer("1", _pos(2, 1)),
+                    dec_integer("1", _pos(0, 1)),
+                    dec_integer("1", _pos(2, 1)),
                     _pos(0, 3)
                 ),
-                integer("1", _pos(6, 1)),
+                dec_integer("1", _pos(6, 1)),
                 _pos(0, 7),
             )))
         );
@@ -848,7 +848,7 @@ mod tests {
             parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(let_(
                 symbol("x", _pos(4, 1)),
-                Some(integer("1", _pos(9, 1))),
+                Some(dec_integer("1", _pos(9, 1))),
                 _pos(0, 10)
             )))
         );
@@ -884,14 +884,14 @@ mod tests {
                 InfixOperator::NotEquality,
                 infix(
                     InfixOperator::Sum,
-                    integer("1", _pos(0, 1)),
-                    integer("5", _pos(4, 1)),
+                    dec_integer("1", _pos(0, 1)),
+                    dec_integer("5", _pos(4, 1)),
                     _pos(0, 5)
                 ),
                 infix(
                     InfixOperator::Rem,
-                    integer("6", _pos(9, 1)),
-                    integer("2", _pos(13, 1)),
+                    dec_integer("6", _pos(9, 1)),
+                    dec_integer("2", _pos(13, 1)),
                     _pos(9, 5)
                 ),
                 _pos(0, 14)
@@ -1051,11 +1051,11 @@ mod tests {
                 pattern(symbol("x", _pos(4, 1)), Some("Real"), _pos(4, 8)),
                 Some(infix(
                     InfixOperator::Sum,
-                    integer("1", _pos(16, 1)),
+                    dec_integer("1", _pos(16, 1)),
                     infix(
                         InfixOperator::Rem,
-                        integer("0", _pos(20, 1)),
-                        integer("2", _pos(24, 1)),
+                        dec_integer("0", _pos(20, 1)),
+                        dec_integer("2", _pos(24, 1)),
                         _pos(20, 5)
                     ),
                     _pos(16, 9),
@@ -1088,10 +1088,10 @@ mod tests {
                 infix(
                     InfixOperator::Substraction,
                     symbol("x", _pos(0, 1)),
-                    integer("1", _pos(4, 1)),
+                    dec_integer("1", _pos(4, 1)),
                     _pos(0, 5)
                 ),
-                integer("1", _pos(9, 1)),
+                dec_integer("1", _pos(9, 1)),
                 _pos(0, 10),
             )))
         );
@@ -1107,11 +1107,11 @@ mod tests {
                 InfixOperator::Greater,
                 infix(
                     InfixOperator::LeftShift,
-                    integer("1", _pos(0, 1)),
-                    integer("1", _pos(5, 1)),
+                    dec_integer("1", _pos(0, 1)),
+                    dec_integer("1", _pos(5, 1)),
                     _pos(0, 6)
                 ),
-                integer("1", _pos(9, 1)),
+                dec_integer("1", _pos(9, 1)),
                 _pos(0, 10)
             )))
         );
@@ -1219,7 +1219,10 @@ mod tests {
         assert_eq!(
             parser_from(lexer).next(),
             Some(Ok(tuple(
-                vec![extension_set(vec![], _pos(1, 2)), integer("0", _pos(5, 1))],
+                vec![
+                    extension_set(vec![], _pos(1, 2)),
+                    dec_integer("0", _pos(5, 1))
+                ],
                 _pos(0, 7)
             )))
         );
@@ -1237,10 +1240,14 @@ mod tests {
                     InfixOperator::NotEquality,
                     prefix(
                         PrefixOperator::BitwiseNot,
-                        integer("1", _pos(3, 1)),
+                        dec_integer("1", _pos(3, 1)),
                         _pos(2, 2)
                     ),
-                    prefix(PrefixOperator::Minus, integer("1", _pos(9, 1)), _pos(8, 2)),
+                    prefix(
+                        PrefixOperator::Minus,
+                        dec_integer("1", _pos(9, 1)),
+                        _pos(8, 2)
+                    ),
                     _pos(2, 8),
                 ),
                 _pos(0, 11),
@@ -1271,7 +1278,7 @@ mod tests {
                 infix(
                     InfixOperator::Less,
                     symbol("a", _pos(3, 1)),
-                    integer("0", _pos(7, 1)),
+                    dec_integer("0", _pos(7, 1)),
                     _pos(3, 5)
                 ),
                 prefix(PrefixOperator::Minus, symbol("a", _pos(15, 1)), _pos(14, 2)),
@@ -1309,7 +1316,7 @@ mod tests {
 
         assert_eq!(
             parser_from(lexer).next(),
-            Some(Ok(tuple(vec![integer("1", _pos(1, 1))], _pos(0, 4)))),
+            Some(Ok(tuple(vec![dec_integer("1", _pos(1, 1))], _pos(0, 4)))),
         );
     }
 
@@ -1326,7 +1333,7 @@ mod tests {
                 symbol("x", _pos(0, 1)),
                 infix(
                     InfixOperator::Product,
-                    integer("2", _pos(5, 1)),
+                    dec_integer("2", _pos(5, 1)),
                     symbol("x", _pos(7, 1)),
                     _pos(5, 3)
                 ),
@@ -1355,7 +1362,7 @@ mod tests {
                     _pos(1, 11),
                 ),
                 tuple(
-                    vec![integer("1", _pos(14, 1)), integer("2", _pos(17, 1)),],
+                    vec![dec_integer("1", _pos(14, 1)), dec_integer("2", _pos(17, 1)),],
                     _pos(13, 6)
                 ),
                 _pos(0, 19)
@@ -1409,7 +1416,10 @@ mod tests {
         assert_eq!(
             parser_from(lexer).next(),
             Some(Ok(extension_list(
-                vec![extension_list(vec![], _pos(1, 2)), integer("2", _pos(5, 1)),],
+                vec![
+                    extension_list(vec![], _pos(1, 2)),
+                    dec_integer("2", _pos(5, 1)),
+                ],
                 _pos(0, 7),
             ))),
         );
@@ -1441,7 +1451,7 @@ mod tests {
             Some(Ok(extension_list(
                 vec![
                     symbol("a", _pos(1, 1)),
-                    integer("1", _pos(4, 1)),
+                    dec_integer("1", _pos(4, 1)),
                     CSTNode::new(CSTNodeKind::Wildcard, _pos(7, 1)),
                 ],
                 _pos(0, 9)
@@ -1457,9 +1467,9 @@ mod tests {
         assert_eq!(
             parser_from(lexer).next(),
             Some(Ok(cons(
-                integer("1", _pos(1, 1)),
+                dec_integer("1", _pos(1, 1)),
                 extension_list(
-                    vec![integer("2", _pos(4, 1)), integer("3", _pos(6, 1)),],
+                    vec![dec_integer("2", _pos(4, 1)), dec_integer("3", _pos(6, 1)),],
                     _pos(3, 5)
                 ),
                 _pos(0, 9)
@@ -1552,8 +1562,8 @@ mod tests {
             parser_from(lexer).next(),
             Some(Ok(infix(
                 InfixOperator::Dot,
-                integer("1", _pos(0, 1)),
-                integer("5", _pos(2, 1)),
+                dec_integer("1", _pos(0, 1)),
+                dec_integer("5", _pos(2, 1)),
                 _pos(0, 3)
             ))),
         );
@@ -1568,14 +1578,14 @@ mod tests {
             parser_from(lexer).next(),
             Some(Ok(infix(
                 InfixOperator::In,
-                integer("5", _pos(0, 1)),
+                dec_integer("5", _pos(0, 1)),
                 infix(
                     InfixOperator::Range,
-                    integer("0", _pos(5, 1)),
+                    dec_integer("0", _pos(5, 1)),
                     infix(
                         InfixOperator::Sum,
-                        integer("10", _pos(8, 2)),
-                        integer("1", _pos(11, 1)),
+                        dec_integer("10", _pos(8, 2)),
+                        dec_integer("1", _pos(11, 1)),
                         _pos(8, 4)
                     ),
                     _pos(5, 7)
@@ -1594,8 +1604,8 @@ mod tests {
             parser_from(lexer).next(),
             Some(Ok(infix(
                 InfixOperator::Fraction,
-                integer("1", _pos(0, 1)),
-                integer("2", _pos(5, 1)),
+                dec_integer("1", _pos(0, 1)),
+                dec_integer("2", _pos(5, 1)),
                 _pos(0, 6)
             )))
         );
@@ -1610,7 +1620,7 @@ mod tests {
             parser_from(lexer).next(),
             Some(Ok(infix(
                 InfixOperator::Dot,
-                integer("2", _pos(0, 1)),
+                dec_integer("2", _pos(0, 1)),
                 infix(
                     InfixOperator::Call,
                     symbol("f", _pos(2, 1)),
@@ -1631,8 +1641,8 @@ mod tests {
             parser_from(lexer).next(),
             Some(Ok(dictionary(
                 vec![
-                    (char('a', _pos(1, 3)), integer("2", _pos(6, 1))),
-                    (integer("1", _pos(9, 1)), integer("5", _pos(11, 1)))
+                    (char('a', _pos(1, 3)), dec_integer("2", _pos(6, 1))),
+                    (dec_integer("1", _pos(9, 1)), dec_integer("5", _pos(11, 1)))
                 ],
                 true,
                 _pos(0, 13)
@@ -1650,7 +1660,7 @@ mod tests {
             Some(Ok(infix(
                 InfixOperator::Element,
                 symbol("list", _pos(1, 4)),
-                integer("0", _pos(6, 1)),
+                dec_integer("0", _pos(6, 1)),
                 _pos(1, 7)
             )))
         );
@@ -1665,8 +1675,8 @@ mod tests {
             parser_from(lexer).next(),
             Some(Ok(extension_list(
                 vec![
-                    integer("1", _pos(1, 1)),
-                    integer("2", _pos(4, 1)),
+                    dec_integer("1", _pos(1, 1)),
+                    dec_integer("2", _pos(4, 1)),
                     ad_infinitum(_pos(6, 2)),
                 ],
                 _pos(0, 9)
@@ -1682,7 +1692,7 @@ mod tests {
         assert_eq!(
             parser_from(lexer).next(),
             Some(Ok(dictionary(
-                vec![(integer("1", _pos(1, 1)), integer("5", _pos(4, 1)),),],
+                vec![(dec_integer("1", _pos(1, 1)), dec_integer("5", _pos(4, 1)),),],
                 false,
                 _pos(0, 9)
             ))),
@@ -1747,4 +1757,15 @@ mod tests {
             Some(Ok(import_from("foo", vec!["bar", "baz"], _pos(0, 26))))
         );
     }
+
+    // #[test]
+    // fn hex() {
+    //     let input = "0x1";
+    //     let lexer = build_lexer(input);
+
+    //     assert_eq!(
+    //         parser_from(lexer).next(),
+    //         Some(Ok(integer("1", Radix:: position)))
+    //     );
+    // }
 }

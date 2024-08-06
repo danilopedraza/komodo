@@ -263,7 +263,7 @@ fn isolated_unchecked_exec(node: &ASTNode) -> Object {
 mod tests {
     use crate::{
         ast::tests::{
-            ad_infinitum, cons, dictionary, extension_list, extension_set, fraction, integer,
+            ad_infinitum, cons, dec_integer, dictionary, extension_list, extension_set, fraction,
             pattern, range, set_cons, string, symbol, wildcard,
         },
         cst::tests::dummy_pos,
@@ -395,7 +395,7 @@ mod tests {
         let pattern = dictionary(
             vec![(
                 extension_list(vec![wildcard(dummy_pos())], dummy_pos()),
-                integer("10", dummy_pos()),
+                dec_integer("10", dummy_pos()),
             )],
             true,
             dummy_pos(),
@@ -412,7 +412,10 @@ mod tests {
     #[test]
     fn incomplete_dict() {
         let pattern = dictionary(
-            vec![(integer("5", dummy_pos()), integer("10", dummy_pos()))],
+            vec![(
+                dec_integer("5", dummy_pos()),
+                dec_integer("10", dummy_pos()),
+            )],
             false,
             dummy_pos(),
         );
@@ -475,7 +478,7 @@ mod tests {
     #[test]
     fn fraction_() {
         let pattern = fraction(
-            integer("1", dummy_pos()),
+            dec_integer("1", dummy_pos()),
             symbol("denom", dummy_pos()),
             dummy_pos(),
         );

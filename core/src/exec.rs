@@ -73,7 +73,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     let res = match &node.kind {
         ASTNodeKind::Symbol { name } => symbol(name, env, node.position),
         ASTNodeKind::Set { list } => extension_set(list, env),
-        ASTNodeKind::Integer { dec } => integer(dec),
+        ASTNodeKind::Integer { dec, radix: _ } => integer(dec),
         ASTNodeKind::Function { params, proc } => function(params, proc),
         ASTNodeKind::Infix { op, lhs, rhs } => infix(
             op.clone(),
@@ -575,9 +575,9 @@ mod tests {
 
     use super::*;
     use crate::ast::tests::{
-        _for, _if, boolean, call, comprehension, cons, container_element, decimal, extension_list,
-        extension_set, fraction, function, infix, integer, let_, pattern, pos, prefix, range,
-        set_cons, symbol, tuple,
+        _for, _if, boolean, call, comprehension, cons, container_element, dec_integer, decimal,
+        extension_list, extension_set, fraction, function, infix, let_, pattern, pos, prefix,
+        range, set_cons, symbol, tuple,
     };
     use crate::cst::tests::dummy_pos;
     use crate::error::ErrorType;
@@ -598,7 +598,7 @@ mod tests {
     #[test]
     fn set_by_extension() {
         let node = extension_set(
-            vec![integer("1", dummy_pos()), integer("1", dummy_pos())],
+            vec![dec_integer("1", dummy_pos()), dec_integer("1", dummy_pos())],
             dummy_pos(),
         );
 
@@ -612,8 +612,8 @@ mod tests {
     fn integer_sum() {
         let node = infix(
             InfixOperator::Sum,
-            integer("0", dummy_pos()),
-            integer("1", dummy_pos()),
+            dec_integer("0", dummy_pos()),
+            dec_integer("1", dummy_pos()),
             dummy_pos(),
         );
 
@@ -627,8 +627,8 @@ mod tests {
     fn integer_substraction() {
         let node = &infix(
             InfixOperator::Substraction,
-            integer("0", dummy_pos()),
-            integer("1", dummy_pos()),
+            dec_integer("0", dummy_pos()),
+            dec_integer("1", dummy_pos()),
             dummy_pos(),
         );
 
@@ -642,8 +642,8 @@ mod tests {
     fn integer_product() {
         let node = &infix(
             InfixOperator::Product,
-            integer("0", dummy_pos()),
-            integer("1", dummy_pos()),
+            dec_integer("0", dummy_pos()),
+            dec_integer("1", dummy_pos()),
             dummy_pos(),
         );
 
@@ -673,7 +673,7 @@ mod tests {
     fn let_expression() {
         let node = &let_(
             symbol("x", dummy_pos()),
-            Some(integer("0", dummy_pos())),
+            Some(dec_integer("0", dummy_pos())),
             dummy_pos(),
         );
 
@@ -709,14 +709,14 @@ mod tests {
             InfixOperator::LogicAnd,
             infix(
                 InfixOperator::Less,
-                integer("0", dummy_pos()),
-                integer("1", dummy_pos()),
+                dec_integer("0", dummy_pos()),
+                dec_integer("1", dummy_pos()),
                 dummy_pos(),
             ),
             infix(
                 InfixOperator::LessEqual,
-                integer("1", dummy_pos()),
-                integer("1", dummy_pos()),
+                dec_integer("1", dummy_pos()),
+                dec_integer("1", dummy_pos()),
                 dummy_pos(),
             ),
             dummy_pos(),
@@ -734,14 +734,14 @@ mod tests {
             InfixOperator::LogicAnd,
             infix(
                 InfixOperator::Greater,
-                integer("1", dummy_pos()),
-                integer("0", dummy_pos()),
+                dec_integer("1", dummy_pos()),
+                dec_integer("0", dummy_pos()),
                 dummy_pos(),
             ),
             infix(
                 InfixOperator::GreaterEqual,
-                integer("0", dummy_pos()),
-                integer("0", dummy_pos()),
+                dec_integer("0", dummy_pos()),
+                dec_integer("0", dummy_pos()),
                 dummy_pos(),
             ),
             dummy_pos(),
@@ -759,13 +759,13 @@ mod tests {
             InfixOperator::LogicAnd,
             infix(
                 InfixOperator::NotEquality,
-                integer("1", dummy_pos()),
-                integer("2", dummy_pos()),
+                dec_integer("1", dummy_pos()),
+                dec_integer("2", dummy_pos()),
                 dummy_pos(),
             ),
             infix(
                 InfixOperator::NotEquality,
-                integer("1", dummy_pos()),
+                dec_integer("1", dummy_pos()),
                 boolean(true, dummy_pos()),
                 dummy_pos(),
             ),
@@ -786,14 +786,14 @@ mod tests {
                 InfixOperator::BitwiseXor,
                 infix(
                     InfixOperator::BitwiseAnd,
-                    integer("7", dummy_pos()),
-                    integer("6", dummy_pos()),
+                    dec_integer("7", dummy_pos()),
+                    dec_integer("6", dummy_pos()),
                     dummy_pos(),
                 ),
-                integer("1", dummy_pos()),
+                dec_integer("1", dummy_pos()),
                 dummy_pos(),
             ),
-            integer("0", dummy_pos()),
+            dec_integer("0", dummy_pos()),
             dummy_pos(),
         );
 
@@ -809,11 +809,11 @@ mod tests {
             InfixOperator::LeftShift,
             infix(
                 InfixOperator::RightShift,
-                integer("256", dummy_pos()),
-                integer("4", dummy_pos()),
+                dec_integer("256", dummy_pos()),
+                dec_integer("4", dummy_pos()),
                 dummy_pos(),
             ),
-            integer("1", dummy_pos()),
+            dec_integer("1", dummy_pos()),
             dummy_pos(),
         );
 
@@ -829,11 +829,11 @@ mod tests {
             InfixOperator::Division,
             infix(
                 InfixOperator::Exponentiation,
-                integer("3", dummy_pos()),
-                integer("2", dummy_pos()),
+                dec_integer("3", dummy_pos()),
+                dec_integer("2", dummy_pos()),
                 dummy_pos(),
             ),
-            integer("2", dummy_pos()),
+            dec_integer("2", dummy_pos()),
             dummy_pos(),
         );
 
@@ -847,8 +847,8 @@ mod tests {
     fn remainder() {
         let node = &infix(
             InfixOperator::Rem,
-            integer("3", dummy_pos()),
-            integer("2", dummy_pos()),
+            dec_integer("3", dummy_pos()),
+            dec_integer("2", dummy_pos()),
             dummy_pos(),
         );
 
@@ -866,12 +866,12 @@ mod tests {
                 InfixOperator::NotEquality,
                 prefix(
                     PrefixOperator::BitwiseNot,
-                    integer("1", dummy_pos()),
+                    dec_integer("1", dummy_pos()),
                     dummy_pos(),
                 ),
                 prefix(
                     PrefixOperator::Minus,
-                    integer("1", dummy_pos()),
+                    dec_integer("1", dummy_pos()),
                     dummy_pos(),
                 ),
                 dummy_pos(),
@@ -894,7 +894,7 @@ mod tests {
             infix(
                 InfixOperator::Less,
                 symbol("a", dummy_pos()),
-                integer("0", dummy_pos()),
+                dec_integer("0", dummy_pos()),
                 dummy_pos(),
             ),
             prefix(PrefixOperator::Minus, symbol("a", dummy_pos()), dummy_pos()),
@@ -922,7 +922,7 @@ mod tests {
 
         let node = &let_(
             symbol("x", dummy_pos()),
-            Some(integer("0", dummy_pos())),
+            Some(dec_integer("0", dummy_pos())),
             dummy_pos(),
         );
 
@@ -934,7 +934,7 @@ mod tests {
     #[test]
     fn tuple_() {
         let node = &tuple(
-            vec![integer("1", dummy_pos()), integer("2", dummy_pos())],
+            vec![dec_integer("1", dummy_pos()), dec_integer("2", dummy_pos())],
             dummy_pos(),
         );
 
@@ -953,7 +953,7 @@ mod tests {
             vec!["x"],
             vec![infix(
                 InfixOperator::Product,
-                integer("2", dummy_pos()),
+                dec_integer("2", dummy_pos()),
                 symbol("x", dummy_pos()),
                 dummy_pos(),
             )],
@@ -967,7 +967,7 @@ mod tests {
                     vec![String::from("x"),],
                     vec![infix(
                         InfixOperator::Product,
-                        integer("2", dummy_pos()),
+                        dec_integer("2", dummy_pos()),
                         symbol("x", dummy_pos()),
                         dummy_pos()
                     )],
@@ -983,13 +983,13 @@ mod tests {
                 vec!["x"],
                 vec![infix(
                     InfixOperator::Product,
-                    integer("2", dummy_pos()),
+                    dec_integer("2", dummy_pos()),
                     symbol("x", dummy_pos()),
                     dummy_pos(),
                 )],
                 dummy_pos(),
             ),
-            vec![integer("1", dummy_pos())],
+            vec![dec_integer("1", dummy_pos())],
             dummy_pos(),
         );
 
@@ -1012,7 +1012,7 @@ mod tests {
                 )],
                 dummy_pos(),
             ),
-            vec![integer("1", dummy_pos()), integer("2", dummy_pos())],
+            vec![dec_integer("1", dummy_pos()), dec_integer("2", dummy_pos())],
             dummy_pos(),
         );
 
@@ -1035,7 +1035,7 @@ mod tests {
                 )],
                 dummy_pos(),
             ),
-            vec![integer("1", dummy_pos())],
+            vec![dec_integer("1", dummy_pos())],
             pos(0, 5),
         );
 
@@ -1072,9 +1072,9 @@ mod tests {
             "val",
             extension_list(
                 vec![
-                    integer("1", dummy_pos()),
-                    integer("2", dummy_pos()),
-                    integer("3", dummy_pos()),
+                    dec_integer("1", dummy_pos()),
+                    dec_integer("2", dummy_pos()),
+                    dec_integer("3", dummy_pos()),
                 ],
                 dummy_pos(),
             ),
@@ -1096,7 +1096,7 @@ mod tests {
 
     #[test]
     fn extension_list_() {
-        let node = &extension_list(vec![integer("1", dummy_pos())], dummy_pos());
+        let node = &extension_list(vec![dec_integer("1", dummy_pos())], dummy_pos());
 
         assert_eq!(
             exec(node, &mut Environment::default()),
@@ -1116,7 +1116,7 @@ mod tests {
                         symbol("y", dummy_pos()),
                         Some(infix(
                             InfixOperator::Product,
-                            integer("2", dummy_pos()),
+                            dec_integer("2", dummy_pos()),
                             symbol("x", dummy_pos()),
                             dummy_pos(),
                         )),
@@ -1125,13 +1125,13 @@ mod tests {
                     infix(
                         InfixOperator::Sum,
                         symbol("y", dummy_pos()),
-                        integer("1", dummy_pos()),
+                        dec_integer("1", dummy_pos()),
                         dummy_pos(),
                     ),
                 ],
                 dummy_pos(),
             ),
-            vec![integer("2", dummy_pos())],
+            vec![dec_integer("2", dummy_pos())],
             dummy_pos(),
         );
 
@@ -1147,12 +1147,12 @@ mod tests {
             infix(
                 InfixOperator::Sum,
                 symbol("k", dummy_pos()),
-                integer("1", dummy_pos()),
+                dec_integer("1", dummy_pos()),
                 dummy_pos(),
             ),
             "k".into(),
             extension_list(
-                vec![integer("0", dummy_pos()), integer("1", dummy_pos())],
+                vec![dec_integer("0", dummy_pos()), dec_integer("1", dummy_pos())],
                 dummy_pos(),
             ),
             ComprehensionKind::List,
@@ -1171,8 +1171,8 @@ mod tests {
     #[test]
     fn prepend() {
         let node = cons(
-            integer("1", dummy_pos()),
-            extension_list(vec![integer("2", dummy_pos())], dummy_pos()),
+            dec_integer("1", dummy_pos()),
+            extension_list(vec![dec_integer("2", dummy_pos())], dummy_pos()),
             dummy_pos(),
         );
 
@@ -1224,8 +1224,8 @@ mod tests {
     #[test]
     fn range_() {
         let node = range(
-            integer("1", dummy_pos()),
-            integer("3", dummy_pos()),
+            dec_integer("1", dummy_pos()),
+            dec_integer("3", dummy_pos()),
             dummy_pos(),
         );
 
@@ -1238,8 +1238,8 @@ mod tests {
     #[test]
     fn fraction_() {
         let node = fraction(
-            integer("1", dummy_pos()),
-            integer("2", dummy_pos()),
+            dec_integer("1", dummy_pos()),
+            dec_integer("2", dummy_pos()),
             dummy_pos(),
         );
 
@@ -1252,8 +1252,8 @@ mod tests {
     #[test]
     fn denominator_zero() {
         let node = fraction(
-            integer("1", dummy_pos()),
-            integer("0", pos(5, 1)),
+            dec_integer("1", dummy_pos()),
+            dec_integer("0", pos(5, 1)),
             dummy_pos(),
         );
 
@@ -1269,13 +1269,13 @@ mod tests {
             infix(
                 InfixOperator::Sum,
                 symbol("k", dummy_pos()),
-                integer("1", dummy_pos()),
+                dec_integer("1", dummy_pos()),
                 dummy_pos(),
             ),
             "k".into(),
             range(
-                integer("0", dummy_pos()),
-                integer("3", dummy_pos()),
+                dec_integer("0", dummy_pos()),
+                dec_integer("3", dummy_pos()),
                 dummy_pos(),
             ),
             ComprehensionKind::List,
@@ -1296,8 +1296,8 @@ mod tests {
     fn zero_division() {
         let node = infix(
             InfixOperator::Division,
-            integer("1", dummy_pos()),
-            integer("0", dummy_pos()),
+            dec_integer("1", dummy_pos()),
+            dec_integer("0", dummy_pos()),
             dummy_pos(),
         );
 
@@ -1310,8 +1310,8 @@ mod tests {
     #[test]
     fn container_element_() {
         let node = container_element(
-            ast::tests::extension_list(vec![integer("23", dummy_pos())], dummy_pos()),
-            integer("0", dummy_pos()),
+            ast::tests::extension_list(vec![dec_integer("23", dummy_pos())], dummy_pos()),
+            dec_integer("0", dummy_pos()),
             dummy_pos(),
         );
 
@@ -1324,8 +1324,8 @@ mod tests {
     #[test]
     fn not_a_container() {
         let node = container_element(
-            integer("0", dummy_pos()),
-            integer("0", dummy_pos()),
+            dec_integer("0", dummy_pos()),
+            dec_integer("0", dummy_pos()),
             dummy_pos(),
         );
 
@@ -1345,7 +1345,7 @@ mod tests {
     fn out_of_bounds() {
         let node = container_element(
             ast::tests::extension_list(vec![], dummy_pos()),
-            integer("0", dummy_pos()),
+            dec_integer("0", dummy_pos()),
             dummy_pos(),
         );
 
@@ -1381,8 +1381,8 @@ mod tests {
     #[test]
     fn set_cons_() {
         let node = set_cons(
-            ast::tests::integer("1", dummy_pos()),
-            ast::tests::extension_set(vec![integer("2", dummy_pos())], dummy_pos()),
+            ast::tests::dec_integer("1", dummy_pos()),
+            ast::tests::extension_set(vec![dec_integer("2", dummy_pos())], dummy_pos()),
             dummy_pos(),
         );
 

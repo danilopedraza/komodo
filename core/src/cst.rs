@@ -1,6 +1,9 @@
 use std::hash::Hash;
 
-use crate::{error::Position, lexer::TokenType};
+use crate::{
+    error::Position,
+    lexer::{Radix, TokenType},
+};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Precedence {
@@ -193,7 +196,7 @@ pub enum CSTNodeKind {
         values: Vec<String>,
     },
     Infix(InfixOperator, Box<CSTNode>, Box<CSTNode>),
-    Integer(String),
+    Integer(String, Radix),
     Let(Box<CSTNode>, Option<Box<CSTNode>>),
     Pattern(Box<CSTNode>, Option<String>),
     Prefix(PrefixOperator, Box<CSTNode>),
@@ -308,8 +311,8 @@ pub mod tests {
         CSTNode::new(CSTNodeKind::String(str.into()), position)
     }
 
-    pub fn integer(int: &str, position: Position) -> CSTNode {
-        CSTNode::new(CSTNodeKind::Integer(int.into()), position)
+    pub fn dec_integer(int: &str, position: Position) -> CSTNode {
+        CSTNode::new(CSTNodeKind::Integer(int.into(), Radix::Decimal), position)
     }
 
     pub fn ad_infinitum(position: Position) -> CSTNode {

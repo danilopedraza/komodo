@@ -1,6 +1,7 @@
 use crate::{
     cst::{self, ComprehensionKind},
     error::Position,
+    lexer::Radix,
 };
 use std::hash::Hash;
 
@@ -148,6 +149,7 @@ pub enum ASTNodeKind {
     },
     Integer {
         dec: String,
+        radix: Radix,
     },
     Let {
         left: Box<ASTNode>,
@@ -207,9 +209,15 @@ pub mod tests {
         ASTNode::new(ASTNodeKind::Symbol { name }, position)
     }
 
-    pub fn integer(dec: &str, position: Position) -> ASTNode {
+    pub fn dec_integer(dec: &str, position: Position) -> ASTNode {
         let dec = dec.to_string();
-        ASTNode::new(ASTNodeKind::Integer { dec }, position)
+        ASTNode::new(
+            ASTNodeKind::Integer {
+                dec,
+                radix: Radix::Decimal,
+            },
+            position,
+        )
     }
 
     pub fn cons(first: ASTNode, tail: ASTNode, position: Position) -> ASTNode {
