@@ -24,8 +24,10 @@ impl Token {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Radix {
+    Binary,
     Decimal,
     Hex,
+    Octal,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -271,15 +273,19 @@ impl Lexer<'_> {
 
     fn is_digit(chr: char, radix: Radix) -> bool {
         match radix {
+            Radix::Binary => matches!(chr, '0' | '1'),
             Radix::Decimal => chr.is_ascii_digit(),
             Radix::Hex => chr.is_ascii_digit() || matches!(chr, 'a'..='f'),
+            Radix::Octal => matches!(chr, '0'..='7'),
         }
     }
 
     fn integer(&mut self, first: char) -> TokenType {
         let radix = match first {
             '0' => match self.input.peek() {
+                Some('b') => Radix::Binary,
                 Some('x') => Radix::Hex,
+                Some('o') => Radix::Octal,
                 _ => return TokenType::Integer('0'.into(), Radix::Decimal),
             },
             _ => Radix::Decimal,
