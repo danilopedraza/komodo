@@ -212,12 +212,8 @@ macro_rules! derived_object_infix_traits {
 derived_object_infix_traits!(
     bitwise_and,
     bitwise_xor,
-    greater,
-    greater_equal,
     contains,
     left_shift,
-    less,
-    less_equal,
     logic_and,
     or,
     rem,
@@ -236,6 +232,22 @@ impl Object {
 
     pub fn neq(&self, other: &Object) -> Option<Object> {
         Some(Object::Boolean((self != other).into()))
+    }
+
+    pub fn greater(&self, other: &Object) -> Option<Object> {
+        Some(Object::Boolean((self > other).into()))
+    }
+
+    pub fn greater_equal(&self, other: &Object) -> Option<Object> {
+        Some(Object::Boolean((self >= other).into()))
+    }
+
+    pub fn less(&self, other: &Object) -> Option<Object> {
+        Some(Object::Boolean((self < other).into()))
+    }
+
+    pub fn less_equal(&self, other: &Object) -> Option<Object> {
+        Some(Object::Boolean((self <= other).into()))
     }
 }
 
@@ -727,20 +739,6 @@ impl InfixOperable for Integer {
             Object::Integer(Integer { val }) => {
                 Some(Object::Integer(Integer::from(&self.val ^ val)))
             }
-            _ => None,
-        }
-    }
-
-    fn greater(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(self.val > *val))),
-            _ => None,
-        }
-    }
-
-    fn greater_equal(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(self.val >= *val))),
             _ => None,
         }
     }
