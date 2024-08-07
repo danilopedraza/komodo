@@ -86,18 +86,18 @@ default_prefix_methods!(bitwise_not, logic_not, inverse);
 pub enum Object {
     Boolean(Bool),
     Char(Char),
+    Integer(Integer),
     Decimal(Decimal),
-    Dictionary(Dictionary),
-    Error(FailedAssertion),
+    Fraction(Fraction),
+    Symbol(Symbol),
+    String(MyString),
+    Tuple(Tuple),
     List(List),
     Set(Set),
-    Fraction(Fraction),
+    Dictionary(Dictionary),
     Function(Function),
-    Integer(Integer),
     Range(Range),
-    String(MyString),
-    Symbol(Symbol),
-    Tuple(Tuple),
+    Error(FailedAssertion),
 }
 
 impl Object {
