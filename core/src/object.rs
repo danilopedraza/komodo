@@ -1055,7 +1055,7 @@ impl From<Vec<Object>> for Tuple {
 pub enum Function {
     Anonymous(AnonFunction),
     Pattern(PatternFunction),
-    Effect(Effect),
+    Extern(ExternFunction),
 }
 
 impl InfixOperable for Function {
@@ -1079,7 +1079,7 @@ impl Callable for Function {
         match self {
             Self::Pattern(f) => f.call(args, env),
             Self::Anonymous(f) => f.call(args, env),
-            Self::Effect(ef) => ef.call(args, env),
+            Self::Extern(ef) => ef.call(args, env),
         }
     }
 
@@ -1087,7 +1087,7 @@ impl Callable for Function {
         match self {
             Self::Pattern(f) => f.param_number(),
             Self::Anonymous(f) => f.param_number(),
-            Self::Effect(f) => f.param_number(),
+            Self::Extern(f) => f.param_number(),
         }
     }
 }
@@ -1178,18 +1178,18 @@ pub trait Callable {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct Effect {
+pub struct ExternFunction {
     func: fn(&[Object]) -> Object,
     param_number: usize,
 }
 
-impl Effect {
+impl ExternFunction {
     pub fn new(func: fn(&[Object]) -> Object, param_number: usize) -> Self {
         Self { func, param_number }
     }
 }
 
-impl Callable for Effect {
+impl Callable for ExternFunction {
     fn call(&self, args: &[Object], _env: &mut Environment) -> Result<Object, Error> {
         Ok((self.func)(args))
     }

@@ -1,7 +1,7 @@
 use crate::{
     env::{Environment, ExecContext},
     exec::truthy,
-    object::{Effect, FailedAssertion, Function, MyString, Object, Tuple},
+    object::{ExternFunction, FailedAssertion, Function, MyString, Object, Tuple},
 };
 
 use std::io::{stdin, BufRead};
@@ -44,15 +44,15 @@ pub fn standard_env(ctx: ExecContext) -> Environment {
         vec![
             (
                 "println",
-                Object::Function(Function::Effect(Effect::new(smtc_println, 1))),
+                Object::Function(Function::Extern(ExternFunction::new(smtc_println, 1))),
             ),
             (
                 "getln",
-                Object::Function(Function::Effect(Effect::new(smtc_getln, 0))),
+                Object::Function(Function::Extern(ExternFunction::new(smtc_getln, 0))),
             ),
             (
                 "assert",
-                Object::Function(Function::Effect(Effect::new(smtc_assert, 1))),
+                Object::Function(Function::Extern(ExternFunction::new(smtc_assert, 1))),
             ),
         ],
         ctx,

@@ -1066,7 +1066,7 @@ mod tests {
         let mut env = Environment::default();
         env.set(
             "f",
-            Object::Function(Function::Effect(Effect::new(test, 1))),
+            Object::Function(Function::Extern(ExternFunction::new(test, 1))),
         );
 
         let node = &_for(

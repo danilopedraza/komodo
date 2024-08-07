@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use symstatic::{
     builtin::smtc_assert,
     env::Environment,
-    object::{Effect, Function, Object},
+    object::{ExternFunction, Function, Object},
 };
 
 pub static STDOUT: Mutex<String> = Mutex::new(String::new());
@@ -29,16 +29,16 @@ pub fn standard_env() -> Environment {
     let mut env = Environment::default();
     env.set(
         "println",
-        Object::Function(Function::Effect(Effect::new(smtc_println, 1))),
+        Object::Function(Function::Extern(ExternFunction::new(smtc_println, 1))),
     );
     env.set(
         "getln",
-        Object::Function(Function::Effect(Effect::new(smtc_getln, 0))),
+        Object::Function(Function::Extern(ExternFunction::new(smtc_getln, 0))),
     );
 
     env.set(
         "assert",
-        Object::Function(Function::Effect(Effect::new(smtc_assert, 1))),
+        Object::Function(Function::Extern(ExternFunction::new(smtc_assert, 1))),
     );
 
     env
