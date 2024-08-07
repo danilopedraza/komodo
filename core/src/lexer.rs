@@ -298,9 +298,15 @@ impl Lexer<'_> {
             literal.push(first);
         }
 
-        while let Some(chr) = self.input.by_ref().next_if(|c| Self::is_digit(*c, radix)) {
+        while let Some(chr) = self
+            .input
+            .by_ref()
+            .next_if(|c| Self::is_digit(*c, radix) || *c == '_')
+        {
             self.cur_pos += 1;
-            literal.push(chr);
+            if chr != '_' {
+                literal.push(chr);
+            }
         }
 
         if literal.is_empty() {
@@ -769,6 +775,16 @@ mod tests {
                 String::from("123456789abcdef0"),
                 Radix::Hex
             )])
+        );
+    }
+
+    #[test]
+    fn underscore_between_digits() {
+        let code = "0b0010_0001";
+
+        assert_eq!(
+            token_types_from(code),
+            Ok(vec![TokenType::Integer("00100001".into(), Radix::Binary),])
         );
     }
 }
