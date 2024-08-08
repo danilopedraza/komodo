@@ -534,6 +534,14 @@ impl Set {
             .collect();
         Object::Set(Set { set })
     }
+
+    fn subset_strict(&self, other: &Set) -> Object {
+        Object::Boolean((self.set.is_subset(&other.set) && self.set.len() < other.set.len()).into())
+    }
+
+    fn subset_eq(&self, other: &Set) -> Object {
+        Object::Boolean(self.set.is_subset(&other.set).into())
+    }
 }
 
 impl InfixOperable for Set {
@@ -547,6 +555,34 @@ impl InfixOperable for Set {
     fn substraction(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Set(set) => Some(self.difference(set)),
+            _ => None,
+        }
+    }
+
+    fn less(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Set(set) => Some(self.subset_strict(set)),
+            _ => None,
+        }
+    }
+
+    fn less_equal(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Set(set) => Some(self.subset_eq(set)),
+            _ => None,
+        }
+    }
+
+    fn greater(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Set(set) => Some(set.subset_strict(self)),
+            _ => None,
+        }
+    }
+
+    fn greater_equal(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Set(set) => Some(set.subset_eq(self)),
             _ => None,
         }
     }
