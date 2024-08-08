@@ -213,7 +213,11 @@ derived_object_infix_traits!(
     bitwise_and,
     bitwise_xor,
     contains,
+    greater,
+    greater_equal,
     left_shift,
+    less,
+    less_equal,
     logic_and,
     or,
     rem,
@@ -232,22 +236,6 @@ impl Object {
 
     pub fn neq(&self, other: &Object) -> Option<Object> {
         Some(Object::Boolean((self != other).into()))
-    }
-
-    pub fn greater(&self, other: &Object) -> Option<Object> {
-        Some(Object::Boolean((self > other).into()))
-    }
-
-    pub fn greater_equal(&self, other: &Object) -> Option<Object> {
-        Some(Object::Boolean((self >= other).into()))
-    }
-
-    pub fn less(&self, other: &Object) -> Option<Object> {
-        Some(Object::Boolean((self < other).into()))
-    }
-
-    pub fn less_equal(&self, other: &Object) -> Option<Object> {
-        Some(Object::Boolean((self <= other).into()))
     }
 }
 
@@ -861,6 +849,20 @@ impl InfixOperable for Integer {
             Object::Fraction(Fraction { val }) => Some(Object::Fraction(
                 (&BigRational::from_integer(self.val.to_owned()) * val).into(),
             )),
+            _ => None,
+        }
+    }
+
+    fn greater(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Integer(Integer { val }) => Some((self.val > *val).into()),
+            _ => None,
+        }
+    }
+
+    fn greater_equal(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Integer(Integer { val }) => Some((self.val >= *val).into()),
             _ => None,
         }
     }
