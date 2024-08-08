@@ -586,6 +586,10 @@ impl InfixOperable for Set {
             _ => None,
         }
     }
+
+    fn contains(&self, val: &Object) -> Option<Object> {
+        Some(self.set.contains(val).into())
+    }
 }
 impl PrefixOperable for Set {}
 
@@ -1231,6 +1235,10 @@ impl InfixOperable for List {
             Object::Integer(num) => Some(self.multiply(num)),
             _ => None,
         }
+    }
+
+    fn contains(&self, val: &Object) -> Option<Object> {
+        Some(self.list.contains(val).into())
     }
 }
 
