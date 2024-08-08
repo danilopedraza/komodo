@@ -12,6 +12,12 @@ fn smtc_println(args: &[Object]) -> Object {
     Object::Tuple(Tuple::from(vec![]))
 }
 
+fn smtc_print(args: &[Object]) -> Object {
+    let str = args[0].to_string();
+    print!("{str}");
+    Object::Tuple(Tuple::from(vec![]))
+}
+
 fn smtc_getln(_args: &[Object]) -> Object {
     let mut line = String::new();
     stdin().lock().read_line(&mut line).unwrap();
@@ -45,6 +51,10 @@ pub fn standard_env(ctx: ExecContext) -> Environment {
             (
                 "println",
                 Object::Function(Function::Extern(ExternFunction::new(smtc_println, 1))),
+            ),
+            (
+                "print",
+                Object::Function(Function::Extern(ExternFunction::new(smtc_print, 1))),
             ),
             (
                 "getln",
