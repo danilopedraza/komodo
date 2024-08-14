@@ -36,12 +36,20 @@ pub fn run_node(node: ASTNode, env: &mut Environment) -> Result<Object, Error> {
     exec(&node, env)
 }
 
+fn is_std_module(_module_name: &str) -> bool {
+    false
+}
+
 fn get_module_code(module_name: &str, env: &Environment) -> Result<String, Error> {
     match &env.ctx {
         ExecContext::File { reference_path } => {
-            let source =
-                fs::read_to_string(reference_path.join(Path::new(&format!("{module_name}.smtc"))))
-                    .unwrap();
+            let path = if is_std_module(module_name) {
+                Path::new("/usr/local/lib/symstatic/std/")
+                    .join(Path::new(&format!("{module_name}.smtc")))
+            } else {
+                reference_path.join(Path::new(&format!("{module_name}.smtc")))
+            };
+            let source = fs::read_to_string(path).unwrap();
             Ok(source)
         }
         ExecContext::Repl => todo!(),
