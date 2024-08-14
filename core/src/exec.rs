@@ -1,6 +1,4 @@
 use std::collections::BTreeSet;
-use std::fs;
-use std::path::Path;
 
 use crate::error::{Error, Position};
 use crate::lexer::Radix;
@@ -12,7 +10,7 @@ use crate::object::{
 
 use crate::ast::{ASTNode, ASTNodeKind, InfixOperator};
 use crate::cst::{ComprehensionKind, PrefixOperator};
-use crate::env::{Environment, ExecContext};
+use crate::env::Environment;
 use crate::object::{Bool, Char, Integer, MyString, Object, Set, Symbol, Tuple};
 use crate::run;
 
@@ -146,17 +144,8 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
 }
 
 fn import_from(module: &str, values: &[String], env: &mut Environment) -> Result<Object, Error> {
-    match &env.ctx {
-        ExecContext::File { reference_path } => {
-            let source =
-                fs::read_to_string(reference_path.join(Path::new(&format!("{module}.smtc"))))
-                    .unwrap();
-
-            run::import_from(&source, values, env)?;
-            Ok(Object::empty_tuple())
-        }
-        _ => Ok(Object::empty_tuple()),
-    }
+    run::import_from(module, values, env)?;
+    Ok(Object::empty_tuple())
 }
 
 fn set_cons(some: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {

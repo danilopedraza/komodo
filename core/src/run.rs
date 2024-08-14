@@ -1,7 +1,9 @@
+use std::{fs, path::Path};
+
 use crate::{
     ast::{ASTNode, ASTNodeKind},
     cst::CSTNode,
-    env::Environment,
+    env::{Environment, ExecContext},
     error::Error,
     exec::exec,
     lexer::{build_lexer, Token},
@@ -34,8 +36,25 @@ pub fn run_node(node: ASTNode, env: &mut Environment) -> Result<Object, Error> {
     exec(&node, env)
 }
 
-pub fn import_from(source: &str, values: &[String], env: &mut Environment) -> Result<(), Error> {
-    let lexer = build_lexer(source);
+fn get_module_code(module_name: &str, env: &Environment) -> Result<String, Error> {
+    match &env.ctx {
+        ExecContext::File { reference_path } => {
+            let source =
+                fs::read_to_string(reference_path.join(Path::new(&format!("{module_name}.smtc"))))
+                    .unwrap();
+            Ok(source)
+        }
+        ExecContext::Repl => todo!(),
+    }
+}
+
+pub fn import_from(
+    module_name: &str,
+    values: &[String],
+    env: &mut Environment,
+) -> Result<(), Error> {
+    let source = get_module_code(module_name, env)?;
+    let lexer = build_lexer(&source);
     let parser = parser_from(lexer);
     let nodes = collect_nodes(parser)?;
 
