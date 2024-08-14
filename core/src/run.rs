@@ -40,12 +40,17 @@ fn is_std_module(_module_name: &str) -> bool {
     false
 }
 
+static STDLIB_PATH: &str = if cfg!(test) {
+    "../std/"
+} else {
+    "/usr/local/lib/symstatic/std/"
+};
+
 fn get_module_code(module_name: &str, env: &Environment) -> Result<String, Error> {
     match &env.ctx {
         ExecContext::File { reference_path } => {
             let path = if is_std_module(module_name) {
-                Path::new("/usr/local/lib/symstatic/std/")
-                    .join(Path::new(&format!("{module_name}.smtc")))
+                Path::new(STDLIB_PATH).join(Path::new(&format!("{module_name}.smtc")))
             } else {
                 reference_path.join(Path::new(&format!("{module_name}.smtc")))
             };
