@@ -347,8 +347,8 @@ pub mod tests {
         CSTNode::new(CSTNodeKind::Let(left, right), position)
     }
 
-    pub fn pattern(symbol: CSTNode, constraint: Option<&str>, position: Position) -> CSTNode {
-        let symbol = Box::new(symbol);
+    pub fn pattern(expression: CSTNode, constraint: Option<&str>, position: Position) -> CSTNode {
+        let symbol = Box::new(expression);
         let constraint = constraint.map(|str| str.to_string());
         CSTNode::new(CSTNodeKind::Pattern(symbol, constraint), position)
     }
