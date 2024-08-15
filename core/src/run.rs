@@ -36,15 +36,11 @@ pub fn run_node(node: ASTNode, env: &mut Environment) -> Result<Object, Error> {
     exec(&node, env)
 }
 
-fn is_std_module(_module_name: &str) -> bool {
-    false
+fn is_std_module(module_name: &str) -> bool {
+    module_name == "utils"
 }
 
-static STDLIB_PATH: &str = if cfg!(test) {
-    "../std/"
-} else {
-    "/usr/local/lib/symstatic/std/"
-};
+static STDLIB_PATH: &str = "../std/";
 
 fn get_module_code(module_name: &str, env: &Environment) -> Result<String, Error> {
     match &env.ctx {
@@ -54,6 +50,7 @@ fn get_module_code(module_name: &str, env: &Environment) -> Result<String, Error
             } else {
                 reference_path.join(Path::new(&format!("{module_name}.smtc")))
             };
+            println!("{}", path.to_str().unwrap());
             let source = fs::read_to_string(path).unwrap();
             Ok(source)
         }

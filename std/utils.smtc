@@ -1,0 +1,3 @@
+let map(iter: Set, fn: Function) := {fn(val) for val in iter}
+let map(iter: List, fn: Function) := [fn(val) for val in iter]
+let map(iter: Range, fn: Function) := [fn(val) for val in iter]
