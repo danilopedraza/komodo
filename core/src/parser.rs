@@ -188,7 +188,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn pattern(&mut self) -> _NodeResult {
-        let left = self.expression(Precedence::Lowest)?;
+        let left = self.non_infix()?;
         match (&left.kind, self.peek_token()) {
             (_, Ok(Some(TokenType::Colon))) => {
                 let start = left.position.start;
@@ -1757,14 +1757,29 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn hex() {
-    //     let input = "0x1";
-    //     let lexer = build_lexer(input);
+    #[test]
+    fn let_with_type() {
+        let input = "let map(iter: List, fn: Function) := iter";
+        let lexer = build_lexer(input);
 
-    //     assert_eq!(
-    //         parser_from(lexer).next(),
-    //         Some(Ok(integer("1", Radix:: position)))
-    //     );
-    // }
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(let_(
+                infix(
+                    InfixOperator::Call,
+                    symbol("map", _pos(4, 3)),
+                    tuple(
+                        vec![
+                            pattern(symbol("iter", _pos(8, 4)), Some("List"), _pos(8, 10)),
+                            pattern(symbol("fn", _pos(20, 2)), Some("Function"), _pos(20, 12)),
+                        ],
+                        _pos(7, 26)
+                    ),
+                    _pos(4, 29)
+                ),
+                Some(symbol("iter", _pos(37, 4))),
+                _pos(0, 41)
+            )))
+        );
+    }
 }
