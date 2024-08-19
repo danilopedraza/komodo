@@ -42,6 +42,7 @@ pub enum TokenType {
     Char(char),
     Colon,
     Comma,
+    Dedent,
     Dot,
     DotDot,
     Else,
@@ -55,6 +56,7 @@ pub enum TokenType {
     If,
     Import,
     In,
+    Indent,
     Integer(String, Radix),
     Lbrace,
     Lbrack,
@@ -94,17 +96,9 @@ impl Iterator for Lexer<'_> {
     type Item = Result<Token, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            match self.input.peek() {
-                Some(chr) if chr.is_whitespace() => self.skip_whitespace(),
-                Some('#') => self.skip_comment(),
-                _ => break,
-            }
-        }
-
         let start = self.cur_pos;
 
-        match self.next_token() {
+        let res = match self.next_token() {
             Some(Ok(token)) => Some(Ok(Token::new(
                 token,
                 Position::new(start, self.cur_pos - start),
@@ -114,13 +108,40 @@ impl Iterator for Lexer<'_> {
                 Position::new(start, self.cur_pos - start),
             ))),
             None => None,
+        };
+
+        loop {
+            match self.input.peek() {
+                Some(chr) if chr.is_whitespace() => self.skip_whitespace(),
+                Some('#') => self.skip_comment(),
+                _ => break,
+            }
         }
+
+        res
     }
 }
 
 type LexerResult = Result<TokenType, LexerError>;
 
-impl Lexer<'_> {
+impl<'a> Lexer<'a> {
+    pub fn new(input: &'a str) -> Self {
+        let mut lexer = Self {
+            input: input.chars().peekable(),
+            cur_pos: 0,
+        };
+
+        loop {
+            match lexer.input.peek() {
+                Some(chr) if chr.is_whitespace() => lexer.skip_whitespace(),
+                Some('#') => lexer.skip_comment(),
+                _ => break,
+            }
+        }
+
+        lexer
+    }
+
     fn next_char(&mut self) -> Option<char> {
         match self.input.next() {
             Some(chr) => {
@@ -317,23 +338,18 @@ impl Lexer<'_> {
     }
 }
 
-pub fn build_lexer(input: &str) -> Lexer {
-    Lexer {
-        input: input.chars().peekable(),
-        cur_pos: 0,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::vec;
+
+    use unindent::unindent;
 
     use crate::cst::tests::_pos;
 
     use super::*;
 
     fn tokens_from(source: &str) -> Result<Vec<Token>, Error> {
-        build_lexer(source).collect()
+        Lexer::new(source).collect()
     }
 
     fn token_types_from(source: &str) -> Result<Vec<TokenType>, Error> {
@@ -345,20 +361,20 @@ mod tests {
 
     #[test]
     fn empty_string() {
-        assert!(build_lexer("").next().is_none());
+        assert!(Lexer::new("").next().is_none());
     }
 
     #[test]
     fn plus_operator() {
         assert_eq!(
-            build_lexer("+").next(),
+            Lexer::new("+").next(),
             Some(Ok(Token::new(TokenType::Plus, Position::new(0, 1))))
         );
     }
 
     #[test]
     fn whitespace() {
-        assert_eq!(build_lexer(" \t").next(), None);
+        assert_eq!(Lexer::new(" \t").next(), None);
     }
 
     #[test]
@@ -570,7 +586,7 @@ mod tests {
         let code = "'x'";
 
         assert_eq!(
-            build_lexer(code).next(),
+            Lexer::new(code).next(),
             Some(Ok(Token::new(TokenType::Char('x'), Position::new(0, 3)))),
         );
     }
@@ -580,7 +596,7 @@ mod tests {
         let code = "'x";
 
         assert_eq!(
-            build_lexer(code).next(),
+            Lexer::new(code).next(),
             Some(Err(Error::new(
                 LexerError::UnterminatedChar.into(),
                 _pos(0, 2)
@@ -593,7 +609,7 @@ mod tests {
         let code = "'x)";
 
         assert_eq!(
-            build_lexer(code).next(),
+            Lexer::new(code).next(),
             Some(Err(Error::new(
                 LexerError::UnexpectedChar(')').into(),
                 _pos(0, 3)
@@ -606,7 +622,7 @@ mod tests {
         let code = "\"abc\"";
 
         assert_eq!(
-            build_lexer(code).next(),
+            Lexer::new(code).next(),
             Some(Ok(Token::new(
                 TokenType::String(String::from("abc")),
                 Position::new(0, 5)
@@ -619,7 +635,7 @@ mod tests {
         let code = "\"a";
 
         assert_eq!(
-            build_lexer(code).next(),
+            Lexer::new(code).next(),
             Some(Err(Error::new(
                 LexerError::UnterminatedString.into(),
                 _pos(0, 2)
@@ -702,7 +718,7 @@ mod tests {
         let code = "''";
 
         assert_eq!(
-            build_lexer(code).next(),
+            Lexer::new(code).next(),
             Some(Err(Error::new(LexerError::EmptyChar.into(), _pos(0, 2)))),
         );
     }
@@ -712,7 +728,7 @@ mod tests {
         let code = "\"\\\"\"";
 
         assert_eq!(
-            build_lexer(code).next(),
+            Lexer::new(code).next(),
             Some(Ok(Token::new(
                 TokenType::String(String::from("\"")),
                 _pos(0, 4)
@@ -725,7 +741,7 @@ mod tests {
         let code = "s1";
 
         assert_eq!(
-            build_lexer(code).next(),
+            Lexer::new(code).next(),
             Some(Ok(Token::new(
                 TokenType::Ident(String::from("s1")),
                 _pos(0, 2),
@@ -785,6 +801,33 @@ mod tests {
         assert_eq!(
             token_types_from(code),
             Ok(vec![TokenType::Integer("00100001".into(), Radix::Binary),])
+        );
+    }
+
+    #[test]
+    #[ignore = "not yet implemented"]
+    fn one_line_indent() {
+        let code = &unindent(
+            "
+        let f := n ->
+            n
+        f
+        ",
+        );
+
+        assert_eq!(
+            token_types_from(code),
+            Ok(vec![
+                TokenType::Let,
+                TokenType::Ident("f".into()),
+                TokenType::Assign,
+                TokenType::Ident("n".into()),
+                TokenType::Arrow,
+                TokenType::Indent,
+                TokenType::Ident("n".into()),
+                TokenType::Dedent,
+                TokenType::Ident("f".into()),
+            ])
         );
     }
 }

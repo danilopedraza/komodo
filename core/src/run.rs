@@ -6,7 +6,7 @@ use crate::{
     env::{Environment, ExecContext},
     error::Error,
     exec::exec,
-    lexer::{build_lexer, Token},
+    lexer::{Lexer, Token},
     object::Object,
     parser::{parser_from, Parser},
     weeder::rewrite,
@@ -21,7 +21,7 @@ fn collect_nodes<T: Iterator<Item = Result<Token, Error>>>(
 }
 
 pub fn run(source: &str, env: &mut Environment) -> Result<(), Error> {
-    let lexer = build_lexer(source);
+    let lexer = Lexer::new(source);
     let parser = parser_from(lexer);
     let nodes = collect_nodes(parser)?;
 
@@ -64,7 +64,7 @@ pub fn import_from(
     env: &mut Environment,
 ) -> Result<(), Error> {
     let source = get_module_code(module_name, env)?;
-    let lexer = build_lexer(&source);
+    let lexer = Lexer::new(&source);
     let parser = parser_from(lexer);
     let nodes = collect_nodes(parser)?;
 

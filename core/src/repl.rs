@@ -3,7 +3,7 @@ use crate::{
     builtin::standard_env,
     env::{Environment, ExecContext},
     error::{error_msg, Error, ErrorMessage, ErrorType},
-    lexer::build_lexer,
+    lexer::Lexer,
     object::Object,
     parser::{parser_from, ParserError},
     run,
@@ -42,7 +42,7 @@ impl Repl {
                     self.code.push(' ');
                 }
                 self.code.push_str(&line);
-                let lexer = build_lexer(&self.code);
+                let lexer = Lexer::new(&self.code);
                 let mut parser = parser_from(lexer);
 
                 match parser.next() {
