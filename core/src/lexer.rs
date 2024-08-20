@@ -98,6 +98,10 @@ impl Iterator for Lexer<'_> {
     type Item = Result<Token, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        if let Some(res) = self.token_queue.pop_front() {
+            return Some(res);
+        }
+
         let new_indent_level = self.consume_indent();
 
         let start = self.cur_pos;
