@@ -11,6 +11,7 @@ cargo test --all-features
 set +e
 examples_dir="$(pwd)/../examples"
 echo "Running examples..."
+someone_failed=false
 for file in $(find "$examples_dir" -type f -name "*.smtc"); do
     output=$(eval "cargo run --quiet $file" 2>&1)
 
@@ -18,8 +19,12 @@ for file in $(find "$examples_dir" -type f -name "*.smtc"); do
         echo "❌ Error: $file failed its execution" >&2
         echo "This is the message from the interpreter:" >&2
         echo "$output" >&2
-        exit 1
+        someone_failed=true
     fi
 done
+
+if [ "$someone_failed" = true ] ; then
+    exit 1
+fi
 
 echo "✅ All of the example files were executed correctly!"
