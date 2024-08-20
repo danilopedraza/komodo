@@ -180,7 +180,9 @@ impl<'a> Lexer<'a> {
 
                     break spaces / 4;
                 }
-                Some(chr) if chr.is_whitespace() => self.skip_whitespace(),
+                Some(chr) if chr.is_whitespace() && *chr != '\n' => {
+                    self.skip_non_linefeed_whitespace()
+                }
                 Some('#') => self.skip_comment(),
                 _ => break 0,
             }
@@ -285,9 +287,9 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn skip_whitespace(&mut self) {
+    fn skip_non_linefeed_whitespace(&mut self) {
         while let Some(chr) = self.input.peek() {
-            if chr.is_whitespace() {
+            if *chr != '\n' && chr.is_whitespace() {
                 self.next_char();
             } else {
                 break;
