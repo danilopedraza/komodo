@@ -340,7 +340,7 @@ impl<'a> Lexer<'a> {
 
         let mut literal = String::new();
         if radix != Radix::Decimal {
-            self.input.next();
+            self.next_char();
         } else {
             literal.push(first);
         }
@@ -853,6 +853,22 @@ mod tests {
                 TokenType::Dedent,
                 TokenType::Ident("f".into()),
             ])
+        );
+    }
+
+    #[test]
+    fn integer_position() {
+        let code = "0x8";
+
+        assert_eq!(
+            Lexer::new(code).next(),
+            Some(Ok(Token {
+                token: TokenType::Integer("8".into(), Radix::Hex),
+                position: Position {
+                    start: 0,
+                    length: 3
+                }
+            })),
         );
     }
 }
