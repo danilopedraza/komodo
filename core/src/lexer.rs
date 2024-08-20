@@ -147,16 +147,31 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    fn consume_spaces(&mut self) -> usize {
+        let mut spaces = 0;
+        while let Some(chr) = self.input.peek() {
+            match chr {
+                ' ' => {
+                    self.next_char();
+                    spaces += 1;
+                }
+                '\n' => {
+                    self.next_char();
+                    spaces = 0;
+                }
+                _ => break,
+            }
+        }
+
+        spaces
+    }
+
     fn consume_indent(&mut self) -> usize {
         loop {
             match self.input.peek() {
                 Some('\n') => {
                     self.next_char();
-                    let mut spaces = 0;
-                    while let Some(' ') = self.input.peek() {
-                        self.next_char();
-                        spaces += 1;
-                    }
+                    let spaces = self.consume_spaces();
 
                     for _ in 0..(spaces / 4) {
                         self.token_queue
@@ -839,6 +854,7 @@ mod tests {
         let code = &unindent(
             "
         let f := n ->
+
             n
         f
         ",
