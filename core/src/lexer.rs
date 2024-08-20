@@ -1,4 +1,4 @@
-use std::{iter::Peekable, str::Chars, vec};
+use std::{collections::VecDeque, iter::Peekable, str::Chars, vec};
 
 use crate::error::{Error, Position};
 
@@ -90,12 +90,16 @@ pub enum TokenType {
 pub struct Lexer<'a> {
     input: Peekable<Chars<'a>>,
     cur_pos: usize,
+    token_queue: VecDeque<Result<Token, Error>>,
+    indent_level: usize,
 }
 
 impl Iterator for Lexer<'_> {
     type Item = Result<Token, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        let new_indent_level = self.consume_indent();
+
         let start = self.cur_pos;
 
         let res = match self.next_token() {
@@ -110,15 +114,20 @@ impl Iterator for Lexer<'_> {
             None => None,
         };
 
-        loop {
-            match self.input.peek() {
-                Some(chr) if chr.is_whitespace() => self.skip_whitespace(),
-                Some('#') => self.skip_comment(),
-                _ => break,
+        if let Some(res) = res {
+            self.token_queue.push_back(res);
+        };
+
+        if new_indent_level > self.indent_level {
+            for _ in self.indent_level..new_indent_level {
+                self.token_queue
+                    .push_back(Ok(Token::new(TokenType::Dedent, Position::new(0, 0))));
             }
         }
 
-        res
+        self.indent_level = new_indent_level;
+
+        self.token_queue.pop_front()
     }
 }
 
@@ -126,20 +135,37 @@ type LexerResult = Result<TokenType, LexerError>;
 
 impl<'a> Lexer<'a> {
     pub fn new(input: &'a str) -> Self {
-        let mut lexer = Self {
+        Self {
             input: input.chars().peekable(),
             cur_pos: 0,
-        };
+            token_queue: VecDeque::default(),
+            indent_level: 0,
+        }
+    }
 
+    fn consume_indent(&mut self) -> usize {
         loop {
-            match lexer.input.peek() {
-                Some(chr) if chr.is_whitespace() => lexer.skip_whitespace(),
-                Some('#') => lexer.skip_comment(),
-                _ => break,
+            match self.input.peek() {
+                Some('\n') => {
+                    self.next_char();
+                    let mut spaces = 0;
+                    while let Some(' ') = self.input.peek() {
+                        self.next_char();
+                        spaces += 1;
+                    }
+
+                    for _ in 0..(spaces / 4) {
+                        self.token_queue
+                            .push_back(Ok(Token::new(TokenType::Indent, Position::new(0, 0))));
+                    }
+
+                    break spaces / 4;
+                }
+                Some(chr) if chr.is_whitespace() => self.skip_whitespace(),
+                Some('#') => self.skip_comment(),
+                _ => break 0,
             }
         }
-
-        lexer
     }
 
     fn next_char(&mut self) -> Option<char> {
@@ -805,7 +831,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn one_line_indent() {
         let code = &unindent(
             "

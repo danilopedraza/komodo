@@ -331,6 +331,14 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn next_token(&mut self) -> Result<Option<TokenType>, Error> {
+        while let Some(Ok(Token {
+            token: TokenType::Indent | TokenType::Dedent,
+            ..
+        })) = self.tokens.peek()
+        {
+            self.tokens.next();
+        }
+
         match self.tokens.next() {
             Some(Ok(Token { token, position })) => {
                 self.cur_pos = position;
@@ -342,6 +350,14 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn peek_token(&mut self) -> Result<Option<TokenType>, Error> {
+        while let Some(Ok(Token {
+            token: TokenType::Indent | TokenType::Dedent,
+            ..
+        })) = self.tokens.peek()
+        {
+            self.tokens.next();
+        }
+
         match self.tokens.peek() {
             Some(Ok(Token { token, .. })) => Ok(Some(token.to_owned())),
             Some(Err(err)) => Err(err.to_owned()),
