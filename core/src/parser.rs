@@ -679,13 +679,14 @@ mod tests {
     use super::*;
     use crate::{
         cst::tests::{
-            _pos, ad_infinitum, boolean, char, dec_integer, import, import_from, let_, pattern,
-            set_cons, string, symbol, wildcard,
+            _pos, ad_infinitum, boolean, char, dec_integer, import, import_from, integer, let_,
+            pattern, set_cons, string, symbol, wildcard,
         },
         error::Position,
         lexer::{Lexer, Radix},
     };
     use std::iter;
+    use unindent::unindent;
 
     #[test]
     fn empty_expression() {
@@ -1796,6 +1797,39 @@ mod tests {
                 Some(symbol("iter", _pos(37, 4))),
                 _pos(0, 41)
             )))
+        );
+    }
+
+    #[test]
+    fn set_several_lines() {
+        let input = &unindent(
+            "
+        let eights := {
+            0b1000,
+            0o10,
+            8,
+            0x8,
+        }
+        ",
+        );
+
+        let lexer = Lexer::new(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(let_(
+                symbol("eights", _pos(4, 6)),
+                Some(extension_set(
+                    vec![
+                        integer("1000", Radix::Binary, _pos(20, 6)),
+                        integer("10", Radix::Octal, _pos(32, 4)),
+                        integer("8", Radix::Decimal, _pos(42, 1)),
+                        integer("8", Radix::Hex, _pos(49, 3)),
+                    ],
+                    _pos(14, 41)
+                )),
+                _pos(0, 55)
+            ))),
         );
     }
 }

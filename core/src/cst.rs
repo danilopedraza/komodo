@@ -312,7 +312,11 @@ pub mod tests {
     }
 
     pub fn dec_integer(int: &str, position: Position) -> CSTNode {
-        CSTNode::new(CSTNodeKind::Integer(int.into(), Radix::Decimal), position)
+        integer(int, Radix::Decimal, position)
+    }
+
+    pub fn integer(int: &str, radix: Radix, position: Position) -> CSTNode {
+        CSTNode::new(CSTNodeKind::Integer(int.into(), radix), position)
     }
 
     pub fn ad_infinitum(position: Position) -> CSTNode {
