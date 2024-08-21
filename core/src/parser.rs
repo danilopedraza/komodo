@@ -16,6 +16,7 @@ pub enum ParserError {
 pub struct Parser<T: Iterator<Item = Result<Token, Error>>> {
     tokens: Peekable<T>,
     cur_pos: Position,
+    ignore_indentation: bool,
 }
 
 impl<T: Iterator<Item = Result<Token, Error>>> Iterator for Parser<T> {
@@ -145,12 +146,14 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         terminator: TokenType,
         first: Option<CSTNode>,
     ) -> Result<Vec<CSTNode>, Error> {
+        self.start_ignoring_indentation();
+
         let mut res = match first {
             None => vec![],
             Some(node) => vec![node],
         };
 
-        match self.peek_token()? {
+        let res = match self.peek_token()? {
             Some(tok) if tok == terminator => {
                 self.next_token()?;
                 Ok(res)
@@ -184,7 +187,11 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                     }
                 }
             },
-        }
+        };
+
+        self.stop_ignoring_indentation();
+
+        res
     }
 
     fn pattern(&mut self) -> _NodeResult {
@@ -316,9 +323,11 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             return Ok(tuple(vec![], self.start_to_cur(start)));
         }
 
+        self.start_ignoring_indentation();
+
         let res = self.expression(Precedence::Lowest)?;
 
-        match self.next_token()? {
+        let ress = match self.next_token()? {
             Some(TokenType::Rparen) => Ok(res),
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rparen, Some(res))
@@ -327,16 +336,26 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 self.err_with_cur(ParserError::UnexpectedToken(vec![TokenType::Rparen], tok))
             }
             None => self.err_with_cur(ParserError::EOFExpecting(vec![TokenType::Rparen])),
-        }
+        };
+
+        self.stop_ignoring_indentation();
+
+        ress
     }
 
-    fn next_token(&mut self) -> Result<Option<TokenType>, Error> {
+    fn skip_indentation(&mut self) {
         while let Some(Ok(Token {
             token: TokenType::Indent | TokenType::Dedent,
             ..
         })) = self.tokens.peek()
         {
             self.tokens.next();
+        }
+    }
+
+    fn next_token(&mut self) -> Result<Option<TokenType>, Error> {
+        if self.ignore_indentation {
+            self.skip_indentation();
         }
 
         match self.tokens.next() {
@@ -350,12 +369,8 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn peek_token(&mut self) -> Result<Option<TokenType>, Error> {
-        while let Some(Ok(Token {
-            token: TokenType::Indent | TokenType::Dedent,
-            ..
-        })) = self.tokens.peek()
-        {
-            self.tokens.next();
+        if self.ignore_indentation {
+            self.skip_indentation();
         }
 
         match self.tokens.peek() {
@@ -365,7 +380,18 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
     }
 
+    fn start_ignoring_indentation(&mut self) {
+        self.ignore_indentation = true;
+        self.skip_indentation();
+    }
+
+    fn stop_ignoring_indentation(&mut self) {
+        self.ignore_indentation = false;
+    }
+
     fn list(&mut self) -> _NodeResult {
+        self.start_ignoring_indentation();
+
         let start = self.cur_pos.start;
 
         if matches!(self.peek_token()?, Some(TokenType::Rbrack)) {
@@ -375,7 +401,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
         let first = self.expression(Precedence::Lowest)?;
 
-        match self.next_token()? {
+        let res = match self.next_token()? {
             Some(TokenType::For) => self.comprehension(first, ComprehensionKind::List, start),
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rbrack, Some(first))
@@ -391,7 +417,11 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 TokenType::Comma,
                 TokenType::Rbrack,
             ])),
-        }
+        };
+
+        self.stop_ignoring_indentation();
+
+        res
     }
 
     fn comprehension(
@@ -574,6 +604,8 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn set_or_dict(&mut self) -> _NodeResult {
+        self.start_ignoring_indentation();
+
         let start = self.cur_pos.start;
 
         if matches!(self.peek_token()?, Some(TokenType::Rbrace)) {
@@ -583,7 +615,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
         let first = self.expression(Precedence::Lowest)?;
 
-        match self.next_token()? {
+        let res = match self.next_token()? {
             Some(TokenType::Comma) => self
                 .sequence(TokenType::Rbrace, Some(first))
                 .map(|lst| extension_set(lst, self.start_to_cur(start))),
@@ -611,7 +643,11 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 .into(),
                 self.cur_pos,
             )),
-        }
+        };
+
+        self.stop_ignoring_indentation();
+
+        res
     }
 
     fn set_cons(&mut self, first: CSTNode, start: usize) -> _NodeResult {
@@ -671,6 +707,7 @@ pub fn parser_from<T: Iterator<Item = Result<Token, Error>>>(tokens: T) -> Parse
     Parser {
         tokens: tokens.peekable(),
         cur_pos: Position::new(0, 0),
+        ignore_indentation: false,
     }
 }
 
