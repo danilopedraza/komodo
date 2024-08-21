@@ -319,9 +319,13 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         &mut self,
         f: F,
     ) -> Result<P, Error> {
-        self.start_ignoring_indentation();
+        self.ignore_indentation = true;
+        self.skip_indentation();
+
         let res = f(self);
-        self.stop_ignoring_indentation();
+
+        self.ignore_indentation = false;
+
         res
     }
 
@@ -384,15 +388,6 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             Some(Err(err)) => Err(err.to_owned()),
             None => Ok(None),
         }
-    }
-
-    fn start_ignoring_indentation(&mut self) {
-        self.ignore_indentation = true;
-        self.skip_indentation();
-    }
-
-    fn stop_ignoring_indentation(&mut self) {
-        self.ignore_indentation = false;
     }
 
     fn list(&mut self) -> _NodeResult {
