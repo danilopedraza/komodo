@@ -30,6 +30,17 @@ pub enum Radix {
     Octal,
 }
 
+impl From<Radix> for u32 {
+    fn from(value: Radix) -> Self {
+        match value {
+            Radix::Binary => 2,
+            Radix::Decimal => 10,
+            Radix::Hex => 16,
+            Radix::Octal => 8,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TokenType {
     Arrow,

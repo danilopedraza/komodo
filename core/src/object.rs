@@ -674,14 +674,7 @@ pub struct Integer {
 
 impl Integer {
     pub fn new(literal: &str, radix: Radix) -> Self {
-        let radix = match radix {
-            Radix::Binary => 2,
-            Radix::Decimal => 10,
-            Radix::Hex => 16,
-            Radix::Octal => 8,
-        };
-
-        let val = BigInt::parse_bytes(literal.as_bytes(), radix).unwrap();
+        let val = BigInt::parse_bytes(literal.as_bytes(), radix.into()).unwrap();
 
         Self { val }
     }
