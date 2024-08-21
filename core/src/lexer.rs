@@ -113,7 +113,7 @@ impl Iterator for Lexer<'_> {
             return Some(res);
         }
 
-        let new_indent_level = self.consume_indent();
+        self.consume_indent();
 
         let start = self.cur_pos;
 
@@ -132,15 +132,6 @@ impl Iterator for Lexer<'_> {
         if let Some(res) = res {
             self.token_queue.push_back(res);
         };
-
-        if new_indent_level > self.indent_level {
-            for _ in self.indent_level..new_indent_level {
-                self.token_queue
-                    .push_back(Ok(Token::new(TokenType::Dedent, Position::new(0, 0))));
-            }
-        }
-
-        self.indent_level = new_indent_level;
 
         self.token_queue.pop_front()
     }
@@ -177,25 +168,35 @@ impl<'a> Lexer<'a> {
         spaces
     }
 
-    fn consume_indent(&mut self) -> usize {
+    fn consume_indent(&mut self) {
         loop {
             match self.input.peek() {
                 Some('\n') => {
                     self.next_char();
                     let spaces = self.consume_spaces();
+                    let new_indent_level = spaces / 4;
 
-                    for _ in 0..(spaces / 4) {
-                        self.token_queue
-                            .push_back(Ok(Token::new(TokenType::Indent, Position::new(0, 0))));
+                    if new_indent_level > self.indent_level {
+                        for _ in self.indent_level..new_indent_level {
+                            self.token_queue
+                                .push_back(Ok(Token::new(TokenType::Indent, Position::new(0, 0))));
+                        }
+                    } else {
+                        for _ in new_indent_level..self.indent_level {
+                            self.token_queue
+                                .push_back(Ok(Token::new(TokenType::Dedent, Position::new(0, 0))));
+                        }
                     }
 
-                    break spaces / 4;
+                    self.indent_level = new_indent_level;
+
+                    break;
                 }
                 Some(chr) if chr.is_whitespace() && *chr != '\n' => {
                     self.skip_non_linefeed_whitespace()
                 }
                 Some('#') => self.skip_comment(),
-                _ => break 0,
+                _ => break,
             }
         }
     }
@@ -902,6 +903,37 @@ mod tests {
                     length: 3
                 }
             })),
+        );
+    }
+
+    #[test]
+    fn two_line_indent() {
+        let code = &unindent(
+            "
+        let f := n ->
+            let a := n + 1
+            a
+        ",
+        );
+
+        assert_eq!(
+            token_types_from(code),
+            Ok(vec![
+                TokenType::Let,
+                TokenType::Ident("f".into()),
+                TokenType::Assign,
+                TokenType::Ident("n".into()),
+                TokenType::Arrow,
+                TokenType::Indent,
+                TokenType::Let,
+                TokenType::Ident("a".into()),
+                TokenType::Assign,
+                TokenType::Ident("n".into()),
+                TokenType::Plus,
+                TokenType::Integer("1".into(), Radix::Decimal),
+                TokenType::Ident("a".into()),
+                TokenType::Dedent,
+            ])
         );
     }
 }
