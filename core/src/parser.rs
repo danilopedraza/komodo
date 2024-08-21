@@ -146,52 +146,52 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         terminator: TokenType,
         first: Option<CSTNode>,
     ) -> Result<Vec<CSTNode>, Error> {
-        self.start_ignoring_indentation();
+        self.ignoring_indentation(|parser| {
+            let mut res = match first {
+                None => vec![],
+                Some(node) => vec![node],
+            };
 
-        let mut res = match first {
-            None => vec![],
-            Some(node) => vec![node],
-        };
-
-        let res = match self.peek_token()? {
-            Some(tok) if tok == terminator => {
-                self.next_token()?;
-                Ok(res)
-            }
-            None => Err(Error::new(ParserError::EOFReached.into(), self.cur_pos)),
-            _ => loop {
-                let expr = self.expression(Precedence::Lowest)?;
-                res.push(expr);
-
-                match self.next_token()? {
-                    Some(TokenType::Comma) => match self.peek_token() {
-                        Ok(Some(tok)) if tok == terminator => {
-                            self.next_token()?;
-                            break Ok(res);
-                        }
-                        _ => continue,
-                    },
-                    Some(tok) if tok == terminator => break Ok(res),
-                    Some(tok) => {
-                        break Err(Error::new(
-                            ParserError::UnexpectedToken(vec![TokenType::Comma, terminator], tok)
-                                .into(),
-                            self.cur_pos,
-                        ))
-                    }
-                    None => {
-                        break Err(Error::new(
-                            ParserError::EOFExpecting(vec![TokenType::Comma, terminator]).into(),
-                            self.cur_pos,
-                        ))
-                    }
+            match parser.peek_token()? {
+                Some(tok) if tok == terminator => {
+                    parser.next_token()?;
+                    Ok(res)
                 }
-            },
-        };
+                None => Err(Error::new(ParserError::EOFReached.into(), parser.cur_pos)),
+                _ => loop {
+                    let expr = parser.expression(Precedence::Lowest)?;
+                    res.push(expr);
 
-        self.stop_ignoring_indentation();
-
-        res
+                    match parser.next_token()? {
+                        Some(TokenType::Comma) => match parser.peek_token() {
+                            Ok(Some(tok)) if tok == terminator => {
+                                parser.next_token()?;
+                                break Ok(res);
+                            }
+                            _ => continue,
+                        },
+                        Some(tok) if tok == terminator => break Ok(res),
+                        Some(tok) => {
+                            break Err(Error::new(
+                                ParserError::UnexpectedToken(
+                                    vec![TokenType::Comma, terminator],
+                                    tok,
+                                )
+                                .into(),
+                                parser.cur_pos,
+                            ))
+                        }
+                        None => {
+                            break Err(Error::new(
+                                ParserError::EOFExpecting(vec![TokenType::Comma, terminator])
+                                    .into(),
+                                parser.cur_pos,
+                            ))
+                        }
+                    }
+                },
+            }
+        })
     }
 
     fn pattern(&mut self) -> _NodeResult {
@@ -315,6 +315,16 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         self.node_with_cur(CSTNodeKind::Integer(int, radix))
     }
 
+    fn ignoring_indentation<F: FnOnce(&mut Parser<T>) -> Result<P, Error>, P>(
+        &mut self,
+        f: F,
+    ) -> Result<P, Error> {
+        self.start_ignoring_indentation();
+        let res = f(self);
+        self.stop_ignoring_indentation();
+        res
+    }
+
     fn parenthesis(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
@@ -323,24 +333,20 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             return Ok(tuple(vec![], self.start_to_cur(start)));
         }
 
-        self.start_ignoring_indentation();
+        self.ignoring_indentation(|parser: &mut Parser<T>| {
+            let res = parser.expression(Precedence::Lowest)?;
 
-        let res = self.expression(Precedence::Lowest)?;
-
-        let ress = match self.next_token()? {
-            Some(TokenType::Rparen) => Ok(res),
-            Some(TokenType::Comma) => self
-                .sequence(TokenType::Rparen, Some(res))
-                .map(|lst| tuple(lst, self.start_to_cur(start))),
-            Some(tok) => {
-                self.err_with_cur(ParserError::UnexpectedToken(vec![TokenType::Rparen], tok))
+            match parser.next_token()? {
+                Some(TokenType::Rparen) => Ok(res),
+                Some(TokenType::Comma) => parser
+                    .sequence(TokenType::Rparen, Some(res))
+                    .map(|lst| tuple(lst, parser.start_to_cur(start))),
+                Some(tok) => {
+                    parser.err_with_cur(ParserError::UnexpectedToken(vec![TokenType::Rparen], tok))
+                }
+                None => parser.err_with_cur(ParserError::EOFExpecting(vec![TokenType::Rparen])),
             }
-            None => self.err_with_cur(ParserError::EOFExpecting(vec![TokenType::Rparen])),
-        };
-
-        self.stop_ignoring_indentation();
-
-        ress
+        })
     }
 
     fn skip_indentation(&mut self) {
@@ -390,38 +396,36 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn list(&mut self) -> _NodeResult {
-        self.start_ignoring_indentation();
+        self.ignoring_indentation(|parser| {
+            let start = parser.cur_pos.start;
 
-        let start = self.cur_pos.start;
+            if matches!(parser.peek_token()?, Some(TokenType::Rbrack)) {
+                parser.next_token()?;
+                return Ok(extension_list(vec![], parser.start_to_cur(start)));
+            }
 
-        if matches!(self.peek_token()?, Some(TokenType::Rbrack)) {
-            self.next_token()?;
-            return Ok(extension_list(vec![], self.start_to_cur(start)));
-        }
+            let first = parser.expression(Precedence::Lowest)?;
 
-        let first = self.expression(Precedence::Lowest)?;
-
-        let res = match self.next_token()? {
-            Some(TokenType::For) => self.comprehension(first, ComprehensionKind::List, start),
-            Some(TokenType::Comma) => self
-                .sequence(TokenType::Rbrack, Some(first))
-                .map(|lst| extension_list(lst, self.start_to_cur(start))),
-            Some(TokenType::Rbrack) => Ok(extension_list(vec![first], self.start_to_cur(start))),
-            Some(TokenType::VerticalBar) => self.prepend_(first, start),
-            Some(tok) => self.err_with_cur(ParserError::UnexpectedToken(
-                vec![TokenType::For, TokenType::Comma, TokenType::Rbrack],
-                tok,
-            )),
-            None => self.err_with_cur(ParserError::EOFExpecting(vec![
-                TokenType::For,
-                TokenType::Comma,
-                TokenType::Rbrack,
-            ])),
-        };
-
-        self.stop_ignoring_indentation();
-
-        res
+            match parser.next_token()? {
+                Some(TokenType::For) => parser.comprehension(first, ComprehensionKind::List, start),
+                Some(TokenType::Comma) => parser
+                    .sequence(TokenType::Rbrack, Some(first))
+                    .map(|lst| extension_list(lst, parser.start_to_cur(start))),
+                Some(TokenType::Rbrack) => {
+                    Ok(extension_list(vec![first], parser.start_to_cur(start)))
+                }
+                Some(TokenType::VerticalBar) => parser.prepend_(first, start),
+                Some(tok) => parser.err_with_cur(ParserError::UnexpectedToken(
+                    vec![TokenType::For, TokenType::Comma, TokenType::Rbrack],
+                    tok,
+                )),
+                None => parser.err_with_cur(ParserError::EOFExpecting(vec![
+                    TokenType::For,
+                    TokenType::Comma,
+                    TokenType::Rbrack,
+                ])),
+            }
+        })
     }
 
     fn comprehension(
@@ -604,50 +608,48 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn set_or_dict(&mut self) -> _NodeResult {
-        self.start_ignoring_indentation();
+        self.ignoring_indentation(|parser| {
+            let start = parser.cur_pos.start;
 
-        let start = self.cur_pos.start;
-
-        if matches!(self.peek_token()?, Some(TokenType::Rbrace)) {
-            self.next_token()?;
-            return Ok(extension_set(vec![], self.start_to_cur(start)));
-        }
-
-        let first = self.expression(Precedence::Lowest)?;
-
-        let res = match self.next_token()? {
-            Some(TokenType::Comma) => self
-                .sequence(TokenType::Rbrace, Some(first))
-                .map(|lst| extension_set(lst, self.start_to_cur(start))),
-            Some(TokenType::For) => self.comprehension(first, ComprehensionKind::Set, start),
-            Some(TokenType::VerticalBar) => self.set_cons(first, start),
-            Some(TokenType::Colon) => {
-                let first = (first, self.expression(Precedence::Lowest)?);
-                self.dict(first, start)
+            if matches!(parser.peek_token()?, Some(TokenType::Rbrace)) {
+                parser.next_token()?;
+                return Ok(extension_set(vec![], parser.start_to_cur(start)));
             }
-            Some(TokenType::Rbrace) => Ok(extension_set(vec![first], self.start_to_cur(start))),
-            Some(tok) => Err(Error::new(
-                ParserError::UnexpectedToken(
-                    vec![TokenType::Comma, TokenType::Rbrace, TokenType::Colon],
-                    tok,
-                )
-                .into(),
-                self.cur_pos,
-            )),
-            None => Err(Error::new(
-                ParserError::EOFExpecting(vec![
-                    TokenType::Comma,
-                    TokenType::Rbrace,
-                    TokenType::Colon,
-                ])
-                .into(),
-                self.cur_pos,
-            )),
-        };
 
-        self.stop_ignoring_indentation();
+            let first = parser.expression(Precedence::Lowest)?;
 
-        res
+            match parser.next_token()? {
+                Some(TokenType::Comma) => parser
+                    .sequence(TokenType::Rbrace, Some(first))
+                    .map(|lst| extension_set(lst, parser.start_to_cur(start))),
+                Some(TokenType::For) => parser.comprehension(first, ComprehensionKind::Set, start),
+                Some(TokenType::VerticalBar) => parser.set_cons(first, start),
+                Some(TokenType::Colon) => {
+                    let first = (first, parser.expression(Precedence::Lowest)?);
+                    parser.dict(first, start)
+                }
+                Some(TokenType::Rbrace) => {
+                    Ok(extension_set(vec![first], parser.start_to_cur(start)))
+                }
+                Some(tok) => Err(Error::new(
+                    ParserError::UnexpectedToken(
+                        vec![TokenType::Comma, TokenType::Rbrace, TokenType::Colon],
+                        tok,
+                    )
+                    .into(),
+                    parser.cur_pos,
+                )),
+                None => Err(Error::new(
+                    ParserError::EOFExpecting(vec![
+                        TokenType::Comma,
+                        TokenType::Rbrace,
+                        TokenType::Colon,
+                    ])
+                    .into(),
+                    parser.cur_pos,
+                )),
+            }
+        })
     }
 
     fn set_cons(&mut self, first: CSTNode, start: usize) -> _NodeResult {
