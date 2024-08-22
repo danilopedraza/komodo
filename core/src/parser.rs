@@ -351,12 +351,13 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         &mut self,
         f: F,
     ) -> Result<P, Error> {
+        let last = self.ignore_indentation;
         self.ignore_indentation = true;
         self.skip_indentation();
 
         let res = f(self);
 
-        self.ignore_indentation = false;
+        self.ignore_indentation = last;
 
         res
     }
@@ -1942,6 +1943,25 @@ mod tests {
                     _pos(9, 31)
                 )),
                 _pos(0, 40)
+            ))),
+        );
+    }
+
+    #[test]
+    fn parens_in_indented_list() {
+        let input = &unindent(
+            "[
+            (n)
+        ]",
+        );
+
+        let lexer = Lexer::new(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(extension_list(
+                vec![symbol("n", _pos(7, 1))],
+                _pos(0, 11)
             ))),
         );
     }
