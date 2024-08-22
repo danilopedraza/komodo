@@ -62,9 +62,9 @@ pub fn list(l: &[ASTNode], env: &mut Environment) -> Result<Vec<Object>, Error> 
     l.iter().map(|node| exec(node, env)).collect()
 }
 
-fn function(params: &[String], proc: &[ASTNode]) -> Result<Object, Error> {
+fn function(params: &[String], result: &ASTNode) -> Result<Object, Error> {
     Ok(Object::Function(object::Function::Anonymous(
-        AnonFunction::new(params.to_owned(), proc.to_owned()),
+        AnonFunction::new(params.to_owned(), result.to_owned()),
     )))
 }
 
@@ -73,7 +73,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeKind::Symbol { name } => symbol(name, env, node.position),
         ASTNodeKind::Set { list } => extension_set(list, env),
         ASTNodeKind::Integer { literal, radix } => integer(literal, *radix),
-        ASTNodeKind::Function { params, proc } => function(params, proc),
+        ASTNodeKind::Function { params, result } => function(params, result),
         ASTNodeKind::Infix { op, lhs, rhs } => infix(
             op.clone(),
             &exec(lhs, env)?,
@@ -576,9 +576,9 @@ mod tests {
 
     use super::*;
     use crate::ast::tests::{
-        _for, _if, boolean, call, comprehension, cons, container_element, dec_integer, decimal,
-        extension_list, extension_set, fraction, function, infix, let_, pattern, pos, prefix,
-        range, set_cons, symbol, tuple,
+        _for, _if, block, boolean, call, comprehension, cons, container_element, dec_integer,
+        decimal, extension_list, extension_set, fraction, function, infix, let_, pattern, pos,
+        prefix, range, set_cons, symbol, tuple,
     };
     use crate::cst::tests::dummy_pos;
     use crate::error::ErrorType;
@@ -952,12 +952,12 @@ mod tests {
     fn function_() {
         let node = &function(
             vec!["x"],
-            vec![infix(
+            infix(
                 InfixOperator::Product,
                 dec_integer("2", dummy_pos()),
                 symbol("x", dummy_pos()),
                 dummy_pos(),
-            )],
+            ),
             dummy_pos(),
         );
 
@@ -966,12 +966,12 @@ mod tests {
             Ok(Object::Function(object::Function::Anonymous(
                 AnonFunction::new(
                     vec![String::from("x"),],
-                    vec![infix(
+                    infix(
                         InfixOperator::Product,
                         dec_integer("2", dummy_pos()),
                         symbol("x", dummy_pos()),
                         dummy_pos()
-                    )],
+                    ),
                 )
             ))),
         );
@@ -982,12 +982,12 @@ mod tests {
         let node = &call(
             function(
                 vec!["x"],
-                vec![infix(
+                infix(
                     InfixOperator::Product,
                     dec_integer("2", dummy_pos()),
                     symbol("x", dummy_pos()),
                     dummy_pos(),
-                )],
+                ),
                 dummy_pos(),
             ),
             vec![dec_integer("1", dummy_pos())],
@@ -1005,12 +1005,12 @@ mod tests {
         let node = &call(
             function(
                 vec!["x", "y"],
-                vec![infix(
+                infix(
                     InfixOperator::Sum,
                     symbol("x", dummy_pos()),
                     symbol("y", dummy_pos()),
                     dummy_pos(),
-                )],
+                ),
                 dummy_pos(),
             ),
             vec![dec_integer("1", dummy_pos()), dec_integer("2", dummy_pos())],
@@ -1028,12 +1028,12 @@ mod tests {
         let node = &call(
             function(
                 vec!["x", "y"],
-                vec![infix(
+                infix(
                     InfixOperator::Sum,
                     symbol("x", dummy_pos()),
                     symbol("y", dummy_pos()),
                     dummy_pos(),
-                )],
+                ),
                 dummy_pos(),
             ),
             vec![dec_integer("1", dummy_pos())],
@@ -1112,24 +1112,27 @@ mod tests {
         let node = &call(
             function(
                 vec!["x"],
-                vec![
-                    let_(
-                        symbol("y", dummy_pos()),
-                        Some(infix(
-                            InfixOperator::Product,
-                            dec_integer("2", dummy_pos()),
-                            symbol("x", dummy_pos()),
+                block(
+                    vec![
+                        let_(
+                            symbol("y", dummy_pos()),
+                            Some(infix(
+                                InfixOperator::Product,
+                                dec_integer("2", dummy_pos()),
+                                symbol("x", dummy_pos()),
+                                dummy_pos(),
+                            )),
                             dummy_pos(),
-                        )),
-                        dummy_pos(),
-                    ),
-                    infix(
-                        InfixOperator::Sum,
-                        symbol("y", dummy_pos()),
-                        dec_integer("1", dummy_pos()),
-                        dummy_pos(),
-                    ),
-                ],
+                        ),
+                        infix(
+                            InfixOperator::Sum,
+                            symbol("y", dummy_pos()),
+                            dec_integer("1", dummy_pos()),
+                            dummy_pos(),
+                        ),
+                    ],
+                    dummy_pos(),
+                ),
                 dummy_pos(),
             ),
             vec![dec_integer("2", dummy_pos())],

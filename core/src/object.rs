@@ -1103,12 +1103,12 @@ impl Callable for PatternFunction {
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct AnonFunction {
     params: Vec<String>,
-    proc: Vec<ASTNode>,
+    result: ASTNode,
 }
 
 impl AnonFunction {
-    pub fn new(params: Vec<String>, proc: Vec<ASTNode>) -> Self {
-        Self { params, proc }
+    pub fn new(params: Vec<String>, result: ASTNode) -> Self {
+        Self { params, result }
     }
 }
 
@@ -1120,11 +1120,7 @@ impl Callable for AnonFunction {
             env.set(param, arg.clone());
         }
 
-        let mut res = Object::empty_tuple();
-
-        for step in &self.proc {
-            res = exec(step, env)?;
-        }
+        let res = exec(&self.result, env)?;
 
         env.pop_scope();
 

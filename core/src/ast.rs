@@ -128,7 +128,7 @@ pub enum ASTNodeKind {
     },
     Function {
         params: Vec<String>,
-        proc: Vec<ASTNode>,
+        result: Box<ASTNode>,
     },
     Fraction {
         numer: Box<ASTNode>,
@@ -194,9 +194,10 @@ pub mod tests {
         ASTNode::new(ASTNodeKind::Call { called, args }, position)
     }
 
-    pub fn function(params: Vec<&str>, proc: Vec<ASTNode>, position: Position) -> ASTNode {
+    pub fn function(params: Vec<&str>, result: ASTNode, position: Position) -> ASTNode {
         let params = params.into_iter().map(|str| str.to_string()).collect();
-        ASTNode::new(ASTNodeKind::Function { params, proc }, position)
+        let result = Box::new(result);
+        ASTNode::new(ASTNodeKind::Function { params, result }, position)
     }
 
     pub fn fraction(numer: ASTNode, denom: ASTNode, position: Position) -> ASTNode {
@@ -365,5 +366,9 @@ pub mod tests {
         let most = Box::new(most);
 
         ASTNode::new(ASTNodeKind::SetCons { some, most }, position)
+    }
+
+    pub fn block(exprs: Vec<ASTNode>, position: Position) -> ASTNode {
+        ASTNode::new(ASTNodeKind::Block(exprs), position)
     }
 }

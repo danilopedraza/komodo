@@ -101,9 +101,9 @@ fn _for(val: String, iter: CSTNode, proc: Vec<CSTNode>) -> WeederResult<ASTNodeK
     Ok(ASTNodeKind::For { val, iter, proc })
 }
 
-fn function(params: Vec<String>, proc: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
-    let proc = rewrite_vec(proc)?;
-    Ok(ASTNodeKind::Function { params, proc })
+fn function(params: Vec<String>, result: CSTNode) -> WeederResult<ASTNodeKind> {
+    let result = Box::new(rewrite(result)?);
+    Ok(ASTNodeKind::Function { params, result })
 }
 
 fn fraction(numer: CSTNode, denom: CSTNode) -> WeederResult<ASTNodeKind> {
@@ -153,12 +153,7 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
                 _ => todo!(),
             };
 
-            let proc = match rhs.kind {
-                CSTNodeKind::Tuple(v) => v,
-                _ => vec![rhs],
-            };
-
-            function(params, proc)
+            function(params, rhs)
         }
         InfixOperator::Division => infix_node(ast::InfixOperator::Division, lhs, rhs),
         InfixOperator::Dot => match (rewrite(lhs)?, rewrite(rhs)?.kind) {
@@ -335,11 +330,7 @@ mod tests {
         assert_eq!(
             rewrite(node),
             Ok(ast::tests::call(
-                ast::tests::function(
-                    vec!["x"],
-                    vec![ast::tests::symbol("x", dummy_pos())],
-                    dummy_pos()
-                ),
+                ast::tests::function(vec!["x"], ast::tests::symbol("x", dummy_pos()), dummy_pos()),
                 vec![ast::tests::dec_integer("1", dummy_pos())],
                 dummy_pos()
             ))
