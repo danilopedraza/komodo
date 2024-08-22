@@ -60,6 +60,31 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 TokenType::Lbrack => self.list(),
                 TokenType::Integer(int, radix) => self.integer(int, radix),
                 TokenType::Ident(literal) => self.symbol(literal),
+                TokenType::Indent => {
+                    let first = self.expression(Precedence::Lowest)?;
+                    let start = first.position.start;
+                    let mut exprs = vec![first];
+
+                    loop {
+                        match self.peek_token() {
+                            Ok(Some(TokenType::Dedent)) => {
+                                // let last_pos = exprs.last().unwrap().position;
+                                let res = Ok(CSTNode::new(
+                                    CSTNodeKind::Block(exprs),
+                                    self.start_to_cur(start),
+                                ));
+
+                                self.next_token()?;
+
+                                break res;
+                            }
+                            _ => {
+                                exprs.push(self.expression(Precedence::Lowest)?);
+                                continue;
+                            }
+                        }
+                    }
+                }
                 TokenType::String(str) => self.string(str),
                 TokenType::Wildcard => self.wildcard(),
                 tok => {
@@ -125,19 +150,21 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     fn let_(&mut self) -> _NodeResult {
         let start = self.cur_pos.start;
 
-        let left = Box::new(self.pattern()?);
+        let left = self.pattern()?;
 
         let right = match self.peek_token() {
             Ok(Some(TokenType::Assign)) => {
                 self.next_token()?;
-                Some(Box::new(self.expression(Precedence::Lowest)?))
+                Some(self.expression(Precedence::Lowest)?)
             }
             _ => None,
         };
 
+        let last_pos = right.as_ref().unwrap_or(&left).position;
+
         Ok(CSTNode::new(
-            CSTNodeKind::Let(left, right),
-            self.start_to_cur(start),
+            CSTNodeKind::Let(Box::new(left), right.map(Box::new)),
+            Self::start_to_pos(start, last_pos),
         ))
     }
 
@@ -278,7 +305,11 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn start_to_cur(&self, start: usize) -> Position {
-        Position::new(start, self.cur_pos.start + self.cur_pos.length - start)
+        Self::start_to_pos(start, self.cur_pos)
+    }
+
+    fn start_to_pos(start: usize, pos: Position) -> Position {
+        Position::new(start, pos.start + pos.length - start)
     }
 
     fn infix(&mut self, lhs: CSTNode, op: InfixOperator, start: usize) -> _NodeResult {
@@ -303,9 +334,10 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 Ok(infix(op, lhs, rhs, self.start_to_cur(start)))
             }
             _ => self.expression(op.precedence()).map(|rhs| {
+                let last_pos = rhs.position;
                 CSTNode::new(
                     CSTNodeKind::Infix(op, Box::new(lhs), Box::new(rhs)),
-                    self.start_to_cur(start),
+                    Self::start_to_pos(start, last_pos),
                 )
             }),
         }
@@ -713,8 +745,8 @@ mod tests {
     use super::*;
     use crate::{
         cst::tests::{
-            _pos, ad_infinitum, boolean, char, dec_integer, import, import_from, integer, let_,
-            pattern, set_cons, string, symbol, wildcard,
+            _pos, ad_infinitum, block, boolean, char, dec_integer, import, import_from, integer,
+            let_, pattern, set_cons, string, symbol, wildcard,
         },
         error::Position,
         lexer::{Lexer, Radix},
@@ -1863,6 +1895,53 @@ mod tests {
                     _pos(14, 41)
                 )),
                 _pos(0, 55)
+            ))),
+        );
+    }
+
+    #[test]
+    fn indented_block() {
+        let input = &unindent(
+            "
+        let a := n ->
+            let k := n + 1
+            k*k
+        ",
+        );
+
+        let lexer = Lexer::new(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(let_(
+                symbol("a", _pos(4, 1)),
+                Some(infix(
+                    InfixOperator::Correspondence,
+                    symbol("n", _pos(9, 1)),
+                    block(
+                        vec![
+                            let_(
+                                symbol("k", _pos(22, 1)),
+                                Some(infix(
+                                    InfixOperator::Sum,
+                                    symbol("n", _pos(27, 1)),
+                                    dec_integer("1", _pos(31, 1)),
+                                    _pos(27, 5)
+                                )),
+                                _pos(18, 14)
+                            ),
+                            infix(
+                                InfixOperator::Product,
+                                symbol("k", _pos(37, 1)),
+                                symbol("k", _pos(39, 1)),
+                                _pos(37, 3)
+                            )
+                        ],
+                        _pos(18, 22)
+                    ),
+                    _pos(9, 31)
+                )),
+                _pos(0, 40)
             ))),
         );
     }
