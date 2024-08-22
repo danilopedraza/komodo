@@ -91,6 +91,7 @@ impl Ord for ASTNode {
 pub enum ASTNodeKind {
     AdInfinitum,
     Boolean(bool),
+    Block(Vec<ASTNode>),
     Call {
         called: Box<ASTNode>,
         args: Vec<ASTNode>,

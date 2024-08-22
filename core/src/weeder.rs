@@ -39,7 +39,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
             kind,
         } => comprehension(*element, variable, *iterator, kind),
         CSTNodeKind::Pattern(pat, constraint) => pattern(*pat, constraint),
-        CSTNodeKind::Block(_) => todo!(),
+        CSTNodeKind::Block(exprs) => block(exprs),
     }?;
 
     Ok(ASTNode::new(tp, node.position))
@@ -250,6 +250,11 @@ fn pattern(exp: CSTNode, constraint: Option<String>) -> WeederResult<ASTNodeKind
     let exp = Box::new(rewrite(exp)?);
     // let constraint = constraint.map(rewrite).transpose()?.map(Box::new);
     Ok(ASTNodeKind::Pattern { exp, constraint })
+}
+
+fn block(exprs: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
+    let exprs: WeederResult<Vec<ASTNode>> = exprs.into_iter().map(rewrite).collect();
+    Ok(ASTNodeKind::Block(exprs?))
 }
 
 fn string(str: String) -> WeederResult<ASTNodeKind> {

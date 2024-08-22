@@ -131,6 +131,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             exp: _,
             constraint: _,
         } => unimplemented!(),
+        ASTNodeKind::Block(_) => todo!(),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
