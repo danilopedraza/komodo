@@ -1,5 +1,3 @@
-from utils import map
-
 let fizzBuzz(n) :=
     let fb(0, 0) := "fizzbuzz"
     let fb(0, _) := "fizz"
@@ -8,5 +6,5 @@ let fizzBuzz(n) :=
     fb(n % 3, n % 5)
 
 assert(
-    (0..5).map(fizzBuzz) = ["fizzbuzz", 1, 2, "fizz", 4]
+    [fizzBuzz(k) for k in 0..5] = ["fizzbuzz", 1, 2, "fizz", 4]
 )
