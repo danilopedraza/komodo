@@ -1,12 +1,11 @@
 from utils import map
 
-let fizzBuzz := n -> (
-    let fb(0, 0) := "fizzbuzz",
-    let fb(0, _) := "fizz",
-    let fb(_, 0) := "buzz",
-    let fb(_, _) := n,
+let fizzBuzz(n) :=
+    let fb(0, 0) := "fizzbuzz"
+    let fb(0, _) := "fizz"
+    let fb(_, 0) := "buzz"
+    let fb(_, _) := n
     fb(n % 3, n % 5)
-)
 
 assert(
     (0..5).map(fizzBuzz) = ["fizzbuzz", 1, 2, "fizz", 4]
