@@ -131,7 +131,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             exp: _,
             constraint: _,
         } => unimplemented!(),
-        ASTNodeKind::Block(_) => todo!(),
+        ASTNodeKind::Block(exprs) => block(exprs, env),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -142,6 +142,16 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     } else {
         res
     }
+}
+
+fn block(exprs: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
+    let mut res = Object::empty_tuple();
+
+    for exp in exprs {
+        res = exec(exp, env)?;
+    }
+
+    Ok(res)
 }
 
 fn import_from(module: &str, values: &[String], env: &mut Environment) -> Result<Object, Error> {
