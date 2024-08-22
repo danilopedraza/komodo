@@ -172,6 +172,7 @@ pub enum ComprehensionKind {
 pub enum CSTNodeKind {
     AdInfinitum,
     Boolean(bool),
+    Block(Vec<CSTNode>),
     Char(char),
     Comprehension {
         kind: ComprehensionKind,
@@ -359,6 +360,10 @@ pub mod tests {
 
     pub fn symbol(name: &str, position: Position) -> CSTNode {
         CSTNode::new(CSTNodeKind::Symbol(name.into()), position)
+    }
+
+    pub fn block(exprs: Vec<CSTNode>, position: Position) -> CSTNode {
+        CSTNode::new(CSTNodeKind::Block(exprs), position)
     }
 
     // pub fn function(params: Vec<&str>, proc: Vec<CSTNode>, position: Position) -> CSTNode {

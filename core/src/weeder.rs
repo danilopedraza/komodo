@@ -39,6 +39,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
             kind,
         } => comprehension(*element, variable, *iterator, kind),
         CSTNodeKind::Pattern(pat, constraint) => pattern(*pat, constraint),
+        CSTNodeKind::Block(_) => todo!(),
     }?;
 
     Ok(ASTNode::new(tp, node.position))
