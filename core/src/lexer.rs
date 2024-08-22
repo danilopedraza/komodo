@@ -149,8 +149,11 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn consume_spaces(&mut self) -> usize {
+    fn emit_indents(&mut self) -> Vec<Token> {
+        let mut start = self.cur_pos;
         let mut spaces = 0;
+        let mut indents = vec![];
+
         while let Some(chr) = self.input.peek() {
             match chr {
                 ' ' => {
@@ -160,12 +163,19 @@ impl<'a> Lexer<'a> {
                 '\n' => {
                     self.next_char();
                     spaces = 0;
+                    indents.clear();
                 }
                 _ => break,
             }
+
+            if spaces == 4 {
+                indents.push(Token::new(TokenType::Indent, Position::new(start, 4)));
+                start = self.cur_pos;
+                spaces = 0;
+            }
         }
 
-        spaces
+        indents
     }
 
     fn consume_indent(&mut self) {
@@ -173,18 +183,19 @@ impl<'a> Lexer<'a> {
             match self.input.peek() {
                 Some('\n') => {
                     self.next_char();
-                    let spaces = self.consume_spaces();
-                    let new_indent_level = spaces / 4;
+                    let indents = self.emit_indents();
+                    let new_indent_level = indents.len();
 
                     if new_indent_level > self.indent_level {
-                        for _ in self.indent_level..new_indent_level {
-                            self.token_queue
-                                .push_back(Ok(Token::new(TokenType::Indent, Position::new(0, 0))));
+                        for indent in indents {
+                            self.token_queue.push_back(Ok(indent));
                         }
                     } else {
                         for _ in new_indent_level..self.indent_level {
-                            self.token_queue
-                                .push_back(Ok(Token::new(TokenType::Dedent, Position::new(0, 0))));
+                            self.token_queue.push_back(Ok(Token::new(
+                                TokenType::Dedent,
+                                Position::new(self.cur_pos, 0),
+                            )));
                         }
                     }
 
@@ -934,6 +945,78 @@ mod tests {
                 TokenType::Ident("a".into()),
                 TokenType::Dedent,
             ])
+        );
+    }
+
+    #[test]
+    fn indent_position() {
+        let code = &unindent(
+            "
+        let f := n ->
+            n
+        ",
+        );
+
+        assert_eq!(
+            tokens_from(code),
+            Ok(vec![
+                Token {
+                    token: TokenType::Let,
+                    position: Position {
+                        start: 0,
+                        length: 3
+                    }
+                },
+                Token {
+                    token: TokenType::Ident("f".into()),
+                    position: Position {
+                        start: 4,
+                        length: 1
+                    }
+                },
+                Token {
+                    token: TokenType::Assign,
+                    position: Position {
+                        start: 6,
+                        length: 2
+                    }
+                },
+                Token {
+                    token: TokenType::Ident("n".into()),
+                    position: Position {
+                        start: 9,
+                        length: 1
+                    }
+                },
+                Token {
+                    token: TokenType::Arrow,
+                    position: Position {
+                        start: 11,
+                        length: 2
+                    }
+                },
+                Token {
+                    token: TokenType::Indent,
+                    position: Position {
+                        start: 14,
+                        length: 4
+                    }
+                },
+                Token {
+                    token: TokenType::Ident("n".into()),
+                    position: Position {
+                        start: 18,
+                        length: 1
+                    }
+                },
+                Token {
+                    token: TokenType::Dedent,
+                    position: Position {
+                        start: 20,
+                        length: 0
+                    }
+                },
+            ]),
         );
     }
 }
