@@ -73,3 +73,4 @@ jobs:
         run: devenv shell ./go deploy-vsc-extension
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}

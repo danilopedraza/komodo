@@ -50,7 +50,11 @@ case "$POSITIONAL_ARG" in
     mdbook build ./book --dest-dir "$TARGET/book/"
     ;;
   deploy-vsc-extension)
-    (cd vsc-extension; vsce publish --skip-duplicate)
+    (
+      cd vsc-extension;
+      vsce publish --skip-duplicate;
+      npx --yes ovsx publish --skip-duplicate
+    )
     ;;
   shortlist)
     echo build-core-wasm test-core lint-core lint-core-browser test-core-browser build-book deploy-book serve-book deploy-site deploy-vsc-extension run-repl shortlist
