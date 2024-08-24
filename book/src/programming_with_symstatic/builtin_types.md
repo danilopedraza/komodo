@@ -2,13 +2,11 @@
 
 Symstatic has a few built-in types:
 
-- Symbols: Free symbols that can be compared between them. Any variable that you refer to and is not attached to a value already is treated as a symbol.
+- Integers: Signed, arbitrary precision integers. You can write them in decimal form, or the usual prefixed binary (`0x`), octal (`0o`) or hex (`0x`) form.
 
-- BigIntegers: Signed, arbitrary precision integers. You can write them in decimal form.
+- Decimals: Signed, arbitrary precision decimal numbers. You can write them in decimal form with a dot.
 
-- BigDecimals: Signed, arbitrary precision decimal numbers. You can write them in decimal form with a dot.
-
-- Fractions: Signed, arbitrary precision fractions, made with BigIntegers. You can write them like this: `1 // 2`.
+- Fractions: Signed, arbitrary precision fractions, made with Integers. You can write them like this: `1 // 2`.
 
 - Characters: Old-fashioned ASCII characters. You can write them like this: `'x'`, where `x` is a representation of some ASCII value. (Support for escaped characters is pretty bad right now!)
 
