@@ -5,6 +5,7 @@ use crate::error::{Error, Position};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LexerError {
     EmptyChar,
+    LeadingZeros,
     UnexpectedChar(char),
     UnterminatedChar,
     UnterminatedString,
@@ -227,6 +228,7 @@ impl<'a> Lexer<'a> {
             None => None,
             Some('\'') => self.char(),
             Some('"') => Some(self.string_()),
+            Some(chr) if chr.is_ascii_digit() => Some(self.integer(chr)),
             Some(chr) => Some(Ok(match chr {
                 '!' => TokenType::Bang,
                 '^' => TokenType::BitwiseXor,
@@ -260,7 +262,6 @@ impl<'a> Lexer<'a> {
                 ')' => TokenType::Rparen,
                 '~' => TokenType::Tilde,
                 '_' => TokenType::Wildcard,
-                '0'..='9' => self.integer(chr),
                 chr if chr.is_alphabetic() => self.identifier_or_keyword(chr),
                 _ => TokenType::Unknown,
             })),
@@ -371,7 +372,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn integer(&mut self, first: char) -> TokenType {
+    fn integer(&mut self, first: char) -> Result<TokenType, LexerError> {
         let radix = match first {
             '0' => match self.input.peek() {
                 Some('b' | 'B') => Radix::Binary,
@@ -400,10 +401,10 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        if literal.is_empty() {
-            todo!()
-        } else {
-            TokenType::Integer(literal, radix)
+        match (literal.chars().next(), radix) {
+            (None, _) => todo!(),
+            (Some('0'), Radix::Decimal) if literal.len() > 1 => Err(LexerError::LeadingZeros),
+            _ => Ok(TokenType::Integer(literal, radix)),
         }
     }
 }
@@ -604,10 +605,7 @@ mod tests {
     fn leading_zeros() {
         assert_eq!(
             token_types_from("01"),
-            Ok(vec![
-                TokenType::Integer(String::from('0'), Radix::Decimal),
-                TokenType::Integer(String::from('1'), Radix::Decimal)
-            ]),
+            Err(Error::new(LexerError::LeadingZeros.into(), _pos(0, 2))),
         );
     }
 
