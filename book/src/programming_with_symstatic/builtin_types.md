@@ -32,12 +32,11 @@ Symstatic has a few built-in types:
   let f(0) := 25
   let f(n) := f(n - 1) + 1
   ```
-  - Anonymously, as a procedure:
+  - Anonymously:
   ```
-  n -> (
-    let x = n + 2,
-    x*x
-  )
+  n ->
+      let x = n + 2,
+      x*x
   ```
   With this syntax, the last expression (i.e `x*x`) is returned as the result. Of course, this is an expression and you can save it to a value, or execute it in place like this: `(x -> x * 2)(1)`.
   
