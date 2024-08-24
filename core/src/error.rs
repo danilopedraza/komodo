@@ -147,6 +147,7 @@ fn lexer_error_msg(err: &LexerError) -> String {
             "The end of the program was reached while reading a string".into()
         }
         LexerError::LeadingZeros => "Decimal numbers cannot have leading zeros".into(),
+        LexerError::EmptyPrefixedInteger => "There is an integer prefix, but nothing more".into(),
     }
 }
 

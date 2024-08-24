@@ -5,6 +5,7 @@ use crate::error::{Error, Position};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LexerError {
     EmptyChar,
+    EmptyPrefixedInteger,
     LeadingZeros,
     UnexpectedChar(char),
     UnterminatedChar,
@@ -402,7 +403,7 @@ impl<'a> Lexer<'a> {
         }
 
         match (literal.chars().next(), radix) {
-            (None, _) => todo!(),
+            (None, _) => Err(LexerError::EmptyPrefixedInteger),
             (Some('0'), Radix::Decimal) if literal.len() > 1 => Err(LexerError::LeadingZeros),
             _ => Ok(TokenType::Integer(literal, radix)),
         }
