@@ -374,10 +374,10 @@ impl<'a> Lexer<'a> {
     fn integer(&mut self, first: char) -> TokenType {
         let radix = match first {
             '0' => match self.input.peek() {
-                Some('b') => Radix::Binary,
-                Some('x') => Radix::Hex,
-                Some('o') => Radix::Octal,
-                _ => return TokenType::Integer('0'.into(), Radix::Decimal),
+                Some('b' | 'B') => Radix::Binary,
+                Some('x' | 'X') => Radix::Hex,
+                Some('o' | 'O') => Radix::Octal,
+                _ => Radix::Decimal,
             },
             _ => Radix::Decimal,
         };
