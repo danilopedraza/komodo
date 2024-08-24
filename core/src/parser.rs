@@ -16,7 +16,7 @@ pub enum ParserError {
 pub struct Parser<T: Iterator<Item = Result<Token, Error>>> {
     tokens: Peekable<T>,
     cur_pos: Position,
-    ignore_indentation: bool,
+    ignore_level: usize,
 }
 
 impl<T: Iterator<Item = Result<Token, Error>>> Iterator for Parser<T> {
@@ -351,13 +351,12 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         &mut self,
         f: F,
     ) -> Result<P, Error> {
-        let last = self.ignore_indentation;
-        self.ignore_indentation = true;
+        self.ignore_level += 1;
         self.skip_indentation();
 
         let res = f(self);
 
-        self.ignore_indentation = last;
+        self.ignore_level -= 1;
 
         res
     }
@@ -386,6 +385,10 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         })
     }
 
+    fn should_ignore_indentation(&self) -> bool {
+        self.ignore_level > 0
+    }
+
     fn skip_indentation(&mut self) {
         while let Some(Ok(Token {
             token: TokenType::Indent | TokenType::Dedent,
@@ -397,7 +400,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn next_token(&mut self) -> Result<Option<TokenType>, Error> {
-        if self.ignore_indentation {
+        if self.should_ignore_indentation() {
             self.skip_indentation();
         }
 
@@ -412,7 +415,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn peek_token(&mut self) -> Result<Option<TokenType>, Error> {
-        if self.ignore_indentation {
+        if self.should_ignore_indentation() {
             self.skip_indentation();
         }
 
@@ -737,7 +740,7 @@ pub fn parser_from<T: Iterator<Item = Result<Token, Error>>>(tokens: T) -> Parse
     Parser {
         tokens: tokens.peekable(),
         cur_pos: Position::new(0, 0),
-        ignore_indentation: false,
+        ignore_level: 0,
     }
 }
 
