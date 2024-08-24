@@ -1,5 +1,15 @@
 # Core elements
 
+## **What is Symstatic good at?**
+
+The aim of Symstatic is to easily express **experimental** solutions to some specific class of problems. These problems are related to combinatorics, algorithm design, number theory, and stuff like that.
+
+What does **experimental** mean here? They are probably not complete nor correct solutions. When people solve a math problem, they usually get to the solution iteratively. They start by some intuition-based guess, and tweak until it satisfies all of the problem's constraints. Symstatic wants to make this process easier, making assumptions that are reasonable in this context and offering tools that are convenient. This means that Symstatic is (clearly) an opinionated tool.
+
+## **What is Symstatic bad at?**
+
+Everything else. We also have to confess that, currently, Symstatic is painfully slow. This will probably hurt the user experience and limit the use cases of the language.
+
 ## Expression-oriented
 
 Symstatic is an expression-oriented language, which means that almost everything that you write returns something.
