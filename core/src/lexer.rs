@@ -157,10 +157,8 @@ impl<'a> Lexer<'a> {
     }
 
     fn emit_indents(&mut self) -> IndentLevel {
-        let mut start = self.cur_pos;
         let mut spaces = 0;
         let mut new_indent_level = 0;
-        let mut token = None;
 
         while let Some(chr) = self.input.peek() {
             match chr {
@@ -181,8 +179,6 @@ impl<'a> Lexer<'a> {
 
             if spaces == 4 {
                 new_indent_level += 1;
-                token = Some(Token::new(TokenType::Indent, Position::new(start, 4)));
-                start = self.cur_pos;
                 spaces = 0;
             }
         }
@@ -190,7 +186,10 @@ impl<'a> Lexer<'a> {
         if new_indent_level == 0 {
             IndentLevel::Zero
         } else {
-            IndentLevel::NonZero(new_indent_level, token.unwrap())
+            IndentLevel::NonZero(
+                new_indent_level,
+                Token::new(TokenType::Indent, Position::new(self.cur_pos - 4, 4)),
+            )
         }
     }
 
