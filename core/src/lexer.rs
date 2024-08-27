@@ -12,6 +12,11 @@ pub enum LexerError {
     UnterminatedString,
 }
 
+enum IndentLevel {
+    Zero,
+    NonZero(usize, Token),
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Token {
     pub token: TokenType,
@@ -151,10 +156,11 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn emit_indents(&mut self) -> Vec<Token> {
+    fn emit_indents(&mut self) -> IndentLevel {
         let mut start = self.cur_pos;
         let mut spaces = 0;
-        let mut indents = vec![];
+        let mut new_indent_level = 0;
+        let mut token = None;
 
         while let Some(chr) = self.input.peek() {
             match chr {
@@ -165,19 +171,33 @@ impl<'a> Lexer<'a> {
                 '\n' => {
                     self.next_char();
                     spaces = 0;
-                    indents.clear();
+                    new_indent_level = 0;
                 }
                 _ => break,
             }
 
             if spaces == 4 {
-                indents.push(Token::new(TokenType::Indent, Position::new(start, 4)));
+                new_indent_level += 1;
+                token = Some(Token::new(TokenType::Indent, Position::new(start, 4)));
                 start = self.cur_pos;
                 spaces = 0;
             }
         }
 
-        indents
+        if new_indent_level == 0 {
+            IndentLevel::Zero
+        } else {
+            IndentLevel::NonZero(new_indent_level, token.unwrap())
+        }
+    }
+
+    fn push_dedents(&mut self, amount: usize) {
+        for _ in 0..amount {
+            self.token_queue.push_back(Ok(Token::new(
+                TokenType::Dedent,
+                Position::new(self.cur_pos, 0),
+            )));
+        }
     }
 
     fn consume_indent(&mut self) {
@@ -185,23 +205,24 @@ impl<'a> Lexer<'a> {
             match self.input.peek() {
                 Some('\n') => {
                     self.next_char();
-                    let indents = self.emit_indents();
-                    let new_indent_level = indents.len();
 
-                    if new_indent_level > self.indent_level {
-                        for indent in indents {
-                            self.token_queue.push_back(Ok(indent));
+                    let indent_res = self.emit_indents();
+
+                    match indent_res {
+                        IndentLevel::Zero => {
+                            self.push_dedents(self.indent_level);
+                            self.indent_level = 0;
                         }
-                    } else {
-                        for _ in new_indent_level..self.indent_level {
-                            self.token_queue.push_back(Ok(Token::new(
-                                TokenType::Dedent,
-                                Position::new(self.cur_pos, 0),
-                            )));
+                        IndentLevel::NonZero(new_indent_level, indent_token) => {
+                            if new_indent_level > self.indent_level {
+                                self.token_queue.push_back(Ok(indent_token));
+                            } else {
+                                self.push_dedents(self.indent_level - new_indent_level);
+                            }
+
+                            self.indent_level = new_indent_level;
                         }
                     }
-
-                    self.indent_level = new_indent_level;
 
                     break;
                 }
@@ -1015,6 +1036,40 @@ mod tests {
                         length: 0
                     }
                 },
+            ]),
+        );
+    }
+
+    #[test]
+    fn double_block() {
+        let code = &unindent(
+            "
+        for _ in foo:
+            for _ in bar:
+                baz()
+        ",
+        );
+
+        assert_eq!(
+            token_types_from(code),
+            Ok(vec![
+                TokenType::For,
+                TokenType::Wildcard,
+                TokenType::In,
+                TokenType::Ident("foo".into()),
+                TokenType::Colon,
+                TokenType::Indent,
+                TokenType::For,
+                TokenType::Wildcard,
+                TokenType::In,
+                TokenType::Ident("bar".into()),
+                TokenType::Colon,
+                TokenType::Indent,
+                TokenType::Ident("baz".into()),
+                TokenType::Lparen,
+                TokenType::Rparen,
+                TokenType::Dedent,
+                TokenType::Dedent,
             ]),
         );
     }
