@@ -173,6 +173,9 @@ impl<'a> Lexer<'a> {
                     spaces = 0;
                     new_indent_level = 0;
                 }
+                '#' => {
+                    self.skip_comment();
+                }
                 _ => break,
             }
 
