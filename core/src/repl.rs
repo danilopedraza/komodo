@@ -42,7 +42,7 @@ impl Repl {
                     self.code.push(' ');
                 }
                 self.code.push_str(&line);
-                let lexer = Lexer::new(&self.code);
+                let lexer = Lexer::from(self.code.as_str());
                 let mut parser = Parser::from(lexer);
 
                 match parser.next() {

@@ -1002,7 +1002,7 @@ mod tests {
     #[test]
     fn set_comprehension() {
         let input = "{a for a in S}";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1098,7 +1098,7 @@ mod tests {
 
     #[test]
     fn shift_and_comparison() {
-        let lexer = Lexer::new("1 << 1 > 1");
+        let lexer = Lexer::from("1 << 1 > 1");
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1118,7 +1118,7 @@ mod tests {
 
     #[test]
     fn bitwise() {
-        let lexer = Lexer::new("a & b || c");
+        let lexer = Lexer::from("a & b || c");
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1138,7 +1138,7 @@ mod tests {
 
     #[test]
     fn logic_infix_operators() {
-        let lexer = Lexer::new("a && b || c");
+        let lexer = Lexer::from("a && b || c");
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1158,7 +1158,7 @@ mod tests {
 
     #[test]
     fn complex_precedence() {
-        let lexer = Lexer::new("  a + b || a & b << c");
+        let lexer = Lexer::from("  a + b || a & b << c");
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1188,7 +1188,7 @@ mod tests {
 
     #[test]
     fn bitwise_xor() {
-        let lexer = Lexer::new("a ^ b & c || d");
+        let lexer = Lexer::from("a ^ b & c || d");
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1213,7 +1213,7 @@ mod tests {
 
     #[test]
     fn something_after_empty_set() {
-        let lexer = Lexer::new("({}, 0)");
+        let lexer = Lexer::from("({}, 0)");
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1229,7 +1229,7 @@ mod tests {
 
     #[test]
     fn prefixes() {
-        let lexer = Lexer::new("!(~1 /= -1)");
+        let lexer = Lexer::from("!(~1 /= -1)");
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1291,7 +1291,7 @@ mod tests {
     fn function_call() {
         let input = "f(x, y)";
 
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1311,7 +1311,7 @@ mod tests {
     fn comma_last_item() {
         let input = "(1,)";
 
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1323,7 +1323,7 @@ mod tests {
     fn anon_function() {
         let input = "x -> 2*x";
 
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1345,7 +1345,7 @@ mod tests {
     fn anon_function_call() {
         let input = "((x, y) -> x)(1, 2)";
 
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1373,7 +1373,7 @@ mod tests {
     fn char_and_string() {
         let input = "('a', \"b\")";
 
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1388,7 +1388,7 @@ mod tests {
     fn for_loop() {
         let input = "for i in list do println(i)";
 
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1410,7 +1410,7 @@ mod tests {
     fn list() {
         let input = "[[], 2]";
 
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1428,7 +1428,7 @@ mod tests {
     fn singleton_empty_set() {
         let input = "{{}}";
 
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1443,7 +1443,7 @@ mod tests {
     fn wildcard_() {
         let input = "[a, 1, _]";
 
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1461,7 +1461,7 @@ mod tests {
     #[test]
     fn prepend_only() {
         let code = "[1|[2,3]]";
-        let lexer = Lexer::new(code);
+        let lexer = Lexer::from(code);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1479,7 +1479,7 @@ mod tests {
     #[test]
     fn consume_comprehension_list() {
         let input = "[a for a in b] + []";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1501,7 +1501,7 @@ mod tests {
     #[test]
     fn expected_rparen() {
         let input = "(15]";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1515,7 +1515,7 @@ mod tests {
     #[test]
     fn expected_expression() {
         let input = "1 + )";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1529,7 +1529,7 @@ mod tests {
     #[test]
     fn oop_function_call() {
         let input = "list.map(func) + []";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1555,7 +1555,7 @@ mod tests {
     #[test]
     fn decimal() {
         let input = "1.5";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1571,7 +1571,7 @@ mod tests {
     #[test]
     fn range() {
         let input = "5 in 0..10+1";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1597,7 +1597,7 @@ mod tests {
     #[test]
     fn fraction() {
         let input = "1 // 2";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1613,7 +1613,7 @@ mod tests {
     #[test]
     fn oop_cal_with_int() {
         let input = "2.f()";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1634,7 +1634,7 @@ mod tests {
     #[test]
     fn dictionary_() {
         let input = "{'a' => 2, 1 => 5}";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1652,7 +1652,7 @@ mod tests {
     #[test]
     fn container_element() {
         let input = "(list[0])";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1668,7 +1668,7 @@ mod tests {
     #[test]
     fn ad_infinitum_() {
         let input = "[1, 2,..]";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1686,7 +1686,7 @@ mod tests {
     #[test]
     fn ad_infinitum_dict() {
         let input = "{1 => 5,..}";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1701,7 +1701,7 @@ mod tests {
     #[test]
     fn set_cons_() {
         let input = "{first|_}";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1716,7 +1716,7 @@ mod tests {
     #[test]
     fn import_statement() {
         let input = "import foo";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1727,7 +1727,7 @@ mod tests {
     #[test]
     fn import_with_alias() {
         let input = "import foo as bar";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1738,7 +1738,7 @@ mod tests {
     #[test]
     fn import_from_() {
         let input = "from foo import bar";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1749,7 +1749,7 @@ mod tests {
     #[test]
     fn import_several_values() {
         let input = "from foo import (bar, baz)";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1760,7 +1760,7 @@ mod tests {
     #[test]
     fn let_with_type() {
         let input = "let map(iter: List, fn: Function) := iter";
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1793,7 +1793,7 @@ mod tests {
 
     #[test]
     fn set_several_lines() {
-        let input = &unindent(
+        let input = unindent(
             "
         let eights := {
             0b1000,
@@ -1804,7 +1804,7 @@ mod tests {
         ",
         );
 
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input.as_str());
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1826,7 +1826,7 @@ mod tests {
 
     #[test]
     fn indented_block() {
-        let input = &unindent(
+        let input = unindent(
             "
         let a := n ->
             let k := n + 1
@@ -1834,7 +1834,7 @@ mod tests {
         ",
         );
 
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input.as_str());
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1873,13 +1873,13 @@ mod tests {
 
     #[test]
     fn parens_in_indented_list() {
-        let input = &unindent(
+        let input = unindent(
             "[
             (n)
         ]",
         );
 
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input.as_str());
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1894,7 +1894,7 @@ mod tests {
     fn prefix_and_call() {
         let input = "-f()";
 
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1915,7 +1915,7 @@ mod tests {
     fn var_() {
         let input = "var x := 0";
 
-        let lexer = Lexer::new(input);
+        let lexer = Lexer::from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),

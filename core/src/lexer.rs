@@ -154,8 +154,8 @@ impl Iterator for Lexer<'_> {
 
 type LexerResult = Result<TokenType, LexerError>;
 
-impl<'a> Lexer<'a> {
-    pub fn new(input: &'a str) -> Self {
+impl<'a> From<&'a str> for Lexer<'a> {
+    fn from(input: &'a str) -> Self {
         Self {
             input: input.chars().peekable(),
             cur_pos: 0,
@@ -163,7 +163,9 @@ impl<'a> Lexer<'a> {
             indent_level: 0,
         }
     }
+}
 
+impl<'a> Lexer<'a> {
     fn emit_indents(&mut self) -> IndentLevel {
         let mut spaces = 0;
         let mut new_indent_level = 0;
@@ -454,7 +456,7 @@ mod tests {
     use super::*;
 
     fn tokens_from(source: &str) -> Result<Vec<Token>, Error> {
-        Lexer::new(source).collect()
+        Lexer::from(source).collect()
     }
 
     fn token_types_from(source: &str) -> Result<Vec<TokenType>, Error> {
@@ -466,20 +468,20 @@ mod tests {
 
     #[test]
     fn empty_string() {
-        assert!(Lexer::new("").next().is_none());
+        assert!(Lexer::from("").next().is_none());
     }
 
     #[test]
     fn plus_operator() {
         assert_eq!(
-            Lexer::new("+").next(),
+            Lexer::from("+").next(),
             Some(Ok(Token::new(TokenType::Plus, Position::new(0, 1))))
         );
     }
 
     #[test]
     fn whitespace() {
-        assert_eq!(Lexer::new(" \t").next(), None);
+        assert_eq!(Lexer::from(" \t").next(), None);
     }
 
     #[test]
@@ -688,7 +690,7 @@ mod tests {
         let code = "'x'";
 
         assert_eq!(
-            Lexer::new(code).next(),
+            Lexer::from(code).next(),
             Some(Ok(Token::new(TokenType::Char('x'), Position::new(0, 3)))),
         );
     }
@@ -698,7 +700,7 @@ mod tests {
         let code = "'x";
 
         assert_eq!(
-            Lexer::new(code).next(),
+            Lexer::from(code).next(),
             Some(Err(Error::new(
                 LexerError::UnterminatedChar.into(),
                 _pos(0, 2)
@@ -711,7 +713,7 @@ mod tests {
         let code = "'x)";
 
         assert_eq!(
-            Lexer::new(code).next(),
+            Lexer::from(code).next(),
             Some(Err(Error::new(
                 LexerError::UnexpectedChar(')').into(),
                 _pos(0, 3)
@@ -724,7 +726,7 @@ mod tests {
         let code = "\"abc\"";
 
         assert_eq!(
-            Lexer::new(code).next(),
+            Lexer::from(code).next(),
             Some(Ok(Token::new(
                 TokenType::String(String::from("abc")),
                 Position::new(0, 5)
@@ -737,7 +739,7 @@ mod tests {
         let code = "\"a";
 
         assert_eq!(
-            Lexer::new(code).next(),
+            Lexer::from(code).next(),
             Some(Err(Error::new(
                 LexerError::UnterminatedString.into(),
                 _pos(0, 2)
@@ -820,7 +822,7 @@ mod tests {
         let code = "''";
 
         assert_eq!(
-            Lexer::new(code).next(),
+            Lexer::from(code).next(),
             Some(Err(Error::new(LexerError::EmptyChar.into(), _pos(0, 2)))),
         );
     }
@@ -830,7 +832,7 @@ mod tests {
         let code = "\"\\\"\"";
 
         assert_eq!(
-            Lexer::new(code).next(),
+            Lexer::from(code).next(),
             Some(Ok(Token::new(
                 TokenType::String(String::from("\"")),
                 _pos(0, 4)
@@ -843,7 +845,7 @@ mod tests {
         let code = "s1";
 
         assert_eq!(
-            Lexer::new(code).next(),
+            Lexer::from(code).next(),
             Some(Ok(Token::new(
                 TokenType::Ident(String::from("s1")),
                 _pos(0, 2),
@@ -938,7 +940,7 @@ mod tests {
         let code = "0x8";
 
         assert_eq!(
-            Lexer::new(code).next(),
+            Lexer::from(code).next(),
             Some(Ok(Token {
                 token: TokenType::Integer("8".into(), Radix::Hex),
                 position: Position {
