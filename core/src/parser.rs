@@ -83,7 +83,6 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         loop {
             match self.peek_token() {
                 Ok(Some(TokenType::Dedent)) => {
-                    // let last_pos = exprs.last().unwrap().position;
                     let res = Ok(CSTNode::new(
                         CSTNodeKind::Block(exprs),
                         self.start_to_cur(start),
