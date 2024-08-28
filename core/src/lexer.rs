@@ -136,9 +136,14 @@ impl Iterator for Lexer<'_> {
             None => None,
         };
 
-        if let Some(res) = res {
-            self.token_queue.push_back(res);
+        if let Some(tok) = res {
+            self.token_queue.push_back(tok);
         };
+
+        if self.token_queue.is_empty() {
+            self.push_dedents(self.indent_level);
+            self.indent_level = 0;
+        }
 
         self.token_queue.pop_front()
     }
@@ -1048,8 +1053,7 @@ mod tests {
             "
         for _ in foo:
             for _ in bar:
-                baz()
-        ",
+                baz()",
         );
 
         assert_eq!(
