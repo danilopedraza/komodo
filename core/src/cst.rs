@@ -23,6 +23,7 @@ pub enum Precedence {
     Exponentiation,
     Dot,
     Constraint,
+    Prefix,
     Call,
     // Highest,
 }

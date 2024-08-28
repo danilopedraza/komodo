@@ -539,7 +539,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     fn prefix(&mut self, op: PrefixOperator) -> NodeResult {
         let start = self.cur_pos.start;
 
-        self.non_infix()
+        self.expression(Precedence::Prefix)
             .map(|expr| prefix(op, expr, self.start_to_cur(start)))
     }
 
@@ -1883,6 +1883,27 @@ mod tests {
                 vec![symbol("n", _pos(7, 1))],
                 _pos(0, 11)
             ))),
+        );
+    }
+
+    #[test]
+    fn prefix_and_call() {
+        let input = "-f()";
+
+        let lexer = Lexer::new(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(prefix(
+                PrefixOperator::Minus,
+                infix(
+                    InfixOperator::Call,
+                    symbol("f", _pos(1, 1)),
+                    tuple(vec![], _pos(2, 2)),
+                    _pos(1, 3)
+                ),
+                _pos(0, 4)
+            )))
         );
     }
 }
