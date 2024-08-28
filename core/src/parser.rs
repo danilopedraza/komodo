@@ -150,20 +150,11 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     fn let_(&mut self) -> NodeResult {
         let start = self.cur_pos.start;
 
-        let left = self.pattern()?;
-
-        let right = match self.peek_token() {
-            Ok(Some(TokenType::Assign)) => {
-                self.next_token()?;
-                Some(self.expression(Precedence::Lowest)?)
-            }
-            _ => None,
-        };
-
-        let last_pos = right.as_ref().unwrap_or(&left).position;
+        let expr = self.expression(Precedence::Lowest)?;
+        let last_pos = expr.position;
 
         Ok(CSTNode::new(
-            CSTNodeKind::Let(Box::new(left), right.map(Box::new)),
+            CSTNodeKind::Let_(Box::new(expr)),
             Self::start_to_pos(start, last_pos),
         ))
     }
@@ -219,89 +210,6 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 },
             }
         })
-    }
-
-    fn pattern(&mut self) -> NodeResult {
-        let left = self.non_infix()?;
-        match (&left.kind, self.peek_token()) {
-            (_, Ok(Some(TokenType::Colon))) => {
-                let start = left.position.start;
-
-                self.next_token()?;
-
-                match self.next_token()? {
-                    Some(TokenType::Ident(name)) => Ok(CSTNode::new(
-                        CSTNodeKind::Pattern(Box::new(left), Some(name)),
-                        self.start_to_cur(start),
-                    )),
-                    Some(tok) => Err(Error::new(
-                        ParserError::UnexpectedToken(vec![TokenType::Ident("".into())], tok).into(),
-                        self.cur_pos,
-                    )),
-                    None => Err(Error::new(
-                        ParserError::EOFExpecting(vec![TokenType::Ident("".into())]).into(),
-                        self.cur_pos,
-                    )),
-                }
-            }
-            (CSTNodeKind::Symbol(_), Ok(Some(TokenType::Lparen))) => {
-                let start = self.cur_pos.start;
-                self.next_token()?;
-                let tuple_start = self.cur_pos.start;
-                let call_pattern = self.pattern_sequence(TokenType::Rparen, None).map(|args| {
-                    infix(
-                        InfixOperator::Call,
-                        left,
-                        tuple(args, self.start_to_cur(tuple_start)),
-                        self.start_to_cur(start),
-                    )
-                })?;
-
-                Ok(call_pattern)
-            }
-            _ => Ok(left),
-        }
-    }
-
-    fn pattern_sequence(
-        &mut self,
-        terminator: TokenType,
-        first: Option<CSTNode>,
-    ) -> Result<Vec<CSTNode>, Error> {
-        let mut res = match first {
-            None => vec![],
-            Some(node) => vec![node],
-        };
-
-        match self.peek_token()? {
-            Some(tok) if tok == terminator => {
-                self.next_token()?;
-                Ok(res)
-            }
-            None => Err(Error::new(ParserError::EOFReached.into(), self.cur_pos)),
-            _ => loop {
-                let expr = self.pattern()?;
-                res.push(expr);
-
-                match self.next_token()? {
-                    Some(TokenType::Comma) => continue,
-                    Some(tok) if tok == terminator => break Ok(res),
-                    Some(tok) => {
-                        break Err(Error::new(
-                            ParserError::UnexpectedToken(vec![TokenType::Comma, terminator], tok)
-                                .into(),
-                            self.cur_pos,
-                        ))
-                    }
-                    None => {
-                        break Err(Error::new(
-                            ParserError::EOFExpecting(vec![TokenType::Comma, terminator]).into(),
-                            self.cur_pos,
-                        ))
-                    }
-                }
-            },
-        }
     }
 
     fn start_to_cur(&self, start: usize) -> Position {
@@ -1131,7 +1039,11 @@ mod tests {
         assert_eq!(
             parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(let_(
-                pattern(symbol("x", _pos(4, 1)), Some("Real"), _pos(4, 8)),
+                pattern(
+                    symbol("x", _pos(4, 1)),
+                    Some(symbol("Real", _pos(8, 4))),
+                    _pos(4, 8)
+                ),
                 Some(infix(
                     InfixOperator::Sum,
                     dec_integer("1", _pos(16, 1)),
@@ -1854,8 +1766,16 @@ mod tests {
                     symbol("map", _pos(4, 3)),
                     tuple(
                         vec![
-                            pattern(symbol("iter", _pos(8, 4)), Some("List"), _pos(8, 10)),
-                            pattern(symbol("fn", _pos(20, 2)), Some("Function"), _pos(20, 12)),
+                            pattern(
+                                symbol("iter", _pos(8, 4)),
+                                Some(symbol("List", _pos(14, 4))),
+                                _pos(8, 10)
+                            ),
+                            pattern(
+                                symbol("fn", _pos(20, 2)),
+                                Some(symbol("Function", _pos(24, 8))),
+                                _pos(20, 12)
+                            ),
                         ],
                         _pos(7, 26)
                     ),

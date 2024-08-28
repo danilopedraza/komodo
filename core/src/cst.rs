@@ -8,6 +8,7 @@ use crate::{
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Precedence {
     Lowest,
+    Assignment,
     In,
     Correspondence,
     Range,
@@ -21,15 +22,18 @@ pub enum Precedence {
     Multiplication,
     Exponentiation,
     Dot,
+    Constraint,
     Call,
     // Highest,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum InfixOperator {
+    Assignment,
     BitwiseAnd,
     BitwiseXor,
     Call,
+    Constraint,
     Correspondence,
     Division,
     Dot,
@@ -57,8 +61,10 @@ pub enum InfixOperator {
 impl InfixOperator {
     pub fn from(tok: TokenType) -> Option<Self> {
         match tok {
+            TokenType::Assign => Some(Self::Assignment),
             TokenType::BitwiseAnd => Some(Self::BitwiseAnd),
             TokenType::BitwiseXor => Some(Self::BitwiseXor),
+            TokenType::Colon => Some(Self::Constraint),
             TokenType::Dot => Some(Self::Dot),
             TokenType::DotDot => Some(Self::Range),
             TokenType::Lparen => Some(Self::Call),
@@ -88,9 +94,11 @@ impl InfixOperator {
 
     pub fn precedence(&self) -> Precedence {
         match self {
+            Self::Assignment => Precedence::Assignment,
             Self::BitwiseAnd => Precedence::BitwiseAnd,
             Self::BitwiseXor => Precedence::BitwiseXor,
             Self::Call => Precedence::Call,
+            Self::Constraint => Precedence::Constraint,
             Self::Correspondence => Precedence::Correspondence,
             Self::Division => Precedence::Multiplication,
             Self::Dot => Precedence::Dot,
@@ -198,8 +206,7 @@ pub enum CSTNodeKind {
     },
     Infix(InfixOperator, Box<CSTNode>, Box<CSTNode>),
     Integer(String, Radix),
-    Let(Box<CSTNode>, Option<Box<CSTNode>>),
-    Pattern(Box<CSTNode>, Option<String>),
+    Let_(Box<CSTNode>),
     Prefix(PrefixOperator, Box<CSTNode>),
     Cons(Box<CSTNode>, Box<CSTNode>),
     SetCons {
@@ -347,15 +354,33 @@ pub mod tests {
     }
 
     pub fn let_(left: CSTNode, right: Option<CSTNode>, position: Position) -> CSTNode {
-        let left = Box::new(left);
-        let right = right.map(Box::new);
-        CSTNode::new(CSTNodeKind::Let(left, right), position)
+        // let left = Box::new(left);
+        // let right = right.map(Box::new);
+        // CSTNode::new(CSTNodeKind::Let(left, right), position)
+
+        let node = Box::new(match right {
+            None => left,
+            Some(right) => {
+                let infix_position = Position::new(
+                    left.position.start,
+                    right.position.start + right.position.length - left.position.start,
+                );
+                infix(InfixOperator::Assignment, left, right, infix_position)
+            }
+        });
+
+        CSTNode::new(CSTNodeKind::Let_(node), position)
     }
 
-    pub fn pattern(expression: CSTNode, constraint: Option<&str>, position: Position) -> CSTNode {
-        let symbol = Box::new(expression);
-        let constraint = constraint.map(|str| str.to_string());
-        CSTNode::new(CSTNodeKind::Pattern(symbol, constraint), position)
+    pub fn pattern(
+        expression: CSTNode,
+        constraint: Option<CSTNode>,
+        position: Position,
+    ) -> CSTNode {
+        match constraint {
+            None => expression,
+            Some(constraint) => infix(InfixOperator::Constraint, expression, constraint, position),
+        }
     }
 
     pub fn symbol(name: &str, position: Position) -> CSTNode {

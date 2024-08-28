@@ -20,7 +20,6 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeKind::If(cond, positive, negative) => _if(*cond, *positive, *negative),
         CSTNodeKind::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs),
         CSTNodeKind::Integer(dec, radix) => integer(dec, radix),
-        CSTNodeKind::Let(left, right) => _let(*left, right.map(|node| *node)),
         CSTNodeKind::Prefix(op, val) => prefix(op, *val),
         CSTNodeKind::Cons(first, tail) => cons(*first, *tail),
         CSTNodeKind::String(str) => string(str),
@@ -38,8 +37,8 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
             iterator,
             kind,
         } => comprehension(*element, variable, *iterator, kind),
-        CSTNodeKind::Pattern(pat, constraint) => pattern(*pat, constraint),
         CSTNodeKind::Block(exprs) => block(exprs),
+        CSTNodeKind::Let_(node) => _let(*node),
     }?;
 
     Ok(ASTNode::new(tp, node.position))
@@ -196,6 +195,8 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
         InfixOperator::Substraction => infix_node(ast::InfixOperator::Substraction, lhs, rhs),
         InfixOperator::Sum => infix_node(ast::InfixOperator::Sum, lhs, rhs),
         InfixOperator::Element => container_element(lhs, rhs),
+        InfixOperator::Assignment => todo!(),
+        InfixOperator::Constraint => pattern(lhs, rhs),
     }
 }
 
@@ -221,12 +222,15 @@ fn integer(dec: String, radix: Radix) -> WeederResult<ASTNodeKind> {
     })
 }
 
-fn _let(left: CSTNode, right: Option<CSTNode>) -> WeederResult<ASTNodeKind> {
-    let left = Box::new(rewrite(left)?);
-    let right = match right {
-        Some(right) => Some(Box::new(rewrite(right)?)),
-        None => None,
+fn _let(node: CSTNode) -> WeederResult<ASTNodeKind> {
+    let (left, right) = match node {
+        CSTNode {
+            kind: CSTNodeKind::Infix(InfixOperator::Assignment, left, right),
+            ..
+        } => (Box::new(rewrite(*left)?), Some(Box::new(rewrite(*right)?))),
+        kind => (Box::new(rewrite(kind)?), None),
     };
+
     Ok(ASTNodeKind::Let { left, right })
 }
 
@@ -241,8 +245,12 @@ fn cons(first: CSTNode, tail: CSTNode) -> WeederResult<ASTNodeKind> {
     Ok(ASTNodeKind::Cons { first, tail })
 }
 
-fn pattern(exp: CSTNode, constraint: Option<String>) -> WeederResult<ASTNodeKind> {
+fn pattern(exp: CSTNode, constraint: CSTNode) -> WeederResult<ASTNodeKind> {
     let exp = Box::new(rewrite(exp)?);
+    let constraint = match constraint.kind {
+        CSTNodeKind::Symbol(name) => Some(name),
+        _ => None,
+    };
     // let constraint = constraint.map(rewrite).transpose()?.map(Box::new);
     Ok(ASTNodeKind::Pattern { exp, constraint })
 }
