@@ -52,7 +52,8 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 TokenType::From => self.import_from(),
                 TokenType::If => self.if_(),
                 TokenType::Import => self.import(),
-                TokenType::Let => self.let_(),
+                TokenType::Let => self.declaration(DeclarationKind::Inmutable),
+                TokenType::Var => self.declaration(DeclarationKind::Mutable),
                 TokenType::True => self.boolean(true),
                 TokenType::False => self.boolean(false),
                 TokenType::Lparen => self.parenthesis(),
@@ -147,14 +148,14 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         self.node_with_cur(CSTNodeKind::Symbol(literal))
     }
 
-    fn let_(&mut self) -> NodeResult {
+    fn declaration(&mut self, kind: DeclarationKind) -> NodeResult {
         let start = self.cur_pos.start;
 
         let expr = self.expression(Precedence::Lowest)?;
         let last_pos = expr.position;
 
         Ok(CSTNode::new(
-            CSTNodeKind::Let_(Box::new(expr)),
+            CSTNodeKind::Declaration(Box::new(expr), kind),
             Self::start_to_pos(start, last_pos),
         ))
     }
@@ -655,7 +656,7 @@ mod tests {
     use crate::{
         cst::tests::{
             _pos, ad_infinitum, block, boolean, char, dec_integer, import, import_from, integer,
-            let_, pattern, set_cons, string, symbol, wildcard,
+            let_, pattern, set_cons, string, symbol, var, wildcard,
         },
         error::Position,
         lexer::{Lexer, Radix},
@@ -1903,6 +1904,26 @@ mod tests {
                     _pos(1, 3)
                 ),
                 _pos(0, 4)
+            )))
+        );
+    }
+
+    #[test]
+    fn var_() {
+        let input = "var x := 0";
+
+        let lexer = Lexer::new(input);
+
+        assert_eq!(
+            parser_from(lexer).next(),
+            Some(Ok(var(
+                infix(
+                    InfixOperator::Assignment,
+                    symbol("x", _pos(4, 1)),
+                    dec_integer("0", _pos(9, 1)),
+                    _pos(4, 6)
+                ),
+                _pos(0, 10)
             )))
         );
     }

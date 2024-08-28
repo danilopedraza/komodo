@@ -1,5 +1,5 @@
 use crate::{
-    cst::{self, ComprehensionKind},
+    cst::{self, ComprehensionKind, DeclarationKind},
     error::Position,
     lexer::Radix,
 };
@@ -152,9 +152,10 @@ pub enum ASTNodeKind {
         literal: String,
         radix: Radix,
     },
-    Let {
+    Declaration {
         left: Box<ASTNode>,
         right: Option<Box<ASTNode>>,
+        kind: DeclarationKind,
     },
     Pattern {
         exp: Box<ASTNode>,
@@ -285,7 +286,8 @@ pub mod tests {
     pub fn let_(left: ASTNode, right: Option<ASTNode>, position: Position) -> ASTNode {
         let left = Box::new(left);
         let right = right.map(Box::new);
-        ASTNode::new(ASTNodeKind::Let { left, right }, position)
+        let kind = DeclarationKind::Inmutable;
+        ASTNode::new(ASTNodeKind::Declaration { left, right, kind }, position)
     }
 
     pub fn prefix(op: PrefixOperator, val: ASTNode, position: Position) -> ASTNode {

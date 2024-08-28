@@ -104,6 +104,7 @@ pub enum TokenType {
     ToThe,
     True,
     Unknown,
+    Var,
     Wildcard,
 }
 
@@ -380,6 +381,7 @@ impl<'a> Lexer<'a> {
             "let" => Some(TokenType::Let),
             "then" => Some(TokenType::Then),
             "true" => Some(TokenType::True),
+            "var" => Some(TokenType::Var),
             _ => None,
         }
     }
@@ -1079,6 +1081,21 @@ mod tests {
                 TokenType::Rparen,
                 TokenType::Dedent,
                 TokenType::Dedent,
+            ]),
+        );
+    }
+
+    #[test]
+    fn var() {
+        let code = "var x := 0";
+
+        assert_eq!(
+            token_types_from(code),
+            Ok(vec![
+                TokenType::Var,
+                TokenType::Ident("x".into()),
+                TokenType::Assign,
+                TokenType::Integer("0".into(), Radix::Decimal),
             ]),
         );
     }

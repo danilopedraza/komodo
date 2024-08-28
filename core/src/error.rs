@@ -135,6 +135,7 @@ fn found_a(tok: &TokenType) -> String {
         TokenType::Import => "the `import` keyword".into(),
         TokenType::Dedent => "the end of an indentation block".into(),
         TokenType::Indent => "the beggining of an indentation block".into(),
+        TokenType::Var => "the `var` keyword".into(),
     }
 }
 

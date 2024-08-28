@@ -1,6 +1,8 @@
 use crate::{
     ast::{self, ASTNode, ASTNodeKind},
-    cst::{CSTNode, CSTNodeKind, ComprehensionKind, InfixOperator, PrefixOperator},
+    cst::{
+        CSTNode, CSTNodeKind, ComprehensionKind, DeclarationKind, InfixOperator, PrefixOperator,
+    },
     error::Error,
     lexer::Radix,
 };
@@ -38,7 +40,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
             kind,
         } => comprehension(*element, variable, *iterator, kind),
         CSTNodeKind::Block(exprs) => block(exprs),
-        CSTNodeKind::Let_(node) => _let(*node),
+        CSTNodeKind::Declaration(node, kind) => declaration(*node, kind),
     }?;
 
     Ok(ASTNode::new(tp, node.position))
@@ -222,7 +224,7 @@ fn integer(dec: String, radix: Radix) -> WeederResult<ASTNodeKind> {
     })
 }
 
-fn _let(node: CSTNode) -> WeederResult<ASTNodeKind> {
+fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind> {
     let (left, right) = match node {
         CSTNode {
             kind: CSTNodeKind::Infix(InfixOperator::Assignment, left, right),
@@ -231,7 +233,7 @@ fn _let(node: CSTNode) -> WeederResult<ASTNodeKind> {
         kind => (Box::new(rewrite(kind)?), None),
     };
 
-    Ok(ASTNodeKind::Let { left, right })
+    Ok(ASTNodeKind::Declaration { left, right, kind })
 }
 
 fn prefix(op: PrefixOperator, val: CSTNode) -> WeederResult<ASTNodeKind> {

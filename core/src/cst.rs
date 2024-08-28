@@ -177,6 +177,12 @@ pub enum ComprehensionKind {
     Set,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum DeclarationKind {
+    Inmutable,
+    Mutable,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum CSTNodeKind {
     AdInfinitum,
@@ -207,7 +213,7 @@ pub enum CSTNodeKind {
     },
     Infix(InfixOperator, Box<CSTNode>, Box<CSTNode>),
     Integer(String, Radix),
-    Let_(Box<CSTNode>),
+    Declaration(Box<CSTNode>, DeclarationKind),
     Prefix(PrefixOperator, Box<CSTNode>),
     Cons(Box<CSTNode>, Box<CSTNode>),
     SetCons {
@@ -370,7 +376,10 @@ pub mod tests {
             }
         });
 
-        CSTNode::new(CSTNodeKind::Let_(node), position)
+        CSTNode::new(
+            CSTNodeKind::Declaration(node, DeclarationKind::Inmutable),
+            position,
+        )
     }
 
     pub fn pattern(
@@ -390,6 +399,13 @@ pub mod tests {
 
     pub fn block(exprs: Vec<CSTNode>, position: Position) -> CSTNode {
         CSTNode::new(CSTNodeKind::Block(exprs), position)
+    }
+
+    pub fn var(expr: CSTNode, position: Position) -> CSTNode {
+        CSTNode::new(
+            CSTNodeKind::Declaration(Box::new(expr), DeclarationKind::Mutable),
+            position,
+        )
     }
 
     // pub fn function(params: Vec<&str>, proc: Vec<CSTNode>, position: Position) -> CSTNode {
