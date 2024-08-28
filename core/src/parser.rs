@@ -61,31 +61,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 TokenType::Lbrack => self.list(),
                 TokenType::Integer(int, radix) => self.integer(int, radix),
                 TokenType::Ident(literal) => self.symbol(literal),
-                TokenType::Indent => {
-                    let first = self.expression(Precedence::Lowest)?;
-                    let start = first.position.start;
-                    let mut exprs = vec![first];
-
-                    loop {
-                        match self.peek_token() {
-                            Ok(Some(TokenType::Dedent)) => {
-                                // let last_pos = exprs.last().unwrap().position;
-                                let res = Ok(CSTNode::new(
-                                    CSTNodeKind::Block(exprs),
-                                    self.start_to_cur(start),
-                                ));
-
-                                self.next_token()?;
-
-                                break res;
-                            }
-                            _ => {
-                                exprs.push(self.expression(Precedence::Lowest)?);
-                                continue;
-                            }
-                        }
-                    }
-                }
+                TokenType::Indent => self.block(),
                 TokenType::String(str) => self.string(str),
                 TokenType::Wildcard => self.wildcard(),
                 tok => {
@@ -96,6 +72,32 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                     }
                 }
             },
+        }
+    }
+
+    fn block(&mut self) -> NodeResult {
+        let first = self.expression(Precedence::Lowest)?;
+        let start = first.position.start;
+        let mut exprs = vec![first];
+
+        loop {
+            match self.peek_token() {
+                Ok(Some(TokenType::Dedent)) => {
+                    // let last_pos = exprs.last().unwrap().position;
+                    let res = Ok(CSTNode::new(
+                        CSTNodeKind::Block(exprs),
+                        self.start_to_cur(start),
+                    ));
+
+                    self.next_token()?;
+
+                    break res;
+                }
+                _ => {
+                    exprs.push(self.expression(Precedence::Lowest)?);
+                    continue;
+                }
+            }
         }
     }
 
