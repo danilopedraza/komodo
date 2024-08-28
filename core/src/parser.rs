@@ -31,7 +31,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Iterator for Parser<T> {
     }
 }
 
-type _NodeResult = Result<CSTNode, Error>;
+type NodeResult = Result<CSTNode, Error>;
 
 impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     fn peek_pos(&mut self) -> Position {
@@ -42,7 +42,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
     }
 
-    fn non_infix(&mut self) -> _NodeResult {
+    fn non_infix(&mut self) -> NodeResult {
         match self.next_token()? {
             None => self.err_with_cur(ParserError::EOFReached),
             Some(tok) => match tok {
@@ -98,7 +98,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
     }
 
-    fn expression(&mut self, precedence: Precedence) -> _NodeResult {
+    fn expression(&mut self, precedence: Precedence) -> NodeResult {
         let start = self.peek_pos().start;
 
         let mut expr = self.non_infix()?;
@@ -115,39 +115,39 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         Ok(expr)
     }
 
-    fn ad_infinitum(&self) -> _NodeResult {
+    fn ad_infinitum(&self) -> NodeResult {
         self.node_with_cur(CSTNodeKind::AdInfinitum)
     }
 
-    fn wildcard(&self) -> _NodeResult {
+    fn wildcard(&self) -> NodeResult {
         self.node_with_cur(CSTNodeKind::Wildcard)
     }
 
-    fn char(&self, chr: char) -> _NodeResult {
+    fn char(&self, chr: char) -> NodeResult {
         self.node_with_cur(CSTNodeKind::Char(chr))
     }
 
-    fn string(&self, str: String) -> _NodeResult {
+    fn string(&self, str: String) -> NodeResult {
         self.node_with_cur(CSTNodeKind::String(str))
     }
 
-    fn boolean(&self, val: bool) -> _NodeResult {
+    fn boolean(&self, val: bool) -> NodeResult {
         self.node_with_cur(CSTNodeKind::Boolean(val))
     }
 
-    fn node_with_cur(&self, node: CSTNodeKind) -> _NodeResult {
+    fn node_with_cur(&self, node: CSTNodeKind) -> NodeResult {
         Ok(CSTNode::new(node, self.cur_pos))
     }
 
-    fn err_with_cur(&self, err: ParserError) -> _NodeResult {
+    fn err_with_cur(&self, err: ParserError) -> NodeResult {
         Err(Error::new(err.into(), self.cur_pos))
     }
 
-    fn symbol(&self, literal: String) -> _NodeResult {
+    fn symbol(&self, literal: String) -> NodeResult {
         self.node_with_cur(CSTNodeKind::Symbol(literal))
     }
 
-    fn let_(&mut self) -> _NodeResult {
+    fn let_(&mut self) -> NodeResult {
         let start = self.cur_pos.start;
 
         let left = self.pattern()?;
@@ -221,7 +221,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         })
     }
 
-    fn pattern(&mut self) -> _NodeResult {
+    fn pattern(&mut self) -> NodeResult {
         let left = self.non_infix()?;
         match (&left.kind, self.peek_token()) {
             (_, Ok(Some(TokenType::Colon))) => {
@@ -312,7 +312,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         Position::new(start, pos.start + pos.length - start)
     }
 
-    fn infix(&mut self, lhs: CSTNode, op: InfixOperator, start: usize) -> _NodeResult {
+    fn infix(&mut self, lhs: CSTNode, op: InfixOperator, start: usize) -> NodeResult {
         match op {
             InfixOperator::Call => {
                 let tuple_start = self.cur_pos.start;
@@ -343,7 +343,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
     }
 
-    fn integer(&mut self, int: String, radix: Radix) -> _NodeResult {
+    fn integer(&mut self, int: String, radix: Radix) -> NodeResult {
         self.node_with_cur(CSTNodeKind::Integer(int, radix))
     }
 
@@ -362,7 +362,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         res
     }
 
-    fn parenthesis(&mut self) -> _NodeResult {
+    fn parenthesis(&mut self) -> NodeResult {
         let start = self.cur_pos.start;
 
         if matches!(self.peek_token()?, Some(TokenType::Rparen)) {
@@ -423,7 +423,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
     }
 
-    fn list(&mut self) -> _NodeResult {
+    fn list(&mut self) -> NodeResult {
         self.ignoring_indentation(|parser| {
             let start = parser.cur_pos.start;
 
@@ -461,7 +461,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         first: CSTNode,
         kind: ComprehensionKind,
         start: usize,
-    ) -> _NodeResult {
+    ) -> NodeResult {
         let variable = match self.next_token()? {
             Some(TokenType::Ident(name)) => Ok(name),
             _ => todo!(),
@@ -482,7 +482,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         ))
     }
 
-    fn prepend_(&mut self, first: CSTNode, start: usize) -> _NodeResult {
+    fn prepend_(&mut self, first: CSTNode, start: usize) -> NodeResult {
         let last = self.expression(Precedence::Lowest)?;
 
         self.consume(TokenType::Rbrack)?;
@@ -490,7 +490,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         Ok(cons(first, last, self.start_to_cur(start)))
     }
 
-    fn for_(&mut self) -> _NodeResult {
+    fn for_(&mut self) -> NodeResult {
         let start = self.cur_pos.start;
 
         let ident = match self.next_token()? {
@@ -521,7 +521,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         Ok(_for(&ident, iter, proc, self.start_to_cur(start)))
     }
 
-    fn import_from(&mut self) -> _NodeResult {
+    fn import_from(&mut self) -> NodeResult {
         let start = self.cur_pos.start;
         match self.next_token()? {
             Some(TokenType::Ident(source)) => {
@@ -580,7 +580,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
     }
 
-    fn if_(&mut self) -> _NodeResult {
+    fn if_(&mut self) -> NodeResult {
         let start = self.cur_pos.start;
 
         let cond = self.expression(Precedence::Lowest)?;
@@ -596,7 +596,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         Ok(_if(cond, first_res, second_res, self.start_to_cur(start)))
     }
 
-    fn import(&mut self) -> _NodeResult {
+    fn import(&mut self) -> NodeResult {
         let start = self.cur_pos.start;
 
         match (self.next_token()?, self.peek_token()) {
@@ -628,14 +628,14 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
     }
 
-    fn prefix(&mut self, op: PrefixOperator) -> _NodeResult {
+    fn prefix(&mut self, op: PrefixOperator) -> NodeResult {
         let start = self.cur_pos.start;
 
         self.non_infix()
             .map(|expr| prefix(op, expr, self.start_to_cur(start)))
     }
 
-    fn set_or_dict(&mut self) -> _NodeResult {
+    fn set_or_dict(&mut self) -> NodeResult {
         self.ignoring_indentation(|parser| {
             let start = parser.cur_pos.start;
 
@@ -680,7 +680,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         })
     }
 
-    fn set_cons(&mut self, first: CSTNode, start: usize) -> _NodeResult {
+    fn set_cons(&mut self, first: CSTNode, start: usize) -> NodeResult {
         let some = Box::new(first);
         let most = Box::new(self.expression(Precedence::Lowest)?);
         self.consume(TokenType::Rbrace)?;
@@ -691,7 +691,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         ))
     }
 
-    fn dict(&mut self, first: (CSTNode, CSTNode), start: usize) -> _NodeResult {
+    fn dict(&mut self, first: (CSTNode, CSTNode), start: usize) -> NodeResult {
         let mut pairs = vec![first];
 
         loop {
