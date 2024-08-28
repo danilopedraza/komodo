@@ -96,6 +96,7 @@ fn found_a(tok: &TokenType) -> String {
         TokenType::Else => "the `else` keyword".into(),
         TokenType::Equals => "an equality operator: `=`".into(),
         TokenType::False => "a boolean: `false`".into(),
+        TokenType::FatArrow => "a fat arrow: `=>`".into(),
         TokenType::For => "a keyword: `for`".into(),
         TokenType::Greater => "an operator: `>`".into(),
         TokenType::GreaterEqual => "an operator: `>=`".into(),

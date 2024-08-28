@@ -652,7 +652,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                     .map(|lst| extension_set(lst, parser.start_to_cur(start))),
                 Some(TokenType::For) => parser.comprehension(first, ComprehensionKind::Set, start),
                 Some(TokenType::VerticalBar) => parser.set_cons(first, start),
-                Some(TokenType::Colon) => {
+                Some(TokenType::FatArrow) => {
                     let first = (first, parser.expression(Precedence::Lowest)?);
                     parser.dict(first, start)
                 }
@@ -711,7 +711,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                         return Ok(dictionary(pairs, false, self.start_to_cur(start)));
                     }
 
-                    self.consume(TokenType::Colon)?;
+                    self.consume(TokenType::FatArrow)?;
                     let right = self.expression(Precedence::Lowest)?;
                     pairs.push((left, right));
                 }
@@ -1717,18 +1717,18 @@ mod tests {
 
     #[test]
     fn dictionary_() {
-        let input = "{'a': 2, 1:5}";
+        let input = "{'a' => 2, 1 => 5}";
         let lexer = Lexer::new(input);
 
         assert_eq!(
             parser_from(lexer).next(),
             Some(Ok(dictionary(
                 vec![
-                    (char('a', _pos(1, 3)), dec_integer("2", _pos(6, 1))),
-                    (dec_integer("1", _pos(9, 1)), dec_integer("5", _pos(11, 1)))
+                    (char('a', _pos(1, 3)), dec_integer("2", _pos(8, 1))),
+                    (dec_integer("1", _pos(11, 1)), dec_integer("5", _pos(16, 1)))
                 ],
                 true,
-                _pos(0, 13)
+                _pos(0, 18)
             )))
         );
     }
@@ -1769,15 +1769,15 @@ mod tests {
 
     #[test]
     fn ad_infinitum_dict() {
-        let input = "{1: 5,..}";
+        let input = "{1 => 5,..}";
         let lexer = Lexer::new(input);
 
         assert_eq!(
             parser_from(lexer).next(),
             Some(Ok(dictionary(
-                vec![(dec_integer("1", _pos(1, 1)), dec_integer("5", _pos(4, 1)),),],
+                vec![(dec_integer("1", _pos(1, 1)), dec_integer("5", _pos(6, 1)),),],
                 false,
-                _pos(0, 9)
+                _pos(0, 11)
             ))),
         );
     }
