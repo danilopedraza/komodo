@@ -356,7 +356,7 @@ impl<'a> Lexer<'a> {
     fn identifier_or_keyword(&mut self, first: char) -> TokenType {
         let mut literal = String::from(first);
         while let Some(chr) = self.input.by_ref().next_if(|c| c.is_alphanumeric()) {
-            // is (kinda) intentional to accept non-ascii symbols
+            // is intentional to accept non-ascii symbols
             self.cur_pos += 1;
             literal.push(chr);
         }
