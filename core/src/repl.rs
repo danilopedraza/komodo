@@ -5,7 +5,7 @@ use crate::{
     error::{error_msg, Error, ErrorMessage, ErrorType},
     lexer::Lexer,
     object::Object,
-    parser::{parser_from, ParserError},
+    parser::{Parser, ParserError},
     run,
     weeder::rewrite,
 };
@@ -43,7 +43,7 @@ impl Repl {
                 }
                 self.code.push_str(&line);
                 let lexer = Lexer::new(&self.code);
-                let mut parser = parser_from(lexer);
+                let mut parser = Parser::from(lexer);
 
                 match parser.next() {
                     None => (String::from(""), ReplResponse::Continue),

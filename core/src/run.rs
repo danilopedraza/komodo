@@ -8,7 +8,7 @@ use crate::{
     exec::exec,
     lexer::{Lexer, Token},
     object::Object,
-    parser::{parser_from, Parser},
+    parser::Parser,
     weeder::rewrite,
 };
 
@@ -22,7 +22,7 @@ fn collect_nodes<T: Iterator<Item = Result<Token, Error>>>(
 
 pub fn run(source: &str, env: &mut Environment) -> Result<(), Error> {
     let lexer = Lexer::new(source);
-    let parser = parser_from(lexer);
+    let parser = Parser::from(lexer);
     let nodes = collect_nodes(parser)?;
 
     for node in nodes {
@@ -65,7 +65,7 @@ pub fn import_from(
 ) -> Result<(), Error> {
     let source = get_module_code(module_name, env)?;
     let lexer = Lexer::new(&source);
-    let parser = parser_from(lexer);
+    let parser = Parser::from(lexer);
     let nodes = collect_nodes(parser)?;
 
     let mut temp_env = Environment::default();
