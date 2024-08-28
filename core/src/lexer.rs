@@ -61,6 +61,7 @@ pub enum TokenType {
     Colon,
     Comma,
     Dedent,
+    Do,
     Dot,
     DotDot,
     Else,
@@ -367,6 +368,7 @@ impl<'a> Lexer<'a> {
     fn keyword(literal: &str) -> Option<TokenType> {
         match literal {
             "as" => Some(TokenType::As),
+            "do" => Some(TokenType::Do),
             "else" => Some(TokenType::Else),
             "false" => Some(TokenType::False),
             "for" => Some(TokenType::For),
@@ -1051,8 +1053,8 @@ mod tests {
     fn double_block() {
         let code = &unindent(
             "
-        for _ in foo:
-            for _ in bar:
+        for _ in foo do
+            for _ in bar do
                 baz()",
         );
 
@@ -1063,13 +1065,13 @@ mod tests {
                 TokenType::Wildcard,
                 TokenType::In,
                 TokenType::Ident("foo".into()),
-                TokenType::Colon,
+                TokenType::Do,
                 TokenType::Indent,
                 TokenType::For,
                 TokenType::Wildcard,
                 TokenType::In,
                 TokenType::Ident("bar".into()),
-                TokenType::Colon,
+                TokenType::Do,
                 TokenType::Indent,
                 TokenType::Ident("baz".into()),
                 TokenType::Lparen,

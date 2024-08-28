@@ -90,6 +90,7 @@ fn found_a(tok: &TokenType) -> String {
         TokenType::Char(chr) => format!("a character: `{chr}`"),
         TokenType::Colon => "a colon: `:`".into(),
         TokenType::Comma => "a comma: `,`".into(),
+        TokenType::Do => "the `do` keyword".into(),
         TokenType::Dot => "a dot: `.`".into(),
         TokenType::DotDot => "a range operator: `..`".into(),
         TokenType::Else => "the `else` keyword".into(),

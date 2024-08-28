@@ -512,7 +512,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
         let iter = self.expression(Precedence::Lowest)?;
 
-        self.consume(TokenType::Colon)?;
+        self.consume(TokenType::Do)?;
 
         let CSTNode { kind, position } = self.expression(Precedence::Lowest)?;
 
@@ -1473,7 +1473,7 @@ mod tests {
 
     #[test]
     fn for_loop() {
-        let input = "for i in list: println(i)";
+        let input = "for i in list do println(i)";
 
         let lexer = Lexer::new(input);
 
@@ -1484,11 +1484,11 @@ mod tests {
                 symbol("list", _pos(9, 4)),
                 vec![infix(
                     InfixOperator::Call,
-                    symbol("println", _pos(15, 7)),
-                    tuple(vec![symbol("i", _pos(23, 1))], _pos(22, 3)),
-                    _pos(15, 10)
+                    symbol("println", _pos(17, 7)),
+                    tuple(vec![symbol("i", _pos(25, 1))], _pos(24, 3)),
+                    _pos(17, 10)
                 )],
-                _pos(0, 25)
+                _pos(0, 27)
             )))
         );
     }
