@@ -25,6 +25,7 @@ pub enum EvalError {
     IndexingNonContainer {
         kind: String,
     },
+    InmutableAssign(String),
     InvalidIndex {
         kind: String,
     },
@@ -132,6 +133,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             constraint: _,
         } => unimplemented!(),
         ASTNodeKind::Block(exprs) => block(exprs, env),
+        ASTNodeKind::Assignment { .. } => todo!(),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -576,9 +578,9 @@ mod tests {
 
     use super::*;
     use crate::ast::tests::{
-        _for, _if, block, boolean, call, comprehension, cons, container_element, dec_integer,
-        decimal, extension_list, extension_set, fraction, function, infix, let_, pattern, pos,
-        prefix, range, set_cons, symbol, tuple,
+        _for, _if, assignment, block, boolean, call, comprehension, cons, container_element,
+        dec_integer, decimal, extension_list, extension_set, fraction, function, infix, let_,
+        pattern, pos, prefix, range, set_cons, symbol, tuple, var,
     };
     use crate::cst::tests::dummy_pos;
     use crate::error::ErrorType;
@@ -1429,6 +1431,56 @@ mod tests {
                 name: String::from("x"),
                 property: String::from("Real")
             }))
+        );
+    }
+
+    #[test]
+    #[ignore = "not yet implemented"]
+    fn mutable_value() {
+        let declaration = var(
+            symbol("x", dummy_pos()),
+            Some(dec_integer("0", dummy_pos())),
+            dummy_pos(),
+        );
+
+        let mut env = Environment::default();
+        exec(&declaration, &mut env).unwrap();
+
+        let assignment = assignment(
+            symbol("x", dummy_pos()),
+            dec_integer("1", dummy_pos()),
+            dummy_pos(),
+        );
+
+        exec(&assignment, &mut env).unwrap();
+
+        assert_eq!(env.get("x"), Some(&mut Object::Integer(1.into())));
+    }
+
+    #[test]
+    #[ignore = "not yet implemented"]
+    fn assign_inmutable() {
+        let declaration = let_(
+            symbol("x", dummy_pos()),
+            Some(dec_integer("0", dummy_pos())),
+            dummy_pos(),
+        );
+
+        let mut env = Environment::default();
+        exec(&declaration, &mut env).unwrap();
+
+        let assignment = assignment(
+            symbol("x", dummy_pos()),
+            dec_integer("1", dummy_pos()),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            exec(&assignment, &mut env),
+            Err(Error::new(
+                EvalError::InmutableAssign(String::from("x")).into(),
+                dummy_pos()
+            )),
         );
     }
 }

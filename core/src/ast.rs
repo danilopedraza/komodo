@@ -90,6 +90,10 @@ impl Ord for ASTNode {
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ASTNodeKind {
     AdInfinitum,
+    Assignment {
+        left: Box<ASTNode>,
+        right: Box<ASTNode>,
+    },
     Boolean(bool),
     Block(Vec<ASTNode>),
     Call {
@@ -290,6 +294,13 @@ pub mod tests {
         ASTNode::new(ASTNodeKind::Declaration { left, right, kind }, position)
     }
 
+    pub fn var(left: ASTNode, right: Option<ASTNode>, position: Position) -> ASTNode {
+        let left = Box::new(left);
+        let right = right.map(Box::new);
+        let kind = DeclarationKind::Mutable;
+        ASTNode::new(ASTNodeKind::Declaration { left, right, kind }, position)
+    }
+
     pub fn prefix(op: PrefixOperator, val: ASTNode, position: Position) -> ASTNode {
         let val = Box::new(val);
         ASTNode::new(ASTNodeKind::Prefix { op, val }, position)
@@ -372,5 +383,11 @@ pub mod tests {
 
     pub fn block(exprs: Vec<ASTNode>, position: Position) -> ASTNode {
         ASTNode::new(ASTNodeKind::Block(exprs), position)
+    }
+
+    pub fn assignment(left: ASTNode, right: ASTNode, position: Position) -> ASTNode {
+        let left = Box::new(left);
+        let right = Box::new(right);
+        ASTNode::new(ASTNodeKind::Assignment { left, right }, position)
     }
 }

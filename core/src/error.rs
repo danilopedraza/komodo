@@ -192,7 +192,12 @@ fn exec_error_msg(err: &EvalError) -> String {
         EvalError::InvalidIndex { kind } => invalid_index(kind),
         EvalError::NonExistentKey { key } => non_existent_key(key),
         EvalError::UnknownValue(value) => unknown_value(value),
+        EvalError::InmutableAssign(value) => inmutable_assign(value),
     }
+}
+
+fn inmutable_assign(value: &str) -> String {
+    format!("`{value}` is inmutable, so it cannot be used in assignments")
 }
 
 fn unknown_value(value: &str) -> String {
