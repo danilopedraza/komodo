@@ -42,4 +42,4 @@ Symstatic has a few built-in types:
   
   **Note**: You may have noticed that we used parenthesis to denote a series of steps. This is the only case where something that could be a tuple will be interpreted in another way.
 
-- Dictionaries: A collection of key-value pairs. There are no restrictions on the keys or the values. You can use anything at the same time! You can write them like this: `{"a": 5, []: 'b'}`.
+- Dictionaries: A collection of key-value pairs. There are no restrictions on the keys or the values. You can use anything at the same time! You can write them like this: `{"a" => 5, [] => 'b'}`.
