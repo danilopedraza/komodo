@@ -39,7 +39,7 @@ fn env_with(assets: Vec<(&str, Object)>, ctx: ExecContext) -> Environment {
     let mut env = Environment::new(ctx);
 
     for (name, value) in assets {
-        env.set(name, value);
+        env.set_mutable(name, value);
     }
 
     env

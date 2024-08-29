@@ -27,16 +27,16 @@ pub fn standard_env() -> Environment {
     }
 
     let mut env = Environment::default();
-    env.set(
+    env.set_inmutable(
         "println",
         Object::Function(Function::Extern(ExternFunction::new(smtc_println, 1))),
     );
-    env.set(
+    env.set_inmutable(
         "getln",
         Object::Function(Function::Extern(ExternFunction::new(smtc_getln, 0))),
     );
 
-    env.set(
+    env.set_inmutable(
         "assert",
         Object::Function(Function::Extern(ExternFunction::new(smtc_assert, 1))),
     );

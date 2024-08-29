@@ -9,8 +9,8 @@ use crate::object::{
 };
 
 use crate::ast::{ASTNode, ASTNodeKind, InfixOperator};
-use crate::cst::{ComprehensionKind, PrefixOperator};
-use crate::env::Environment;
+use crate::cst::{ComprehensionKind, DeclarationKind, PrefixOperator};
+use crate::env::{EnvResponse, Environment};
 use crate::object::{Bool, Char, Integer, MyString, Object, Set, Symbol, Tuple};
 use crate::run;
 
@@ -127,13 +127,13 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             iterator,
             kind,
         } => comprehension(element, variable, iterator, *kind, env),
-        ASTNodeKind::Declaration { left, right, .. } => let_(left, right, env),
+        ASTNodeKind::Declaration { left, right, kind } => declaration(left, right, *kind, env),
         ASTNodeKind::Pattern {
             exp: _,
             constraint: _,
         } => unimplemented!(),
         ASTNodeKind::Block(exprs) => block(exprs, env),
-        ASTNodeKind::Assignment { .. } => todo!(),
+        ASTNodeKind::Assignment { left, right } => assignment(left, right, env),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -143,6 +143,37 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ))
     } else {
         res
+    }
+}
+
+fn assignment(left: &ASTNode, right: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
+    let value = exec(right, env)?;
+
+    match match_(left, &value) {
+        Some(Match(map)) => {
+            for (key, val) in map {
+                match env.get(&key) {
+                    EnvResponse::Mutable(obj_ref) => {
+                        *obj_ref = val;
+                    }
+                    EnvResponse::Inmutable(_) => {
+                        return Err(Error::new(
+                            EvalError::InmutableAssign(key).into(),
+                            left.position,
+                        ))
+                    }
+                    EnvResponse::NotFound => {
+                        return Err(Error::new(
+                            EvalError::UnknownValue(key).into(),
+                            left.position,
+                        ))
+                    }
+                }
+            }
+
+            Ok(value)
+        }
+        None => todo!(),
     }
 }
 
@@ -251,19 +282,25 @@ fn boolean(val: bool) -> Result<Object, Error> {
     Ok(Object::Boolean(Bool::from(val)))
 }
 
-fn let_(
+fn declaration(
     left: &ASTNode,
     right: &Option<Box<ASTNode>>,
+    decl_kind: DeclarationKind,
     env: &mut Environment,
 ) -> Result<Object, Error> {
-    match (&left.kind, right) {
-        (ASTNodeKind::Call { called, args }, Some(value)) => let_function(called, args, value, env),
-        (_, Some(value)) => {
+    match (&left.kind, right, decl_kind) {
+        (ASTNodeKind::Call { called, args }, Some(value), _) => {
+            let_function(called, args, value, env)
+        }
+        (_, Some(value), kind) => {
             let value = exec(value, env)?;
             match match_(left, &value) {
                 Some(Match(map)) => {
                     for (name, val) in map {
-                        env.set(&name, val);
+                        match kind {
+                            DeclarationKind::Mutable => env.set_mutable(&name, val),
+                            DeclarationKind::Inmutable => env.set_inmutable(&name, val),
+                        }
                     }
 
                     Ok(value)
@@ -277,6 +314,7 @@ fn let_(
                 constraint: Some(name),
             },
             None,
+            _,
         ) => let_property_only(exp, name),
         _ => todo!(),
     }
@@ -302,8 +340,9 @@ fn extension_set(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> 
 
 fn symbol(str: &str, env: &mut Environment, position: Position) -> Result<Object, Error> {
     match env.get(str) {
-        Some(obj) => Ok(obj.clone()),
-        None => Err(Error::new(
+        EnvResponse::Inmutable(obj) => Ok(obj.clone()),
+        EnvResponse::Mutable(obj) => Ok(obj.clone()),
+        EnvResponse::NotFound => Err(Error::new(
             EvalError::UnknownValue(str.to_owned()).into(),
             position,
         )),
@@ -325,7 +364,7 @@ fn comprehension(
             env.push_scope();
 
             for val in iterator {
-                env.set(variable, val);
+                env.set_mutable(variable, val);
                 new_list.push(exec(element, env)?);
             }
 
@@ -336,7 +375,7 @@ fn comprehension(
             env.push_scope();
 
             for val in iterator {
-                env.set(variable, val);
+                env.set_mutable(variable, val);
                 new_set.insert(exec(element, env)?);
             }
 
@@ -357,18 +396,18 @@ fn let_function(
     };
 
     let function: &mut PatternFunction = match env.get(name) {
-        None => {
-            env.set(
+        EnvResponse::NotFound => {
+            env.set_mutable(
                 name,
                 Object::Function(Function::Pattern(PatternFunction::default())),
             );
 
             match env.get(name) {
-                Some(Object::Function(Function::Pattern(f))) => f,
+                EnvResponse::Mutable(Object::Function(Function::Pattern(f))) => f,
                 _ => unimplemented!(),
             }
         }
-        Some(Object::Function(Function::Pattern(f))) => f,
+        EnvResponse::Mutable(Object::Function(Function::Pattern(f))) => f,
         _ => unimplemented!(),
     };
 
@@ -401,7 +440,7 @@ fn for_(
     env.push_scope();
 
     for val in iter {
-        env.set(symbol, val.clone());
+        env.set_mutable(symbol, val.clone());
 
         for step in proc {
             exec(step, env)?;
@@ -583,6 +622,7 @@ mod tests {
         pattern, pos, prefix, range, set_cons, symbol, tuple, var,
     };
     use crate::cst::tests::dummy_pos;
+    use crate::env::EnvResponse;
     use crate::error::ErrorType;
     use crate::{ast, object::*};
 
@@ -666,8 +706,8 @@ mod tests {
         );
 
         let mut env = Environment::default();
-        env.set("a", Object::Symbol(Symbol::new("a".into(), "Foo".into())));
-        env.set("b", Object::Symbol(Symbol::new("b".into(), "Foo".into())));
+        env.set_mutable("a", Object::Symbol(Symbol::new("a".into(), "Foo".into())));
+        env.set_mutable("b", Object::Symbol(Symbol::new("b".into(), "Foo".into())));
 
         assert_eq!(exec(node, &mut env), Ok(Object::Boolean(false.into())));
     }
@@ -891,7 +931,7 @@ mod tests {
     #[test]
     fn if_expr() {
         let mut env = Environment::default();
-        env.set("a", Object::Integer(Integer::from(-5)));
+        env.set_mutable("a", Object::Integer(Integer::from(-5)));
 
         let node = &_if(
             infix(
@@ -911,7 +951,7 @@ mod tests {
     #[test]
     fn scope_hierarchy() {
         let mut env = Environment::default();
-        env.set("x", Object::Boolean(Bool::from(true)));
+        env.set_mutable("x", Object::Boolean(Bool::from(true)));
         env.push_scope();
 
         let node = &symbol("x", dummy_pos());
@@ -931,7 +971,10 @@ mod tests {
 
         assert!(exec(node, &mut env).is_ok());
 
-        assert_eq!(env.get("x"), Some(&mut Object::Integer(Integer::from(0))));
+        assert_eq!(
+            env.get("x"),
+            EnvResponse::Inmutable(&Object::Integer(Integer::from(0)))
+        );
     }
 
     #[test]
@@ -1066,7 +1109,7 @@ mod tests {
         }
 
         let mut env = Environment::default();
-        env.set(
+        env.set_mutable(
             "f",
             Object::Function(Function::Extern(ExternFunction::new(test, 1))),
         );
@@ -1435,7 +1478,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn mutable_value() {
         let declaration = var(
             symbol("x", dummy_pos()),
@@ -1454,11 +1496,13 @@ mod tests {
 
         exec(&assignment, &mut env).unwrap();
 
-        assert_eq!(env.get("x"), Some(&mut Object::Integer(1.into())));
+        assert_eq!(
+            env.get("x"),
+            EnvResponse::Mutable(&mut Object::Integer(1.into()))
+        );
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn assign_inmutable() {
         let declaration = let_(
             symbol("x", dummy_pos()),

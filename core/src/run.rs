@@ -3,7 +3,7 @@ use std::{fs, path::Path};
 use crate::{
     ast::{ASTNode, ASTNodeKind},
     cst::CSTNode,
-    env::{Environment, ExecContext},
+    env::{EnvResponse, Environment, ExecContext},
     error::Error,
     exec::exec,
     lexer::{Lexer, Token},
@@ -81,8 +81,9 @@ pub fn import_from(
 
     for value in values {
         match temp_env.get(value) {
-            Some(obj) => env.set(value, obj.to_owned()),
-            None => todo!(),
+            EnvResponse::Mutable(obj) => env.set_mutable(value, obj.to_owned()),
+            EnvResponse::Inmutable(obj) => env.set_mutable(value, obj.to_owned()),
+            EnvResponse::NotFound => todo!(),
         }
     }
 

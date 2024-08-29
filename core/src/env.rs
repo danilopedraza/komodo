@@ -2,18 +2,41 @@ use std::{collections::BTreeMap, path::PathBuf};
 
 use crate::object::Object;
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum EnvResponse<'a> {
+    Mutable(&'a mut Object),
+    Inmutable(&'a Object),
+    NotFound,
+}
+
+#[derive(Debug)]
+enum ValueKind {
+    Inmutable,
+    Mutable,
+}
+
 #[derive(Debug, Default)]
 pub struct Scope {
-    dict: BTreeMap<String, Object>,
+    dict: BTreeMap<String, (ValueKind, Object)>,
 }
 
 impl Scope {
-    fn get(&mut self, name: &str) -> Option<&mut Object> {
-        self.dict.get_mut(name)
+    fn get(&mut self, name: &str) -> EnvResponse {
+        match self.dict.get_mut(name) {
+            Some((ValueKind::Inmutable, value)) => EnvResponse::Inmutable(value),
+            Some((ValueKind::Mutable, value)) => EnvResponse::Mutable(value),
+            None => EnvResponse::NotFound,
+        }
     }
 
-    fn set(&mut self, name: &str, val: Object) {
-        self.dict.insert(name.to_string(), val);
+    fn set_mutable(&mut self, name: &str, val: Object) {
+        self.dict
+            .insert(name.to_string(), (ValueKind::Mutable, val));
+    }
+
+    fn set_inmutable(&mut self, name: &str, val: Object) {
+        self.dict
+            .insert(name.to_string(), (ValueKind::Inmutable, val));
     }
 }
 
@@ -44,19 +67,23 @@ impl Environment {
         }
     }
 
-    pub fn get(&mut self, name: &str) -> Option<&mut Object> {
+    pub fn get(&mut self, name: &str) -> EnvResponse<'_> {
         for scope in self.scopes.iter_mut().rev() {
             match scope.get(name) {
-                None => continue,
-                obj_opt => return obj_opt,
+                EnvResponse::NotFound => continue,
+                response => return response,
             }
         }
 
-        None
+        EnvResponse::NotFound
     }
 
-    pub fn set(&mut self, name: &str, val: Object) {
-        self.scopes.last_mut().unwrap().set(name, val);
+    pub fn set_mutable(&mut self, name: &str, val: Object) {
+        self.scopes.last_mut().unwrap().set_mutable(name, val);
+    }
+
+    pub fn set_inmutable(&mut self, name: &str, val: Object) {
+        self.scopes.last_mut().unwrap().set_inmutable(name, val);
     }
 
     pub fn push_scope(&mut self) {
