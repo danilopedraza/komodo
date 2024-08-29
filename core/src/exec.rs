@@ -364,7 +364,7 @@ fn comprehension(
             env.push_scope();
 
             for val in iterator {
-                env.set_mutable(variable, val);
+                env.set_inmutable(variable, val);
                 new_list.push(exec(element, env)?);
             }
 
@@ -375,7 +375,7 @@ fn comprehension(
             env.push_scope();
 
             for val in iterator {
-                env.set_mutable(variable, val);
+                env.set_inmutable(variable, val);
                 new_set.insert(exec(element, env)?);
             }
 
@@ -440,7 +440,7 @@ fn for_(
     env.push_scope();
 
     for val in iter {
-        env.set_mutable(symbol, val.clone());
+        env.set_inmutable(symbol, val.clone());
 
         for step in proc {
             exec(step, env)?;
@@ -706,8 +706,8 @@ mod tests {
         );
 
         let mut env = Environment::default();
-        env.set_mutable("a", Object::Symbol(Symbol::new("a".into(), "Foo".into())));
-        env.set_mutable("b", Object::Symbol(Symbol::new("b".into(), "Foo".into())));
+        env.set_inmutable("a", Object::Symbol(Symbol::new("a".into(), "Foo".into())));
+        env.set_inmutable("b", Object::Symbol(Symbol::new("b".into(), "Foo".into())));
 
         assert_eq!(exec(node, &mut env), Ok(Object::Boolean(false.into())));
     }
@@ -931,7 +931,7 @@ mod tests {
     #[test]
     fn if_expr() {
         let mut env = Environment::default();
-        env.set_mutable("a", Object::Integer(Integer::from(-5)));
+        env.set_inmutable("a", Object::Integer(Integer::from(-5)));
 
         let node = &_if(
             infix(
@@ -951,7 +951,7 @@ mod tests {
     #[test]
     fn scope_hierarchy() {
         let mut env = Environment::default();
-        env.set_mutable("x", Object::Boolean(Bool::from(true)));
+        env.set_inmutable("x", Object::Boolean(Bool::from(true)));
         env.push_scope();
 
         let node = &symbol("x", dummy_pos());
@@ -1109,7 +1109,7 @@ mod tests {
         }
 
         let mut env = Environment::default();
-        env.set_mutable(
+        env.set_inmutable(
             "f",
             Object::Function(Function::Extern(ExternFunction::new(test, 1))),
         );

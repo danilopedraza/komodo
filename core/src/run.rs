@@ -82,7 +82,7 @@ pub fn import_from(
     for value in values {
         match temp_env.get(value) {
             EnvResponse::Mutable(obj) => env.set_mutable(value, obj.to_owned()),
-            EnvResponse::Inmutable(obj) => env.set_mutable(value, obj.to_owned()),
+            EnvResponse::Inmutable(obj) => env.set_inmutable(value, obj.to_owned()),
             EnvResponse::NotFound => todo!(),
         }
     }

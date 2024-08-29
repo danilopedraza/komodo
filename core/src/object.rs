@@ -1081,7 +1081,7 @@ impl Callable for PatternFunction {
                 env.push_scope();
 
                 for (name, pattern_val) in v {
-                    env.set_mutable(&name, pattern_val);
+                    env.set_inmutable(&name, pattern_val);
                 }
 
                 let res = exec(val, env);
@@ -1117,7 +1117,7 @@ impl Callable for AnonFunction {
         env.push_scope();
 
         for (arg, param) in zip(args, &self.params) {
-            env.set_mutable(param, arg.clone());
+            env.set_inmutable(param, arg.clone());
         }
 
         let res = exec(&self.result, env)?;
