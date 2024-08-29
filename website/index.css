@@ -40,6 +40,10 @@ nav {
   padding-right: 20px;
 
   background-color: antiquewhite;
+
+  width: 100%;
+  display: flex;
+  flex-direction: row;
 }
 
 .identifier {
@@ -80,14 +84,6 @@ footer {
   flex-direction: row;
 }
 
-@media (max-width: 450px) {
-  .row {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-}
-
 .column {
   display: flex;
   flex-direction: column;
@@ -112,4 +108,12 @@ section div {
 
 #contributing {
   background-color: rgb(179, 179, 189);
+}
+
+@media (width <= 700px) {
+  .row {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
 }
