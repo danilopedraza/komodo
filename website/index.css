@@ -24,7 +24,8 @@ ul {
 }
 
 a {
-  text-decoration: none;
+  text-decoration: underline;
+  color: #2e2459;
 }
 
 a:hover {
@@ -37,7 +38,7 @@ nav {
 
   padding-right: 15px;
 
-  background-color: antiquewhite;
+  background-color: rgb(247, 248, 255);
 
   width: 100%;
   display: flex;
@@ -57,7 +58,7 @@ nav {
 }
 
 header {
-  background-color: antiquewhite;
+  background-color: rgb(247, 248, 255);
   padding: 40px;
 }
 
@@ -73,7 +74,8 @@ section {
 footer {
   width: 100%;
   height: 50px;
-  background-color: antiquewhite;
+  background-color: #2a3439;
+  color: white;
   font-family: monospace;
 }
 
@@ -98,15 +100,22 @@ section div {
 }
 
 #features {
-  background-color: rgb(179, 179, 189);
+  background-color: #0e816e;
+  color: white;
 }
 
 #using {
-  background-color: antiquewhite;
+  background-color: rgb(247, 248, 255);
 }
 
 #contributing {
-  background-color: rgb(179, 179, 189);
+  background-color: #2e2459;
+  color: white;
+}
+
+#contributing a {
+  color: white;
+  text-decoration: underline;
 }
 
 @media (width <= 700px) {
