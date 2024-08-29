@@ -47,6 +47,8 @@ case "$POSITIONAL_ARG" in
     mdbook serve ./book --open
     ;;
   deploy-site)
+    mkdir -p "$TARGET" &&
+    (cd website; cp index.html index.css $TARGET) &&
     mdbook build ./book --dest-dir "$TARGET/book/"
     ;;
   deploy-vsc-extension)
