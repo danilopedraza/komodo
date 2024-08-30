@@ -3,11 +3,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use symstatic::error::error_msg;
+use komodo::error::error_msg;
 #[cfg(feature = "repl")]
-use symstatic::repl::{repl, MyCLI};
-use symstatic::run::run;
-use symstatic::{builtin::standard_env, env::ExecContext};
+use komodo::repl::{repl, MyCLI};
+use komodo::run::run;
+use komodo::{builtin::standard_env, env::ExecContext};
 
 fn get_reference_path(path: &str) -> PathBuf {
     let path = Path::new(path);

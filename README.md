@@ -1,4 +1,4 @@
-# Symstatic
+# Komodo
 
 Una calculadora simbólica.
 

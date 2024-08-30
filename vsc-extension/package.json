@@ -1,13 +1,13 @@
 {
-  "name": "symstatic-analyzer",
-  "displayName": "symstatic-analyzer",
-  "description": "A VSC extension for Symstatic.",
+  "name": "komodo-analyzer",
+  "displayName": "komodo-analyzer",
+  "description": "A VSC extension for Komodo.",
   "license": "GPL-3.0-only",
-  "publisher": "symstatic",
+  "publisher": "komodo",
   "version": "0.2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/danilopedraza/symstatic"
+    "url": "https://github.com/danilopedraza/komodo"
   },
   "engines": {
     "vscode": "^1.89.0"
@@ -17,15 +17,15 @@
   ],
   "contributes": {
     "languages": [{
-      "id": "symstatic",
-      "aliases": ["symstatic", "smtc"],
+      "id": "komodo",
+      "aliases": ["komodo", "smtc"],
       "extensions": [".smtc"],
       "configuration": "./language-configuration.json"
     }],
     "grammars": [{
-      "language": "symstatic",
+      "language": "komodo",
       "scopeName": "source.smtc",
-      "path": "./syntaxes/symstatic.tmLanguage.json"
+      "path": "./syntaxes/komodo.tmLanguage.json"
     }]
   },
   "scripts": {

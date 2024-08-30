@@ -1,7 +1,7 @@
 mod builtin;
 
 use builtin::{standard_env, STDIN, STDOUT};
-use symstatic::{error::error_msg, run::run};
+use komodo::{error::error_msg, run::run};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]

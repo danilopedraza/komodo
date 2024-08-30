@@ -3,4 +3,4 @@ authors = ["Danilo Pedraza"]
 language = "en"
 multilingual = false
 src = "src"
-title = "The Symstatic Programming Language"
+title = "The Komodo Programming Language"

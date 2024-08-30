@@ -1,4 +1,4 @@
-use symstatic::{
+use komodo::{
     builtin::standard_env,
     env::ExecContext,
     error::{Error, Position},

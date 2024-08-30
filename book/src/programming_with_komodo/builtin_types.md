@@ -1,6 +1,6 @@
 # Built-in Types
 
-Symstatic has a few built-in types:
+Komodo has a few built-in types:
 
 - Integers: Signed, arbitrary precision integers. You can write them in decimal form, or the usual prefixed binary (`0x`), octal (`0o`) or hex (`0x`) form.
 
@@ -12,7 +12,7 @@ Symstatic has a few built-in types:
 
 - Strings: A bunch of characters, ordered. You can write them like this: `"Hello, world!"`.
   
-  **Note**: Many programming languages use the built-in list type to define strings. Symstatic does not do this. The string type is completely different and defined independently in the interpreter.
+  **Note**: Many programming languages use the built-in list type to define strings. Komodo does not do this. The string type is completely different and defined independently in the interpreter.
 
 - Lists: An ordered collection of anything. You can write them in two ways:
   - By extension: `[1, 2, 4, 8]`

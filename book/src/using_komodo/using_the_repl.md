@@ -1,12 +1,12 @@
 # Using the REPL
 
-To start the REPL, you just have to type `symstatic` in the terminal. It will show you something like this:
+To start the REPL, you just have to type `komodo` in the terminal. It will show you something like this:
 
 ```
 >>> 
 ```
 
-You can type a Symstatic expression, and it will evaluate it. Let's try something simple:
+You can type a Komodo expression, and it will evaluate it. Let's try something simple:
 
 ```
 >>> "Hello, world!"

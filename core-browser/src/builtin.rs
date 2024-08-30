@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use symstatic::{
+use komodo::{
     builtin::smtc_assert,
     env::Environment,
     object::{ExternFunction, Function, Object},

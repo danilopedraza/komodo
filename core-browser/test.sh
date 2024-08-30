@@ -8,4 +8,4 @@ cargo clippy --all-targets --all-features
 
 cargo test --all-features -- --test-threads=1
 
-wasm-pack build --target web --out-dir smtc --dev
+wasm-pack build --target web --out-dir komodo --dev

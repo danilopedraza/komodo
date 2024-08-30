@@ -101,6 +101,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "komodo"
+version = "0.0.1"
+dependencies = [
+ "bigdecimal",
+ "codespan-reporting",
+ "num-bigint",
+ "num-rational",
+ "rustyline",
+ "unindent",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.153"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -240,18 +252,6 @@ name = "smallvec"
 version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
-
-[[package]]
-name = "symstatic"
-version = "0.0.1"
-dependencies = [
- "bigdecimal",
- "codespan-reporting",
- "num-bigint",
- "num-rational",
- "rustyline",
- "unindent",
-]
 
 [[package]]
 name = "termcolor"

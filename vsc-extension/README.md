@@ -1,3 +1,3 @@
-# symstatic-analyzer
+# komodo-analyzer
 
-A VSC extension for Symstatic.
+A VSC extension for Komodo.

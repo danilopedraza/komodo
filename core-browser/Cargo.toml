@@ -1,5 +1,5 @@
 [package]
-name = "symstatic-browser"
+name = "komodo-browser"
 version = "0.1.0"
 authors = ["Danilo Pedraza <cpedraza@unal.edu.co>"]
 edition = "2018"
@@ -9,7 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 wasm-bindgen = "0.2.84"
-symstatic = { path = "../core" }
+komodo = { path = "../core" }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"
