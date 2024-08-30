@@ -42,29 +42,48 @@ main {
   flex-direction: row;
 }
 
-#sep {
+.row-sep {
   min-width: 10px;
   max-width: 10px;
 }
 
-#editor {
-  min-width: 500px;
+.column-sep {
+  min-height: 10px;
+  max-height: 10px;
 }
+
 
 #results {
   min-width: 500px;
 }
 
 nav {
-  padding: 8px;
+  padding: 5px;
   margin-bottom: 10px;
 }
 
 #editor {
+  min-width: 500px;
   width: 800px;
-  height: 100%;
+  max-width: calc(100vw - 530px);
   resize: horizontal;
 }
+
+#right-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+#results {
+  height: 100%;
+  flex: 1;
+}
+
+#input {
+  min-height: 250px;
+}
+
 
 .button {
   border: 1px solid rgb(61, 61, 61);

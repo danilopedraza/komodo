@@ -25,13 +25,16 @@
   </nav>
   <div id="content" class="full-height">
     <div id="editor-wrapper">
-      <div id="editor" class="full-width rounded-corners clear-corners">println("Hello, World!")</div>
+      <div id="editor" class="full-height full-width rounded-corners clear-corners">println("Hello, World!")</div>
     </div>
-    <div id="sep"></div>
-    <div id="results" class="full-height full-width clear-corners">Hello, World!</div>
+    <div class="row-sep"></div>
+    <div id="right-section" class="full-height">
+      <div id="results" class="rounded-corners clear-corners">Hello, World!</div>
+      <div class="column-sep"></div>
+      <div id="input" class="rounded-corners clear-corners"></div>
+    </div>
   </div>
 </main>
-
 
 <script
   src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.34.2/ace.min.js"
