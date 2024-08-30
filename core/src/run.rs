@@ -46,9 +46,9 @@ fn get_module_code(module_name: &str, env: &Environment) -> Result<String, Error
     match &env.ctx {
         ExecContext::File { reference_path } => {
             let path = if is_std_module(module_name) {
-                Path::new(STDLIB_PATH).join(Path::new(&format!("{module_name}.smtc")))
+                Path::new(STDLIB_PATH).join(Path::new(&format!("{module_name}.komodo")))
             } else {
-                reference_path.join(Path::new(&format!("{module_name}.smtc")))
+                reference_path.join(Path::new(&format!("{module_name}.komodo")))
             };
             println!("{}", path.to_str().unwrap());
             let source = fs::read_to_string(path).unwrap();

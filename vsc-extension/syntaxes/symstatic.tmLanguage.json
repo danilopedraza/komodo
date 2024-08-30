@@ -28,29 +28,29 @@
 		"comments": {
       "patterns": [
         {
-          "name": "comment.line.number-sign.smtc",
+          "name": "comment.line.number-sign.komodo",
           "match": "#.*$"
         }
       ]
     },
 		"strings": {
-			"name": "string.quoted.double.smtc",
+			"name": "string.quoted.double.komodo",
 			"begin": "\"",
 			"end": "\"",
 			"patterns": [
 				{
-					"name": "constant.character.escape.smtc",
+					"name": "constant.character.escape.komodo",
 					"match": "\\\\."
 				}
 			]
 		},
 		"chars": {
-			"name": "string.quoted.single.smtc",
+			"name": "string.quoted.single.komodo",
 			"begin": "'",
 			"end": "'",
 			"patterns": [
 				{
-					"name": "constant.character.escape.smtc",
+					"name": "constant.character.escape.komodo",
 					"match": "\\\\."
 				}
 			]
@@ -58,11 +58,11 @@
 		"numbers": {
 			"patterns": [
         {
-          "name": "constant.numeric.integer.smtc",
+          "name": "constant.numeric.integer.komodo",
           "match": "(?<![\\w\\d.])\\d+(?![.])"
         },
         {
-          "name": "constant.numeric.float.smtc",
+          "name": "constant.numeric.float.komodo",
           "match": "(\\d+)?\\.(\\d+)?"
         }
       ]
@@ -70,11 +70,11 @@
 		"keywords": {
 			"patterns": [
 				{
-					"name": "keyword.other.smtc",
+					"name": "keyword.other.komodo",
 					"match": "\\b(true|false|let|in)\\b"
 				},
 				{
-					"name": "keyword.control.smtc",
+					"name": "keyword.control.komodo",
 					"match": "\\b(for|if|else|then|from|import)\\b"
 				}
 			]
@@ -82,7 +82,7 @@
 		"calls": {
 			"patterns": [
 				{
-					"name": "entity.name.function.smtc",
+					"name": "entity.name.function.komodo",
 					"match": "[a-zA-Z]+(\\()"
 				}
 			]
@@ -90,15 +90,15 @@
 		"symbols": {
 			"patterns": [
 				{
-					"name": "entity.name.class.smtc",
+					"name": "entity.name.class.komodo",
 					"match": "[A-Z][a-zA-Z0-9]*"
 				},
 				{
-					"name": "variable.name.smtc",
+					"name": "variable.name.komodo",
 					"match": "[a-zA-Z][a-zA-Z0-9]*"
 				}
 			]
 		}
 	},
-	"scopeName": "source.smtc"
+	"scopeName": "source.komodo"
 }

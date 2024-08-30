@@ -18,13 +18,13 @@
   "contributes": {
     "languages": [{
       "id": "komodo",
-      "aliases": ["komodo", "smtc"],
-      "extensions": [".smtc"],
+      "aliases": ["komodo", "komodo"],
+      "extensions": [".komodo"],
       "configuration": "./language-configuration.json"
     }],
     "grammars": [{
       "language": "komodo",
-      "scopeName": "source.smtc",
+      "scopeName": "source.komodo",
       "path": "./syntaxes/komodo.tmLanguage.json"
     }]
   },

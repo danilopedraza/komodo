@@ -46,7 +46,7 @@ fn run_file(path: &str) -> ExitCode {
     }
 }
 
-fn run_smtc(args: &[String]) -> ExitCode {
+fn run_komodo(args: &[String]) -> ExitCode {
     if args.len() == 1 {
         #[cfg(feature = "repl")]
         repl(&mut MyCLI::default());
@@ -58,5 +58,5 @@ fn run_smtc(args: &[String]) -> ExitCode {
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().collect();
-    run_smtc(&args)
+    run_komodo(&args)
 }

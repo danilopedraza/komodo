@@ -12,7 +12,7 @@ set +e
 examples_dir="$(pwd)/../examples"
 echo "Running examples..."
 someone_failed=false
-for file in $(find "$examples_dir" -type f -name "*.smtc"); do
+for file in $(find "$examples_dir" -type f -name "*.komodo"); do
     output=$(eval "cargo run --quiet $file" 2>&1)
 
     if [ $? -ne 0 ]; then

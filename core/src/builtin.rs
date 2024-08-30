@@ -6,19 +6,19 @@ use crate::{
 
 use std::io::{stdin, BufRead};
 
-fn smtc_println(args: &[Object]) -> Object {
+fn komodo_println(args: &[Object]) -> Object {
     let str = args[0].to_string();
     println!("{str}");
     Object::Tuple(Tuple::from(vec![]))
 }
 
-fn smtc_print(args: &[Object]) -> Object {
+fn komodo_print(args: &[Object]) -> Object {
     let str = args[0].to_string();
     print!("{str}");
     Object::Tuple(Tuple::from(vec![]))
 }
 
-fn smtc_getln(_args: &[Object]) -> Object {
+fn komodo_getln(_args: &[Object]) -> Object {
     let mut line = String::new();
     stdin().lock().read_line(&mut line).unwrap();
 
@@ -27,7 +27,7 @@ fn smtc_getln(_args: &[Object]) -> Object {
     Object::String(MyString::from(line.as_str()))
 }
 
-pub fn smtc_assert(args: &[Object]) -> Object {
+pub fn komodo_assert(args: &[Object]) -> Object {
     match (truthy(&args[0]), args.len()) {
         (false, len) if len > 1 => Object::Error(FailedAssertion(Some(args[1].to_string()))),
         (false, _) => Object::Error(FailedAssertion(None)),
@@ -50,19 +50,19 @@ pub fn standard_env(ctx: ExecContext) -> Environment {
         vec![
             (
                 "println",
-                Object::Function(Function::Extern(ExternFunction::new(smtc_println, 1))),
+                Object::Function(Function::Extern(ExternFunction::new(komodo_println, 1))),
             ),
             (
                 "print",
-                Object::Function(Function::Extern(ExternFunction::new(smtc_print, 1))),
+                Object::Function(Function::Extern(ExternFunction::new(komodo_print, 1))),
             ),
             (
                 "getln",
-                Object::Function(Function::Extern(ExternFunction::new(smtc_getln, 0))),
+                Object::Function(Function::Extern(ExternFunction::new(komodo_getln, 0))),
             ),
             (
                 "assert",
-                Object::Function(Function::Extern(ExternFunction::new(smtc_assert, 1))),
+                Object::Function(Function::Extern(ExternFunction::new(komodo_assert, 1))),
             ),
         ],
         ctx,
