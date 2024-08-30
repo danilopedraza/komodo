@@ -3,7 +3,7 @@
   "displayName": "komodo-analyzer",
   "description": "A VSC extension for Komodo.",
   "license": "GPL-3.0-only",
-  "publisher": "komodo",
+  "publisher": "symstatic",
   "version": "0.2.0",
   "repository": {
     "type": "git",
