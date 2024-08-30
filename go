@@ -49,6 +49,8 @@ case "$POSITIONAL_ARG" in
   deploy-site)
     mkdir -p "$TARGET" &&
     (cd website; cp index.html index.css $TARGET) &&
+    mkdir -p "$TARGET/play" &&
+    (cd core-browser; sh build.sh "$TARGET/play") &&
     mdbook build ./book --dest-dir "$TARGET/book/"
     ;;
   deploy-vsc-extension)
