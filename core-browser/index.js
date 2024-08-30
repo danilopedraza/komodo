@@ -8,7 +8,7 @@ results.setReadOnly(true);
 results.setShowPrintMargin(false);
 results.renderer.setShowGutter(false);
 results.setHighlightActiveLine(false);
-results.renderer.$cursorLayer.element.style.display = "none"
+results.renderer.$cursorLayer.element.style.display = "none";
 
 import init, { run_code } from "./komodo/komodo_browser.js"
 await init();
