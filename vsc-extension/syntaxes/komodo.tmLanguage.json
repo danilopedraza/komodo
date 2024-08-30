@@ -57,15 +57,15 @@
 		},
 		"numbers": {
 			"patterns": [
-        {
-          "name": "constant.numeric.integer.komodo",
-          "match": "(?<![\\w\\d.])\\d+(?![.])"
-        },
-        {
-          "name": "constant.numeric.float.komodo",
-          "match": "(\\d+)?\\.(\\d+)?"
-        }
-      ]
+				{
+					"name": "constant.numeric.integer.komodo",
+					"match": "(?<![\\w\\d.])(0b|0B|0x|0X|0o|0O|)[\\da-fA-F_]+(?![.])"
+				},
+				{
+					"name": "constant.numeric.float.komodo",
+					"match": "(\\d+)?\\.(\\d+)?"
+				}
+			]
 		},
 		"keywords": {
 			"patterns": [
