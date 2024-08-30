@@ -52,20 +52,15 @@ main {
   max-height: 10px;
 }
 
-
-#results {
-  min-width: 500px;
-}
-
 nav {
   padding: 5px;
   margin-bottom: 10px;
 }
 
 #editor {
-  min-width: 500px;
+  min-width: 360px;
   width: 800px;
-  max-width: calc(100vw - 530px);
+  max-width: calc(100vw - 390px);
   resize: horizontal;
 }
 
@@ -76,12 +71,16 @@ nav {
 }
 
 #results {
-  height: 100%;
-  flex: 1;
+  height: 600px;
+  min-width: 360px;
+  min-height: 250px;
+  max-height: calc(100vh - 350px);
+  resize: vertical;
 }
 
 #input {
   min-height: 250px;
+  flex: 1;
 }
 
 
