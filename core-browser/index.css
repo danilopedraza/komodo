@@ -46,6 +46,14 @@ main {
   width: 20px;
 }
 
+#editor {
+  min-width: 500px;
+}
+
+#results {
+  min-width: 500px;
+}
+
 nav {
   padding: 8px;
   margin-bottom: 10px;
@@ -55,4 +63,27 @@ nav {
   width: 800px;
   height: 100%;
   resize: horizontal;
+}
+
+.button {
+  border: 1px solid rgb(61, 61, 61);
+  height: 40px;
+  padding: 0 15px;
+  font-size: 100%;
+  text-align: center;
+  color: #fff;
+  border-radius: 4px;
+  background-color: rgb(102, 94, 94);
+}
+
+.button:hover {
+  background-color: rgb(133, 124, 124);
+}
+
+.button:active {
+  background-color: rgb(170, 157, 157);
+}
+
+nav button svg {
+  margin-left: 5px;
 }

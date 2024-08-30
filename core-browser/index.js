@@ -13,10 +13,16 @@ results.renderer.$cursorLayer.element.style.display = "none"
 import init, { run_code } from "./komodo/komodo_browser.js"
 await init();
 
+let run = () => {
+  let res = run_code(editor.getValue(), "");
+  results.setValue(res);
+  results.clearSelection();
+};
+
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && e.ctrlKey) {
-    let res = run_code(editor.getValue(), "");
-    results.setValue(res);
-    results.clearSelection();
-  }
+  if (e.key === "Enter" && e.ctrlKey) run();
 });
+
+document
+  .getElementById("exec-button")
+  .addEventListener("click", run);
