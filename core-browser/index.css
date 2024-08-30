@@ -43,7 +43,8 @@ main {
 }
 
 #sep {
-  width: 20px;
+  min-width: 10px;
+  max-width: 10px;
 }
 
 #editor {
