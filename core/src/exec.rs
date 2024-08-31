@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::error::{Error, Position};
 use crate::lexer::Radix;
@@ -151,30 +151,33 @@ fn assignment(left: &ASTNode, right: &ASTNode, env: &mut Environment) -> Result<
 
     match match_(left, &value) {
         Some(Match(map)) => {
-            for (key, val) in map {
-                match env.get(&key) {
-                    EnvResponse::Mutable(obj_ref) => {
-                        *obj_ref = val;
-                    }
-                    EnvResponse::Inmutable(_) => {
-                        return Err(Error::new(
-                            EvalError::InmutableAssign(key).into(),
-                            left.position,
-                        ))
-                    }
-                    EnvResponse::NotFound => {
-                        return Err(Error::new(
-                            EvalError::UnknownValue(key).into(),
-                            left.position,
-                        ))
-                    }
-                }
-            }
-
+            make_assignment(map, env, left.position)?;
             Ok(value)
         }
         None => todo!(),
     }
+}
+
+fn make_assignment(
+    map: BTreeMap<String, Object>,
+    env: &mut Environment,
+    position: Position,
+) -> Result<(), Error> {
+    for (key, val) in map {
+        match env.get(&key) {
+            EnvResponse::Mutable(obj_ref) => {
+                *obj_ref = val;
+            }
+            EnvResponse::Inmutable(_) => {
+                return Err(Error::new(EvalError::InmutableAssign(key).into(), position))
+            }
+            EnvResponse::NotFound => {
+                return Err(Error::new(EvalError::UnknownValue(key).into(), position))
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn block(exprs: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
@@ -619,7 +622,7 @@ mod tests {
     use crate::ast::tests::{
         _for, _if, assignment, block, boolean, call, comprehension, cons, container_element,
         dec_integer, decimal, extension_list, extension_set, fraction, function, infix, let_,
-        pattern, pos, prefix, range, set_cons, symbol, tuple, var,
+        pattern, pos, prefix, range, set_cons, string, symbol, tuple, var,
     };
     use crate::cst::tests::dummy_pos;
     use crate::env::EnvResponse;
@@ -1526,5 +1529,26 @@ mod tests {
                 dummy_pos()
             )),
         );
+    }
+
+    #[test]
+    #[ignore = "not yet implemented"]
+    fn mutate_list_element() {
+        let list = Object::List(vec![Object::Integer(1.into()), Object::Integer(2.into())].into());
+        let mut env = Environment::default();
+
+        env.set_mutable("list", list);
+
+        let element = container_element(
+            symbol("list", dummy_pos()),
+            dec_integer("0", dummy_pos()),
+            dummy_pos(),
+        );
+
+        let assignment = assignment(element.clone(), string("foo", dummy_pos()), dummy_pos());
+
+        assert!(exec(&assignment, &mut env).is_ok());
+
+        assert_eq!(exec(&element, &mut env), Ok(Object::String("foo".into())),);
     }
 }

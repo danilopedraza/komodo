@@ -650,6 +650,15 @@ impl Dictionary {
             Some(val) => Ok(val.to_owned()),
         }
     }
+
+    pub fn get_mut(&mut self, index: &Object) -> Result<&mut Object, EvalError> {
+        match self.dict.get_mut(index) {
+            None => Err(EvalError::NonExistentKey {
+                key: index.to_string(),
+            }),
+            Some(val) => Ok(val),
+        }
+    }
 }
 
 impl fmt::Display for Dictionary {
@@ -1182,6 +1191,19 @@ impl List {
                 let index = int.to_machine_magnitude();
                 match self.list.get(index) {
                     Some(val) => Ok(val.to_owned()),
+                    None => Err(EvalError::ListIndexOutOfBounds),
+                }
+            }
+            obj => Err(EvalError::InvalidIndex { kind: obj.kind() }),
+        }
+    }
+
+    pub fn get_mut(&mut self, index: &Object) -> Result<&mut Object, EvalError> {
+        match index {
+            Object::Integer(int) => {
+                let index = int.to_machine_magnitude();
+                match self.list.get_mut(index) {
+                    Some(val) => Ok(val),
                     None => Err(EvalError::ListIndexOutOfBounds),
                 }
             }
