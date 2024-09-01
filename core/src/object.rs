@@ -666,7 +666,7 @@ impl fmt::Display for Dictionary {
         let pairs = self
             .dict
             .iter()
-            .map(|(key, val)| format!("{key}: {val}"))
+            .map(|(key, val)| format!("{key} => {val}"))
             .collect::<Vec<_>>()
             .join(", ");
         write!(f, "{{{}}}", pairs)
