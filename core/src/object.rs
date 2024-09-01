@@ -616,7 +616,7 @@ impl fmt::Display for Set {
         let list = self
             .set
             .iter()
-            .map(|obj| obj.to_string())
+            .map(quote_mystring)
             .collect::<Vec<_>>()
             .join(", ");
 
@@ -661,12 +661,19 @@ impl Dictionary {
     }
 }
 
+fn quote_mystring(obj: &Object) -> String {
+    match obj {
+        Object::String(str) => format!("\"{str}\""),
+        obj => obj.to_string(),
+    }
+}
+
 impl fmt::Display for Dictionary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let pairs = self
             .dict
             .iter()
-            .map(|(key, val)| format!("{key} => {val}"))
+            .map(|(key, val)| format!("{} => {}", quote_mystring(key), quote_mystring(val)))
             .collect::<Vec<_>>()
             .join(", ");
         write!(f, "{{{}}}", pairs)
@@ -1260,7 +1267,7 @@ impl fmt::Display for List {
         let list = self
             .list
             .iter()
-            .map(|obj| obj.to_string())
+            .map(quote_mystring)
             .collect::<Vec<_>>()
             .join(", ");
 
