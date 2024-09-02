@@ -197,9 +197,16 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
         InfixOperator::Substraction => infix_node(ast::InfixOperator::Substraction, lhs, rhs),
         InfixOperator::Sum => infix_node(ast::InfixOperator::Sum, lhs, rhs),
         InfixOperator::Element => container_element(lhs, rhs),
-        InfixOperator::Assignment => todo!(),
+        InfixOperator::Assignment => assignment(lhs, rhs),
         InfixOperator::Constraint => pattern(lhs, rhs),
     }
+}
+
+fn assignment(left: CSTNode, right: CSTNode) -> WeederResult<ASTNodeKind> {
+    let left = Box::new(rewrite(left)?);
+    let right = Box::new(rewrite(right)?);
+
+    Ok(ASTNodeKind::Assignment { left, right })
 }
 
 fn container_element(container: CSTNode, element: CSTNode) -> WeederResult<ASTNodeKind> {
