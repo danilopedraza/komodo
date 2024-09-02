@@ -146,8 +146,41 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     }
 }
 
+fn get_named_container_element(node: &ASTNode) -> Option<(&str, &ASTNode, Position)> {
+    match &node.kind {
+        ASTNodeKind::IndexNotation { container, index } => match &container.kind {
+            ASTNodeKind::Symbol { name } => Some((name, index, container.position)),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
 fn assignment(left: &ASTNode, right: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     let value = exec(right, env)?;
+
+    if let Some((name, index, name_position)) = get_named_container_element(left) {
+        let index_obj = exec(index, env)?;
+        let container = get_mutable_value(name, env, name_position)?;
+
+        let element_ref = match container {
+            Object::List(list) => match list.get_mut(&index_obj) {
+                Ok(obj) => Ok(obj),
+                Err(eval_err) => Err(Error::new(eval_err.into(), index.position)),
+            },
+            Object::Dictionary(dict) => match dict.get_mut(&index_obj) {
+                Ok(obj) => Ok(obj),
+                Err(eval_err) => Err(Error::new(eval_err.into(), index.position)),
+            },
+            obj => Err(Error::new(
+                EvalError::IndexingNonContainer { kind: obj.kind() }.into(),
+                name_position,
+            )),
+        }?;
+
+        *element_ref = value;
+        return Ok(element_ref.to_owned());
+    }
 
     match match_(left, &value) {
         Some(Match(map)) => {
@@ -164,20 +197,30 @@ fn make_assignment(
     position: Position,
 ) -> Result<(), Error> {
     for (key, val) in map {
-        match env.get(&key) {
-            EnvResponse::Mutable(obj_ref) => {
-                *obj_ref = val;
-            }
-            EnvResponse::Inmutable(_) => {
-                return Err(Error::new(EvalError::InmutableAssign(key).into(), position))
-            }
-            EnvResponse::NotFound => {
-                return Err(Error::new(EvalError::UnknownValue(key).into(), position))
-            }
-        }
+        let obj_ref = get_mutable_value(&key, env, position)?;
+        *obj_ref = val;
     }
 
     Ok(())
+}
+
+fn get_mutable_value<'a>(
+    name: &str,
+    env: &'a mut Environment,
+    position: Position,
+) -> Result<&'a mut Object, Error> {
+    match env.get(name) {
+        EnvResponse::Mutable(obj_ref) => Ok(obj_ref),
+
+        EnvResponse::Inmutable(_) => Err(Error::new(
+            EvalError::InmutableAssign(name.into()).into(),
+            position,
+        )),
+        EnvResponse::NotFound => Err(Error::new(
+            EvalError::UnknownValue(name.into()).into(),
+            position,
+        )),
+    }
 }
 
 fn block(exprs: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
@@ -1532,7 +1575,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn mutate_list_element() {
         let list = Object::List(vec![Object::Integer(1.into()), Object::Integer(2.into())].into());
         let mut env = Environment::default();
