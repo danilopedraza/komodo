@@ -115,3 +115,7 @@ nav {
 nav button svg {
   margin-left: 5px;
 }
+
+nav a {
+  margin-left: auto;
+}
