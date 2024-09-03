@@ -1,3 +1,5 @@
+import init, { run_code } from "./komodo/komodo_browser.js"
+
 const editor = ace.edit("editor");
 editor.setOptions({
   theme: "ace/theme/dracula",
@@ -41,6 +43,10 @@ let run = () => {
   const stdin = inputBox.getValue();
   const source = editor.getValue();
   try {
+    setStateMessage({
+      msg: "The interpreter is executing your program...",
+      color: "gray",
+    });
     let res = run_code(source, stdin);
     results.setValue(res);
     results.clearSelection();
@@ -68,9 +74,7 @@ document
   .getElementById("exec-button")
   .addEventListener("click", run);
 
-import init, { run_code } from "./komodo/komodo_browser.js"
-
-init().then(() => 
+init().then(() =>
   setStateMessage({
     msg: "Execute your code with the \"Run\" button or Ctrl + Enter.",
     color: "gray",
