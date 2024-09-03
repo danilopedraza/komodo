@@ -55,6 +55,15 @@ main {
 nav {
   padding: 5px;
   margin-bottom: 10px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+#state-message {
+  color: gray;
+  font-size: 90%;
+  padding-left: 15px;
 }
 
 #editor {

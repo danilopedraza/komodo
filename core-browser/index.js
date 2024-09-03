@@ -23,15 +23,41 @@ inputBox.setOptions({
   placeholder: "Enter your standard input here",
 });
 
-import init, { run_code } from "./komodo/komodo_browser.js"
-await init();
+const stateMessage = document.getElementById("state-message");
+
+let setStateMessage = ({ msg, color }) => {
+  stateMessage.style.color = color;
+  stateMessage.innerText = msg;
+};
+
+function getErrorDiagnostic(msg) {
+  switch (msg) {
+    case "unreachable executed": return "Your program reached an unimplemented part of the interpreter";
+    default: return "It probably ran out of memory";
+  }
+}
 
 let run = () => {
   const stdin = inputBox.getValue();
   const source = editor.getValue();
-  let res = run_code(source, stdin);
-  results.setValue(res);
-  results.clearSelection();
+  try {
+    let res = run_code(source, stdin);
+    results.setValue(res);
+    results.clearSelection();
+    setStateMessage({
+      msg: "The interpreter finished its execution.",
+      color: "gray",
+    });
+  } catch (e) {
+    setStateMessage({
+      msg: `The interpreter failed to execute your program. ${getErrorDiagnostic(e.message)}.`,
+      color: "red",
+    });
+    results.setValue("");
+    results.clearSelection();
+  } finally {
+    init();
+  }
 };
 
 document.addEventListener("keydown", (e) => {
@@ -41,3 +67,12 @@ document.addEventListener("keydown", (e) => {
 document
   .getElementById("exec-button")
   .addEventListener("click", run);
+
+import init, { run_code } from "./komodo/komodo_browser.js"
+
+init().then(() => 
+  setStateMessage({
+    msg: "Execute your code with the \"Run\" button or Ctrl + Enter.",
+    color: "gray",
+  })
+);
