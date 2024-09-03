@@ -53,7 +53,7 @@ impl Repl {
             Err(ReadlineError::Interrupted | ReadlineError::Eof) => {
                 (String::from(""), ReplResponse::Break)
             }
-            _ => todo!(),
+            Err(err) => (err.to_string(), ReplResponse::Break),
         }
     }
 
