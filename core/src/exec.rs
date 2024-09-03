@@ -338,22 +338,7 @@ fn declaration(
         (ASTNodeKind::Call { called, args }, Some(value), _) => {
             let_function(called, args, value, env)
         }
-        (_, Some(value), kind) => {
-            let value = exec(value, env)?;
-            match match_(left, &value) {
-                Some(Match(map)) => {
-                    for (name, val) in map {
-                        match kind {
-                            DeclarationKind::Mutable => env.set_mutable(&name, val),
-                            DeclarationKind::Inmutable => env.set_inmutable(&name, val),
-                        }
-                    }
-
-                    Ok(value)
-                }
-                None => todo!(),
-            }
-        }
+        (_, Some(right), kind) => let_pattern(left, right, kind, env),
         (
             ASTNodeKind::Pattern {
                 exp,
@@ -361,12 +346,34 @@ fn declaration(
             },
             None,
             _,
-        ) => let_property_only(exp, name),
+        ) => let_without_value(exp, name),
         _ => todo!(),
     }
 }
 
-fn let_property_only(exp: &ASTNode, property: &str) -> Result<Object, Error> {
+fn let_pattern(
+    left: &ASTNode,
+    right: &ASTNode,
+    kind: DeclarationKind,
+    env: &mut Environment,
+) -> Result<Object, Error> {
+    let value = exec(right, env)?;
+    match match_(left, &value) {
+        Some(Match(map)) => {
+            for (name, val) in map {
+                match kind {
+                    DeclarationKind::Mutable => env.set_mutable(&name, val),
+                    DeclarationKind::Inmutable => env.set_inmutable(&name, val),
+                }
+            }
+
+            Ok(value)
+        }
+        None => todo!(),
+    }
+}
+
+fn let_without_value(exp: &ASTNode, property: &str) -> Result<Object, Error> {
     match &exp.kind {
         ASTNodeKind::Symbol { name } => Ok(Object::Symbol(Symbol {
             name: name.to_owned(),
