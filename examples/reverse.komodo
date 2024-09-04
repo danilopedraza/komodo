@@ -1,0 +1,4 @@
+let reverse("") := ""
+let reverse([first|tail]: String) := reverse(tail) + first
+
+assert(reverse("foo") = "oof")

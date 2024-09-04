@@ -154,6 +154,13 @@ fn match_prefix_crop(first: &ASTNode, most: &ASTNode, val: &Object) -> Option<Ma
 
             join(first_match, last_match)
         }
+        Object::String(str) => {
+            let (first_val, tail_val) = str.cons_format()?;
+            let first_match = match_(first, &Object::Char(first_val.into()));
+            let tail_match = match_(most, &Object::String(tail_val.into()));
+
+            join(first_match, tail_match)
+        }
         _ => None,
     }
 }
@@ -533,6 +540,25 @@ mod tests {
         assert_eq!(
             match_(&pattern, &value),
             single_match("a", &Object::Symbol(Symbol::new("a".into(), "Real".into())),)
+        );
+    }
+
+    #[test]
+    fn string_cons() {
+        let pattern = cons(
+            symbol("first", dummy_pos()),
+            symbol("tail", dummy_pos()),
+            dummy_pos(),
+        );
+
+        let value = Object::String("foo".into());
+
+        assert_eq!(
+            match_(&pattern, &value),
+            join(
+                single_match("first", &Object::Char('f'.into())),
+                single_match("tail", &Object::String("oo".into())),
+            ),
         );
     }
 }

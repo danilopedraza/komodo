@@ -944,6 +944,13 @@ impl MyString {
         let val = self.val.repeat(times);
         Object::String(MyString { val })
     }
+
+    pub fn cons_format(&self) -> Option<(char, &str)> {
+        let mut iter = self.val.chars();
+        let first = iter.next()?;
+
+        Some((first, iter.as_str()))
+    }
 }
 
 impl InfixOperable for MyString {
