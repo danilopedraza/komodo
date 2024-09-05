@@ -65,6 +65,13 @@ impl Position {
     pub fn new(start: usize, length: usize) -> Self {
         Self { start, length }
     }
+
+    pub fn join(&self, other: Self) -> Self {
+        Self {
+            start: self.start,
+            length: other.start + other.length - self.start,
+        }
+    }
 }
 
 pub fn error_msg(Error(err, pos): &Error) -> ErrorMessage {
@@ -177,6 +184,8 @@ fn exec_error_msg(err: &EvalError) -> String {
             numer_kind,
             denom_kind,
         } => bad_fraction(numer_kind, denom_kind),
+        EvalError::BadMatch => "The pattern did not match its assigned value".into(),
+        EvalError::BadSymbolicDeclaration => "Only names can be declared without a value".into(),
         EvalError::DenominatorZero => "Division by zero".into(),
         EvalError::FailedAssertion(msg) => failed_assertion(msg),
         EvalError::MissingFunctionArguments { expected, actual } => {

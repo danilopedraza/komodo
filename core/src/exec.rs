@@ -20,6 +20,8 @@ pub enum EvalError {
         numer_kind: String,
         denom_kind: String,
     },
+    BadMatch,
+    BadSymbolicDeclaration,
     DenominatorZero,
     FailedAssertion(Option<String>),
     IndexingNonContainer {
@@ -187,7 +189,10 @@ fn assignment(left: &ASTNode, right: &ASTNode, env: &mut Environment) -> Result<
             make_assignment(map, env, left.position)?;
             Ok(value)
         }
-        None => todo!(),
+        None => Err(Error::new(
+            EvalError::BadMatch.into(),
+            left.position.join(right.position),
+        )),
     }
 }
 
@@ -369,7 +374,10 @@ fn let_pattern(
 
             Ok(value)
         }
-        None => todo!(),
+        None => Err(Error::new(
+            EvalError::BadMatch.into(),
+            left.position.join(right.position),
+        )),
     }
 }
 
@@ -379,7 +387,10 @@ fn let_without_value(exp: &ASTNode, property: &str) -> Result<Object, Error> {
             name: name.to_owned(),
             property: property.to_owned(),
         })),
-        _ => todo!(),
+        _ => Err(Error::new(
+            EvalError::BadSymbolicDeclaration.into(),
+            exp.position,
+        )),
     }
 }
 
