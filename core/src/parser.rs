@@ -141,7 +141,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         Ok(CSTNode::new(node, self.cur_pos))
     }
 
-    fn err_with_cur(&self, err: ParserError) -> NodeResult {
+    fn err_with_cur<P>(&self, err: ParserError) -> Result<P, Error> {
         Err(Error::new(err.into(), self.cur_pos))
     }
 
@@ -372,10 +372,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         kind: ComprehensionKind,
         start: usize,
     ) -> NodeResult {
-        let variable = match self.next_token()? {
-            Some(TokenType::Ident(name)) => Ok(name),
-            _ => todo!(),
-        }?;
+        let variable = self.consume_symbol()?;
         self.consume(TokenType::In)?;
         let iterator = self.expression(Precedence::Lowest)?;
         self.consume(match kind {
@@ -390,6 +387,17 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             kind,
             self.start_to_cur(start),
         ))
+    }
+
+    fn consume_symbol(&mut self) -> Result<String, Error> {
+        match self.next_token()? {
+            Some(TokenType::Ident(name)) => Ok(name),
+            Some(tok) => self.err_with_cur(ParserError::UnexpectedToken(
+                vec![TokenType::Ident("".into())],
+                tok,
+            )),
+            None => self.err_with_cur(ParserError::EOFExpecting(vec![TokenType::Ident("".into())])),
+        }
     }
 
     fn prepend_(&mut self, first: CSTNode, start: usize) -> NodeResult {
