@@ -208,8 +208,8 @@ pub enum CSTNodeKind {
         alias: Option<Box<CSTNode>>,
     },
     ImportFrom {
-        source: String,
-        values: Vec<String>,
+        source: Box<CSTNode>,
+        values: Box<CSTNode>,
     },
     Infix(InfixOperator, Box<CSTNode>, Box<CSTNode>),
     Integer(String, Radix),
@@ -354,9 +354,9 @@ pub mod tests {
         CSTNode::new(CSTNodeKind::Import { name, alias }, position)
     }
 
-    pub fn import_from(source: &str, values: Vec<&str>, position: Position) -> CSTNode {
-        let source = source.to_string();
-        let values = values.into_iter().map(|s| s.to_string()).collect();
+    pub fn import_from(source: CSTNode, values: CSTNode, position: Position) -> CSTNode {
+        let source = Box::new(source);
+        let values = Box::new(values);
         CSTNode::new(CSTNodeKind::ImportFrom { source, values }, position)
     }
 

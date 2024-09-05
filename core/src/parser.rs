@@ -441,47 +441,15 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
     fn import_from(&mut self) -> NodeResult {
         let start = self.cur_pos.start;
-        match self.next_token()? {
-            Some(TokenType::Ident(source)) => {
-                self.consume(TokenType::Import)?;
-                match self.expression(Precedence::Lowest)? {
-                    CSTNode {
-                        kind: CSTNodeKind::Symbol(val),
-                        position: _,
-                    } => Ok(CSTNode::new(
-                        CSTNodeKind::ImportFrom {
-                            source,
-                            values: vec![val],
-                        },
-                        self.start_to_cur(start),
-                    )),
-                    CSTNode {
-                        kind: CSTNodeKind::Tuple(vals),
-                        position: _,
-                    } => {
-                        let mut values = vec![];
-                        for val in vals {
-                            if let CSTNode {
-                                kind: CSTNodeKind::Symbol(name),
-                                position: _,
-                            } = val
-                            {
-                                values.push(name);
-                            } else {
-                                todo!()
-                            }
-                        }
 
-                        Ok(CSTNode::new(
-                            CSTNodeKind::ImportFrom { source, values },
-                            self.start_to_cur(start),
-                        ))
-                    }
-                    _ => todo!(),
-                }
-            }
-            _ => todo!(),
-        }
+        let source = Box::new(self.non_infix()?);
+        self.consume(TokenType::Import)?;
+        let values = Box::new(self.non_infix()?);
+
+        Ok(CSTNode::new(
+            CSTNodeKind::ImportFrom { source, values },
+            self.start_to_cur(start),
+        ))
     }
 
     fn consume(&mut self, expected_tok: TokenType) -> Result<(), Error> {
@@ -1756,7 +1724,11 @@ mod tests {
 
         assert_eq!(
             Parser::from(lexer).next(),
-            Some(Ok(import_from("foo", vec!["bar"], _pos(0, 19)))),
+            Some(Ok(import_from(
+                symbol("foo", _pos(5, 3)),
+                symbol("bar", _pos(16, 3)),
+                _pos(0, 19)
+            ))),
         );
     }
 
@@ -1767,7 +1739,14 @@ mod tests {
 
         assert_eq!(
             Parser::from(lexer).next(),
-            Some(Ok(import_from("foo", vec!["bar", "baz"], _pos(0, 26))))
+            Some(Ok(import_from(
+                symbol("foo", _pos(5, 3)),
+                tuple(
+                    vec![symbol("bar", _pos(17, 3)), symbol("baz", _pos(22, 3))],
+                    _pos(16, 10)
+                ),
+                _pos(0, 26)
+            )))
         );
     }
 

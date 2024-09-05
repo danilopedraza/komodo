@@ -34,7 +34,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeKind::AdInfinitum => ad_infinitum(),
         CSTNodeKind::SetCons { some, most } => set_cons(*some, *most),
         CSTNodeKind::Import { name: _, alias: _ } => todo!(),
-        CSTNodeKind::ImportFrom { source, values } => import_from(source, values),
+        CSTNodeKind::ImportFrom { source, values } => import_from(*source, *values),
         CSTNodeKind::Comprehension {
             element,
             variable,
@@ -333,7 +333,30 @@ fn set_cons(some: CSTNode, most: CSTNode) -> WeederResult<ASTNodeKind> {
     Ok(ASTNodeKind::SetCons { some, most })
 }
 
-fn import_from(source: String, values: Vec<String>) -> WeederResult<ASTNodeKind> {
+fn import_from(source: CSTNode, values: CSTNode) -> WeederResult<ASTNodeKind> {
+    let source = match source.kind {
+        CSTNodeKind::Symbol(name) => name,
+        _ => todo!(),
+    };
+
+    let values = match values.kind {
+        CSTNodeKind::Tuple(list) => {
+            let mut values = vec![];
+
+            for node in list {
+                match node.kind {
+                    CSTNodeKind::Symbol(value) => values.push(value),
+                    _ => todo!(),
+                }
+            }
+
+            values
+        }
+
+        CSTNodeKind::Symbol(value) => vec![value],
+        _ => todo!(),
+    };
+
     Ok(ASTNodeKind::ImportFrom { source, values })
 }
 
