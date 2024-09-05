@@ -50,7 +50,7 @@ fn get_module_code(module_name: &str, env: &Environment) -> Result<String, Error
     } else {
         reference_path.join(Path::new(&format!("{module_name}.komodo")))
     };
-    println!("{}", path.to_str().unwrap());
+
     let source = fs::read_to_string(path).unwrap();
     Ok(source)
 }
