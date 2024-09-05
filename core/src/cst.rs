@@ -204,8 +204,8 @@ pub enum CSTNodeKind {
     For(String, Box<CSTNode>, Vec<CSTNode>),
     If(Box<CSTNode>, Box<CSTNode>, Box<CSTNode>),
     Import {
-        name: String,
-        alias: Option<String>,
+        name: Box<CSTNode>,
+        alias: Option<Box<CSTNode>>,
     },
     ImportFrom {
         source: String,
@@ -348,9 +348,9 @@ pub mod tests {
         CSTNode::new(CSTNodeKind::SetCons { some, most }, position)
     }
 
-    pub fn import(name: &str, alias: Option<&str>, position: Position) -> CSTNode {
-        let name = name.to_string();
-        let alias = alias.map(|s| s.to_string());
+    pub fn simple_import(name: CSTNode, alias: Option<CSTNode>, position: Position) -> CSTNode {
+        let name = Box::new(name);
+        let alias = alias.map(Box::new);
         CSTNode::new(CSTNodeKind::Import { name, alias }, position)
     }
 

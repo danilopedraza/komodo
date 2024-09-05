@@ -517,25 +517,23 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     fn import(&mut self) -> NodeResult {
         let start = self.cur_pos.start;
 
-        match (self.next_token()?, self.peek_token()) {
-            (Some(TokenType::Ident(name)), Ok(Some(TokenType::As))) => {
+        let name = Box::new(self.non_infix()?);
+        match self.peek_token() {
+            Ok(Some(TokenType::As)) => {
                 self.next_token()?;
-                match self.next_token()? {
-                    Some(TokenType::Ident(alias)) => Ok(CSTNode::new(
-                        CSTNodeKind::Import {
-                            name,
-                            alias: Some(alias),
-                        },
-                        self.start_to_cur(start),
-                    )),
-                    _ => todo!(),
-                }
+                let alias = Box::new(self.non_infix()?);
+                Ok(CSTNode::new(
+                    CSTNodeKind::Import {
+                        name,
+                        alias: Some(alias),
+                    },
+                    self.start_to_cur(start),
+                ))
             }
-            (Some(TokenType::Ident(name)), _) => Ok(CSTNode::new(
+            _ => Ok(CSTNode::new(
                 CSTNodeKind::Import { name, alias: None },
                 self.start_to_cur(start),
             )),
-            _ => todo!(),
         }
     }
 
@@ -666,8 +664,8 @@ mod tests {
     use super::*;
     use crate::{
         cst::tests::{
-            _pos, ad_infinitum, block, boolean, char, dec_integer, import, import_from, integer,
-            let_, pattern, set_cons, string, symbol, var, wildcard,
+            _pos, ad_infinitum, block, boolean, char, dec_integer, import_from, integer, let_,
+            pattern, set_cons, simple_import, string, symbol, var, wildcard,
         },
         error::Position,
         lexer::{Lexer, Radix},
@@ -1728,7 +1726,11 @@ mod tests {
 
         assert_eq!(
             Parser::from(lexer).next(),
-            Some(Ok(import("foo", None, _pos(0, 10)))),
+            Some(Ok(simple_import(
+                symbol("foo", _pos(7, 3)),
+                None,
+                _pos(0, 10)
+            ))),
         );
     }
 
@@ -1739,7 +1741,11 @@ mod tests {
 
         assert_eq!(
             Parser::from(lexer).next(),
-            Some(Ok(import("foo", Some("bar"), _pos(0, 17))))
+            Some(Ok(simple_import(
+                symbol("foo", _pos(7, 3)),
+                Some(symbol("bar", _pos(14, 3))),
+                _pos(0, 17)
+            )))
         );
     }
 
