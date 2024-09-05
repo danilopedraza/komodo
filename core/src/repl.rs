@@ -26,9 +26,9 @@ struct Repl {
 }
 
 impl Repl {
-    fn standard_repl() -> Self {
+    fn standard_repl(ctx: ExecContext) -> Self {
         Self {
-            env: standard_env(ExecContext::Repl),
+            env: standard_env(ctx),
             code: String::new(),
         }
     }
@@ -113,9 +113,9 @@ impl Cli for MyCLI {
     }
 }
 
-pub fn repl<T: Cli>(interface: &mut T) {
+pub fn repl<T: Cli>(interface: &mut T, ctx: ExecContext) {
     let mut wait_for_more = false;
-    let mut repl = Repl::standard_repl();
+    let mut repl = Repl::standard_repl(ctx);
 
     loop {
         let readline = match wait_for_more {
@@ -215,7 +215,7 @@ mod tests {
 
     #[test]
     fn language_error_communicated() {
-        let mut repl = Repl::standard_repl();
+        let mut repl = Repl::default();
 
         assert!(matches!(
             repl.response(Ok(")".into())),
@@ -330,7 +330,7 @@ mod tests {
 
     #[test]
     fn empty_response() {
-        let mut repl = Repl::standard_repl();
+        let mut repl = Repl::default();
 
         assert_eq!(
             repl.response(Err(ReadlineError::Interrupted)),
@@ -341,7 +341,7 @@ mod tests {
     #[test]
     fn not_printing_empty_response() {
         let mut cli = CliMock::_new(vec![Ok("".into()), Err(ReadlineError::Interrupted)]);
-        repl(&mut cli);
+        repl(&mut cli, ExecContext::default());
 
         assert!(cli.lines_printed.is_empty());
     }
@@ -349,7 +349,7 @@ mod tests {
     #[test]
     fn continue_after_error() {
         let mut cli = CliMock::_new(vec![Ok(")".into()), Err(ReadlineError::Interrupted)]);
-        repl(&mut cli);
+        repl(&mut cli, ExecContext::default());
 
         let consumed_inputs = cli.input_index;
 
@@ -358,7 +358,7 @@ mod tests {
 
     #[test]
     fn clear_autocomplete_after_error() {
-        let mut repl = Repl::standard_repl();
+        let mut repl = Repl::default();
         repl.response(Ok("1 + )".into()));
         assert!(repl.code.is_empty());
     }

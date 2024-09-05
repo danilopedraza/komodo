@@ -3,7 +3,7 @@ use std::{fs, path::Path};
 use crate::{
     ast::{ASTNode, ASTNodeKind},
     cst::CSTNode,
-    env::{EnvResponse, Environment, ExecContext},
+    env::{EnvResponse, Environment},
     error::Error,
     exec::exec,
     lexer::{Lexer, Token},
@@ -43,19 +43,16 @@ fn is_std_module(module_name: &str) -> bool {
 static STDLIB_PATH: &str = "../std/";
 
 fn get_module_code(module_name: &str, env: &Environment) -> Result<String, Error> {
-    match &env.ctx {
-        ExecContext::File { reference_path } => {
-            let path = if is_std_module(module_name) {
-                Path::new(STDLIB_PATH).join(Path::new(&format!("{module_name}.komodo")))
-            } else {
-                reference_path.join(Path::new(&format!("{module_name}.komodo")))
-            };
-            println!("{}", path.to_str().unwrap());
-            let source = fs::read_to_string(path).unwrap();
-            Ok(source)
-        }
-        ExecContext::Repl => todo!(),
-    }
+    let reference_path = &env.ctx.reference_path;
+
+    let path = if is_std_module(module_name) {
+        Path::new(STDLIB_PATH).join(Path::new(&format!("{module_name}.komodo")))
+    } else {
+        reference_path.join(Path::new(&format!("{module_name}.komodo")))
+    };
+    println!("{}", path.to_str().unwrap());
+    let source = fs::read_to_string(path).unwrap();
+    Ok(source)
 }
 
 pub fn import_from(

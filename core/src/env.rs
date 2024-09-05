@@ -40,9 +40,15 @@ impl Scope {
     }
 }
 
-pub enum ExecContext {
-    Repl,
-    File { reference_path: PathBuf },
+#[derive(Default)]
+pub struct ExecContext {
+    pub reference_path: PathBuf,
+}
+
+impl ExecContext {
+    pub fn new(reference_path: PathBuf) -> Self {
+        Self { reference_path }
+    }
 }
 
 pub struct Environment {
@@ -54,7 +60,7 @@ impl Default for Environment {
     fn default() -> Self {
         Self {
             scopes: vec![Scope::default()],
-            ctx: ExecContext::Repl,
+            ctx: ExecContext::default(),
         }
     }
 }

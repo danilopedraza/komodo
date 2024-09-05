@@ -29,7 +29,7 @@ fn run_file(path: &str) -> ExitCode {
     match input_res {
         Ok(input) => {
             let reference_path = get_reference_path(path);
-            let mut env = standard_env(ExecContext::File { reference_path });
+            let mut env = standard_env(ExecContext::new(reference_path));
             let res = run(&input, &mut env);
             if let Err(err) = res {
                 error_msg(&err).emit(path, &input);
@@ -49,7 +49,10 @@ fn run_file(path: &str) -> ExitCode {
 fn run_komodo(args: &[String]) -> ExitCode {
     if args.len() == 1 {
         #[cfg(feature = "repl")]
-        repl(&mut MyCLI::default());
+        repl(
+            &mut MyCLI::default(),
+            ExecContext::new(get_reference_path(".")),
+        );
         ExitCode::SUCCESS
     } else {
         run_file(&args[1])
