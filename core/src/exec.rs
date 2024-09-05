@@ -350,8 +350,8 @@ fn declaration(
                 constraint: Some(name),
             },
             None,
-            _,
-        ) => let_without_value(exp, name),
+            kind,
+        ) => let_without_value(exp, name, kind, env),
         _ => todo!(),
     }
 }
@@ -381,12 +381,23 @@ fn let_pattern(
     }
 }
 
-fn let_without_value(exp: &ASTNode, property: &str) -> Result<Object, Error> {
+fn let_without_value(
+    exp: &ASTNode,
+    property: &str,
+    kind: DeclarationKind,
+    env: &mut Environment,
+) -> Result<Object, Error> {
     match &exp.kind {
-        ASTNodeKind::Symbol { name } => Ok(Object::Symbol(Symbol {
-            name: name.to_owned(),
-            property: property.to_owned(),
-        })),
+        ASTNodeKind::Symbol { name } => {
+            let symbol = Object::Symbol(Symbol {
+                name: name.to_owned(),
+                property: property.to_owned(),
+            });
+
+            env.set(name, symbol.clone(), kind);
+
+            Ok(symbol)
+        }
         _ => Err(Error::new(
             EvalError::BadSymbolicDeclaration.into(),
             exp.position,
@@ -1531,14 +1542,16 @@ mod tests {
             None,
             dummy_pos(),
         );
+        let mut env = Environment::default();
 
-        assert_eq!(
-            exec(&node, &mut Environment::default()),
-            Ok(Object::Symbol(Symbol {
-                name: String::from("x"),
-                property: String::from("Real")
-            }))
-        );
+        let symbol = Object::Symbol(Symbol {
+            name: String::from("x"),
+            property: String::from("Real"),
+        });
+
+        assert_eq!(exec(&node, &mut env), Ok(symbol.clone()),);
+
+        assert_eq!(env.get("x"), EnvResponse::Inmutable(&symbol),);
     }
 
     #[test]
