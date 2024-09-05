@@ -158,7 +158,7 @@ pub enum ASTNodeKind {
     },
     Declaration {
         left: Box<ASTNode>,
-        right: Option<Box<ASTNode>>,
+        right: Box<ASTNode>,
         kind: DeclarationKind,
     },
     Pattern {
@@ -182,6 +182,11 @@ pub enum ASTNodeKind {
     },
     Symbol {
         name: String,
+    },
+    SymbolicDeclaration {
+        name: String,
+        constraint: String,
+        kind: DeclarationKind,
     },
     Tuple {
         list: Vec<ASTNode>,
@@ -287,16 +292,16 @@ pub mod tests {
         ASTNode::new(ASTNodeKind::Set { list }, position)
     }
 
-    pub fn let_(left: ASTNode, right: Option<ASTNode>, position: Position) -> ASTNode {
+    pub fn let_(left: ASTNode, right: ASTNode, position: Position) -> ASTNode {
         let left = Box::new(left);
-        let right = right.map(Box::new);
+        let right = Box::new(right);
         let kind = DeclarationKind::Inmutable;
         ASTNode::new(ASTNodeKind::Declaration { left, right, kind }, position)
     }
 
-    pub fn var(left: ASTNode, right: Option<ASTNode>, position: Position) -> ASTNode {
+    pub fn var(left: ASTNode, right: ASTNode, position: Position) -> ASTNode {
         let left = Box::new(left);
-        let right = right.map(Box::new);
+        let right = Box::new(right);
         let kind = DeclarationKind::Mutable;
         ASTNode::new(ASTNodeKind::Declaration { left, right, kind }, position)
     }
@@ -389,5 +394,20 @@ pub mod tests {
         let left = Box::new(left);
         let right = Box::new(right);
         ASTNode::new(ASTNodeKind::Assignment { left, right }, position)
+    }
+
+    pub fn symbolic_let(name: &str, constraint: &str, position: Position) -> ASTNode {
+        let name = name.to_string();
+        let constraint = constraint.to_string();
+        let kind = DeclarationKind::Inmutable;
+
+        ASTNode::new(
+            ASTNodeKind::SymbolicDeclaration {
+                name,
+                constraint,
+                kind,
+            },
+            position,
+        )
     }
 }

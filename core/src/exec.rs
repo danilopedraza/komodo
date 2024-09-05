@@ -21,7 +21,6 @@ pub enum EvalError {
         denom_kind: String,
     },
     BadMatch,
-    BadSymbolicDeclaration,
     DenominatorZero,
     FailedAssertion(Option<String>),
     IndexingNonContainer {
@@ -136,6 +135,11 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         } => unimplemented!(),
         ASTNodeKind::Block(exprs) => block(exprs, env),
         ASTNodeKind::Assignment { left, right } => assignment(left, right, env),
+        ASTNodeKind::SymbolicDeclaration {
+            name,
+            constraint,
+            kind,
+        } => let_without_value(name, constraint, *kind, env),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -335,24 +339,13 @@ fn boolean(val: bool) -> Result<Object, Error> {
 
 fn declaration(
     left: &ASTNode,
-    right: &Option<Box<ASTNode>>,
+    right: &ASTNode,
     decl_kind: DeclarationKind,
     env: &mut Environment,
 ) -> Result<Object, Error> {
     match (&left.kind, right, decl_kind) {
-        (ASTNodeKind::Call { called, args }, Some(value), _) => {
-            let_function(called, args, value, env)
-        }
-        (_, Some(right), kind) => let_pattern(left, right, kind, env),
-        (
-            ASTNodeKind::Pattern {
-                exp,
-                constraint: Some(name),
-            },
-            None,
-            kind,
-        ) => let_without_value(exp, name, kind, env),
-        _ => todo!(),
+        (ASTNodeKind::Call { called, args }, value, _) => let_function(called, args, value, env),
+        (_, value, kind) => let_pattern(left, value, kind, env),
     }
 }
 
@@ -382,27 +375,19 @@ fn let_pattern(
 }
 
 fn let_without_value(
-    exp: &ASTNode,
+    name: &str,
     property: &str,
     kind: DeclarationKind,
     env: &mut Environment,
 ) -> Result<Object, Error> {
-    match &exp.kind {
-        ASTNodeKind::Symbol { name } => {
-            let symbol = Object::Symbol(Symbol {
-                name: name.to_owned(),
-                property: property.to_owned(),
-            });
+    let symbol = Object::Symbol(Symbol {
+        name: name.to_owned(),
+        property: property.to_owned(),
+    });
 
-            env.set(name, symbol.clone(), kind);
+    env.set(name, symbol.clone(), kind);
 
-            Ok(symbol)
-        }
-        _ => Err(Error::new(
-            EvalError::BadSymbolicDeclaration.into(),
-            exp.position,
-        )),
-    }
+    Ok(symbol)
 }
 
 fn integer(str: &str, radix: Radix) -> Result<Object, Error> {
@@ -693,8 +678,8 @@ mod tests {
     use super::*;
     use crate::ast::tests::{
         _for, _if, assignment, block, boolean, call, comprehension, cons, container_element,
-        dec_integer, decimal, extension_list, extension_set, fraction, function, infix, let_,
-        pattern, pos, prefix, range, set_cons, string, symbol, tuple, var,
+        dec_integer, decimal, extension_list, extension_set, fraction, function, infix, let_, pos,
+        prefix, range, set_cons, string, symbol, symbolic_let, tuple, var,
     };
     use crate::cst::tests::dummy_pos;
     use crate::env::EnvResponse;
@@ -791,7 +776,7 @@ mod tests {
     fn let_expression() {
         let node = &let_(
             symbol("x", dummy_pos()),
-            Some(dec_integer("0", dummy_pos())),
+            dec_integer("0", dummy_pos()),
             dummy_pos(),
         );
 
@@ -1040,7 +1025,7 @@ mod tests {
 
         let node = &let_(
             symbol("x", dummy_pos()),
-            Some(dec_integer("0", dummy_pos())),
+            dec_integer("0", dummy_pos()),
             dummy_pos(),
         );
 
@@ -1236,12 +1221,12 @@ mod tests {
                     vec![
                         let_(
                             symbol("y", dummy_pos()),
-                            Some(infix(
+                            infix(
                                 InfixOperator::Product,
                                 dec_integer("2", dummy_pos()),
                                 symbol("x", dummy_pos()),
                                 dummy_pos(),
-                            )),
+                            ),
                             dummy_pos(),
                         ),
                         infix(
@@ -1314,7 +1299,7 @@ mod tests {
                 vec![symbol("x", dummy_pos())],
                 dummy_pos(),
             ),
-            Some(symbol("x", dummy_pos())),
+            symbol("x", dummy_pos()),
             dummy_pos(),
         );
 
@@ -1537,11 +1522,7 @@ mod tests {
 
     #[test]
     fn symbol_with_property() {
-        let node = let_(
-            pattern(symbol("x", dummy_pos()), Some("Real"), dummy_pos()),
-            None,
-            dummy_pos(),
-        );
+        let node = symbolic_let("x", "Real", dummy_pos());
         let mut env = Environment::default();
 
         let symbol = Object::Symbol(Symbol {
@@ -1558,7 +1539,7 @@ mod tests {
     fn mutable_value() {
         let declaration = var(
             symbol("x", dummy_pos()),
-            Some(dec_integer("0", dummy_pos())),
+            dec_integer("0", dummy_pos()),
             dummy_pos(),
         );
 
@@ -1583,7 +1564,7 @@ mod tests {
     fn assign_inmutable() {
         let declaration = let_(
             symbol("x", dummy_pos()),
-            Some(dec_integer("0", dummy_pos())),
+            dec_integer("0", dummy_pos()),
             dummy_pos(),
         );
 

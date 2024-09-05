@@ -174,8 +174,10 @@ fn parser_error_msg(err: &ParserError) -> String {
     }
 }
 
-fn weeder_error_msg(_err: &WeederError) -> String {
-    todo!()
+fn weeder_error_msg(err: &WeederError) -> String {
+    match err {
+        WeederError::BadSymbolicDeclaration => "Only names can be declared without a value".into(),
+    }
 }
 
 fn exec_error_msg(err: &EvalError) -> String {
@@ -185,7 +187,6 @@ fn exec_error_msg(err: &EvalError) -> String {
             denom_kind,
         } => bad_fraction(numer_kind, denom_kind),
         EvalError::BadMatch => "The pattern did not match its assigned value".into(),
-        EvalError::BadSymbolicDeclaration => "Only names can be declared without a value".into(),
         EvalError::DenominatorZero => "Division by zero".into(),
         EvalError::FailedAssertion(msg) => failed_assertion(msg),
         EvalError::MissingFunctionArguments { expected, actual } => {

@@ -8,7 +8,9 @@ use crate::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum WeederError {}
+pub enum WeederError {
+    BadSymbolicDeclaration,
+}
 
 type WeederResult<T> = Result<T, Error>;
 
@@ -232,15 +234,33 @@ fn integer(dec: String, radix: Radix) -> WeederResult<ASTNodeKind> {
 }
 
 fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind> {
-    let (left, right) = match node {
+    match node {
         CSTNode {
             kind: CSTNodeKind::Infix(InfixOperator::Assignment, left, right),
             ..
-        } => (Box::new(rewrite(*left)?), Some(Box::new(rewrite(*right)?))),
-        kind => (Box::new(rewrite(kind)?), None),
-    };
-
-    Ok(ASTNodeKind::Declaration { left, right, kind })
+        } => {
+            let left = Box::new(rewrite(*left)?);
+            let right = Box::new(rewrite(*right)?);
+            Ok(ASTNodeKind::Declaration { left, right, kind })
+        }
+        CSTNode {
+            kind: CSTNodeKind::Infix(InfixOperator::Constraint, left, right),
+            ..
+        } => match (left.kind, right.kind) {
+            (CSTNodeKind::Symbol(name), CSTNodeKind::Symbol(constraint)) => {
+                Ok(ASTNodeKind::SymbolicDeclaration {
+                    name,
+                    constraint,
+                    kind,
+                })
+            }
+            _ => Err(Error::new(
+                WeederError::BadSymbolicDeclaration.into(),
+                node.position,
+            )),
+        },
+        _ => todo!(),
+    }
 }
 
 fn prefix(op: PrefixOperator, val: CSTNode) -> WeederResult<ASTNodeKind> {
@@ -323,7 +343,7 @@ mod tests {
         ast,
         cst::{
             self,
-            tests::{dec_integer, dummy_pos, symbol},
+            tests::{dec_integer, dummy_pos, pattern, symbol},
             InfixOperator,
         },
     };
@@ -431,6 +451,24 @@ mod tests {
                 ast::tests::dec_integer("0", dummy_pos()),
                 dummy_pos()
             ))
+        );
+    }
+
+    #[test]
+    fn symbolic_declaration() {
+        let node = cst::tests::let_(
+            pattern(
+                symbol("x", dummy_pos()),
+                Some(symbol("Real", dummy_pos())),
+                dummy_pos(),
+            ),
+            None,
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            rewrite(node),
+            Ok(ast::tests::symbolic_let("x", "Real", dummy_pos())),
         );
     }
 }
