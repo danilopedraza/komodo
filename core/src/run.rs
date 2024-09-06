@@ -4,13 +4,18 @@ use crate::{
     ast::{ASTNode, ASTNodeKind},
     cst::CSTNode,
     env::{EnvResponse, Environment},
-    error::Error,
+    error::{Error, Position},
     exec::exec,
     lexer::{Lexer, Token},
     object::Object,
     parser::Parser,
     weeder::rewrite,
 };
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ImportError {
+    SymbolNotFound { module: String, symbol: String },
+}
 
 fn collect_nodes<T: Iterator<Item = Result<Token, Error>>>(
     parser: Parser<T>,
@@ -57,7 +62,7 @@ fn get_module_code(module_name: &str, env: &Environment) -> Result<String, Error
 
 pub fn import_from(
     module_name: &str,
-    values: &[String],
+    values: &[(String, Position)],
     env: &mut Environment,
 ) -> Result<(), Error> {
     let source = get_module_code(module_name, env)?;
@@ -76,11 +81,18 @@ pub fn import_from(
         }
     }
 
-    for value in values {
+    for (value, position) in values {
         match temp_env.get(value) {
             EnvResponse::Mutable(obj) => env.set_mutable(value, obj.to_owned()),
             EnvResponse::Inmutable(obj) => env.set_inmutable(value, obj.to_owned()),
-            EnvResponse::NotFound => todo!(),
+            EnvResponse::NotFound => {
+                let module = module_name.to_string();
+                let symbol = value.to_string();
+                return Err(Error::new(
+                    ImportError::SymbolNotFound { module, symbol }.into(),
+                    *position,
+                ));
+            }
         }
     }
 

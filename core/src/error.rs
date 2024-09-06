@@ -11,6 +11,7 @@ use crate::{
     exec::EvalError,
     lexer::{LexerError, TokenType},
     parser::ParserError,
+    run::ImportError,
     weeder::WeederError,
 };
 
@@ -29,6 +30,7 @@ pub enum ErrorType {
     Parser(ParserError),
     Weeder(WeederError),
     Exec(EvalError),
+    Import(ImportError),
 }
 
 impl From<LexerError> for ErrorType {
@@ -55,7 +57,13 @@ impl From<EvalError> for ErrorType {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+impl From<ImportError> for ErrorType {
+    fn from(err: ImportError) -> Self {
+        Self::Import(err)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Position {
     pub start: usize,
     pub length: usize,
@@ -80,6 +88,7 @@ pub fn error_msg(Error(err, pos): &Error) -> ErrorMessage {
         ErrorType::Parser(err) => parser_error_msg(err),
         ErrorType::Weeder(err) => weeder_error_msg(err),
         ErrorType::Exec(err) => exec_error_msg(err),
+        ErrorType::Import(err) => import_error_msg(err),
     };
 
     ErrorMessage(msg, *pos)
@@ -300,6 +309,16 @@ fn disjunction(msgs: Vec<String>) -> String {
 fn unexpected_token(expected_msgs: Vec<String>, actual_msg: String) -> String {
     let expected_str = disjunction(expected_msgs);
     format!("Expected {expected_str}, but found {actual_msg}")
+}
+
+fn import_error_msg(err: &ImportError) -> String {
+    match err {
+        ImportError::SymbolNotFound { module, symbol } => symbol_not_found(module, symbol),
+    }
+}
+
+fn symbol_not_found(module: &str, symbol: &str) -> String {
+    format!("`{symbol}` was not found in the `{module}` module")
 }
 
 #[derive(Debug, PartialEq, Eq)]

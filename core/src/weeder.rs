@@ -345,7 +345,7 @@ fn import_from(source: CSTNode, values: CSTNode) -> WeederResult<ASTNodeKind> {
 
             for node in list {
                 match node.kind {
-                    CSTNodeKind::Symbol(value) => values.push(value),
+                    CSTNodeKind::Symbol(value) => values.push((value, node.position)),
                     _ => todo!(),
                 }
             }
@@ -353,7 +353,7 @@ fn import_from(source: CSTNode, values: CSTNode) -> WeederResult<ASTNodeKind> {
             values
         }
 
-        CSTNodeKind::Symbol(value) => vec![value],
+        CSTNodeKind::Symbol(value) => vec![(value, values.position)],
         _ => todo!(),
     };
 

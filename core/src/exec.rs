@@ -243,7 +243,11 @@ fn block(exprs: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
     Ok(res)
 }
 
-fn import_from(module: &str, values: &[String], env: &mut Environment) -> Result<Object, Error> {
+fn import_from(
+    module: &str,
+    values: &[(String, Position)],
+    env: &mut Environment,
+) -> Result<Object, Error> {
     run::import_from(module, values, env)?;
     Ok(Object::empty_tuple())
 }

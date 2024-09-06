@@ -145,7 +145,7 @@ pub enum ASTNodeKind {
     },
     ImportFrom {
         source: String,
-        values: Vec<String>,
+        values: Vec<(String, Position)>,
     },
     Infix {
         op: InfixOperator,
