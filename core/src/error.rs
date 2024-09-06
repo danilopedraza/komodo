@@ -203,6 +203,9 @@ fn exec_error_msg(err: &EvalError) -> String {
         EvalError::NonExistentKey { key } => non_existent_key(key),
         EvalError::UnknownValue(value) => unknown_value(value),
         EvalError::InmutableAssign(value) => inmutable_assign(value),
+        EvalError::UnmatchedCall => {
+            "None of the patterns in the function matched the arguments of this call".into()
+        }
     }
 }
 

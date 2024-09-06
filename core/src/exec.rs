@@ -51,6 +51,7 @@ pub enum EvalError {
     NonIterableObject(String),
     NonPrependableObject(String),
     UnknownValue(String),
+    UnmatchedCall,
 }
 
 pub fn truthy(val: &Object) -> bool {
@@ -554,7 +555,7 @@ fn call(
     }
 
     match func {
-        Object::Function(f) => f.call(&func_args, env),
+        Object::Function(f) => f.call(&func_args, env, call_pos),
         obj => Err(Error(
             EvalError::NonCallableObject(obj.kind()).into(),
             func_node.position,

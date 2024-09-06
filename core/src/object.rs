@@ -14,7 +14,7 @@ use num_rational::BigRational;
 use crate::{
     ast::ASTNode,
     env::Environment,
-    error::Error,
+    error::{Error, Position},
     exec::{exec, EvalError},
     lexer::Radix,
     matcher::{match_call, Match},
@@ -1062,11 +1062,16 @@ impl fmt::Display for Function {
 }
 
 impl Callable for Function {
-    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error> {
+    fn call(
+        &self,
+        args: &[Object],
+        env: &mut Environment,
+        call_pos: Position,
+    ) -> Result<Object, Error> {
         match self {
-            Self::Pattern(f) => f.call(args, env),
-            Self::Anonymous(f) => f.call(args, env),
-            Self::Extern(ef) => ef.call(args, env),
+            Self::Pattern(f) => f.call(args, env, call_pos),
+            Self::Anonymous(f) => f.call(args, env, call_pos),
+            Self::Extern(ef) => ef.call(args, env, call_pos),
         }
     }
 
@@ -1098,7 +1103,12 @@ impl PatternFunction {
 }
 
 impl Callable for PatternFunction {
-    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error> {
+    fn call(
+        &self,
+        args: &[Object],
+        env: &mut Environment,
+        call_pos: Position,
+    ) -> Result<Object, Error> {
         for (patterns, val) in &self.patterns {
             if let Some(Match(v)) = match_call(patterns, args) {
                 env.push_scope();
@@ -1115,7 +1125,7 @@ impl Callable for PatternFunction {
             }
         }
 
-        todo!()
+        Err(Error::new(EvalError::UnmatchedCall.into(), call_pos))
     }
 
     fn param_number(&self) -> usize {
@@ -1136,7 +1146,12 @@ impl AnonFunction {
 }
 
 impl Callable for AnonFunction {
-    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error> {
+    fn call(
+        &self,
+        args: &[Object],
+        env: &mut Environment,
+        _call_pos: Position,
+    ) -> Result<Object, Error> {
         env.push_scope();
 
         for (arg, param) in zip(args, &self.params) {
@@ -1156,7 +1171,12 @@ impl Callable for AnonFunction {
 }
 
 pub trait Callable {
-    fn call(&self, args: &[Object], env: &mut Environment) -> Result<Object, Error>;
+    fn call(
+        &self,
+        args: &[Object],
+        env: &mut Environment,
+        call_pos: Position,
+    ) -> Result<Object, Error>;
     fn param_number(&self) -> usize;
 }
 
@@ -1173,7 +1193,12 @@ impl ExternFunction {
 }
 
 impl Callable for ExternFunction {
-    fn call(&self, args: &[Object], _env: &mut Environment) -> Result<Object, Error> {
+    fn call(
+        &self,
+        args: &[Object],
+        _env: &mut Environment,
+        _call_pos: Position,
+    ) -> Result<Object, Error> {
         Ok((self.func)(args))
     }
 
