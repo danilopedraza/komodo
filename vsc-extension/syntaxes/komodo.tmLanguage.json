@@ -59,7 +59,7 @@
 			"patterns": [
 				{
 					"name": "constant.numeric.integer.komodo",
-					"match": "(?<![\\w\\d.])(0b|0B|0x|0X|0o|0O|)[\\da-fA-F_]+(?![.])"
+					"match": "(?<![\\w\\d.])((0x|0X)[\\da-fA-F_]+)((0b|0B|0o|0O)[\\d+_])([1-9][\\d_]+)(?![.])"
 				},
 				{
 					"name": "constant.numeric.float.komodo",
