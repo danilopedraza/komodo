@@ -83,7 +83,7 @@
 			"patterns": [
 				{
 					"name": "entity.name.function.komodo",
-					"match": "[a-zA-Z]+(\\()"
+					"match": "[a-zA-Z][a-zA-Z0-9]*(\\()"
 				}
 			]
 		},
@@ -95,7 +95,7 @@
 				},
 				{
 					"name": "variable.name.komodo",
-					"match": "[a-zA-Z][a-zA-Z0-9]*"
+					"match": "[a-z][a-zA-Z0-9]*"
 				}
 			]
 		}
