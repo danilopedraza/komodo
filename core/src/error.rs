@@ -187,6 +187,11 @@ fn parser_error_msg(err: &ParserError) -> String {
 
 fn weeder_error_msg(err: &WeederError) -> String {
     match err {
+        WeederError::BadDeclaration => {
+            unindent("
+            Expressions inside a declaration must be symbols with properties or assignments.
+            Replace this with an assignment or a constrained symbol (name: Property)")
+        }
         WeederError::BadDot => unindent(
             "
             The dot is allowed for decimal numbers and calls only.

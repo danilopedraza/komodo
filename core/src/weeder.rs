@@ -9,6 +9,7 @@ use crate::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WeederError {
+    BadDeclaration,
     BadDot,
     BadSymbolicDeclaration,
     BadAnonFunctionLHS,
@@ -282,7 +283,7 @@ fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind
                 node.position,
             )),
         },
-        _ => todo!(),
+        node => Err(Error::new(WeederError::BadDeclaration.into(), node.position)),
     }
 }
 
