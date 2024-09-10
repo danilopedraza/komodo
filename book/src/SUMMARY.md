@@ -11,3 +11,5 @@
 - [Programming with Komodo](./programming_with_komodo.md)
   - [Core features](./programming_with_komodo/core_features.md)
   - [Built-in Types](./programming_with_komodo/builtin_types.md)
+- [Appendix](./appendix.md)
+  - [Keywords](./appendix/keywords.md)
