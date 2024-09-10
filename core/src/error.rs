@@ -7,6 +7,8 @@ use codespan_reporting::{
     },
 };
 
+use unindent::unindent;
+
 use crate::{
     exec::EvalError,
     lexer::{LexerError, TokenType},
@@ -185,7 +187,17 @@ fn parser_error_msg(err: &ParserError) -> String {
 
 fn weeder_error_msg(err: &WeederError) -> String {
     match err {
-        WeederError::BadSymbolicDeclaration => "Only names can be declared without a value".into(),
+        WeederError::BadSymbolicDeclaration => {
+            "Only names can be declared without a value. Replace this with a name".into()
+        }
+        WeederError::BadAnonFunctionLHS => unindent(
+            "
+            The left hand side of an anonymous function can be a tuple or a symbol, nothing else.
+            Replace this with a tuple of names or a name",
+        ),
+        WeederError::BadAnonFunctionParameter => {
+            "Only names can be parameters of anonymous functions. Replace this with a name".into()
+        }
     }
 }
 

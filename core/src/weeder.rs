@@ -10,6 +10,8 @@ use crate::{
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WeederError {
     BadSymbolicDeclaration,
+    BadAnonFunctionLHS,
+    BadAnonFunctionParameter,
 }
 
 type WeederResult<T> = Result<T, Error>;
@@ -133,7 +135,7 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
         InfixOperator::Call => {
             let args = match rhs.kind {
                 CSTNodeKind::Tuple(v) => v,
-                _ => todo!(),
+                _ => unimplemented!(),
             };
 
             call(lhs, args)
@@ -147,13 +149,23 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
                     for param in tuple_params {
                         match param.kind {
                             CSTNodeKind::Symbol(s) => res.push(s),
-                            _ => todo!(),
+                            _ => {
+                                return Err(Error::new(
+                                    WeederError::BadAnonFunctionParameter.into(),
+                                    param.position,
+                                ))
+                            }
                         }
                     }
 
                     res
                 }
-                _ => todo!(),
+                _ => {
+                    return Err(Error::new(
+                        WeederError::BadAnonFunctionLHS.into(),
+                        lhs.position,
+                    ))
+                }
             };
 
             function(params, rhs)
