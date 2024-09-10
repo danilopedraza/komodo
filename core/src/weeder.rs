@@ -9,6 +9,7 @@ use crate::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WeederError {
+    BadDot,
     BadSymbolicDeclaration,
     BadAnonFunctionLHS,
     BadAnonFunctionParameter,
@@ -171,26 +172,36 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
             function(params, rhs)
         }
         InfixOperator::Division => infix_node(ast::InfixOperator::Division, lhs, rhs),
-        InfixOperator::Dot => match (rewrite(lhs)?, rewrite(rhs)?.kind) {
+        InfixOperator::Dot => match (rewrite(lhs)?, rewrite(rhs)?) {
             (
                 ASTNode {
                     kind:
                         ASTNodeKind::Integer {
                             literal: int,
-                            radix: _,
+                            radix: Radix::Decimal,
                         },
                     position: _,
                 },
-                ASTNodeKind::Integer {
-                    literal: dec,
-                    radix: _,
+                ASTNode {
+                    kind:
+                        ASTNodeKind::Integer {
+                            literal: dec,
+                            radix: Radix::Decimal,
+                        },
+                    position: _,
                 },
             ) => decimal(int, dec),
-            (first_arg, ASTNodeKind::Call { called, args }) => Ok(ASTNodeKind::Call {
+            (
+                first_arg,
+                ASTNode {
+                    kind: ASTNodeKind::Call { called, args },
+                    ..
+                },
+            ) => Ok(ASTNodeKind::Call {
                 called,
                 args: vec![first_arg].into_iter().chain(args).collect(),
             }),
-            _ => todo!(),
+            (_, node) => Err(Error::new(WeederError::BadDot.into(), node.position)),
         },
         InfixOperator::Equality => infix_node(ast::InfixOperator::Equality, lhs, rhs),
         InfixOperator::Exponentiation => infix_node(ast::InfixOperator::Exponentiation, lhs, rhs),

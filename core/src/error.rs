@@ -187,6 +187,11 @@ fn parser_error_msg(err: &ParserError) -> String {
 
 fn weeder_error_msg(err: &WeederError) -> String {
     match err {
+        WeederError::BadDot => unindent(
+            "
+            The dot is allowed for decimal numbers and calls only.
+            At the right of the dot there should be a function call or a decimal number",
+        ),
         WeederError::BadSymbolicDeclaration => {
             "Only names can be declared without a value. Replace this with a name".into()
         }
