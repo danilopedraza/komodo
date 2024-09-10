@@ -13,3 +13,4 @@
   - [Built-in Types](./programming_with_komodo/builtin_types.md)
 - [Appendix](./appendix.md)
   - [Keywords](./appendix/keywords.md)
+  - [Operators and symbols](./appendix/operators_and_symbols.md)
