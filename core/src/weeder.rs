@@ -11,9 +11,13 @@ use crate::{
 pub enum WeederError {
     BadDeclaration,
     BadDot,
+    BadImportOrigin,
+    BadImportSymbol,
     BadSymbolicDeclaration,
+    BadSymbolInImportTuple,
     BadAnonFunctionLHS,
     BadAnonFunctionParameter,
+    PlainImportNotImplemented,
 }
 
 type WeederResult<T> = Result<T, Error>;
@@ -37,7 +41,10 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeKind::Dictionary { pairs, complete } => dictionary(pairs, complete),
         CSTNodeKind::AdInfinitum => ad_infinitum(),
         CSTNodeKind::SetCons { some, most } => set_cons(*some, *most),
-        CSTNodeKind::Import { name: _, alias: _ } => todo!(),
+        CSTNodeKind::Import { name: _, alias: _ } => Err(Error::new(
+            WeederError::PlainImportNotImplemented.into(),
+            node.position,
+        )),
         CSTNodeKind::ImportFrom { source, values } => import_from(*source, *values),
         CSTNodeKind::Comprehension {
             element,
@@ -283,7 +290,10 @@ fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind
                 node.position,
             )),
         },
-        node => Err(Error::new(WeederError::BadDeclaration.into(), node.position)),
+        node => Err(Error::new(
+            WeederError::BadDeclaration.into(),
+            node.position,
+        )),
     }
 }
 
@@ -360,7 +370,12 @@ fn set_cons(some: CSTNode, most: CSTNode) -> WeederResult<ASTNodeKind> {
 fn import_from(source: CSTNode, values: CSTNode) -> WeederResult<ASTNodeKind> {
     let source = match source.kind {
         CSTNodeKind::Symbol(name) => name,
-        _ => todo!(),
+        _ => {
+            return Err(Error::new(
+                WeederError::BadImportOrigin.into(),
+                source.position,
+            ))
+        }
     };
 
     let values = match values.kind {
@@ -370,7 +385,12 @@ fn import_from(source: CSTNode, values: CSTNode) -> WeederResult<ASTNodeKind> {
             for node in list {
                 match node.kind {
                     CSTNodeKind::Symbol(value) => values.push((value, node.position)),
-                    _ => todo!(),
+                    _ => {
+                        return Err(Error::new(
+                            WeederError::BadSymbolInImportTuple.into(),
+                            node.position,
+                        ))
+                    }
                 }
             }
 
@@ -378,7 +398,12 @@ fn import_from(source: CSTNode, values: CSTNode) -> WeederResult<ASTNodeKind> {
         }
 
         CSTNodeKind::Symbol(value) => vec![(value, values.position)],
-        _ => todo!(),
+        _ => {
+            return Err(Error::new(
+                WeederError::BadImportSymbol.into(),
+                values.position,
+            ))
+        }
     };
 
     Ok(ASTNodeKind::ImportFrom { source, values })

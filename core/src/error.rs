@@ -187,18 +187,29 @@ fn parser_error_msg(err: &ParserError) -> String {
 
 fn weeder_error_msg(err: &WeederError) -> String {
     match err {
-        WeederError::BadDeclaration => {
-            unindent("
+        WeederError::BadDeclaration => unindent(
+            "
             Expressions inside a declaration must be symbols with properties or assignments.
-            Replace this with an assignment or a constrained symbol (name: Property)")
-        }
+            Replace this with an assignment or a constrained symbol (i.e. name: Property)",
+        ),
         WeederError::BadDot => unindent(
             "
             The dot is allowed for decimal numbers and calls only.
             At the right of the dot there should be a function call or a decimal number",
         ),
+        WeederError::BadImportOrigin => {
+            "The module from where you want to import can only be represented with a name".into()
+        }
+        WeederError::BadImportSymbol => unindent(
+            "
+            The thing you want to import must be represented with a name or a tuple of names.
+            Replace this with a name or a tuple of names",
+        ),
         WeederError::BadSymbolicDeclaration => {
             "Only names can be declared without a value. Replace this with a name".into()
+        }
+        WeederError::BadSymbolInImportTuple => {
+            "You can only import named things from a module. Replace this with a name".into()
         }
         WeederError::BadAnonFunctionLHS => unindent(
             "
@@ -207,6 +218,9 @@ fn weeder_error_msg(err: &WeederError) -> String {
         ),
         WeederError::BadAnonFunctionParameter => {
             "Only names can be parameters of anonymous functions. Replace this with a name".into()
+        }
+        WeederError::PlainImportNotImplemented => {
+            "Jokes on you, this is not yet implemented. Use `from module import stuff`".into()
         }
     }
 }
