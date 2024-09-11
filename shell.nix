@@ -1,10 +1,9 @@
-{ pkgs, lib, config, inputs, ... }:
+{ pkgs ? import <nixpkgs> {} }:
 
-{
+pkgs.mkShell {
   packages = [
     pkgs.cargo-cross
     pkgs.docker
-    pkgs.git
     pkgs.mdbook
     pkgs.nodejs_20
     pkgs.rustup
@@ -13,10 +12,8 @@
     pkgs.vsce
   ];
 
-  enterShell = ''
+  shellHook = ''
     rustup default stable
     source autocomplete.sh
   '';
-
-  # See full reference at https://devenv.sh/reference/options/
 }
