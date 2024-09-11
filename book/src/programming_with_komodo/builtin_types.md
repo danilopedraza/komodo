@@ -35,7 +35,7 @@ Komodo has a few built-in types:
   - Anonymously:
   ```
   n ->
-      let x = n + 2,
+      let x = n + 2
       x*x
   ```
   With this syntax, the last expression (i.e `x*x`) is returned as the result. Of course, this is an expression and you can save it to a value, or execute it in place like this: `(x -> x * 2)(1)`.
