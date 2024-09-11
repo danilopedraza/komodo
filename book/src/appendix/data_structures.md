@@ -16,6 +16,12 @@ Or by comprehension:
 let evens := [2*i for i in 0..3]
 ```
 
+You can create a new list by putting a new element at the beggining of an existing list:
+
+```
+[5|[1, 2]] = [5, 1, 2]
+```
+
 They can be concatenated with each other:
 
 ```
