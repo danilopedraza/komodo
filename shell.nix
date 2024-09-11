@@ -14,6 +14,5 @@ pkgs.mkShell {
 
   shellHook = ''
     rustup default stable
-    source autocomplete.sh
   '';
 }
