@@ -26,3 +26,14 @@ This list contains all the infix operators, an example of how the operator would
 | `%`      | `5 % 7`           | Division remainder            | 10         |
 | `*`      | `5 * 7`           | Arithmetic multiplication     | 10         |
 | `**`     | `2 ** 5`          | Exponentiation                | 11         |
+
+## Prefix operators
+
+This list contains all the prefix operators, an example of how the operator would be used, and a short explanation.
+
+| Operator | Example  | Explanation      |
+| -------- | -------- | ---------------- |
+| `~`      | `~1`     | Bitwise negation |
+| `!`      | `!false` | Logic negation   |
+| `-`      | `-5`     | Additive inverse |
+
