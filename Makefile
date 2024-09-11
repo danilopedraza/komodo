@@ -34,19 +34,19 @@ test-core:
 
 test-core-browser:
 	cd $(CURRENT_DIR)/core-browser
-	sh test.sh
+	cargo fmt --check
+	cargo clippy --all-targets --all-features
+	cargo test --all-features -- --test-threads=1
+	wasm-pack build --target web --out-dir komodo --dev
 
 lint-core:
-	cd $(CURRENT_DIR)/core
-	sh lint.sh
+	sh lint-rust.sh $(CURRENT_DIR)/core/Cargo.toml
 
 lint-core-browser:
-	cd $(CURRENT_DIR)/core-browser
-	sh lint.sh
+	sh lint-rust.sh $(CURRENT_DIR)/core-browser/Cargo.toml
 
 serve-book:
 	mdbook serve $(CURRENT_DIR)/book --open
 
 run-repl:
-	cd core
-	cargo run --all-features --quiet
+	cargo run --all-features --quiet --manifest-path $(CURRENT_DIR)/core/Cargo.toml
