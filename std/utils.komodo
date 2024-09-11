@@ -12,3 +12,8 @@ let fold({some|most}, fn: Function) := reduce(most, fn, some)
 
 let sum(container) := reduce(container, (a, b) -> a + b, 0)
 let prod(container) := reduce(container, (a, b) -> a * b, 1)
+
+let isPrefix("", _: String) := true
+let isPrefix(chr: Char, [chr|_]: String) := true
+let isPrefix([chr|prefixTail]: String, [chr|strTail]: String) := isPrefix(prefixTail, strTail)
+let isPrefix(_, _) := false
