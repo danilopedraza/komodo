@@ -1,4 +1,4 @@
-# Built-in Types
+# Builtin types
 
 Komodo has a few built-in types:
 
