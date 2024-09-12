@@ -337,7 +337,7 @@ impl<'a> Lexer<'a> {
     fn skip_comment(&mut self) {
         for chr in self.input.by_ref() {
             self.cur_pos += 1;
-            if chr == 0xA as char {
+            if chr == '\n' {
                 break;
             } else {
                 continue;
