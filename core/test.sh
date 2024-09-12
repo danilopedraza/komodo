@@ -9,7 +9,7 @@ cargo clippy --all-targets --all-features
 cargo test --all-features
 
 set +e
-examples_dir="$(pwd)/../examples"
+examples_dir=$1
 echo "Running examples..."
 someone_failed=false
 for file in $(find "$examples_dir" -type f -name "*.komodo"); do

@@ -30,7 +30,7 @@ build-core-wasm:
 
 test-core:
 	cd $(CURRENT_DIR)/core
-	sh test.sh
+	sh test.sh $(CURRENT_DIR)/examples
 
 test-core-browser:
 	cd $(CURRENT_DIR)/core-browser
