@@ -17,6 +17,8 @@ pub enum WeederError {
     BadSymbolInImportTuple,
     BadAnonFunctionLHS,
     BadAnonFunctionParameter,
+    MemoizedNonFunctionDeclaration,
+    MutableFunctionDeclaration,
     PlainImportNotImplemented,
 }
 
@@ -279,7 +281,19 @@ fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind
                     result,
                 }))
             }
-            (Some(_), _) => todo!(),
+            (Some((name, params)), DeclarationKind::InmutableMemoized) => {
+                let params = rewrite_vec(params)?;
+                let result = Box::new(rewrite(*right)?);
+                Ok(ASTNodeKind::Declaration(Declaration::MemoizedFunction {
+                    name,
+                    params,
+                    result,
+                }))
+            }
+            (Some(_), DeclarationKind::Mutable) => Err(Error::new(
+                WeederError::MutableFunctionDeclaration.into(),
+                left.position,
+            )),
             (None, kind) => {
                 let left = Box::new(rewrite(*left)?);
                 let right = Box::new(rewrite(*right)?);
@@ -296,7 +310,10 @@ fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind
                             right,
                         }))
                     }
-                    _ => todo!(),
+                    DeclarationKind::InmutableMemoized => Err(Error::new(
+                        WeederError::MemoizedNonFunctionDeclaration.into(),
+                        left.position,
+                    )),
                 }
                 // Ok(ASTNodeKind::Declaration { left, right, kind })
             }

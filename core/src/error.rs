@@ -228,6 +228,12 @@ fn weeder_error_msg(err: &WeederError) -> String {
         WeederError::PlainImportNotImplemented => {
             "Jokes on you, this is not yet implemented. Use `from module import stuff`".into()
         }
+        WeederError::MutableFunctionDeclaration => {
+            "Functions cannot be declared as mutable. Use `let` instead".into()
+        }
+        WeederError::MemoizedNonFunctionDeclaration => {
+            "You can only memoize functions. Remove the `memoize` from the declaration".into()
+        }
     }
 }
 

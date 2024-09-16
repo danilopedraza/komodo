@@ -163,7 +163,11 @@ fn _declaration(decl: &Declaration, env: &mut Environment) -> Result<Object, Err
             params,
             result,
         } => let_function(name, params, result, env),
-        _ => todo!(),
+        Declaration::MemoizedFunction {
+            name: _,
+            params: _,
+            result: _,
+        } => todo!(),
     }
 }
 
@@ -355,24 +359,6 @@ fn char(chr: char) -> Result<Object, Error> {
 fn boolean(val: bool) -> Result<Object, Error> {
     Ok(Object::Boolean(Bool::from(val)))
 }
-
-// fn declaration(
-//     left: &ASTNode,
-//     right: &ASTNode,
-//     decl_kind: DeclarationKind,
-//     env: &mut Environment,
-// ) -> Result<Object, Error> {
-//     match (&left.kind, right, decl_kind) {
-//         (ASTNodeKind::Call { called, args }, value, _) => {
-//             if let ASTNodeKind::Symbol { name } = &called.kind {
-//                 let_function(name, args, value, env)
-//             } else {
-//                 todo!()
-//             }
-//         }
-//         (_, value, kind) => let_pattern(left, value, kind, env),
-//     }
-// }
 
 fn let_pattern(
     left: &ASTNode,
