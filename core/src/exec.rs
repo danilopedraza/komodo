@@ -4,8 +4,8 @@ use crate::error::{Error, Position};
 use crate::lexer::Radix;
 use crate::matcher::{match_, Match};
 use crate::object::{
-    self, AnonFunction, Callable, Decimal, Dictionary, FailedAssertion, Fraction, Function, Kind,
-    List, PatternFunction, Range,
+    self, AnonFunction, Callable, Decimal, Dictionary, FailedAssertion, Fraction, Function,
+    FunctionPatternKind, Kind, List, PatternFunction, Range,
 };
 
 use crate::ast::{ASTNode, ASTNodeKind, Declaration, InfixOperator};
@@ -160,12 +160,12 @@ fn _declaration(decl: &Declaration, env: &mut Environment) -> Result<Object, Err
             name,
             params,
             result,
-        } => let_function(name, params, result, env),
+        } => let_function(name, params, result, FunctionPatternKind::NotMemoized, env),
         Declaration::MemoizedFunction {
-            name: _,
-            params: _,
-            result: _,
-        } => todo!(),
+            name,
+            params,
+            result,
+        } => let_function(name, params, result, FunctionPatternKind::Memoized, env),
     }
 }
 
@@ -452,6 +452,7 @@ fn let_function(
     name: &str,
     args: &[ASTNode],
     value: &ASTNode,
+    kind: FunctionPatternKind,
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let function: &mut PatternFunction = match env.get(name) {
@@ -470,7 +471,7 @@ fn let_function(
         _ => unimplemented!(),
     };
 
-    function.add_pattern(args, value);
+    function.add_pattern(args, value, kind);
 
     Ok(Object::Function(Function::Pattern(function.clone())))
 }
@@ -532,6 +533,11 @@ fn call(
     env: &mut Environment,
     call_pos: Position,
 ) -> Result<Object, Error> {
+    let func_name = match &func_node.kind {
+        ASTNodeKind::Symbol { name } => Some(name),
+        _ => None,
+    };
+
     let func = exec(func_node, env)?;
     if let Object::Function(ref f) = func {
         if args.len() < f.param_number() {
@@ -553,11 +559,19 @@ fn call(
     }
 
     match func {
-        Object::Function(f) => f.call(&func_args, env, call_pos),
+        Object::Function(mut f) => {
+            let res = f.call(&func_args, env, call_pos);
+
+            if let Some(name) = func_name {
+                env.set_mutable(name, Object::Function(f.clone()));
+            }
+
+            res
+        }
         obj => Err(Error(
             EvalError::NonCallableObject(obj.kind()).into(),
             func_node.position,
-        )),
+        ))?,
     }
 }
 
@@ -678,8 +692,8 @@ mod tests {
     use crate::ast::tests::{
         _for, _if, assignment, block, boolean, call, comprehension, cons, container_element,
         dec_integer, decimal, extension_list, extension_set, fraction, function,
-        function_declaration, infix, let_, pos, prefix, range, set_cons, string, symbol,
-        symbolic_let, tuple, var,
+        function_declaration, infix, let_, memoized_function_declaration, pos, prefix, range,
+        set_cons, string, symbol, symbolic_let, tuple, var,
     };
     use crate::cst::tests::dummy_pos;
     use crate::env::EnvResponse;
@@ -1601,5 +1615,51 @@ mod tests {
         assert!(exec(&assignment, &mut env).is_ok());
 
         assert_eq!(exec(&element, &mut env), Ok(Object::String("foo".into())),);
+    }
+
+    #[test]
+    fn memoization() {
+        static mut CALL_COUNTER: usize = 0;
+
+        fn foo(_: &[Object]) -> Object {
+            unsafe {
+                CALL_COUNTER += 1;
+            }
+            Object::empty_tuple()
+        }
+
+        let foo_obj = Object::Function(Function::Extern(ExternFunction::new(foo, 1)));
+
+        let mut env = Environment::default();
+
+        env.set_inmutable("foo", foo_obj);
+
+        let func_decl = memoized_function_declaration(
+            "bar",
+            vec![symbol("x", dummy_pos())],
+            call(
+                symbol("foo", dummy_pos()),
+                vec![symbol("x", dummy_pos())],
+                dummy_pos(),
+            ),
+            dummy_pos(),
+        );
+
+        exec(&func_decl, &mut env).unwrap();
+
+        let call = call(
+            symbol("bar", dummy_pos()),
+            vec![dec_integer("1", dummy_pos())],
+            dummy_pos(),
+        );
+
+        let first_res = exec(&call, &mut env);
+        let second_res = exec(&call, &mut env);
+
+        assert_eq!(first_res, Ok(Object::empty_tuple()));
+
+        assert_eq!(first_res, second_res);
+
+        assert_eq!(unsafe { CALL_COUNTER }, 1);
     }
 }

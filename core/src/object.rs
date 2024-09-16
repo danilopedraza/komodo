@@ -1063,7 +1063,7 @@ impl fmt::Display for Function {
 
 impl Callable for Function {
     fn call(
-        &self,
+        &mut self,
         args: &[Object],
         env: &mut Environment,
         call_pos: Position,
@@ -1084,44 +1084,72 @@ impl Callable for Function {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum FunctionPatternKind {
+    Memoized,
+    NotMemoized,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct PatternFunction {
-    patterns: Vec<(Vec<ASTNode>, ASTNode)>,
+    patterns: Vec<(FunctionPatternKind, Vec<ASTNode>, ASTNode)>,
+    cache: BTreeMap<Vec<Object>, Object>,
     params: usize,
 }
 
 impl PatternFunction {
-    pub fn add_pattern(&mut self, args: &[ASTNode], value: &ASTNode) {
+    pub fn add_pattern(&mut self, args: &[ASTNode], value: &ASTNode, kind: FunctionPatternKind) {
         if self.patterns.is_empty() {
             self.params = args.len();
         } else {
             self.params = min(self.params, args.len())
         }
 
-        self.patterns.push((args.to_vec(), value.clone()));
+        self.patterns.push((kind, args.to_vec(), value.clone()));
+    }
+
+    fn exec_call(
+        &self,
+        matched_values: BTreeMap<String, Object>,
+        result_node: &ASTNode,
+        env: &mut Environment,
+    ) -> Result<Object, Error> {
+        env.push_scope();
+
+        for (name, pattern_val) in matched_values {
+            env.set_inmutable(&name, pattern_val);
+        }
+
+        let res = exec(result_node, env);
+
+        env.pop_scope();
+
+        res
     }
 }
 
 impl Callable for PatternFunction {
     fn call(
-        &self,
+        &mut self,
         args: &[Object],
         env: &mut Environment,
         call_pos: Position,
     ) -> Result<Object, Error> {
-        for (patterns, val) in &self.patterns {
+        for (kind, patterns, val) in &self.patterns {
             if let Some(Match(v)) = match_call(patterns, args) {
-                env.push_scope();
-
-                for (name, pattern_val) in v {
-                    env.set_inmutable(&name, pattern_val);
+                match self.cache.get(args) {
+                    Some(res) => return Ok(res.to_owned()),
+                    None => match kind {
+                        FunctionPatternKind::NotMemoized => {
+                            return self.exec_call(v, val, env);
+                        }
+                        FunctionPatternKind::Memoized => {
+                            let res = self.exec_call(v, val, env)?;
+                            self.cache.insert(args.to_owned(), res.clone());
+                            return Ok(res);
+                        }
+                    },
                 }
-
-                let res = exec(val, env);
-
-                env.pop_scope();
-
-                return res;
             }
         }
 
@@ -1147,7 +1175,7 @@ impl AnonFunction {
 
 impl Callable for AnonFunction {
     fn call(
-        &self,
+        &mut self,
         args: &[Object],
         env: &mut Environment,
         _call_pos: Position,
@@ -1172,7 +1200,7 @@ impl Callable for AnonFunction {
 
 pub trait Callable {
     fn call(
-        &self,
+        &mut self,
         args: &[Object],
         env: &mut Environment,
         call_pos: Position,
@@ -1194,7 +1222,7 @@ impl ExternFunction {
 
 impl Callable for ExternFunction {
     fn call(
-        &self,
+        &mut self,
         args: &[Object],
         _env: &mut Environment,
         _call_pos: Position,
