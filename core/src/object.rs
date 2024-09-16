@@ -1135,11 +1135,12 @@ impl Callable for PatternFunction {
         env: &mut Environment,
         call_pos: Position,
     ) -> Result<Object, Error> {
-        for (kind, patterns, val) in &self.patterns {
-            if let Some(Match(v)) = match_call(patterns, args) {
-                match self.cache.get(args) {
-                    Some(res) => return Ok(res.to_owned()),
-                    None => match kind {
+        if let Some(cached) = self.cache.get(args) {
+            Ok(cached.to_owned())
+        } else {
+            for (kind, patterns, val) in &self.patterns {
+                if let Some(Match(v)) = match_call(patterns, args) {
+                    match kind {
                         FunctionPatternKind::NotMemoized => {
                             return self.exec_call(v, val, env);
                         }
@@ -1148,12 +1149,12 @@ impl Callable for PatternFunction {
                             self.cache.insert(args.to_owned(), res.clone());
                             return Ok(res);
                         }
-                    },
+                    }
                 }
             }
-        }
 
-        Err(Error::new(EvalError::UnmatchedCall.into(), call_pos))
+            Err(Error::new(EvalError::UnmatchedCall.into(), call_pos))
+        }
     }
 
     fn param_number(&self) -> usize {
