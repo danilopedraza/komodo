@@ -180,6 +180,7 @@ pub enum ComprehensionKind {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum DeclarationKind {
     Inmutable,
+    InmutableMemoized,
     Mutable,
 }
 
@@ -404,6 +405,13 @@ pub mod tests {
     pub fn var(expr: CSTNode, position: Position) -> CSTNode {
         CSTNode::new(
             CSTNodeKind::Declaration(Box::new(expr), DeclarationKind::Mutable),
+            position,
+        )
+    }
+
+    pub fn let_memoize(expr: CSTNode, position: Position) -> CSTNode {
+        CSTNode::new(
+            CSTNodeKind::Declaration(Box::new(expr), DeclarationKind::InmutableMemoized),
             position,
         )
     }

@@ -88,6 +88,7 @@ impl Environment {
         match kind {
             DeclarationKind::Inmutable => self.set_inmutable(name, val),
             DeclarationKind::Mutable => self.set_mutable(name, val),
+            DeclarationKind::InmutableMemoized => todo!(),
         }
     }
 

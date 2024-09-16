@@ -367,6 +367,7 @@ fn let_pattern(
                 match kind {
                     DeclarationKind::Mutable => env.set_mutable(&name, val),
                     DeclarationKind::Inmutable => env.set_inmutable(&name, val),
+                    DeclarationKind::InmutableMemoized => todo!(),
                 }
             }
 

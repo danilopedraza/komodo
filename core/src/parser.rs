@@ -52,8 +52,16 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 TokenType::From => self.import_from(),
                 TokenType::If => self.if_(),
                 TokenType::Import => self.import(),
-                TokenType::Let => self.declaration(DeclarationKind::Inmutable),
-                TokenType::Var => self.declaration(DeclarationKind::Mutable),
+                TokenType::Let => {
+                    if let Ok(Some(TokenType::Memoize)) = self.peek_token() {
+                        let start = self.cur_pos.start;
+                        self.next_token()?;
+                        self.declaration(DeclarationKind::InmutableMemoized, start)
+                    } else {
+                        self.declaration(DeclarationKind::Inmutable, self.cur_pos.start)
+                    }
+                }
+                TokenType::Var => self.declaration(DeclarationKind::Mutable, self.cur_pos.start),
                 TokenType::True => self.boolean(true),
                 TokenType::False => self.boolean(false),
                 TokenType::Lparen => self.parenthesis(),
@@ -149,9 +157,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         self.node_with_cur(CSTNodeKind::Symbol(literal))
     }
 
-    fn declaration(&mut self, kind: DeclarationKind) -> NodeResult {
-        let start = self.cur_pos.start;
-
+    fn declaration(&mut self, kind: DeclarationKind, start: usize) -> NodeResult {
         let expr = self.expression(Precedence::Lowest)?;
         let last_pos = expr.position;
 
@@ -631,9 +637,10 @@ impl<T: Iterator<Item = Result<Token, Error>>> From<T> for Parser<T> {
 mod tests {
     use super::*;
     use crate::{
+        ast::tests::pos,
         cst::tests::{
             _pos, ad_infinitum, block, boolean, char, dec_integer, import_from, integer, let_,
-            pattern, set_cons, simple_import, string, symbol, var, wildcard,
+            let_memoize, pattern, set_cons, simple_import, string, symbol, var, wildcard,
         },
         error::Position,
         lexer::{Lexer, Radix},
@@ -1920,6 +1927,31 @@ mod tests {
                     _pos(4, 6)
                 ),
                 _pos(0, 10)
+            )))
+        );
+    }
+
+    #[test]
+    fn memoize() {
+        let input = "let memoize f(x) := 1";
+
+        let lexer = Lexer::from(input);
+
+        assert_eq!(
+            Parser::from(lexer).next(),
+            Some(Ok(let_memoize(
+                infix(
+                    InfixOperator::Assignment,
+                    infix(
+                        InfixOperator::Call,
+                        symbol("f", pos(12, 1)),
+                        tuple(vec![symbol("x", pos(14, 1))], pos(13, 3)),
+                        pos(12, 4),
+                    ),
+                    dec_integer("1", pos(20, 1)),
+                    pos(12, 9),
+                ),
+                pos(0, 21),
             )))
         );
     }
