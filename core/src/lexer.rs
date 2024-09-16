@@ -87,6 +87,7 @@ pub enum TokenType {
     LogicAnd,
     LogicOr,
     Lparen,
+    Memoize,
     Minus,
     Percent,
     NotEqual,
@@ -381,6 +382,7 @@ impl<'a> Lexer<'a> {
             "import" => Some(TokenType::Import),
             "in" => Some(TokenType::In),
             "let" => Some(TokenType::Let),
+            "memoize" => Some(TokenType::Memoize),
             "then" => Some(TokenType::Then),
             "true" => Some(TokenType::True),
             "var" => Some(TokenType::Var),
@@ -1098,6 +1100,25 @@ mod tests {
                 TokenType::Ident("x".into()),
                 TokenType::Assign,
                 TokenType::Integer("0".into(), Radix::Decimal),
+            ]),
+        );
+    }
+
+    #[test]
+    fn memoize() {
+        let code = "let memoize f(x) := 1";
+
+        assert_eq!(
+            token_types_from(code),
+            Ok(vec![
+                TokenType::Let,
+                TokenType::Memoize,
+                TokenType::Ident("f".into()),
+                TokenType::Lparen,
+                TokenType::Ident("x".into()),
+                TokenType::Rparen,
+                TokenType::Assign,
+                TokenType::Integer("1".into(), Radix::Decimal),
             ]),
         );
     }
