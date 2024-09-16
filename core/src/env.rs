@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
-use crate::{cst::DeclarationKind, object::Object};
+use crate::object::Object;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum EnvResponse<'a> {
@@ -9,8 +9,8 @@ pub enum EnvResponse<'a> {
     NotFound,
 }
 
-#[derive(Debug)]
-enum ValueKind {
+#[derive(Clone, Copy, Debug)]
+pub enum ValueKind {
     Inmutable,
     Mutable,
 }
@@ -84,11 +84,10 @@ impl Environment {
         EnvResponse::NotFound
     }
 
-    pub fn set(&mut self, name: &str, val: Object, kind: DeclarationKind) {
+    pub fn set(&mut self, name: &str, val: Object, kind: ValueKind) {
         match kind {
-            DeclarationKind::Inmutable => self.set_inmutable(name, val),
-            DeclarationKind::Mutable => self.set_mutable(name, val),
-            DeclarationKind::InmutableMemoized => todo!(),
+            ValueKind::Inmutable => self.set_inmutable(name, val),
+            ValueKind::Mutable => self.set_mutable(name, val),
         }
     }
 

@@ -9,8 +9,8 @@ use crate::object::{
 };
 
 use crate::ast::{ASTNode, ASTNodeKind, Declaration, InfixOperator};
-use crate::cst::{ComprehensionKind, DeclarationKind, PrefixOperator};
-use crate::env::{EnvResponse, Environment};
+use crate::cst::{ComprehensionKind, PrefixOperator};
+use crate::env::{EnvResponse, Environment, ValueKind};
 use crate::object::{Bool, Char, Integer, MyString, Object, Set, Symbol, Tuple};
 use crate::run;
 
@@ -153,11 +153,9 @@ fn _declaration(decl: &Declaration, env: &mut Environment) -> Result<Object, Err
     match decl {
         Declaration::Symbolic { name, constraint } => let_without_value(name, constraint, env),
         Declaration::Inmutable { left, right } => {
-            let_pattern(left, right, DeclarationKind::Inmutable, env)
+            let_pattern(left, right, ValueKind::Inmutable, env)
         }
-        Declaration::Mutable { left, right } => {
-            let_pattern(left, right, DeclarationKind::Mutable, env)
-        }
+        Declaration::Mutable { left, right } => let_pattern(left, right, ValueKind::Mutable, env),
         Declaration::Function {
             name,
             params,
@@ -363,7 +361,7 @@ fn boolean(val: bool) -> Result<Object, Error> {
 fn let_pattern(
     left: &ASTNode,
     right: &ASTNode,
-    kind: DeclarationKind,
+    kind: ValueKind,
     env: &mut Environment,
 ) -> Result<Object, Error> {
     let value = exec(right, env)?;
@@ -371,9 +369,8 @@ fn let_pattern(
         Some(Match(map)) => {
             for (name, val) in map {
                 match kind {
-                    DeclarationKind::Mutable => env.set_mutable(&name, val),
-                    DeclarationKind::Inmutable => env.set_inmutable(&name, val),
-                    DeclarationKind::InmutableMemoized => todo!(),
+                    ValueKind::Mutable => env.set_mutable(&name, val),
+                    ValueKind::Inmutable => env.set_inmutable(&name, val),
                 }
             }
 
