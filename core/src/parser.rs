@@ -8,6 +8,7 @@ use crate::lexer::{Radix, Token, TokenType};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParserError {
     ExpectedExpression(TokenType),
+    MemoizeInVarExpression,
     UnexpectedToken(Vec<TokenType>, TokenType),
     EOFReached,
     EOFExpecting(Vec<TokenType>),
@@ -52,16 +53,8 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 TokenType::From => self.import_from(),
                 TokenType::If => self.if_(),
                 TokenType::Import => self.import(),
-                TokenType::Let => {
-                    if let Ok(Some(TokenType::Memoize)) = self.peek_token() {
-                        let start = self.cur_pos.start;
-                        self.next_token()?;
-                        self.declaration(DeclarationKind::InmutableMemoized, start)
-                    } else {
-                        self.declaration(DeclarationKind::Inmutable, self.cur_pos.start)
-                    }
-                }
-                TokenType::Var => self.declaration(DeclarationKind::Mutable, self.cur_pos.start),
+                TokenType::Let => self.let_expression(),
+                TokenType::Var => self.var_expression(),
                 TokenType::True => self.boolean(true),
                 TokenType::False => self.boolean(false),
                 TokenType::Lparen => self.parenthesis(),
@@ -80,6 +73,28 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                     }
                 }
             },
+        }
+    }
+
+    fn let_expression(&mut self) -> NodeResult {
+        if let Ok(Some(TokenType::Memoize)) = self.peek_token() {
+            let start = self.cur_pos.start;
+            self.next_token()?;
+            self.declaration(DeclarationKind::InmutableMemoized, start)
+        } else {
+            self.declaration(DeclarationKind::Inmutable, self.cur_pos.start)
+        }
+    }
+
+    fn var_expression(&mut self) -> NodeResult {
+        if let Ok(Some(TokenType::Memoize)) = self.peek_token() {
+            self.next_token()?;
+            Err(Error::new(
+                ParserError::MemoizeInVarExpression.into(),
+                self.cur_pos,
+            ))
+        } else {
+            self.declaration(DeclarationKind::Mutable, self.cur_pos.start)
         }
     }
 

@@ -183,6 +183,11 @@ fn parser_error_msg(err: &ParserError) -> String {
         ParserError::EOFExpecting(expected) => {
             eof_expecting(expected.iter().map(found_a).collect())
         }
+        ParserError::MemoizeInVarExpression => unindent(
+            "
+            You can only memoize `let` expressions that declare functions.
+            Turn this into a `let` expression declaring a function, or remove the `memoize`",
+        ),
     }
 }
 
