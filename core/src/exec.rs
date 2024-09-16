@@ -8,7 +8,7 @@ use crate::object::{
     List, PatternFunction, Range,
 };
 
-use crate::ast::{ASTNode, ASTNodeKind, InfixOperator};
+use crate::ast::{ASTNode, ASTNodeKind, Declaration, InfixOperator};
 use crate::cst::{ComprehensionKind, DeclarationKind, PrefixOperator};
 use crate::env::{EnvResponse, Environment};
 use crate::object::{Bool, Char, Integer, MyString, Object, Set, Symbol, Tuple};
@@ -129,18 +129,14 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             iterator,
             kind,
         } => comprehension(element, variable, iterator, *kind, env),
-        ASTNodeKind::Declaration { left, right, kind } => declaration(left, right, *kind, env),
+        // ASTNodeKind::Declaration { left, right, kind } => declaration(left, right, *kind, env),
         ASTNodeKind::Pattern {
             exp: _,
             constraint: _,
         } => unimplemented!(),
         ASTNodeKind::Block(exprs) => block(exprs, env),
         ASTNodeKind::Assignment { left, right } => assignment(left, right, env),
-        ASTNodeKind::SymbolicDeclaration {
-            name,
-            constraint,
-            kind,
-        } => let_without_value(name, constraint, *kind, env),
+        ASTNodeKind::Declaration(decl) => _declaration(decl, env),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -150,6 +146,24 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ))
     } else {
         res
+    }
+}
+
+fn _declaration(decl: &Declaration, env: &mut Environment) -> Result<Object, Error> {
+    match decl {
+        Declaration::Symbolic { name, constraint } => let_without_value(name, constraint, env),
+        Declaration::Inmutable { left, right } => {
+            let_pattern(left, right, DeclarationKind::Inmutable, env)
+        }
+        Declaration::Mutable { left, right } => {
+            let_pattern(left, right, DeclarationKind::Mutable, env)
+        }
+        Declaration::Function {
+            name,
+            params,
+            result,
+        } => let_function(name, params, result, env),
+        _ => todo!(),
     }
 }
 
@@ -342,17 +356,23 @@ fn boolean(val: bool) -> Result<Object, Error> {
     Ok(Object::Boolean(Bool::from(val)))
 }
 
-fn declaration(
-    left: &ASTNode,
-    right: &ASTNode,
-    decl_kind: DeclarationKind,
-    env: &mut Environment,
-) -> Result<Object, Error> {
-    match (&left.kind, right, decl_kind) {
-        (ASTNodeKind::Call { called, args }, value, _) => let_function(called, args, value, env),
-        (_, value, kind) => let_pattern(left, value, kind, env),
-    }
-}
+// fn declaration(
+//     left: &ASTNode,
+//     right: &ASTNode,
+//     decl_kind: DeclarationKind,
+//     env: &mut Environment,
+// ) -> Result<Object, Error> {
+//     match (&left.kind, right, decl_kind) {
+//         (ASTNodeKind::Call { called, args }, value, _) => {
+//             if let ASTNodeKind::Symbol { name } = &called.kind {
+//                 let_function(name, args, value, env)
+//             } else {
+//                 todo!()
+//             }
+//         }
+//         (_, value, kind) => let_pattern(left, value, kind, env),
+//     }
+// }
 
 fn let_pattern(
     left: &ASTNode,
@@ -380,18 +400,13 @@ fn let_pattern(
     }
 }
 
-fn let_without_value(
-    name: &str,
-    property: &str,
-    kind: DeclarationKind,
-    env: &mut Environment,
-) -> Result<Object, Error> {
+fn let_without_value(name: &str, property: &str, env: &mut Environment) -> Result<Object, Error> {
     let symbol = Object::Symbol(Symbol {
         name: name.to_owned(),
         property: property.to_owned(),
     });
 
-    env.set(name, symbol.clone(), kind);
+    env.set_inmutable(name, symbol.clone());
 
     Ok(symbol)
 }
@@ -451,16 +466,11 @@ fn comprehension(
 }
 
 fn let_function(
-    ident: &ASTNode,
+    name: &str,
     args: &[ASTNode],
     value: &ASTNode,
     env: &mut Environment,
 ) -> Result<Object, Error> {
-    let name = match &ident.kind {
-        ASTNodeKind::Symbol { name } => name,
-        _ => unimplemented!(),
-    };
-
     let function: &mut PatternFunction = match env.get(name) {
         EnvResponse::NotFound => {
             env.set_mutable(
@@ -684,8 +694,9 @@ mod tests {
     use super::*;
     use crate::ast::tests::{
         _for, _if, assignment, block, boolean, call, comprehension, cons, container_element,
-        dec_integer, decimal, extension_list, extension_set, fraction, function, infix, let_, pos,
-        prefix, range, set_cons, string, symbol, symbolic_let, tuple, var,
+        dec_integer, decimal, extension_list, extension_set, fraction, function,
+        function_declaration, infix, let_, pos, prefix, range, set_cons, string, symbol,
+        symbolic_let, tuple, var,
     };
     use crate::cst::tests::dummy_pos;
     use crate::env::EnvResponse;
@@ -1299,12 +1310,9 @@ mod tests {
     #[test]
     fn missing_args_2() {
         let mut env = Environment::default();
-        let func = let_(
-            call(
-                symbol("f", dummy_pos()),
-                vec![symbol("x", dummy_pos())],
-                dummy_pos(),
-            ),
+        let func = function_declaration(
+            "f",
+            vec![symbol("x", dummy_pos())],
             symbol("x", dummy_pos()),
             dummy_pos(),
         );

@@ -1,5 +1,5 @@
 use crate::{
-    ast::{self, ASTNode, ASTNodeKind},
+    ast::{self, ASTNode, ASTNodeKind, Declaration},
     cst::{
         CSTNode, CSTNodeKind, ComprehensionKind, DeclarationKind, InfixOperator, PrefixOperator,
     },
@@ -269,21 +269,47 @@ fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind
         CSTNode {
             kind: CSTNodeKind::Infix(InfixOperator::Assignment, left, right),
             ..
-        } => {
-            let left = Box::new(rewrite(*left)?);
-            let right = Box::new(rewrite(*right)?);
-            Ok(ASTNodeKind::Declaration { left, right, kind })
-        }
+        } => match (destructure_call(&left), kind) {
+            (Some((name, params)), DeclarationKind::Inmutable) => {
+                let params = rewrite_vec(params)?;
+                let result = Box::new(rewrite(*right)?);
+                Ok(ASTNodeKind::Declaration(Declaration::Function {
+                    name,
+                    params,
+                    result,
+                }))
+            }
+            (Some(_), _) => todo!(),
+            (None, kind) => {
+                let left = Box::new(rewrite(*left)?);
+                let right = Box::new(rewrite(*right)?);
+                match kind {
+                    DeclarationKind::Inmutable => {
+                        Ok(ASTNodeKind::Declaration(Declaration::Inmutable {
+                            left,
+                            right,
+                        }))
+                    }
+                    DeclarationKind::Mutable => {
+                        Ok(ASTNodeKind::Declaration(Declaration::Mutable {
+                            left,
+                            right,
+                        }))
+                    }
+                    _ => todo!(),
+                }
+                // Ok(ASTNodeKind::Declaration { left, right, kind })
+            }
+        },
         CSTNode {
             kind: CSTNodeKind::Infix(InfixOperator::Constraint, left, right),
             ..
         } => match (left.kind, right.kind) {
             (CSTNodeKind::Symbol(name), CSTNodeKind::Symbol(constraint)) => {
-                Ok(ASTNodeKind::SymbolicDeclaration {
+                Ok(ASTNodeKind::Declaration(Declaration::Symbolic {
                     name,
                     constraint,
-                    kind,
-                })
+                }))
             }
             _ => Err(Error::new(
                 WeederError::BadSymbolicDeclaration.into(),
@@ -294,6 +320,21 @@ fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind
             WeederError::BadDeclaration.into(),
             node.position,
         )),
+    }
+}
+
+fn destructure_call(node: &CSTNode) -> Option<(String, Vec<CSTNode>)> {
+    match node {
+        CSTNode {
+            kind: CSTNodeKind::Infix(InfixOperator::Call, left, right),
+            ..
+        } => match (&left.kind, &right.kind) {
+            (CSTNodeKind::Symbol(name), CSTNodeKind::Tuple(list)) => {
+                Some((name.to_string(), list.to_vec()))
+            }
+            _ => None,
+        },
+        _ => None,
     }
 }
 
@@ -541,6 +582,30 @@ mod tests {
         assert_eq!(
             rewrite(node),
             Ok(ast::tests::symbolic_let("x", "Real", dummy_pos())),
+        );
+    }
+
+    #[test]
+    fn let_function() {
+        let node = cst::tests::let_(
+            cst::infix(
+                InfixOperator::Call,
+                symbol("f", dummy_pos()),
+                cst::tuple(vec![symbol("x", dummy_pos())], dummy_pos()),
+                dummy_pos(),
+            ),
+            Some(cst::tests::dec_integer("1", dummy_pos())),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            rewrite(node),
+            Ok(ast::tests::function_declaration(
+                "f",
+                vec![ast::tests::symbol("x", dummy_pos())],
+                ast::tests::dec_integer("1", dummy_pos()),
+                dummy_pos()
+            )),
         );
     }
 }

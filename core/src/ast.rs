@@ -1,5 +1,5 @@
 use crate::{
-    cst::{self, ComprehensionKind, DeclarationKind},
+    cst::{self, ComprehensionKind},
     error::Position,
     lexer::Radix,
 };
@@ -156,11 +156,12 @@ pub enum ASTNodeKind {
         literal: String,
         radix: Radix,
     },
-    Declaration {
-        left: Box<ASTNode>,
-        right: Box<ASTNode>,
-        kind: DeclarationKind,
-    },
+    // Declaration {
+    //     left: Box<ASTNode>,
+    //     right: Box<ASTNode>,
+    //     kind: DeclarationKind,
+    // },
+    Declaration(Declaration),
     Pattern {
         exp: Box<ASTNode>,
         constraint: Option<String>,
@@ -183,20 +184,41 @@ pub enum ASTNodeKind {
     Symbol {
         name: String,
     },
-    SymbolicDeclaration {
-        name: String,
-        constraint: String,
-        kind: DeclarationKind,
-    },
     Tuple {
         list: Vec<ASTNode>,
     },
     Wildcard,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum Declaration {
+    Mutable {
+        left: Box<ASTNode>,
+        right: Box<ASTNode>,
+    },
+    Inmutable {
+        left: Box<ASTNode>,
+        right: Box<ASTNode>,
+    },
+    Symbolic {
+        name: String,
+        constraint: String,
+    },
+    Function {
+        name: String,
+        params: Vec<ASTNode>,
+        result: Box<ASTNode>,
+    },
+    MemoizedFunction {
+        name: String,
+        params: Vec<ASTNode>,
+        result: Box<ASTNode>,
+    },
+}
+
 #[cfg(test)]
 pub mod tests {
-    use cst::PrefixOperator;
+    use cst::{DeclarationKind, PrefixOperator};
 
     use super::*;
     pub fn call(called: ASTNode, args: Vec<ASTNode>, position: Position) -> ASTNode {
@@ -293,17 +315,48 @@ pub mod tests {
     }
 
     pub fn let_(left: ASTNode, right: ASTNode, position: Position) -> ASTNode {
-        let left = Box::new(left);
-        let right = Box::new(right);
-        let kind = DeclarationKind::Inmutable;
-        ASTNode::new(ASTNodeKind::Declaration { left, right, kind }, position)
+        declaration(left, right, DeclarationKind::Inmutable, position)
     }
 
     pub fn var(left: ASTNode, right: ASTNode, position: Position) -> ASTNode {
+        declaration(left, right, DeclarationKind::Mutable, position)
+    }
+
+    pub fn declaration(
+        left: ASTNode,
+        right: ASTNode,
+        kind: DeclarationKind,
+        position: Position,
+    ) -> ASTNode {
         let left = Box::new(left);
         let right = Box::new(right);
-        let kind = DeclarationKind::Mutable;
-        ASTNode::new(ASTNodeKind::Declaration { left, right, kind }, position)
+
+        ASTNode::new(
+            ASTNodeKind::Declaration(match kind {
+                DeclarationKind::Inmutable => Declaration::Inmutable { left, right },
+                DeclarationKind::Mutable => Declaration::Mutable { left, right },
+                _ => unimplemented!(),
+            }),
+            position,
+        )
+    }
+
+    pub fn function_declaration(
+        name: &str,
+        params: Vec<ASTNode>,
+        result: ASTNode,
+        position: Position,
+    ) -> ASTNode {
+        let name = name.to_string();
+        let result = Box::new(result);
+        ASTNode::new(
+            ASTNodeKind::Declaration(Declaration::Function {
+                name,
+                params,
+                result,
+            }),
+            position,
+        )
     }
 
     pub fn prefix(op: PrefixOperator, val: ASTNode, position: Position) -> ASTNode {
@@ -399,14 +452,9 @@ pub mod tests {
     pub fn symbolic_let(name: &str, constraint: &str, position: Position) -> ASTNode {
         let name = name.to_string();
         let constraint = constraint.to_string();
-        let kind = DeclarationKind::Inmutable;
 
         ASTNode::new(
-            ASTNodeKind::SymbolicDeclaration {
-                name,
-                constraint,
-                kind,
-            },
+            ASTNodeKind::Declaration(Declaration::Symbolic { name, constraint }),
             position,
         )
     }
