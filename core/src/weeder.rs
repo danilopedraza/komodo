@@ -625,4 +625,32 @@ mod tests {
             )),
         );
     }
+
+    #[test]
+    fn let_memoized_function() {
+        let node = cst::tests::let_memoize(
+            cst::infix(
+                InfixOperator::Assignment,
+                cst::infix(
+                    InfixOperator::Call,
+                    symbol("f", dummy_pos()),
+                    cst::tuple(vec![symbol("x", dummy_pos())], dummy_pos()),
+                    dummy_pos(),
+                ),
+                cst::tests::dec_integer("1", dummy_pos()),
+                dummy_pos(),
+            ),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            rewrite(node),
+            Ok(ast::tests::memoized_function_declaration(
+                "f",
+                vec![ast::tests::symbol("x", dummy_pos())],
+                ast::tests::dec_integer("1", dummy_pos()),
+                dummy_pos()
+            )),
+        );
+    }
 }

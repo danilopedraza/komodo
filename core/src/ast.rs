@@ -359,6 +359,24 @@ pub mod tests {
         )
     }
 
+    pub fn memoized_function_declaration(
+        name: &str,
+        params: Vec<ASTNode>,
+        result: ASTNode,
+        position: Position,
+    ) -> ASTNode {
+        let name = name.to_string();
+        let result = Box::new(result);
+        ASTNode::new(
+            ASTNodeKind::Declaration(Declaration::MemoizedFunction {
+                name,
+                params,
+                result,
+            }),
+            position,
+        )
+    }
+
     pub fn prefix(op: PrefixOperator, val: ASTNode, position: Position) -> ASTNode {
         let val = Box::new(val);
         ASTNode::new(ASTNodeKind::Prefix { op, val }, position)
