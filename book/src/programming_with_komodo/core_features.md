@@ -2,9 +2,9 @@
 
 ## **What is Komodo good at?**
 
-The aim of Komodo is to easily express **experimental** solutions to some specific class of problems. These problems are related to combinatorics, algorithm design, number theory, and stuff like that.
+The aim of Komodo is to easily express **experimental** solutions to problems.
 
-What does **experimental** mean here? They are probably not complete nor correct solutions. When people solve a math problem, they usually get to the solution iteratively. They start by some intuition-based guess, and tweak until it satisfies all of the problem's constraints. Komodo wants to make this process easier, making assumptions that are reasonable in this context and offering tools that are convenient. This means that Komodo is (clearly) an opinionated tool.
+What does **experimental** mean here? They are probably not complete nor correct solutions. When people solve a problem, they usually get to the solution iteratively. They start by some intuition-based guess, and tweak until it satisfies all of the problem's constraints. Komodo wants to make this process easier, making assumptions that are reasonable and offering tools that are convenient.
 
 ## **What is Komodo bad at?**
 
@@ -18,7 +18,7 @@ For example, languages like Python or JavaScript have a clear distinction betwee
 
 In Komodo, we think of this differently. Every piece of code that you write returns something. For example, the expression `let a := 1` returns 1, and the expression `let chr := 'x'` returns `'x'`.
 
-Komodo **does** have some statements, but they are very specific.
+Komodo **does** have some statements, but they are a few.
 
 ## With pattern matching
 
@@ -50,3 +50,27 @@ komodo does not enforce type rules, so you can pass any type to a function. This
 - Komodo does not have mechanisms like polymorphism. Weak typing (with pattern matching) allows to (kinda) solve the same problem that polymorphism solves.
 
 - It enriches pattern matching! And invites you, dear programmer, to use it.
+
+## Caching/memoization by default
+
+You can save the result of certain function calls, to avoid repetitive calculations. This is very useful when writing recursive functions. Take the fibonacci example again:
+
+```
+let fib(0) := 0
+let fib(1) := 1
+let fib(n) := fib(n - 1) + fib(n - 2)
+
+fib(10) # 55
+```
+
+The recursive call repeats a lot of calculations because is calling the same recursive function two times, and they will do the same (leading to exponential growth on the number of calls!). With large enough inputs (something like `fib(50)`), the program will be unacceptably slow. We can fix this just by adding a word:
+
+```
+let fib(0) := 0
+let fib(1) := 1
+let memoize fib(n) := fib(n - 1) + fib(n - 2)
+
+fib(10) # 55
+```
+
+Adding `memoize` before defining a function will save the results computed from that call, so they can used later, when the function is called with the same arguments again.
