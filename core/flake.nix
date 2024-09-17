@@ -1,3 +1,4 @@
+# Taken from https://mediocregopher.com/posts/x-compiling-rust-with-nix
 {
   inputs = {
     fenix.url = "github:nix-community/fenix";
@@ -13,10 +14,10 @@
           rustTarget = "x86_64-unknown-linux-musl";
         };
 
-        "i686-linux" = {
-          crossSystemConfig = "i686-unknown-linux-musl";
-          rustTarget = "i686-unknown-linux-musl";
-        };
+        # "i686-linux" = {
+        #   crossSystemConfig = "i686-unknown-linux-musl";
+        #   rustTarget = "i686-unknown-linux-musl";
+        # };
 
         "aarch64-linux" = {
           crossSystemConfig = "aarch64-unknown-linux-musl";

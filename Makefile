@@ -5,6 +5,22 @@ WEBSITE_DIR = $(CURRENT_DIR)/site
 
 build: build-site build-playground build-book
 
+build-core-windows-amd64:
+	cd $(CURRENT_DIR)/core
+	nix build '.#cross-x86_64-windows'
+
+build-core-linux-amd64:
+	cd $(CURRENT_DIR)/core
+	nix build '.#cross-x86_64-linux'
+
+build-core-linux-arm64:
+	cd $(CURRENT_DIR)/core
+	nix build '.#cross-aarch64-linux'
+
+build-core-wasm:
+	cd $(CURRENT_DIR)/core
+	cargo build --target wasm32-unknown-unknown
+
 build-site:
 	mkdir -p $(WEBSITE_DIR)
 	cp $(CURRENT_DIR)/website/index.html $(CURRENT_DIR)/website/index.css $(WEBSITE_DIR)
@@ -20,10 +36,6 @@ deploy-vsc-ext:
 	cd $(CURRENT_DIR)/vsc-extension
 	vsce publish --skip-duplicate
 	npx --yes ovsx publish --skip-duplicate
-
-build-core-wasm:
-	cd $(CURRENT_DIR)/core
-	cargo build --target wasm32-unknown-unknown
 
 test-core:
 	cd $(CURRENT_DIR)/core
