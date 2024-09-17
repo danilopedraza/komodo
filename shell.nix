@@ -2,9 +2,6 @@
 
 pkgs.mkShell {
   packages = [
-    pkgs.cargo-cross
-    pkgs.docker
-    pkgs.docker-buildx
     pkgs.mdbook
     pkgs.nodejs_20
     pkgs.rustup

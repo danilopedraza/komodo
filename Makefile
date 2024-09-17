@@ -5,13 +5,6 @@ WEBSITE_DIR = $(CURRENT_DIR)/site
 
 build: build-site build-playground build-book
 
-build-darwin-image:
-	git clone https://github.com/cross-rs/cross
-	cd cross
-	git submodule update --init --remote
-	cargo build-docker-image x86_64-apple-darwin-cross \
-	--build-arg 'MACOS_SDK_URL=https://github.com/joseluisq/macosx-sdks/releases/download/12.3/MacOSX12.3.sdk.tar.xz'
-
 build-site:
 	mkdir -p $(WEBSITE_DIR)
 	cp $(CURRENT_DIR)/website/index.html $(CURRENT_DIR)/website/index.css $(WEBSITE_DIR)

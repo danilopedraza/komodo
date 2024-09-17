@@ -11,6 +11,3 @@ devenv.local.nix
 
 # deployed site usual dir
 site/
-
-# directory for cloning cargo-cross and building MacOS Docker image
-cross/
