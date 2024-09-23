@@ -10,6 +10,34 @@ let reduce({some|most}, fn: Function, initial) := reduce(most, fn, fn(initial, s
 let fold([first|most], fn: Function) := reduce(most, fn, first)
 let fold({some|most}, fn: Function) := reduce(most, fn, some)
 
+let filter([], _: Function) := []
+let filter({}, _: Function) := {}
+let filter([first|tail], fn: Function) :=
+    if fn(first) then
+        [first|filter(tail, fn)]
+    else
+        filter(tail, fn)
+let filter({first|tail}, fn: Function) :=
+    if fn(first) then
+        {first|filter(tail, fn)}
+    else
+        filter(tail, fn)
+
+let filterFirst([], _: Function) := []
+let filterFirst({}, _: Function) := {}
+let filterFirst([first|tail], fn: Function) :=
+    if fn(first) then
+        [first|filterFirst(tail, fn)]
+    else
+        tail
+let filter({first|tail}, fn: Function) :=
+    if fn(first) then
+        {first|filterFirst(tail, fn)}
+    else
+        tail
+
+let deleteOnce(container, element) := filterFirst(container, val -> val /= element)
+
 let sum(container) := reduce(container, (a, b) -> a + b, 0)
 let prod(container) := reduce(container, (a, b) -> a * b, 1)
 
