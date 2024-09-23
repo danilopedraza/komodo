@@ -58,4 +58,5 @@ serve-book:
 	mdbook serve $(CURRENT_DIR)/book --open
 
 run-repl:
-	cargo run --all-features --quiet --manifest-path $(CURRENT_DIR)/core/Cargo.toml
+	cd core
+	cargo run --all-features --quiet
