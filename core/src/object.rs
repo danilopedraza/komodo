@@ -1084,7 +1084,7 @@ impl Callable for Function {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum FunctionPatternKind {
     Memoized,
     NotMemoized,
@@ -1099,6 +1099,13 @@ pub struct PatternFunction {
 
 impl PatternFunction {
     pub fn add_pattern(&mut self, args: &[ASTNode], value: &ASTNode, kind: FunctionPatternKind) {
+        for i in 0..self.patterns.len() {
+            let (_, other_args, _) = &self.patterns[i];
+            if args == other_args {
+                self.patterns[i] = (kind, args.to_owned(), value.to_owned());
+            }
+        }
+
         if self.patterns.is_empty() {
             self.params = args.len();
         } else {
