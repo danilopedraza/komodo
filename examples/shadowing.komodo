@@ -1,0 +1,8 @@
+let f() := 1
+let g() := f()
+
+let f() := 2
+let h() := f()
+
+# assert(g() = 1)
+# assert(h() = 2)
