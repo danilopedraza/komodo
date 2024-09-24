@@ -4,7 +4,7 @@ use crate::error::{Error, Position};
 use crate::lexer::Radix;
 use crate::matcher::{match_, Match};
 use crate::object::{
-    self, AnonFunction, Callable, Decimal, Dictionary, FailedAssertion, Fraction, Function,
+    self, AnonFunction, Decimal, Dictionary, FailedAssertion, Fraction, Function,
     FunctionPatternKind, Kind, List, PatternFunction, Range,
 };
 

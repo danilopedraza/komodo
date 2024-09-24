@@ -1061,8 +1061,8 @@ impl fmt::Display for Function {
     }
 }
 
-impl Callable for Function {
-    fn call(
+impl Function {
+    pub fn call(
         &mut self,
         args: &[Object],
         env: &mut Environment,
@@ -1075,7 +1075,7 @@ impl Callable for Function {
         }
     }
 
-    fn param_number(&self) -> usize {
+    pub fn param_number(&self) -> usize {
         match self {
             Self::Pattern(f) => f.param_number(),
             Self::Anonymous(f) => f.param_number(),
@@ -1133,9 +1133,7 @@ impl PatternFunction {
 
         res
     }
-}
 
-impl Callable for PatternFunction {
     fn call(
         &mut self,
         args: &[Object],
@@ -1179,9 +1177,7 @@ impl AnonFunction {
     pub fn new(params: Vec<String>, result: ASTNode) -> Self {
         Self { params, result }
     }
-}
 
-impl Callable for AnonFunction {
     fn call(
         &mut self,
         args: &[Object],
@@ -1206,16 +1202,6 @@ impl Callable for AnonFunction {
     }
 }
 
-pub trait Callable {
-    fn call(
-        &mut self,
-        args: &[Object],
-        env: &mut Environment,
-        call_pos: Position,
-    ) -> Result<Object, Error>;
-    fn param_number(&self) -> usize;
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ExternFunction {
     func: fn(&[Object]) -> Object,
@@ -1226,9 +1212,7 @@ impl ExternFunction {
     pub fn new(func: fn(&[Object]) -> Object, param_number: usize) -> Self {
         Self { func, param_number }
     }
-}
 
-impl Callable for ExternFunction {
     fn call(
         &mut self,
         args: &[Object],
