@@ -136,7 +136,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         } => unimplemented!(),
         ASTNodeKind::Block(exprs) => block(exprs, env),
         ASTNodeKind::Assignment { left, right } => assignment(left, right, env),
-        ASTNodeKind::Declaration(decl) => _declaration(decl, env),
+        ASTNodeKind::Declaration(decl) => declaration(decl, env),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -149,7 +149,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     }
 }
 
-fn _declaration(decl: &Declaration, env: &mut Environment) -> Result<Object, Error> {
+fn declaration(decl: &Declaration, env: &mut Environment) -> Result<Object, Error> {
     match decl {
         Declaration::Symbolic { name, constraint } => let_without_value(name, constraint, env),
         Declaration::Inmutable { left, right } => {
