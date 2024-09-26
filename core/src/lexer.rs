@@ -57,6 +57,7 @@ pub enum TokenType {
     BitwiseAnd,
     VerticalBar,
     BitwiseXor,
+    Case,
     Char(char),
     Colon,
     Comma,
@@ -373,6 +374,7 @@ impl<'a> Lexer<'a> {
     fn keyword(literal: &str) -> Option<TokenType> {
         match literal {
             "as" => Some(TokenType::As),
+            "case" => Some(TokenType::Case),
             "do" => Some(TokenType::Do),
             "else" => Some(TokenType::Else),
             "false" => Some(TokenType::False),
@@ -1119,6 +1121,30 @@ mod tests {
                 TokenType::Rparen,
                 TokenType::Assign,
                 TokenType::Integer("1".into(), Radix::Decimal),
+            ]),
+        );
+    }
+
+    #[test]
+    fn case() {
+        let code = unindent(
+            "
+        case expr do
+            5 => \"five\"
+        ",
+        );
+
+        assert_eq!(
+            token_types_from(&code),
+            Ok(vec![
+                TokenType::Case,
+                TokenType::Ident("expr".into()),
+                TokenType::Do,
+                TokenType::Indent,
+                TokenType::Integer("5".into(), Radix::Decimal),
+                TokenType::FatArrow,
+                TokenType::String("five".into()),
+                TokenType::Dedent,
             ]),
         );
     }
