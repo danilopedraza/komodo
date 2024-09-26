@@ -137,6 +137,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeKind::Block(exprs) => block(exprs, env),
         ASTNodeKind::Assignment { left, right } => assignment(left, right, env),
         ASTNodeKind::Declaration(decl) => declaration(decl, env),
+        ASTNodeKind::Case { expr: _, pairs: _ } => todo!(),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {

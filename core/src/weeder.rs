@@ -56,6 +56,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         } => comprehension(*element, variable, *iterator, kind),
         CSTNodeKind::Block(exprs) => block(exprs),
         CSTNodeKind::Declaration(node, kind) => declaration(*node, kind),
+        CSTNodeKind::Case { expr, pairs } => case(*expr, pairs),
     }?;
 
     Ok(ASTNode::new(tp, node.position))
@@ -338,6 +339,16 @@ fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind
             node.position,
         )),
     }
+}
+
+fn case(expr: CSTNode, pairs: Vec<(CSTNode, CSTNode)>) -> WeederResult<ASTNodeKind> {
+    let expr = Box::new(rewrite(expr)?);
+    let pairs: WeederResult<Vec<(ASTNode, ASTNode)>> =
+        pairs.into_iter().map(rewrite_pair).collect();
+    Ok(ASTNodeKind::Case {
+        expr,
+        pairs: pairs?,
+    })
 }
 
 fn destructure_call(node: &CSTNode) -> Option<(String, Vec<CSTNode>)> {

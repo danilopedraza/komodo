@@ -100,6 +100,10 @@ pub enum ASTNodeKind {
         called: Box<ASTNode>,
         args: Vec<ASTNode>,
     },
+    Case {
+        expr: Box<ASTNode>,
+        pairs: Vec<(ASTNode, ASTNode)>,
+    },
     Char(char),
     Comprehension {
         element: Box<ASTNode>,

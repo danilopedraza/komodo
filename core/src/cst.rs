@@ -189,6 +189,10 @@ pub enum CSTNodeKind {
     AdInfinitum,
     Boolean(bool),
     Block(Vec<CSTNode>),
+    Case {
+        expr: Box<CSTNode>,
+        pairs: Vec<(CSTNode, CSTNode)>,
+    },
     Char(char),
     Comprehension {
         kind: ComprehensionKind,
@@ -414,6 +418,12 @@ pub mod tests {
             CSTNodeKind::Declaration(Box::new(expr), DeclarationKind::InmutableMemoized),
             position,
         )
+    }
+
+    pub fn case(expr: CSTNode, pairs: Vec<(CSTNode, CSTNode)>, position: Position) -> CSTNode {
+        let expr = Box::new(expr);
+
+        CSTNode::new(CSTNodeKind::Case { expr, pairs }, position)
     }
 
     // pub fn function(params: Vec<&str>, proc: Vec<CSTNode>, position: Position) -> CSTNode {

@@ -48,6 +48,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             None => self.err_with_cur(ParserError::EOFReached),
             Some(tok) => match tok {
                 TokenType::Char(chr) => self.char(chr),
+                TokenType::Case => self.case(),
                 TokenType::DotDot => self.ad_infinitum(),
                 TokenType::For => self.for_(),
                 TokenType::From => self.import_from(),
@@ -74,6 +75,37 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 }
             },
         }
+    }
+
+    fn case(&mut self) -> NodeResult {
+        let start = self.cur_pos.start;
+        let expr = self.expression(Precedence::Lowest)?;
+        self.consume(TokenType::Do)?;
+        self.consume(TokenType::Indent)?;
+
+        let mut pairs = vec![];
+        loop {
+            match self.peek_token()? {
+                Some(TokenType::Dedent) => {
+                    self.next_token()?;
+                    break;
+                }
+                Some(_) => {
+                    let left = self.expression(Precedence::Lowest)?;
+                    self.consume(TokenType::FatArrow)?;
+                    let right = self.expression(Precedence::Lowest)?;
+
+                    pairs.push((left, right));
+                }
+                None => return Err(Error::new(ParserError::EOFReached.into(), self.cur_pos)),
+            }
+        }
+
+        let expr = Box::new(expr);
+        Ok(CSTNode::new(
+            CSTNodeKind::Case { expr, pairs },
+            self.start_to_cur(start),
+        ))
     }
 
     fn let_expression(&mut self) -> NodeResult {
@@ -654,8 +686,8 @@ mod tests {
     use crate::{
         ast::tests::pos,
         cst::tests::{
-            _pos, ad_infinitum, block, boolean, char, dec_integer, import_from, integer, let_,
-            let_memoize, pattern, set_cons, simple_import, string, symbol, var, wildcard,
+            _pos, ad_infinitum, block, boolean, case, char, dec_integer, import_from, integer,
+            let_, let_memoize, pattern, set_cons, simple_import, string, symbol, var, wildcard,
         },
         error::Position,
         lexer::{Lexer, Radix},
@@ -1967,6 +1999,27 @@ mod tests {
                     pos(12, 9),
                 ),
                 pos(0, 21),
+            )))
+        );
+    }
+
+    #[test]
+    fn _case() {
+        let input = unindent(
+            "
+        case expr do
+            5 => 5
+        ",
+        );
+
+        let lexer = Lexer::from(input.as_str());
+
+        assert_eq!(
+            Parser::from(lexer).next(),
+            Some(Ok(case(
+                symbol("expr", pos(5, 4)),
+                vec![(dec_integer("5", pos(17, 1)), dec_integer("5", pos(22, 1))),],
+                pos(0, 24),
             )))
         );
     }
