@@ -9,13 +9,13 @@ pub enum EnvResponse<'a> {
     NotFound,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ValueKind {
     Inmutable,
     Mutable,
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct Scope {
     dict: BTreeMap<String, (ValueKind, Object)>,
 }
@@ -40,7 +40,7 @@ impl Scope {
     }
 }
 
-#[derive(Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct ExecContext {
     pub reference_path: PathBuf,
 }
@@ -51,6 +51,7 @@ impl ExecContext {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Environment {
     scopes: Vec<Scope>,
     pub ctx: ExecContext,

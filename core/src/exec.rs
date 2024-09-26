@@ -65,9 +65,9 @@ pub fn list(l: &[ASTNode], env: &mut Environment) -> Result<Vec<Object>, Error> 
     l.iter().map(|node| exec(node, env)).collect()
 }
 
-fn function(params: &[String], result: &ASTNode) -> Result<Object, Error> {
+fn function(params: &[String], result: &ASTNode, env: &Environment) -> Result<Object, Error> {
     Ok(Object::Function(object::Function::Anonymous(
-        AnonFunction::new(params.to_owned(), result.to_owned()),
+        AnonFunction::new(params.to_owned(), result.to_owned(), env.clone()),
     )))
 }
 
@@ -76,7 +76,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeKind::Symbol { name } => symbol(name, env, node.position),
         ASTNodeKind::Set { list } => extension_set(list, env),
         ASTNodeKind::Integer { literal, radix } => integer(literal, *radix),
-        ASTNodeKind::Function { params, result } => function(params, result),
+        ASTNodeKind::Function { params, result } => function(params, result, env),
         ASTNodeKind::Infix { op, lhs, rhs } => infix(
             op.clone(),
             &exec(lhs, env)?,
@@ -1091,6 +1091,7 @@ mod tests {
                         symbol("x", dummy_pos()),
                         dummy_pos()
                     ),
+                    Environment::default(),
                 )
             ))),
         );

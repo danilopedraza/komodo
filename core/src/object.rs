@@ -1070,7 +1070,7 @@ impl Function {
     ) -> Result<Object, Error> {
         match self {
             Self::Pattern(f) => f.call(args, env, call_pos),
-            Self::Anonymous(f) => f.call(args, env, call_pos),
+            Self::Anonymous(f) => f.call(args, call_pos),
             Self::Extern(ef) => ef.call(args, env, call_pos),
         }
     }
@@ -1092,6 +1092,7 @@ pub enum FunctionPatternKind {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct PatternFunction {
+    // env: Environment,
     patterns: Vec<(FunctionPatternKind, Vec<ASTNode>, ASTNode)>,
     cache: BTreeMap<Vec<Object>, Object>,
     params: usize,
@@ -1171,28 +1172,28 @@ impl PatternFunction {
 pub struct AnonFunction {
     params: Vec<String>,
     result: ASTNode,
+    env: Environment,
 }
 
 impl AnonFunction {
-    pub fn new(params: Vec<String>, result: ASTNode) -> Self {
-        Self { params, result }
+    pub fn new(params: Vec<String>, result: ASTNode, env: Environment) -> Self {
+        Self {
+            params,
+            result,
+            env,
+        }
     }
 
-    fn call(
-        &mut self,
-        args: &[Object],
-        env: &mut Environment,
-        _call_pos: Position,
-    ) -> Result<Object, Error> {
-        env.push_scope();
+    fn call(&mut self, args: &[Object], _call_pos: Position) -> Result<Object, Error> {
+        self.env.push_scope();
 
         for (arg, param) in zip(args, &self.params) {
-            env.set_inmutable(param, arg.clone());
+            self.env.set_inmutable(param, arg.clone());
         }
 
-        let res = exec(&self.result, env)?;
+        let res = exec(&self.result, &mut self.env)?;
 
-        env.pop_scope();
+        self.env.pop_scope();
 
         Ok(res)
     }
