@@ -71,11 +71,11 @@
 			"patterns": [
 				{
 					"name": "keyword.other.komodo",
-					"match": "\\b(true|false|let|in)\\b"
+					"match": "\\b(true|false|let|in|memoize)\\b"
 				},
 				{
 					"name": "keyword.control.komodo",
-					"match": "\\b(for|if|else|then|from|import)\\b"
+					"match": "\\b(case|do|for|if|else|then|from|import)\\b"
 				}
 			]
 		},
