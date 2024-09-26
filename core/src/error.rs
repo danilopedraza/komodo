@@ -264,6 +264,7 @@ fn exec_error_msg(err: &EvalError) -> String {
         EvalError::UnmatchedCall => {
             "None of the patterns in the function matched the arguments of this call".into()
         }
+        EvalError::UnmatchedExpression => "None of the patterns matched the expression".into(),
     }
 }
 

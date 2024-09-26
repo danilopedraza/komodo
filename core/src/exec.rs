@@ -52,6 +52,7 @@ pub enum EvalError {
     NonPrependableObject(String),
     UnknownValue(String),
     UnmatchedCall,
+    UnmatchedExpression,
 }
 
 pub fn truthy(val: &Object) -> bool {
@@ -129,7 +130,6 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
             iterator,
             kind,
         } => comprehension(element, variable, iterator, *kind, env),
-        // ASTNodeKind::Declaration { left, right, kind } => declaration(left, right, *kind, env),
         ASTNodeKind::Pattern {
             exp: _,
             constraint: _,
@@ -137,7 +137,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
         ASTNodeKind::Block(exprs) => block(exprs, env),
         ASTNodeKind::Assignment { left, right } => assignment(left, right, env),
         ASTNodeKind::Declaration(decl) => declaration(decl, env),
-        ASTNodeKind::Case { expr: _, pairs: _ } => todo!(),
+        ASTNodeKind::Case { expr, pairs } => case(expr, pairs, env),
     };
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
@@ -148,6 +148,34 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     } else {
         res
     }
+}
+
+fn case(
+    expr: &ASTNode,
+    pairs: &[(ASTNode, ASTNode)],
+    env: &mut Environment,
+) -> Result<Object, Error> {
+    let expr_obj = exec(expr, env)?;
+
+    for (pattern, res) in pairs {
+        if let Some(Match(map)) = match_(pattern, &expr_obj) {
+            env.push_scope();
+            for (key, val) in map {
+                env.set_inmutable(&key, val);
+            }
+
+            let res = exec(res, env);
+
+            env.pop_scope();
+
+            return res;
+        }
+    }
+
+    Err(Error::new(
+        EvalError::UnmatchedExpression.into(),
+        expr.position,
+    ))
 }
 
 fn declaration(decl: &Declaration, env: &mut Environment) -> Result<Object, Error> {
@@ -691,7 +719,7 @@ mod tests {
 
     use super::*;
     use crate::ast::tests::{
-        _for, _if, assignment, block, boolean, call, comprehension, cons, container_element,
+        _for, _if, assignment, block, boolean, call, case, comprehension, cons, container_element,
         dec_integer, decimal, extension_list, extension_set, fraction, function,
         function_declaration, infix, let_, memoized_function_declaration, pos, prefix, range,
         set_cons, string, symbol, symbolic_let, tuple, var,
@@ -1663,5 +1691,25 @@ mod tests {
         assert_eq!(first_res, second_res);
 
         assert_eq!(unsafe { CALL_COUNTER }, 1);
+    }
+
+    #[test]
+    fn _case() {
+        let node = case(
+            dec_integer("5", dummy_pos()),
+            vec![
+                (dec_integer("1", dummy_pos()), dec_integer("1", dummy_pos())),
+                (
+                    dec_integer("5", dummy_pos()),
+                    dec_integer("10", dummy_pos()),
+                ),
+            ],
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            exec(&node, &mut Environment::default()),
+            Ok(Object::Integer(10.into())),
+        );
     }
 }

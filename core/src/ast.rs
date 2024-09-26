@@ -480,4 +480,10 @@ pub mod tests {
             position,
         )
     }
+
+    pub fn case(expr: ASTNode, pairs: Vec<(ASTNode, ASTNode)>, position: Position) -> ASTNode {
+        let expr = Box::new(expr);
+
+        ASTNode::new(ASTNodeKind::Case { expr, pairs }, position)
+    }
 }
