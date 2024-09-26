@@ -2008,7 +2008,7 @@ mod tests {
         let input = unindent(
             "
         case expr do
-            5 => 5
+            [a|_] => a
         ",
         );
 
@@ -2018,8 +2018,11 @@ mod tests {
             Parser::from(lexer).next(),
             Some(Ok(case(
                 symbol("expr", pos(5, 4)),
-                vec![(dec_integer("5", pos(17, 1)), dec_integer("5", pos(22, 1))),],
-                pos(0, 24),
+                vec![(
+                    cons(symbol("a", pos(18, 1)), wildcard(pos(20, 1)), pos(17, 5)),
+                    symbol("a", pos(26, 1))
+                )],
+                pos(0, 28),
             )))
         );
     }
