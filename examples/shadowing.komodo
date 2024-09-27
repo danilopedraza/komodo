@@ -4,5 +4,5 @@ let g() := f()
 let f() := 2
 let h() := f()
 
-# assert(g() = 1)
-# assert(h() = 2)
+assert(g() = 1)
+assert(h() = 2)

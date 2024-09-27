@@ -1,9 +1,11 @@
 use std::{
+    cell::RefCell,
     cmp::min,
     collections::{BTreeMap, BTreeSet},
     fmt,
     hash::Hash,
     iter::zip,
+    rc::Rc,
     vec,
 };
 
@@ -1069,7 +1071,7 @@ impl Function {
         call_pos: Position,
     ) -> Result<Object, Error> {
         match self {
-            Self::Pattern(f) => f.call(args, env, call_pos),
+            Self::Pattern(f) => f.call(args, call_pos),
             Self::Anonymous(f) => f.call(args, call_pos),
             Self::Extern(ef) => ef.call(args, env, call_pos),
         }
@@ -1090,15 +1092,31 @@ pub enum FunctionPatternKind {
     NotMemoized,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PatternFunction {
-    // env: Environment,
+    pub env: Rc<RefCell<Environment>>,
     patterns: Vec<(FunctionPatternKind, Vec<ASTNode>, ASTNode)>,
     cache: BTreeMap<Vec<Object>, Object>,
     params: usize,
 }
 
+impl Hash for PatternFunction {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.patterns.hash(state);
+        self.cache.hash(state);
+        self.params.hash(state);
+    }
+}
+
 impl PatternFunction {
+    pub fn new(env: Rc<RefCell<Environment>>) -> Self {
+        Self {
+            env,
+            patterns: Vec::default(),
+            cache: BTreeMap::default(),
+            params: usize::default(),
+        }
+    }
     pub fn add_pattern(&mut self, args: &[ASTNode], value: &ASTNode, kind: FunctionPatternKind) {
         for i in 0..self.patterns.len() {
             let (_, other_args, _) = &self.patterns[i];
@@ -1117,7 +1135,6 @@ impl PatternFunction {
     }
 
     fn exec_call(
-        &self,
         matched_values: BTreeMap<String, Object>,
         result_node: &ASTNode,
         env: &mut Environment,
@@ -1135,12 +1152,7 @@ impl PatternFunction {
         res
     }
 
-    fn call(
-        &mut self,
-        args: &[Object],
-        env: &mut Environment,
-        call_pos: Position,
-    ) -> Result<Object, Error> {
+    fn call(&mut self, args: &[Object], call_pos: Position) -> Result<Object, Error> {
         if let Some(cached) = self.cache.get(args) {
             Ok(cached.to_owned())
         } else {
@@ -1148,10 +1160,10 @@ impl PatternFunction {
                 if let Some(Match(v)) = match_call(patterns, args) {
                     match kind {
                         FunctionPatternKind::NotMemoized => {
-                            return self.exec_call(v, val, env);
+                            return Self::exec_call(v, val, &mut self.env.borrow().to_owned());
                         }
                         FunctionPatternKind::Memoized => {
-                            let res = self.exec_call(v, val, env)?;
+                            let res = Self::exec_call(v, val, &mut self.env.borrow().to_owned())?;
                             self.cache.insert(args.to_owned(), res.clone());
                             return Ok(res);
                         }

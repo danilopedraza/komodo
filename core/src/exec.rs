@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
+use std::rc::Rc;
 
 use crate::error::{Error, Position};
 use crate::lexer::Radix;
@@ -488,7 +490,9 @@ fn let_function(
         EnvResponse::NotFound => {
             env.set_mutable(
                 name,
-                Object::Function(Function::Pattern(PatternFunction::default())),
+                Object::Function(Function::Pattern(PatternFunction::new(Rc::new(
+                    RefCell::new(env.clone()),
+                )))),
             );
 
             match env.get(name) {
@@ -501,6 +505,10 @@ fn let_function(
     };
 
     function.add_pattern(args, value, kind);
+    function
+        .env
+        .borrow_mut()
+        .set_mutable(name, Object::Function(Function::Pattern(function.clone())));
 
     Ok(Object::Function(Function::Pattern(function.clone())))
 }
