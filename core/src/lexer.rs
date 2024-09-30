@@ -90,6 +90,7 @@ pub enum TokenType {
     Lparen,
     Memoize,
     Minus,
+    Newline,
     Percent,
     NotEqual,
     Over,
@@ -214,11 +215,17 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    fn push_newline(&mut self, pos: usize) {
+        self.token_queue
+            .push_back(Ok(Token::new(TokenType::Newline, Position::new(pos, 1))));
+    }
+
     fn consume_indent(&mut self) {
         loop {
             match self.input.peek() {
                 Some('\n') => {
                     self.next_char();
+                    let newline_pos = self.cur_pos;
 
                     let indent_res = self.emit_indents();
 
@@ -228,10 +235,22 @@ impl<'a> Lexer<'a> {
                             self.indent_level = 0;
                         }
                         IndentLevel::NonZero(new_indent_level, indent_token) => {
-                            if new_indent_level > self.indent_level {
-                                self.token_queue.push_back(Ok(indent_token));
-                            } else {
-                                self.push_dedents(self.indent_level - new_indent_level);
+                            // if new_indent_level > self.indent_level {
+                            //     self.token_queue.push_back(Ok(indent_token));
+                            // } else {
+                            //     self.push_dedents(self.indent_level - new_indent_level);
+                            // }
+
+                            match new_indent_level.cmp(&self.indent_level) {
+                                std::cmp::Ordering::Less => {
+                                    self.push_dedents(self.indent_level - new_indent_level);
+                                }
+                                std::cmp::Ordering::Equal => {
+                                    self.push_newline(newline_pos);
+                                }
+                                std::cmp::Ordering::Greater => {
+                                    self.token_queue.push_back(Ok(indent_token));
+                                }
                             }
 
                             self.indent_level = new_indent_level;
@@ -980,6 +999,7 @@ mod tests {
                 TokenType::Ident("n".into()),
                 TokenType::Plus,
                 TokenType::Integer("1".into(), Radix::Decimal),
+                TokenType::Newline,
                 TokenType::Ident("a".into()),
                 TokenType::Dedent,
             ])

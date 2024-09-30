@@ -17,7 +17,7 @@ pub enum ParserError {
 pub struct Parser<T: Iterator<Item = Result<Token, Error>>> {
     tokens: Peekable<T>,
     cur_pos: Position,
-    ignore_indent: bool,
+    ignore_whitespace: bool,
 }
 
 impl<T: Iterator<Item = Result<Token, Error>>> Iterator for Parser<T> {
@@ -169,6 +169,10 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             }
         }
 
+        while let Ok(Some(TokenType::Newline)) = self.peek_token() {
+            self.next_token()?;
+        }
+
         Ok(expr)
     }
 
@@ -219,7 +223,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         terminator: TokenType,
         first: Option<CSTNode>,
     ) -> Result<Vec<CSTNode>, Error> {
-        self.ignoring_indentation(|parser| {
+        self.ignoring_whitespace(|parser| {
             let mut res = match first {
                 None => vec![],
                 Some(node) => vec![node],
@@ -310,17 +314,17 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         self.node_with_cur(CSTNodeKind::Integer(int, radix))
     }
 
-    fn ignoring_indentation<F: FnOnce(&mut Parser<T>) -> Result<P, Error>, P>(
+    fn ignoring_whitespace<F: FnOnce(&mut Parser<T>) -> Result<P, Error>, P>(
         &mut self,
         f: F,
     ) -> Result<P, Error> {
-        let last = self.ignore_indent;
-        self.ignore_indent = true;
-        self.skip_indentation();
+        let last = self.ignore_whitespace;
+        self.ignore_whitespace = true;
+        self.skip_whitespace();
 
         let res = f(self);
 
-        self.ignore_indent = last;
+        self.ignore_whitespace = last;
 
         res
     }
@@ -333,7 +337,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             return Ok(tuple(vec![], self.start_to_cur(start)));
         }
 
-        self.ignoring_indentation(|parser: &mut Parser<T>| {
+        self.ignoring_whitespace(|parser: &mut Parser<T>| {
             let res = parser.expression(Precedence::Lowest)?;
 
             match parser.next_token()? {
@@ -349,9 +353,9 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         })
     }
 
-    fn skip_indentation(&mut self) {
+    fn skip_whitespace(&mut self) {
         while let Some(Ok(Token {
-            token: TokenType::Indent | TokenType::Dedent,
+            token: TokenType::Indent | TokenType::Dedent | TokenType::Newline,
             ..
         })) = self.tokens.peek()
         {
@@ -360,8 +364,8 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn next_token(&mut self) -> Result<Option<TokenType>, Error> {
-        if self.ignore_indent {
-            self.skip_indentation();
+        if self.ignore_whitespace {
+            self.skip_whitespace();
         }
 
         match self.tokens.next() {
@@ -375,8 +379,8 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn peek_token(&mut self) -> Result<Option<TokenType>, Error> {
-        if self.ignore_indent {
-            self.skip_indentation();
+        if self.ignore_whitespace {
+            self.skip_whitespace();
         }
 
         match self.tokens.peek() {
@@ -387,7 +391,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn list(&mut self) -> NodeResult {
-        self.ignoring_indentation(|parser| {
+        self.ignoring_whitespace(|parser| {
             let start = parser.cur_pos.start;
 
             if matches!(parser.peek_token()?, Some(TokenType::Rbrack)) {
@@ -573,7 +577,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn set_or_dict(&mut self) -> NodeResult {
-        self.ignoring_indentation(|parser| {
+        self.ignoring_whitespace(|parser| {
             let start = parser.cur_pos.start;
 
             if matches!(parser.peek_token()?, Some(TokenType::Rbrace)) {
@@ -675,7 +679,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> From<T> for Parser<T> {
         Self {
             tokens: tokens.peekable(),
             cur_pos: Position::new(0, 0),
-            ignore_indent: false,
+            ignore_whitespace: false,
         }
     }
 }

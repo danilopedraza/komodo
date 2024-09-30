@@ -134,6 +134,7 @@ fn found_a(tok: &TokenType) -> String {
         TokenType::Lparen => "a left parenthesis: `(`".into(),
         TokenType::Memoize => "the `memoize` keyword".into(),
         TokenType::Minus => "a minus operator: `-`".into(),
+        TokenType::Newline => "a newline character".into(),
         TokenType::Percent => "a remainder operator: `%`".into(),
         TokenType::NotEqual => "a non-equality operator: `/=`".into(),
         TokenType::Over => "a division operator: `/`".into(),
