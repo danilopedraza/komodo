@@ -235,12 +235,6 @@ impl<'a> Lexer<'a> {
                             self.indent_level = 0;
                         }
                         IndentLevel::NonZero(new_indent_level, indent_token) => {
-                            // if new_indent_level > self.indent_level {
-                            //     self.token_queue.push_back(Ok(indent_token));
-                            // } else {
-                            //     self.push_dedents(self.indent_level - new_indent_level);
-                            // }
-
                             match new_indent_level.cmp(&self.indent_level) {
                                 std::cmp::Ordering::Less => {
                                     self.push_dedents(self.indent_level - new_indent_level);
