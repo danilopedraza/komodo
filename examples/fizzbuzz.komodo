@@ -1,9 +1,9 @@
-let fizzBuzz(n) :=
-    let fb(0, 0) := "fizzbuzz"
-    let fb(0, _) := "fizz"
-    let fb(_, 0) := "buzz"
-    let fb(_, _) := n
-    fb(n % 3, n % 5)
+let fizzBuzz(n: Integer) :=
+    case (n % 3, n % 5) do
+        (0, 0) => "fizzbuzz"
+        (0, _) => "fizz"
+        (_, 0) => "buzz"
+        _ => n
 
 assert(
     [fizzBuzz(k) for k in 0..5] = ["fizzbuzz", 1, 2, "fizz", 4]
