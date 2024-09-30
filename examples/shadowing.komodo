@@ -3,6 +3,7 @@ let g() := f()
 
 let f() := 2
 let h() := f()
+let f() := 3
 
 assert(g() = 1)
 assert(h() = 2)
