@@ -47,15 +47,15 @@ fn run_file(path: &str) -> ExitCode {
 }
 
 fn run_komodo(args: &[String]) -> ExitCode {
-    if args.len() == 1 {
+    if let Some(path) = args.get(1) {
+        run_file(path)
+    } else {
         #[cfg(feature = "repl")]
         repl(
             &mut MyCLI::default(),
             ExecContext::new(get_reference_path(".")),
         );
         ExitCode::SUCCESS
-    } else {
-        run_file(&args[1])
     }
 }
 
