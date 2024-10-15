@@ -14,7 +14,7 @@ use crate::ast::{ASTNode, ASTNodeKind, Declaration, InfixOperator};
 use crate::cst::{ComprehensionKind, PrefixOperator};
 use crate::env::{EnvResponse, Environment, ValueKind};
 use crate::object::{Bool, Char, Integer, MyString, Object, Set, Symbol, Tuple};
-use crate::run;
+use crate::run::{self, ModuleAddress};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvalError {
@@ -291,7 +291,7 @@ fn block(exprs: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
 }
 
 fn import_from(
-    module: &str,
+    module: &ModuleAddress,
     values: &[(String, Position)],
     env: &mut Environment,
 ) -> Result<Object, Error> {

@@ -5,6 +5,7 @@ use crate::{
     },
     error::Error,
     lexer::Radix,
+    run::ModuleAddress,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -438,7 +439,8 @@ fn set_cons(some: CSTNode, most: CSTNode) -> WeederResult<ASTNodeKind> {
 
 fn import_from(source: CSTNode, values: CSTNode) -> WeederResult<ASTNodeKind> {
     let source = match source.kind {
-        CSTNodeKind::Symbol(name) => name,
+        CSTNodeKind::Symbol(name) => ModuleAddress::StandardLibrary { name },
+        CSTNodeKind::String(path) => ModuleAddress::LocalPath { path },
         _ => {
             return Err(Error::new(
                 WeederError::BadImportOrigin.into(),

@@ -2,6 +2,7 @@ use crate::{
     cst::{self, ComprehensionKind},
     error::Position,
     lexer::Radix,
+    run::ModuleAddress,
 };
 use std::hash::Hash;
 
@@ -148,7 +149,7 @@ pub enum ASTNodeKind {
         negative: Box<ASTNode>,
     },
     ImportFrom {
-        source: String,
+        source: ModuleAddress,
         values: Vec<(String, Position)>,
     },
     Infix {

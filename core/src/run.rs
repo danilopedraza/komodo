@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{fmt, fs, path::Path};
 
 use crate::{
     ast::{ASTNode, ASTNodeKind},
@@ -41,19 +41,31 @@ pub fn run_node(node: ASTNode, env: &mut Environment) -> Result<Object, Error> {
     exec(&node, env)
 }
 
-fn is_std_module(module_name: &str) -> bool {
-    module_name == "utils"
-}
-
 static STDLIB_PATH: &str = "../std/";
 
-fn get_module_code(module_name: &str, env: &Environment) -> Result<String, Error> {
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum ModuleAddress {
+    StandardLibrary { name: String },
+    LocalPath { path: String },
+}
+
+impl fmt::Display for ModuleAddress {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::StandardLibrary { name } => name.fmt(f),
+            Self::LocalPath { path } => path.fmt(f),
+        }
+    }
+}
+
+fn get_module_code(module: &ModuleAddress, env: &Environment) -> Result<String, Error> {
     let reference_path = &env.ctx.reference_path;
 
-    let path = if is_std_module(module_name) {
-        Path::new(STDLIB_PATH).join(Path::new(&format!("{module_name}.komodo")))
-    } else {
-        reference_path.join(Path::new(&format!("{module_name}.komodo")))
+    let path = match module {
+        ModuleAddress::StandardLibrary { name } => {
+            Path::new(STDLIB_PATH).join(Path::new(&format!("{name}.komodo")))
+        }
+        ModuleAddress::LocalPath { path } => reference_path.join(Path::new(&path)),
     };
 
     let source = fs::read_to_string(path).unwrap();
@@ -61,11 +73,11 @@ fn get_module_code(module_name: &str, env: &Environment) -> Result<String, Error
 }
 
 pub fn import_from(
-    module_name: &str,
+    module: &ModuleAddress,
     values: &[(String, Position)],
     env: &mut Environment,
 ) -> Result<(), Error> {
-    let source = get_module_code(module_name, env)?;
+    let source = get_module_code(module, env)?;
     let lexer = Lexer::from(source.as_str());
     let parser = Parser::from(lexer);
     let nodes = collect_nodes(parser)?;
@@ -86,7 +98,7 @@ pub fn import_from(
             EnvResponse::Mutable(obj) => env.set_mutable(value, obj.to_owned()),
             EnvResponse::Inmutable(obj) => env.set_inmutable(value, obj.to_owned()),
             EnvResponse::NotFound => {
-                let module = module_name.to_string();
+                let module = module.to_string();
                 let symbol = value.to_string();
                 return Err(Error::new(
                     ImportError::SymbolNotFound { module, symbol }.into(),
