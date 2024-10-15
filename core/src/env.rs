@@ -53,6 +53,7 @@ impl ExecContext {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Environment {
+    base: Scope,
     scopes: Vec<Scope>,
     pub ctx: ExecContext,
 }
@@ -60,6 +61,7 @@ pub struct Environment {
 impl Default for Environment {
     fn default() -> Self {
         Self {
+            base: Scope::default(),
             scopes: vec![Scope::default()],
             ctx: ExecContext::default(),
         }
@@ -69,13 +71,14 @@ impl Default for Environment {
 impl Environment {
     pub fn new(ctx: ExecContext) -> Self {
         Self {
+            base: Scope::default(),
             scopes: vec![Scope::default()],
             ctx,
         }
     }
 
     pub fn get(&mut self, name: &str) -> EnvResponse<'_> {
-        for scope in self.scopes.iter_mut().rev() {
+        for scope in self.scopes.iter_mut().rev().chain([&mut self.base]) {
             match scope.get(name) {
                 EnvResponse::NotFound => continue,
                 response => return response,
@@ -93,11 +96,17 @@ impl Environment {
     }
 
     pub fn set_mutable(&mut self, name: &str, val: Object) {
-        self.scopes.last_mut().unwrap().set_mutable(name, val);
+        self.scopes
+            .last_mut()
+            .unwrap_or(&mut self.base)
+            .set_mutable(name, val);
     }
 
     pub fn set_inmutable(&mut self, name: &str, val: Object) {
-        self.scopes.last_mut().unwrap().set_inmutable(name, val);
+        self.scopes
+            .last_mut()
+            .unwrap_or(&mut self.base)
+            .set_inmutable(name, val);
     }
 
     pub fn push_scope(&mut self) {
@@ -105,8 +114,6 @@ impl Environment {
     }
 
     pub fn pop_scope(&mut self) {
-        if self.scopes.len() > 1 {
-            self.scopes.pop();
-        }
+        self.scopes.pop();
     }
 }
