@@ -1171,7 +1171,10 @@ impl PatternFunction {
                 }
             }
 
-            Err(Error::new(EvalError::UnmatchedCall.into(), call_pos))
+            Err(Error::with_position(
+                EvalError::UnmatchedCall.into(),
+                call_pos,
+            ))
         }
     }
 

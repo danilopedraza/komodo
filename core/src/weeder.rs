@@ -44,7 +44,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeKind::Dictionary { pairs, complete } => dictionary(pairs, complete),
         CSTNodeKind::AdInfinitum => ad_infinitum(),
         CSTNodeKind::SetCons { some, most } => set_cons(*some, *most),
-        CSTNodeKind::Import { name: _, alias: _ } => Err(Error::new(
+        CSTNodeKind::Import { name: _, alias: _ } => Err(Error::with_position(
             WeederError::PlainImportNotImplemented.into(),
             node.position,
         )),
@@ -163,7 +163,7 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
                         match param.kind {
                             CSTNodeKind::Symbol(s) => res.push(s),
                             _ => {
-                                return Err(Error::new(
+                                return Err(Error::with_position(
                                     WeederError::BadAnonFunctionParameter.into(),
                                     param.position,
                                 ))
@@ -174,7 +174,7 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
                     res
                 }
                 _ => {
-                    return Err(Error::new(
+                    return Err(Error::with_position(
                         WeederError::BadAnonFunctionLHS.into(),
                         lhs.position,
                     ))
@@ -213,7 +213,10 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
                 called,
                 args: vec![first_arg].into_iter().chain(args).collect(),
             }),
-            (_, node) => Err(Error::new(WeederError::BadDot.into(), node.position)),
+            (_, node) => Err(Error::with_position(
+                WeederError::BadDot.into(),
+                node.position,
+            )),
         },
         InfixOperator::Equality => infix_node(ast::InfixOperator::Equality, lhs, rhs),
         InfixOperator::Exponentiation => infix_node(ast::InfixOperator::Exponentiation, lhs, rhs),
@@ -292,7 +295,7 @@ fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind
                     result,
                 }))
             }
-            (Some(_), DeclarationKind::Mutable) => Err(Error::new(
+            (Some(_), DeclarationKind::Mutable) => Err(Error::with_position(
                 WeederError::MutableFunctionDeclaration.into(),
                 left.position,
             )),
@@ -312,7 +315,7 @@ fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind
                             right,
                         }))
                     }
-                    DeclarationKind::InmutableMemoized => Err(Error::new(
+                    DeclarationKind::InmutableMemoized => Err(Error::with_position(
                         WeederError::MemoizedNonFunctionDeclaration.into(),
                         left.position,
                     )),
@@ -330,12 +333,12 @@ fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind
                     constraint,
                 }))
             }
-            _ => Err(Error::new(
+            _ => Err(Error::with_position(
                 WeederError::BadSymbolicDeclaration.into(),
                 node.position,
             )),
         },
-        node => Err(Error::new(
+        node => Err(Error::with_position(
             WeederError::BadDeclaration.into(),
             node.position,
         )),
@@ -442,7 +445,7 @@ fn import_from(source: CSTNode, values: CSTNode) -> WeederResult<ASTNodeKind> {
         CSTNodeKind::Symbol(name) => ModuleAddress::StandardLibrary { name },
         CSTNodeKind::String(path) => ModuleAddress::LocalPath { path: path.into() },
         _ => {
-            return Err(Error::new(
+            return Err(Error::with_position(
                 WeederError::BadImportOrigin.into(),
                 source.position,
             ))
@@ -457,7 +460,7 @@ fn import_from(source: CSTNode, values: CSTNode) -> WeederResult<ASTNodeKind> {
                 match node.kind {
                     CSTNodeKind::Symbol(value) => values.push((value, node.position)),
                     _ => {
-                        return Err(Error::new(
+                        return Err(Error::with_position(
                             WeederError::BadSymbolInImportTuple.into(),
                             node.position,
                         ))
@@ -470,7 +473,7 @@ fn import_from(source: CSTNode, values: CSTNode) -> WeederResult<ASTNodeKind> {
 
         CSTNodeKind::Symbol(value) => vec![(value, values.position)],
         _ => {
-            return Err(Error::new(
+            return Err(Error::with_position(
                 WeederError::BadImportSymbol.into(),
                 values.position,
             ))

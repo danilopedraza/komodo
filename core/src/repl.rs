@@ -2,7 +2,7 @@ use crate::{
     ast::ASTNode,
     builtin::standard_env,
     env::{Environment, ExecContext},
-    error::{error_msg, Error, ErrorMessage, ErrorType},
+    error::{error_msg, Error, ErrorKind, ErrorMessage},
     lexer::Lexer,
     object::Object,
     parser::{Parser, ParserError},
@@ -63,7 +63,7 @@ impl Repl {
                 self.code.clear();
                 (obj.to_string(), ReplResponse::Continue)
             }
-            Err(Error(ErrorType::Parser(ParserError::EOFExpecting(_)), _)) => {
+            Err(Error::WithPosition(ErrorKind::Parser(ParserError::EOFExpecting(_)), _)) => {
                 (String::from(""), ReplResponse::WaitForMore)
             }
             Err(err) => {

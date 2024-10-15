@@ -116,7 +116,7 @@ pub fn import_from(
             EnvResponse::NotFound => {
                 let module = module.to_string();
                 let symbol = value.to_string();
-                return Err(Error::new(
+                return Err(Error::with_position(
                     ImportError::SymbolNotFound { module, symbol }.into(),
                     *position,
                 ));

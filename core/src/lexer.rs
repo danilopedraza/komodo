@@ -135,7 +135,7 @@ impl Iterator for Lexer<'_> {
                 token,
                 Position::new(start, self.cur_pos - start),
             ))),
-            Some(Err(err)) => Some(Err(Error::new(
+            Some(Err(err)) => Some(Err(Error::with_position(
                 err.into(),
                 Position::new(start, self.cur_pos - start),
             ))),
@@ -658,7 +658,10 @@ mod tests {
     fn leading_zeros() {
         assert_eq!(
             token_types_from("01"),
-            Err(Error::new(LexerError::LeadingZeros.into(), _pos(0, 2))),
+            Err(Error::with_position(
+                LexerError::LeadingZeros.into(),
+                _pos(0, 2)
+            )),
         );
     }
 
@@ -718,7 +721,7 @@ mod tests {
 
         assert_eq!(
             Lexer::from(code).next(),
-            Some(Err(Error::new(
+            Some(Err(Error::with_position(
                 LexerError::UnterminatedChar.into(),
                 _pos(0, 2)
             ))),
@@ -731,7 +734,7 @@ mod tests {
 
         assert_eq!(
             Lexer::from(code).next(),
-            Some(Err(Error::new(
+            Some(Err(Error::with_position(
                 LexerError::UnexpectedChar(')').into(),
                 _pos(0, 3)
             )))
@@ -757,7 +760,7 @@ mod tests {
 
         assert_eq!(
             Lexer::from(code).next(),
-            Some(Err(Error::new(
+            Some(Err(Error::with_position(
                 LexerError::UnterminatedString.into(),
                 _pos(0, 2)
             ))),
@@ -840,7 +843,10 @@ mod tests {
 
         assert_eq!(
             Lexer::from(code).next(),
-            Some(Err(Error::new(LexerError::EmptyChar.into(), _pos(0, 2)))),
+            Some(Err(Error::with_position(
+                LexerError::EmptyChar.into(),
+                _pos(0, 2)
+            ))),
         );
     }
 

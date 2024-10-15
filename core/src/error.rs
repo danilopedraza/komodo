@@ -18,16 +18,18 @@ use crate::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Error(pub ErrorType, pub Position);
+pub enum Error {
+    WithPosition(ErrorKind, Position),
+}
 
 impl Error {
-    pub fn new(err: ErrorType, pos: Position) -> Self {
-        Self(err, pos)
+    pub fn with_position(err: ErrorKind, pos: Position) -> Self {
+        Self::WithPosition(err, pos)
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ErrorType {
+pub enum ErrorKind {
     Lexer(LexerError),
     Parser(ParserError),
     Weeder(WeederError),
@@ -35,31 +37,31 @@ pub enum ErrorType {
     Import(ImportError),
 }
 
-impl From<LexerError> for ErrorType {
+impl From<LexerError> for ErrorKind {
     fn from(err: LexerError) -> Self {
         Self::Lexer(err)
     }
 }
 
-impl From<ParserError> for ErrorType {
+impl From<ParserError> for ErrorKind {
     fn from(err: ParserError) -> Self {
         Self::Parser(err)
     }
 }
 
-impl From<WeederError> for ErrorType {
+impl From<WeederError> for ErrorKind {
     fn from(err: WeederError) -> Self {
         Self::Weeder(err)
     }
 }
 
-impl From<EvalError> for ErrorType {
+impl From<EvalError> for ErrorKind {
     fn from(err: EvalError) -> Self {
         Self::Exec(err)
     }
 }
 
-impl From<ImportError> for ErrorType {
+impl From<ImportError> for ErrorKind {
     fn from(err: ImportError) -> Self {
         Self::Import(err)
     }
@@ -84,16 +86,19 @@ impl Position {
     }
 }
 
-pub fn error_msg(Error(err, pos): &Error) -> ErrorMessage {
-    let msg = match err {
-        ErrorType::Lexer(err) => lexer_error_msg(err),
-        ErrorType::Parser(err) => parser_error_msg(err),
-        ErrorType::Weeder(err) => weeder_error_msg(err),
-        ErrorType::Exec(err) => exec_error_msg(err),
-        ErrorType::Import(err) => import_error_msg(err),
-    };
-
-    ErrorMessage(msg, *pos)
+pub fn error_msg(err: &Error) -> ErrorMessage {
+    match err {
+        Error::WithPosition(err, pos) => {
+            let msg = match err {
+                ErrorKind::Lexer(err) => lexer_error_msg(err),
+                ErrorKind::Parser(err) => parser_error_msg(err),
+                ErrorKind::Weeder(err) => weeder_error_msg(err),
+                ErrorKind::Exec(err) => exec_error_msg(err),
+                ErrorKind::Import(err) => import_error_msg(err),
+            };
+            ErrorMessage(msg, *pos)
+        }
+    }
 }
 
 fn found_a(tok: &TokenType) -> String {
@@ -469,7 +474,10 @@ mod tests {
     #[test]
     fn eof_reached() {
         assert_eq!(
-            error_msg(&Error(ParserError::EOFReached.into(), dummy_pos())),
+            error_msg(&Error::WithPosition(
+                ParserError::EOFReached.into(),
+                dummy_pos()
+            )),
             ErrorMessage(
                 "The end of the program was reached while reading an expression".into(),
                 dummy_pos()
