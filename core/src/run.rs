@@ -1,4 +1,8 @@
-use std::{fmt, fs, path::Path};
+use std::{
+    fmt::{self, Debug},
+    fs,
+    path::{Path, PathBuf},
+};
 
 use crate::{
     ast::{ASTNode, ASTNodeKind},
@@ -46,13 +50,25 @@ static STDLIB_PATH: &str = "../std/";
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ModuleAddress {
     StandardLibrary { name: String },
-    LocalPath { path: String },
+    LocalPath { path: PathBuf },
+}
+
+impl ModuleAddress {
+    pub fn absolute_path(&self, reference_path: PathBuf, stdlib_path: PathBuf) -> PathBuf {
+        match self {
+            Self::LocalPath { path } if path.is_absolute() => path.to_path_buf(),
+            Self::LocalPath { path } => reference_path.join(path),
+            Self::StandardLibrary { name } => {
+                stdlib_path.join(Path::new(&format!("{name}.komodo")))
+            }
+        }
+    }
 }
 
 impl fmt::Display for ModuleAddress {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::StandardLibrary { name } => name.fmt(f),
+            Self::StandardLibrary { name } => Debug::fmt(&name, f),
             Self::LocalPath { path } => path.fmt(f),
         }
     }
@@ -109,4 +125,51 @@ pub fn import_from(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn import_relative_path() {
+        assert_eq!(
+            ModuleAddress::LocalPath {
+                path: "./foo.komodo".into()
+            }
+            .absolute_path(
+                Path::new("/bar").to_path_buf(),
+                Path::new("/std/").to_path_buf(),
+            ),
+            Path::new("/bar/foo.komodo"),
+        );
+    }
+
+    #[test]
+    fn import_absolute_path() {
+        assert_eq!(
+            ModuleAddress::LocalPath {
+                path: "/foo.komodo".into()
+            }
+            .absolute_path(
+                Path::new("/bar/").to_path_buf(),
+                Path::new("/std").to_path_buf(),
+            ),
+            Path::new("/foo.komodo"),
+        );
+    }
+
+    #[test]
+    fn import_std_module() {
+        assert_eq!(
+            ModuleAddress::StandardLibrary {
+                name: "utils".into()
+            }
+            .absolute_path(
+                Path::new("/bar/").to_path_buf(),
+                Path::new("/std/").to_path_buf(),
+            ),
+            Path::new("/std/utils.komodo"),
+        );
+    }
 }

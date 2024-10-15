@@ -440,7 +440,7 @@ fn set_cons(some: CSTNode, most: CSTNode) -> WeederResult<ASTNodeKind> {
 fn import_from(source: CSTNode, values: CSTNode) -> WeederResult<ASTNodeKind> {
     let source = match source.kind {
         CSTNodeKind::Symbol(name) => ModuleAddress::StandardLibrary { name },
-        CSTNodeKind::String(path) => ModuleAddress::LocalPath { path },
+        CSTNodeKind::String(path) => ModuleAddress::LocalPath { path: path.into() },
         _ => {
             return Err(Error::new(
                 WeederError::BadImportOrigin.into(),
