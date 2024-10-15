@@ -84,7 +84,7 @@ fn get_module_code(module: &ModuleAddress, env: &Environment) -> Result<String, 
         ModuleAddress::LocalPath { path } => reference_path.join(Path::new(&path)),
     };
 
-    let source = fs::read_to_string(path).unwrap();
+    let source = fs::read_to_string(path)?;
     Ok(source)
 }
 

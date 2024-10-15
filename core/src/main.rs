@@ -3,7 +3,6 @@ use std::fs;
 use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
 
-use komodo::error::error_msg;
 #[cfg(feature = "repl")]
 use komodo::repl::{repl, MyCLI};
 use komodo::run::run;
@@ -31,7 +30,7 @@ fn run_file(path: &str) -> std::io::Result<()> {
             let mut env = standard_env(ExecContext::new(reference_path));
             let res = run(&input, &mut env);
             if let Err(err) = res {
-                error_msg(&err).emit(path, &input);
+                err.emit(path, &input);
                 Err(Error::new(ErrorKind::Other, ""))
             } else {
                 Ok(())

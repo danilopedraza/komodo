@@ -2,7 +2,7 @@ use crate::{
     ast::ASTNode,
     builtin::standard_env,
     env::{Environment, ExecContext},
-    error::{error_msg, Error, ErrorKind, ErrorMessage},
+    error::{Error, ErrorKind},
     lexer::Lexer,
     object::Object,
     parser::{Parser, ParserError},
@@ -68,8 +68,7 @@ impl Repl {
             }
             Err(err) => {
                 self.code.clear();
-                let ErrorMessage(msg, _) = error_msg(&err);
-                (msg, ReplResponse::Error)
+                (err.msg(), ReplResponse::Error)
             }
         }
     }

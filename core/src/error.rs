@@ -20,11 +20,69 @@ use crate::{
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Error {
     WithPosition(ErrorKind, Position),
+    IO(String),
 }
 
 impl Error {
     pub fn with_position(err: ErrorKind, pos: Position) -> Self {
         Self::WithPosition(err, pos)
+    }
+
+    pub fn as_bytes(&self, filename: &str, source: &str) -> Vec<u8> {
+        match self {
+            Self::WithPosition(err, pos) => {
+                let mut files = SimpleFiles::new();
+                let mut writer = Buffer::no_color();
+                let config = codespan_reporting::term::Config::default();
+
+                let file_id = files.add(filename, source);
+                let diagnostic = Diagnostic::error()
+                    .with_message(error_msg(err))
+                    .with_labels(vec![Label::primary(
+                        file_id,
+                        pos.start..(pos.start + pos.length),
+                    )]);
+
+                let _ = term::emit(&mut writer, &config, &files, &diagnostic);
+
+                writer.into_inner()
+            }
+            Self::IO(err) => err.as_bytes().to_vec(),
+        }
+    }
+
+    pub fn emit(&self, filename: &str, source: &str) {
+        match self {
+            Self::WithPosition(err, pos) => {
+                let mut files = SimpleFiles::new();
+                let writer = StandardStream::stderr(term::termcolor::ColorChoice::Always);
+                let config = codespan_reporting::term::Config::default();
+
+                let file_id = files.add(filename, source);
+                let diagnostic = Diagnostic::error()
+                    .with_message(error_msg(err))
+                    .with_labels(vec![Label::primary(
+                        file_id,
+                        pos.start..(pos.start + pos.length),
+                    )]);
+
+                let _ = term::emit(&mut writer.lock(), &config, &files, &diagnostic);
+            }
+            Self::IO(err) => eprintln!("{err}"),
+        }
+    }
+
+    pub fn msg(&self) -> String {
+        match self {
+            Self::IO(err) => err.to_string(),
+            Self::WithPosition(err, _) => error_msg(err),
+        }
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Self::IO(value.to_string())
     }
 }
 
@@ -86,18 +144,13 @@ impl Position {
     }
 }
 
-pub fn error_msg(err: &Error) -> ErrorMessage {
+pub fn error_msg(err: &ErrorKind) -> String {
     match err {
-        Error::WithPosition(err, pos) => {
-            let msg = match err {
-                ErrorKind::Lexer(err) => lexer_error_msg(err),
-                ErrorKind::Parser(err) => parser_error_msg(err),
-                ErrorKind::Weeder(err) => weeder_error_msg(err),
-                ErrorKind::Exec(err) => exec_error_msg(err),
-                ErrorKind::Import(err) => import_error_msg(err),
-            };
-            ErrorMessage(msg, *pos)
-        }
+        ErrorKind::Lexer(err) => lexer_error_msg(err),
+        ErrorKind::Parser(err) => parser_error_msg(err),
+        ErrorKind::Weeder(err) => weeder_error_msg(err),
+        ErrorKind::Exec(err) => exec_error_msg(err),
+        ErrorKind::Import(err) => import_error_msg(err),
     }
 }
 
@@ -377,49 +430,8 @@ fn symbol_not_found(module: &str, symbol: &str) -> String {
     format!("`{symbol}` was not found in the `{module}` module")
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct ErrorMessage(pub String, pub Position);
-
-impl ErrorMessage {
-    pub fn as_bytes(&self, filename: &str, source: &str) -> Vec<u8> {
-        let mut files = SimpleFiles::new();
-        let mut writer = Buffer::no_color();
-        let config = codespan_reporting::term::Config::default();
-
-        let file_id = files.add(filename, source);
-        let diagnostic = Diagnostic::error()
-            .with_message(self.0.to_owned())
-            .with_labels(vec![Label::primary(
-                file_id,
-                self.1.start..(self.1.start + self.1.length),
-            )]);
-
-        let _ = term::emit(&mut writer, &config, &files, &diagnostic);
-
-        writer.into_inner()
-    }
-
-    pub fn emit(&self, filename: &str, source: &str) {
-        let mut files = SimpleFiles::new();
-        let writer = StandardStream::stderr(term::termcolor::ColorChoice::Always);
-        let config = codespan_reporting::term::Config::default();
-
-        let file_id = files.add(filename, source);
-        let diagnostic = Diagnostic::error()
-            .with_message(self.0.to_owned())
-            .with_labels(vec![Label::primary(
-                file_id,
-                self.1.start..(self.1.start + self.1.length),
-            )]);
-
-        let _ = term::emit(&mut writer.lock(), &config, &files, &diagnostic);
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::cst::tests::dummy_pos;
-
     use super::*;
 
     #[test]
@@ -474,14 +486,8 @@ mod tests {
     #[test]
     fn eof_reached() {
         assert_eq!(
-            error_msg(&Error::WithPosition(
-                ParserError::EOFReached.into(),
-                dummy_pos()
-            )),
-            ErrorMessage(
-                "The end of the program was reached while reading an expression".into(),
-                dummy_pos()
-            ),
+            error_msg(&ParserError::EOFReached.into()),
+            "The end of the program was reached while reading an expression".to_string(),
         );
     }
 
