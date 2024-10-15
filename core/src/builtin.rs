@@ -28,10 +28,11 @@ fn komodo_getln(_args: &[Object]) -> Object {
 }
 
 pub fn komodo_assert(args: &[Object]) -> Object {
-    match (truthy(&args[0]), args.len()) {
-        (false, len) if len > 1 => Object::Error(FailedAssertion(Some(args[1].to_string()))),
-        (false, _) => Object::Error(FailedAssertion(None)),
-        _ => Object::empty_tuple(),
+    match args.first() {
+        Some(obj) if !truthy(obj) => {
+            Object::Error(FailedAssertion(args.get(1).map(|obj| obj.to_string())))
+        }
+        Some(_) | None => Object::empty_tuple(),
     }
 }
 
