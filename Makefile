@@ -60,3 +60,6 @@ serve-book:
 run-repl:
 	cd core
 	cargo run --all-features --quiet
+
+env:
+	nix-shell
