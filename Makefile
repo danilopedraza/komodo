@@ -57,7 +57,7 @@ lint-core-browser:
 serve-book:
 	mdbook serve $(CURRENT_DIR)/book --open
 
-run-repl:
+repl:
 	cd core
 	cargo run --all-features --quiet
 
