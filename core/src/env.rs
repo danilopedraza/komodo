@@ -3,7 +3,17 @@ use std::{collections::BTreeMap, path::PathBuf};
 use crate::object::Object;
 
 #[derive(Debug, PartialEq, Eq)]
+pub struct ScopeDepth(pub usize);
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum EnvResponse<'a> {
+    Mutable(&'a mut Object, ScopeDepth),
+    Inmutable(&'a Object, ScopeDepth),
+    NotFound,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum ScopeResponse<'a> {
     Mutable(&'a mut Object),
     Inmutable(&'a Object),
     NotFound,
@@ -21,11 +31,11 @@ pub struct Scope {
 }
 
 impl Scope {
-    fn get(&mut self, name: &str) -> EnvResponse {
+    fn get(&mut self, name: &str) -> ScopeResponse {
         match self.dict.get_mut(name) {
-            Some((ValueKind::Inmutable, value)) => EnvResponse::Inmutable(value),
-            Some((ValueKind::Mutable, value)) => EnvResponse::Mutable(value),
-            None => EnvResponse::NotFound,
+            Some((ValueKind::Inmutable, value)) => ScopeResponse::Inmutable(value),
+            Some((ValueKind::Mutable, value)) => ScopeResponse::Mutable(value),
+            None => ScopeResponse::NotFound,
         }
     }
 
@@ -78,20 +88,28 @@ impl Environment {
     }
 
     pub fn get(&mut self, name: &str) -> EnvResponse<'_> {
+        let mut depth = 0;
         for scope in self.scopes.iter_mut().rev().chain([&mut self.base]) {
             match scope.get(name) {
-                EnvResponse::NotFound => continue,
-                response => return response,
+                ScopeResponse::NotFound => {
+                    depth += 1;
+                    continue;
+                }
+                ScopeResponse::Inmutable(val) => {
+                    return EnvResponse::Inmutable(val, ScopeDepth(depth))
+                }
+                ScopeResponse::Mutable(val) => return EnvResponse::Mutable(val, ScopeDepth(depth)),
             }
         }
 
         EnvResponse::NotFound
     }
 
-    pub fn set(&mut self, name: &str, val: Object, kind: ValueKind) {
-        match kind {
-            ValueKind::Inmutable => self.set_inmutable(name, val),
-            ValueKind::Mutable => self.set_mutable(name, val),
+    pub fn get_current_scope(&mut self, name: &str) -> EnvResponse<'_> {
+        match self.scopes.last_mut().unwrap_or(&mut self.base).get(name) {
+            ScopeResponse::Mutable(val) => EnvResponse::Mutable(val, ScopeDepth(0)),
+            ScopeResponse::Inmutable(val) => EnvResponse::Inmutable(val, ScopeDepth(0)),
+            ScopeResponse::NotFound => EnvResponse::NotFound,
         }
     }
 

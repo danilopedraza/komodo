@@ -309,6 +309,7 @@ fn exec_error_msg(err: &EvalError) -> String {
         EvalError::MissingFunctionArguments { expected, actual } => {
             missing_func_arguments(*expected, *actual)
         }
+        EvalError::MutationOutOfScope { name } => mutation_out_of_scope(name),
         EvalError::NonCallableObject(kind) => non_callable_object(kind),
         EvalError::NonIterableObject(kind) => non_iterable_object(kind),
         EvalError::NonPrependableObject(kind) => non_prependable_object(kind),
@@ -376,6 +377,10 @@ fn non_iterable_object(kind: &str) -> String {
 
 fn missing_func_arguments(expected: usize, actual: usize) -> String {
     format!("Expected {expected} arguments for this function call, but found {actual}")
+}
+
+fn mutation_out_of_scope(var_name: &str) -> String {
+    format!("`{var_name}` is a mutable value, but it only can be modified in its own scope")
 }
 
 fn non_callable_object(kind: &str) -> String {

@@ -12,7 +12,7 @@ use crate::object::{
 
 use crate::ast::{ASTNode, ASTNodeKind, Declaration, InfixOperator};
 use crate::cst::{ComprehensionKind, PrefixOperator};
-use crate::env::{EnvResponse, Environment, ValueKind};
+use crate::env::{EnvResponse, Environment, ScopeDepth, ValueKind};
 use crate::object::{Bool, Char, Integer, MyString, Object, Set, Symbol, Tuple};
 use crate::run::{self, ModuleAddress};
 
@@ -36,6 +36,9 @@ pub enum EvalError {
     MissingFunctionArguments {
         expected: usize,
         actual: usize,
+    },
+    MutationOutOfScope {
+        name: String,
     },
     NonCallableObject(String),
     NonExistentKey {
@@ -267,9 +270,15 @@ fn get_mutable_value<'a>(
     position: Position,
 ) -> Result<&'a mut Object, Error> {
     match env.get(name) {
-        EnvResponse::Mutable(obj_ref) => Ok(obj_ref),
-
-        EnvResponse::Inmutable(_) => Err(Error::with_position(
+        EnvResponse::Mutable(obj_ref, ScopeDepth(0)) => Ok(obj_ref),
+        EnvResponse::Mutable(_, _) => Err(Error::with_position(
+            EvalError::MutationOutOfScope {
+                name: name.to_string(),
+            }
+            .into(),
+            position,
+        )),
+        EnvResponse::Inmutable(_, _) => Err(Error::with_position(
             EvalError::InmutableAssign(name.into()).into(),
             position,
         )),
@@ -435,8 +444,8 @@ fn extension_set(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> 
 
 fn symbol(str: &str, env: &mut Environment, position: Position) -> Result<Object, Error> {
     match env.get(str) {
-        EnvResponse::Inmutable(obj) => Ok(obj.clone()),
-        EnvResponse::Mutable(obj) => Ok(obj.clone()),
+        EnvResponse::Inmutable(obj, _) => Ok(obj.clone()),
+        EnvResponse::Mutable(obj, _) => Ok(obj.clone()),
         EnvResponse::NotFound => Err(Error::with_position(
             EvalError::UnknownValue(str.to_owned()).into(),
             position,
@@ -496,11 +505,11 @@ fn let_function(
             );
 
             match env.get(name) {
-                EnvResponse::Mutable(Object::Function(Function::Pattern(f))) => f,
+                EnvResponse::Mutable(Object::Function(Function::Pattern(f)), _) => f,
                 _ => unimplemented!(),
             }
         }
-        EnvResponse::Mutable(Object::Function(Function::Pattern(f))) => f,
+        EnvResponse::Mutable(Object::Function(Function::Pattern(f)), _) => f,
         _ => unimplemented!(),
     };
 
@@ -736,7 +745,7 @@ mod tests {
         set_cons, string, symbol, symbolic_let, tuple, var,
     };
     use crate::cst::tests::dummy_pos;
-    use crate::env::EnvResponse;
+    use crate::env::{EnvResponse, ScopeDepth};
     use crate::error::ErrorKind;
     use crate::{ast, object::*};
 
@@ -1087,7 +1096,7 @@ mod tests {
 
         assert_eq!(
             env.get("x"),
-            EnvResponse::Inmutable(&Object::Integer(Integer::from(0)))
+            EnvResponse::Inmutable(&Object::Integer(Integer::from(0)), ScopeDepth(0))
         );
     }
 
@@ -1590,7 +1599,7 @@ mod tests {
 
         assert_eq!(exec(&node, &mut env), Ok(symbol.clone()),);
 
-        assert_eq!(env.get("x"), EnvResponse::Inmutable(&symbol),);
+        assert_eq!(env.get("x"), EnvResponse::Inmutable(&symbol, ScopeDepth(0)),);
     }
 
     #[test]
@@ -1614,7 +1623,7 @@ mod tests {
 
         assert_eq!(
             env.get("x"),
-            EnvResponse::Mutable(&mut Object::Integer(1.into()))
+            EnvResponse::Mutable(&mut Object::Integer(1.into()), ScopeDepth(0))
         );
     }
 
@@ -1727,6 +1736,35 @@ mod tests {
         assert_eq!(
             exec(&node, &mut Environment::default()),
             Ok(Object::Integer(10.into())),
+        );
+    }
+
+    #[test]
+    fn out_of_scope_mutation() {
+        let func = function(
+            vec![],
+            block(
+                vec![assignment(
+                    symbol("a", dummy_pos()),
+                    dec_integer("1", dummy_pos()),
+                    dummy_pos(),
+                )],
+                dummy_pos(),
+            ),
+            dummy_pos(),
+        );
+
+        let mut env = Environment::default();
+        env.set_mutable("a", Object::Integer(0.into()));
+
+        assert_eq!(
+            exec(&call(func, vec![], dummy_pos()), &mut env),
+            Err(Error::with_position(
+                ErrorKind::Exec(EvalError::MutationOutOfScope {
+                    name: String::from("a")
+                }),
+                dummy_pos()
+            )),
         );
     }
 }
