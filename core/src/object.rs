@@ -11,7 +11,7 @@ use std::{
 
 use bigdecimal::{num_traits::Pow, BigDecimal, One, Signed, Zero};
 use num_bigint::{BigInt, BigUint};
-use num_rational::BigRational;
+use num_rational::{BigRational, Ratio};
 
 use crate::{
     ast::ASTNode,
@@ -499,6 +499,58 @@ impl InfixOperable for Decimal {
             _ => None,
         }
     }
+
+    fn greater(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Decimal(Decimal { val }) => Some(Object::Boolean(Bool::from(&self.val > val))),
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(
+                self.val > BigDecimal::new(val.clone(), 0),
+            ))),
+            Object::Fraction(frac) => Some(Object::Boolean(Bool::from(
+                self.val > Decimal::from(frac).val,
+            ))),
+            _ => None,
+        }
+    }
+
+    fn less(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Decimal(Decimal { val }) => Some(Object::Boolean(Bool::from(&self.val < val))),
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(
+                self.val < BigDecimal::new(val.clone(), 0),
+            ))),
+            Object::Fraction(frac) => Some(Object::Boolean(Bool::from(
+                self.val < Decimal::from(frac).val,
+            ))),
+            _ => None,
+        }
+    }
+
+    fn greater_equal(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Decimal(Decimal { val }) => Some(Object::Boolean(Bool::from(&self.val >= val))),
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(
+                self.val >= BigDecimal::new(val.clone(), 0),
+            ))),
+            Object::Fraction(frac) => Some(Object::Boolean(Bool::from(
+                self.val >= Decimal::from(frac).val,
+            ))),
+            _ => None,
+        }
+    }
+
+    fn less_equal(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Decimal(Decimal { val }) => Some(Object::Boolean(Bool::from(&self.val <= val))),
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(
+                self.val <= BigDecimal::new(val.clone(), 0),
+            ))),
+            Object::Fraction(frac) => Some(Object::Boolean(Bool::from(
+                self.val <= Decimal::from(frac).val,
+            ))),
+            _ => None,
+        }
+    }
 }
 
 impl fmt::Display for Decimal {
@@ -794,6 +846,12 @@ impl InfixOperable for Integer {
     fn less(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(self.val < *val))),
+            Object::Decimal(Decimal { val }) => Some(Object::Boolean(
+                (&BigDecimal::from(self.val.clone()) < val).into(),
+            )),
+            Object::Fraction(Fraction { val }) => Some(Object::Boolean(Bool::from(
+                &Ratio::new(self.val.clone(), BigInt::one()) < val,
+            ))),
             _ => None,
         }
     }
@@ -801,6 +859,38 @@ impl InfixOperable for Integer {
     fn less_equal(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(self.val <= *val))),
+            Object::Decimal(Decimal { val }) => Some(Object::Boolean(
+                (&BigDecimal::from(self.val.clone()) <= val).into(),
+            )),
+            Object::Fraction(Fraction { val }) => Some(Object::Boolean(Bool::from(
+                &Ratio::new(self.val.clone(), BigInt::one()) <= val,
+            ))),
+            _ => None,
+        }
+    }
+
+    fn greater(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Integer(Integer { val }) => Some((self.val > *val).into()),
+            Object::Decimal(Decimal { val }) => Some(Object::Boolean(
+                (&BigDecimal::from(self.val.clone()) > val).into(),
+            )),
+            Object::Fraction(Fraction { val }) => Some(Object::Boolean(Bool::from(
+                &Ratio::new(self.val.clone(), BigInt::one()) > val,
+            ))),
+            _ => None,
+        }
+    }
+
+    fn greater_equal(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Integer(Integer { val }) => Some((self.val >= *val).into()),
+            Object::Decimal(Decimal { val }) => Some(Object::Boolean(
+                (&BigDecimal::from(self.val.clone()) >= val).into(),
+            )),
+            Object::Fraction(Fraction { val }) => Some(Object::Boolean(Bool::from(
+                &Ratio::new(self.val.clone(), BigInt::one()) >= val,
+            ))),
             _ => None,
         }
     }
@@ -900,20 +990,6 @@ impl InfixOperable for Integer {
             Object::Fraction(Fraction { val }) => Some(Object::Fraction(
                 (&BigRational::from_integer(self.val.to_owned()) * val).into(),
             )),
-            _ => None,
-        }
-    }
-
-    fn greater(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Integer(Integer { val }) => Some((self.val > *val).into()),
-            _ => None,
-        }
-    }
-
-    fn greater_equal(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Integer(Integer { val }) => Some((self.val >= *val).into()),
             _ => None,
         }
     }
@@ -1437,6 +1513,66 @@ impl InfixOperable for Fraction {
             _ => None,
         }
     }
+
+    fn less(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(
+                self.val < Ratio::new(val.to_owned(), BigInt::one()),
+            ))),
+            Object::Fraction(Fraction { val }) => {
+                Some(Object::Boolean(Bool::from(&self.val < val)))
+            }
+            Object::Decimal(Decimal { val }) => {
+                Some(Object::Boolean(Bool::from(&Decimal::from(self).val < val)))
+            }
+            _ => None,
+        }
+    }
+
+    fn less_equal(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(
+                self.val <= Ratio::new(val.to_owned(), BigInt::one()),
+            ))),
+            Object::Fraction(Fraction { val }) => {
+                Some(Object::Boolean(Bool::from(&self.val <= val)))
+            }
+            Object::Decimal(Decimal { val }) => {
+                Some(Object::Boolean(Bool::from(&Decimal::from(self).val <= val)))
+            }
+            _ => None,
+        }
+    }
+
+    fn greater(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(
+                self.val > Ratio::new(val.to_owned(), BigInt::one()),
+            ))),
+            Object::Fraction(Fraction { val }) => {
+                Some(Object::Boolean(Bool::from(&self.val > val)))
+            }
+            Object::Decimal(Decimal { val }) => {
+                Some(Object::Boolean(Bool::from(&Decimal::from(self).val > val)))
+            }
+            _ => None,
+        }
+    }
+
+    fn greater_equal(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(
+                self.val >= Ratio::new(val.to_owned(), BigInt::one()),
+            ))),
+            Object::Fraction(Fraction { val }) => {
+                Some(Object::Boolean(Bool::from(&self.val >= val)))
+            }
+            Object::Decimal(Decimal { val }) => {
+                Some(Object::Boolean(Bool::from(&Decimal::from(self).val >= val)))
+            }
+            _ => None,
+        }
+    }
 }
 
 impl PrefixOperable for Fraction {
@@ -1656,5 +1792,13 @@ mod tests {
         let b = Object::Integer(Integer::from(2));
 
         assert_eq!(a.pow(&b), Some(Object::Decimal(Decimal::new("0", "25"))),);
+    }
+
+    #[test]
+    fn int_dec_comparison() {
+        let a = Object::Integer(5.into());
+        let b = Object::Decimal(Decimal::new("1", "0"));
+
+        assert_eq!(a.greater(&b), Some(Object::Boolean(true.into())));
     }
 }
