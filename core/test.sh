@@ -27,4 +27,4 @@ if [ "$someone_failed" = true ] ; then
     exit 1
 fi
 
-echo "✅ All of the example files were executed correctly!"
+echo "✅ All the example files were executed successfully!"
