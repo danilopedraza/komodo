@@ -37,6 +37,8 @@ deploy-vsc-ext:
 	vsce publish --skip-duplicate
 	npx --yes ovsx publish --skip-duplicate
 
+test: test-core test-core-browser
+
 test-core:
 	cd $(CURRENT_DIR)/core
 	sh test.sh $(CURRENT_DIR)/examples
