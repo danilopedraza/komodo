@@ -551,6 +551,32 @@ impl InfixOperable for Decimal {
             _ => None,
         }
     }
+
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Decimal(Decimal { val }) => Some(Object::Boolean(Bool::from(&self.val == val))),
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(
+                self.val == BigDecimal::new(val.clone(), 0),
+            ))),
+            Object::Fraction(frac) => Some(Object::Boolean(Bool::from(
+                self.val == Decimal::from(frac).val,
+            ))),
+            _ => Some(Object::Boolean(false.into())),
+        }
+    }
+
+    fn neq(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Decimal(Decimal { val }) => Some(Object::Boolean(Bool::from(&self.val != val))),
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(
+                self.val != BigDecimal::new(val.clone(), 0),
+            ))),
+            Object::Fraction(frac) => Some(Object::Boolean(Bool::from(
+                self.val != Decimal::from(frac).val,
+            ))),
+            _ => Some(Object::Boolean(true.into())),
+        }
+    }
 }
 
 impl fmt::Display for Decimal {
@@ -892,6 +918,32 @@ impl InfixOperable for Integer {
                 &Ratio::new(self.val.clone(), BigInt::one()) >= val,
             ))),
             _ => None,
+        }
+    }
+
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Integer(Integer { val }) => Some((self.val == *val).into()),
+            Object::Decimal(Decimal { val }) => Some(Object::Boolean(
+                (&BigDecimal::from(self.val.clone()) == val).into(),
+            )),
+            Object::Fraction(Fraction { val }) => Some(Object::Boolean(Bool::from(
+                &Ratio::new(self.val.clone(), BigInt::one()) == val,
+            ))),
+            _ => Some(Object::Boolean(false.into())),
+        }
+    }
+
+    fn neq(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Integer(Integer { val }) => Some((self.val != *val).into()),
+            Object::Decimal(Decimal { val }) => Some(Object::Boolean(
+                (&BigDecimal::from(self.val.clone()) != val).into(),
+            )),
+            Object::Fraction(Fraction { val }) => Some(Object::Boolean(Bool::from(
+                &Ratio::new(self.val.clone(), BigInt::one()) != val,
+            ))),
+            _ => Some(Object::Boolean(true.into())),
         }
     }
 
@@ -1571,6 +1623,36 @@ impl InfixOperable for Fraction {
                 Some(Object::Boolean(Bool::from(&Decimal::from(self).val >= val)))
             }
             _ => None,
+        }
+    }
+
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(
+                self.val == Ratio::new(val.to_owned(), BigInt::one()),
+            ))),
+            Object::Fraction(Fraction { val }) => {
+                Some(Object::Boolean(Bool::from(&self.val == val)))
+            }
+            Object::Decimal(Decimal { val }) => {
+                Some(Object::Boolean(Bool::from(&Decimal::from(self).val == val)))
+            }
+            _ => Some(Object::Boolean(false.into())),
+        }
+    }
+
+    fn neq(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Integer(Integer { val }) => Some(Object::Boolean(Bool::from(
+                self.val != Ratio::new(val.to_owned(), BigInt::one()),
+            ))),
+            Object::Fraction(Fraction { val }) => {
+                Some(Object::Boolean(Bool::from(&self.val != val)))
+            }
+            Object::Decimal(Decimal { val }) => {
+                Some(Object::Boolean(Bool::from(&Decimal::from(self).val != val)))
+            }
+            _ => Some(Object::Boolean(true.into())),
         }
     }
 }
