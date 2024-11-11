@@ -71,7 +71,7 @@
 			"patterns": [
 				{
 					"name": "keyword.other.komodo",
-					"match": "\\b(true|false|let|in|memoize)\\b"
+					"match": "\\b(true|false|let|in|memoize|var)\\b"
 				},
 				{
 					"name": "keyword.control.komodo",
