@@ -122,6 +122,14 @@ impl Object {
             _ => prop == self.kind(),
         }
     }
+
+    pub fn true_obj() -> Self {
+        Self::Boolean(Bool::from(true))
+    }
+
+    pub fn false_obj() -> Self {
+        Self::Boolean(Bool::from(false))
+    }
 }
 
 impl From<bool> for Object {
@@ -215,12 +223,14 @@ derived_object_infix_traits!(
     bitwise_and,
     bitwise_xor,
     contains,
+    equality,
     greater,
     greater_equal,
     left_shift,
     less,
     less_equal,
     logic_and,
+    neq,
     or,
     rem,
     over,
@@ -230,16 +240,6 @@ derived_object_infix_traits!(
     sum,
     substraction
 );
-
-impl Object {
-    pub fn equality(&self, other: &Object) -> Option<Object> {
-        Some(Object::Boolean((self == other).into()))
-    }
-
-    pub fn neq(&self, other: &Object) -> Option<Object> {
-        Some(Object::Boolean((self != other).into()))
-    }
-}
 
 macro_rules! derived_object_prefix_trait {
     ($ident:ident) => {
@@ -299,15 +299,29 @@ impl fmt::Display for Bool {
 impl InfixOperable for Bool {
     fn logic_and(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Boolean(boolean) => Some(Object::Boolean(Bool::from(self.val && boolean.val))),
+            Object::Boolean(bool) => Some(Object::Boolean(Bool::from(self.val && bool.val))),
             _ => None,
         }
     }
 
     fn or(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Boolean(boolean) => Some(Object::Boolean(Bool::from(self.val || boolean.val))),
+            Object::Boolean(bool) => Some(Object::Boolean(Bool::from(self.val || bool.val))),
             _ => None,
+        }
+    }
+
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Boolean(bool) => Some(Object::Boolean(Bool::from(self == bool))),
+            _ => Some(Object::false_obj()),
+        }
+    }
+
+    fn neq(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Boolean(bool) => Some(Object::Boolean(Bool::from(self != bool))),
+            _ => Some(Object::true_obj()),
         }
     }
 }
@@ -362,6 +376,20 @@ impl InfixOperable for Char {
         match other {
             Object::Integer(num) => Some(self.multiply(num)),
             _ => None,
+        }
+    }
+
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Char(chr) => Some(Object::Boolean(Bool::from(self == chr))),
+            _ => Some(Object::false_obj()),
+        }
+    }
+
+    fn neq(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Char(chr) => Some(Object::Boolean(Bool::from(self != chr))),
+            _ => Some(Object::true_obj()),
         }
     }
 }
@@ -670,6 +698,20 @@ impl InfixOperable for Set {
     fn contains(&self, val: &Object) -> Option<Object> {
         Some(self.set.contains(val).into())
     }
+
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Set(set) => Some(Object::Boolean(Bool::from(self == set))),
+            _ => Some(Object::false_obj()),
+        }
+    }
+
+    fn neq(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Set(set) => Some(Object::Boolean(Bool::from(self != set))),
+            _ => Some(Object::true_obj()),
+        }
+    }
 }
 impl PrefixOperable for Set {}
 
@@ -760,7 +802,21 @@ impl fmt::Display for Dictionary {
     }
 }
 
-impl InfixOperable for Dictionary {}
+impl InfixOperable for Dictionary {
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Dictionary(dict) => Some(Object::Boolean(Bool::from(self == dict))),
+            _ => Some(Object::false_obj()),
+        }
+    }
+
+    fn neq(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Dictionary(dict) => Some(Object::Boolean(Bool::from(self != dict))),
+            _ => Some(Object::true_obj()),
+        }
+    }
+}
 impl PrefixOperable for Dictionary {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -1108,6 +1164,20 @@ impl InfixOperable for MyString {
             _ => None,
         }
     }
+
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::String(str) => Some(Object::Boolean(Bool::from(self == str))),
+            _ => Some(Object::false_obj()),
+        }
+    }
+
+    fn neq(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::String(str) => Some(Object::Boolean(Bool::from(self != str))),
+            _ => Some(Object::true_obj()),
+        }
+    }
 }
 
 impl PrefixOperable for MyString {}
@@ -1144,7 +1214,21 @@ impl fmt::Display for Symbol {
     }
 }
 
-impl InfixOperable for Symbol {}
+impl InfixOperable for Symbol {
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Symbol(sym) => Some(Object::Boolean(Bool::from(self == sym))),
+            _ => Some(Object::false_obj()),
+        }
+    }
+
+    fn neq(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Symbol(sym) => Some(Object::Boolean(Bool::from(self != sym))),
+            _ => Some(Object::true_obj()),
+        }
+    }
+}
 
 impl PrefixOperable for Symbol {}
 
@@ -1153,7 +1237,21 @@ pub struct Tuple {
     pub list: Vec<Object>,
 }
 
-impl InfixOperable for Tuple {}
+impl InfixOperable for Tuple {
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Tuple(tup) => Some(Object::Boolean(Bool::from(self == tup))),
+            _ => Some(Object::false_obj()),
+        }
+    }
+
+    fn neq(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Tuple(tup) => Some(Object::Boolean(Bool::from(self != tup))),
+            _ => Some(Object::true_obj()),
+        }
+    }
+}
 impl PrefixOperable for Tuple {}
 
 impl fmt::Display for Tuple {
@@ -1182,7 +1280,21 @@ pub enum Function {
     Extern(ExternFunction),
 }
 
-impl InfixOperable for Function {}
+impl InfixOperable for Function {
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Function(func) => Some(Object::Boolean(Bool::from(self == func))),
+            _ => Some(Object::false_obj()),
+        }
+    }
+
+    fn neq(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Function(func) => Some(Object::Boolean(Bool::from(self != func))),
+            _ => Some(Object::true_obj()),
+        }
+    }
+}
 impl PrefixOperable for Function {}
 
 impl fmt::Display for Function {
@@ -1454,6 +1566,20 @@ impl InfixOperable for List {
     fn contains(&self, val: &Object) -> Option<Object> {
         Some(self.list.contains(val).into())
     }
+
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::List(list) => Some(Object::Boolean(Bool::from(self == list))),
+            _ => Some(Object::false_obj()),
+        }
+    }
+
+    fn neq(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::List(list) => Some(Object::Boolean(Bool::from(self != list))),
+            _ => Some(Object::true_obj()),
+        }
+    }
 }
 
 impl PrefixOperable for List {}
@@ -1723,7 +1849,21 @@ impl Range {
 }
 
 impl PrefixOperable for Range {}
-impl InfixOperable for Range {}
+impl InfixOperable for Range {
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Range(range) => Some(Object::Boolean(Bool::from(self == range))),
+            _ => Some(Object::false_obj()),
+        }
+    }
+
+    fn neq(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Range(range) => Some(Object::Boolean(Bool::from(self != range))),
+            _ => Some(Object::true_obj()),
+        }
+    }
+}
 
 impl fmt::Display for Range {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1746,7 +1886,21 @@ impl fmt::Display for FailedAssertion {
 }
 
 impl PrefixOperable for FailedAssertion {}
-impl InfixOperable for FailedAssertion {}
+impl InfixOperable for FailedAssertion {
+    fn equality(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Error(err) => Some(Object::Boolean(Bool::from(self == err))),
+            _ => Some(Object::false_obj()),
+        }
+    }
+
+    fn neq(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Error(err) => Some(Object::Boolean(Bool::from(self != err))),
+            _ => Some(Object::true_obj()),
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -1882,5 +2036,13 @@ mod tests {
         let b = Object::Decimal(Decimal::new("1", "0"));
 
         assert_eq!(a.greater(&b), Some(Object::Boolean(true.into())));
+    }
+
+    #[test]
+    fn dec_frac_equality() {
+        let a = Object::Decimal(Decimal::new("5", "5"));
+        let b = Object::Fraction(Fraction::new(11.into(), 2.into()));
+
+        assert_eq!(a.equality(&b), Some(Object::Boolean(true.into())));
     }
 }
