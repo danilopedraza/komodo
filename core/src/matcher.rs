@@ -122,7 +122,7 @@ fn match_extension_set(patterns: &[ASTNode], val: &Object) -> Option<Match> {
         Object::Set(Set { set }) => {
             let mut res = empty_match();
 
-            for (pattern, val) in zip(patterns, set) {
+            for (pattern, val) in zip(patterns, set.borrow().iter()) {
                 res = join(res, match_(pattern, val));
             }
 
@@ -223,8 +223,8 @@ fn match_range(lhs: &ASTNode, rhs: &ASTNode, val: &Object) -> Option<Match> {
 fn set_cons(some: &ASTNode, most: &ASTNode, val: &Object) -> Option<Match> {
     match val {
         Object::Set(set) => {
-            for val in &set.set {
-                let mut new_set = set.set.clone();
+            for val in set.set.borrow().iter() {
+                let mut new_set = set.set.clone().into_inner().clone();
                 new_set.remove(val);
                 let res = join(
                     match_(some, val),
