@@ -652,17 +652,6 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn leading_zeros() {
-    //     assert_eq!(
-    //         token_types_from("01"),
-    //         Err(Error::with_position(
-    //             LexerError::LeadingZeros.into(),
-    //             _pos(0, 2)
-    //         )),
-    //     );
-    // }
-
     #[test]
     fn comment() {
         let code = "input() # get input\nprint() # print";

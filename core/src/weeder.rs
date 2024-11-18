@@ -185,39 +185,33 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
             function(params, rhs)
         }
         InfixOperator::Division => infix_node(ast::InfixOperator::Division, lhs, rhs),
-        InfixOperator::Dot => match (rewrite(lhs)?, rewrite(rhs)?) {
+        InfixOperator::Dot => match (lhs, rhs) {
             (
-                ASTNode {
-                    kind:
-                        ASTNodeKind::Integer {
-                            literal: int,
-                            radix: Radix::Decimal,
-                        },
+                CSTNode {
+                    kind: CSTNodeKind::Integer(int, Radix::Decimal),
                     position: _,
                 },
-                ASTNode {
-                    kind:
-                        ASTNodeKind::Integer {
-                            literal: dec,
-                            radix: Radix::Decimal,
-                        },
+                CSTNode {
+                    kind: CSTNodeKind::Integer(dec, Radix::Decimal),
                     position: _,
                 },
             ) => decimal(int, dec),
-            (
-                first_arg,
-                ASTNode {
-                    kind: ASTNodeKind::Call { called, args },
-                    ..
-                },
-            ) => Ok(ASTNodeKind::Call {
-                called,
-                args: vec![first_arg].into_iter().chain(args).collect(),
-            }),
-            (_, node) => Err(Error::with_position(
-                WeederError::BadDot.into(),
-                node.position,
-            )),
+            (lhs, rhs) => match (rewrite(lhs)?, rewrite(rhs)?) {
+                (
+                    first_arg,
+                    ASTNode {
+                        kind: ASTNodeKind::Call { called, args },
+                        ..
+                    },
+                ) => Ok(ASTNodeKind::Call {
+                    called,
+                    args: vec![first_arg].into_iter().chain(args).collect(),
+                }),
+                (_, node) => Err(Error::with_position(
+                    WeederError::BadDot.into(),
+                    node.position,
+                )),
+            },
         },
         InfixOperator::Equality => infix_node(ast::InfixOperator::Equality, lhs, rhs),
         InfixOperator::Exponentiation => infix_node(ast::InfixOperator::Exponentiation, lhs, rhs),
@@ -689,6 +683,21 @@ mod tests {
                 WeederError::LeadingZeros.into(),
                 dummy_pos()
             )),
+        );
+    }
+
+    #[test]
+    fn leading_zeros_decimal_number() {
+        let node = cst::infix(
+            InfixOperator::Dot,
+            dec_integer("0", dummy_pos()),
+            dec_integer("00", dummy_pos()),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            rewrite(node),
+            Ok(ast::tests::decimal("0", "00", dummy_pos())),
         );
     }
 }
