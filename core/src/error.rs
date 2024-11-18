@@ -228,7 +228,6 @@ fn lexer_error_msg(err: &LexerError) -> String {
         LexerError::UnterminatedString => {
             "The end of the program was reached while reading a string".into()
         }
-        // LexerError::LeadingZeros => "Decimal numbers cannot have leading zeros".into(),
         LexerError::EmptyPrefixedInteger => "There is an integer prefix, but nothing more".into(),
     }
 }
@@ -285,6 +284,7 @@ fn weeder_error_msg(err: &WeederError) -> String {
         WeederError::BadAnonFunctionParameter => {
             "Only names can be parameters of anonymous functions. Replace this with a name".into()
         }
+        WeederError::LeadingZeros => "Decimal numbers cannot have leading zeros".into(),
         WeederError::PlainImportNotImplemented => {
             "Jokes on you, this is not yet implemented. Use `from module import stuff`".into()
         }

@@ -3,7 +3,7 @@ use crate::{
     cst::{
         CSTNode, CSTNodeKind, ComprehensionKind, DeclarationKind, InfixOperator, PrefixOperator,
     },
-    error::Error,
+    error::{Error, Position},
     lexer::Radix,
     run::ModuleAddress,
 };
@@ -18,6 +18,7 @@ pub enum WeederError {
     BadSymbolInImportTuple,
     BadAnonFunctionLHS,
     BadAnonFunctionParameter,
+    LeadingZeros,
     MemoizedNonFunctionDeclaration,
     MutableFunctionDeclaration,
     PlainImportNotImplemented,
@@ -34,7 +35,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeKind::For(val, iter, proc) => _for(val, *iter, proc),
         CSTNodeKind::If(cond, positive, negative) => _if(*cond, *positive, *negative),
         CSTNodeKind::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs),
-        CSTNodeKind::Integer(dec, radix) => integer(dec, radix),
+        CSTNodeKind::Integer(dec, radix) => integer(dec, radix, node.position),
         CSTNodeKind::Prefix(op, val) => prefix(op, *val),
         CSTNodeKind::Cons(first, tail) => cons(*first, *tail),
         CSTNodeKind::String(str) => string(str),
@@ -264,11 +265,17 @@ fn infix_node(op: ast::InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResul
     Ok(ASTNodeKind::Infix { op, lhs, rhs })
 }
 
-fn integer(dec: String, radix: Radix) -> WeederResult<ASTNodeKind> {
-    Ok(ASTNodeKind::Integer {
-        literal: dec,
-        radix,
-    })
+fn integer(dec: String, radix: Radix, position: Position) -> WeederResult<ASTNodeKind> {
+    match (dec.chars().next(), radix) {
+        (Some('0'), Radix::Decimal) if dec.len() > 1 => Err(Error::with_position(
+            WeederError::LeadingZeros.into(),
+            position,
+        )),
+        _ => Ok(ASTNodeKind::Integer {
+            literal: dec,
+            radix,
+        }),
+    }
 }
 
 fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind> {
@@ -492,6 +499,8 @@ mod tests {
             tests::{dec_integer, dummy_pos, pattern, symbol},
             InfixOperator,
         },
+        error::Error,
+        weeder::WeederError,
     };
 
     use super::rewrite;
@@ -665,6 +674,19 @@ mod tests {
                 "f",
                 vec![ast::tests::symbol("x", dummy_pos())],
                 ast::tests::dec_integer("1", dummy_pos()),
+                dummy_pos()
+            )),
+        );
+    }
+
+    #[test]
+    fn leading_zeros() {
+        let node = dec_integer("01", dummy_pos());
+
+        assert_eq!(
+            rewrite(node),
+            Err(Error::with_position(
+                WeederError::LeadingZeros.into(),
                 dummy_pos()
             )),
         );
