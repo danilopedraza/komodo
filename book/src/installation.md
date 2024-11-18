@@ -28,4 +28,4 @@ cp target/release/komodo $HOME/.local/bin
 
 Now you should be able to use Komodo from the command line with the `komodo` command.
 
-Alternatively, you can try Komodo by running `cargo run` in the `komodo/core` directory.
+Alternatively, you can try Komodo by running `cargo run --all-features` in the `komodo/core` directory.
