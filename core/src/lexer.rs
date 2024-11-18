@@ -6,7 +6,6 @@ use crate::error::{Error, Position};
 pub enum LexerError {
     EmptyChar,
     EmptyPrefixedInteger,
-    LeadingZeros,
     UnexpectedChar(char),
     UnterminatedChar,
     UnterminatedString,
@@ -454,9 +453,8 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        match (literal.chars().next(), radix) {
-            (None, _) => Err(LexerError::EmptyPrefixedInteger),
-            (Some('0'), Radix::Decimal) if literal.len() > 1 => Err(LexerError::LeadingZeros),
+        match literal.chars().next() {
+            None => Err(LexerError::EmptyPrefixedInteger),
             _ => Ok(TokenType::Integer(literal, radix)),
         }
     }
@@ -654,16 +652,16 @@ mod tests {
         );
     }
 
-    #[test]
-    fn leading_zeros() {
-        assert_eq!(
-            token_types_from("01"),
-            Err(Error::with_position(
-                LexerError::LeadingZeros.into(),
-                _pos(0, 2)
-            )),
-        );
-    }
+    // #[test]
+    // fn leading_zeros() {
+    //     assert_eq!(
+    //         token_types_from("01"),
+    //         Err(Error::with_position(
+    //             LexerError::LeadingZeros.into(),
+    //             _pos(0, 2)
+    //         )),
+    //     );
+    // }
 
     #[test]
     fn comment() {

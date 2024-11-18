@@ -2041,4 +2041,21 @@ mod tests {
             )))
         );
     }
+
+    #[test]
+    fn leading_zeros_decimal_number() {
+        let input = "0.00";
+
+        let lexer = Lexer::from(input);
+
+        assert_eq!(
+            Parser::from(lexer).next(),
+            Some(Ok(infix(
+                InfixOperator::Dot,
+                dec_integer("0", pos(0, 1)),
+                dec_integer("00", pos(2, 2)),
+                pos(0, 4)
+            ))),
+        );
+    }
 }
