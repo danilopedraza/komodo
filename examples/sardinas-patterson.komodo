@@ -1,0 +1,42 @@
+from utils import (filter, reduce)
+
+let cartesianProd(A, {first|rest}) :=
+    {(val, first) for val in A} + cartesianProd(A, rest)
+let cartesianProd(_, {}) := {}
+
+let getSuffix(("", "")) := ()
+let getSuffix(("", suffix)) := suffix
+let getSuffix(([first|tailPrefix], [first|tailWord])) :=
+    getSuffix((tailPrefix, tailWord))
+let getSuffix(_) := ()
+
+let SPIteration(codes, suffixes) := {
+    getSuffix(pair) for pair in
+    cartesianProd(codes, suffixes) + cartesianProd(suffixes, codes)
+}.filter(val -> val /= ())
+
+let allIterations(codes) :=
+    let initial := SPIteration(codes, codes)
+    allIterations(codes, initial, {initial})
+
+let allIterations(codes, lastSuffixes, acc) :=
+    let newSuffixes := SPIteration(codes, lastSuffixes)
+    if newSuffixes in acc then
+        acc
+    else
+        allIterations(codes, newSuffixes, {newSuffixes|acc})
+
+let allDanglingSuffixes(codes) :=
+    codes.allIterations().reduce(
+        (val, acc) -> val + acc,
+        {}
+    )
+
+let isUniquelyDecodable(code) :=
+    let suffixes := allDanglingSuffixes(code)
+    let intersection := code.filter(word -> (word in suffixes))
+    intersection = {}
+
+let code := {"ab", "cb", "abbc", "cbc", "abb"}
+
+assert(code.isUniquelyDecodable())
