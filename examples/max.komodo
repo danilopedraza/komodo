@@ -1,8 +1,9 @@
 let max([first|tail]) := max(first, tail)
 let max(curMax, []) := curMax
 let max(curMax, [first|tail]) := max(
-    if curMax > first then curMax else first,
+    max(curMax, first),
     tail,
 )
+let max(a, b) := if a > b then a else b
 
 assert(max([3, 5, 7, 2, 4, 8, -1]) = 8)
