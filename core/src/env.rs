@@ -26,7 +26,7 @@ pub enum ValueKind {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
-pub struct Scope {
+struct Scope {
     dict: BTreeMap<String, (ValueKind, Object)>,
 }
 
