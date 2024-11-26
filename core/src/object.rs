@@ -10,7 +10,6 @@ use std::{
 };
 
 use bigdecimal::{num_traits::Pow, BigDecimal, One, Signed, Zero};
-use gc::GcCell;
 use num_bigint::{BigInt, BigUint};
 use num_rational::{BigRational, Ratio};
 
@@ -620,52 +619,36 @@ impl From<BigDecimal> for Decimal {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Set {
-    pub set: GcCell<BTreeSet<Object>>,
-}
-
-impl Hash for Set {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.set.borrow().hash(state);
-    }
+    pub set: BTreeSet<Object>,
 }
 
 impl Set {
     fn union(&self, other: &Set) -> Object {
         let set = self
             .set
-            .borrow()
-            .union(&other.set.borrow())
+            .union(&other.set)
             .map(|val| val.to_owned())
             .collect();
-        Object::Set(Set {
-            set: GcCell::new(set),
-        })
+        Object::Set(Set { set })
     }
 
     fn difference(&self, other: &Set) -> Object {
         let set = self
             .set
-            .borrow()
-            .difference(&other.set.borrow())
+            .difference(&other.set)
             .map(|val| val.to_owned())
             .collect();
-        Object::Set(Set {
-            set: GcCell::new(set),
-        })
+        Object::Set(Set { set })
     }
 
     fn subset_strict(&self, other: &Set) -> Object {
-        Object::Boolean(
-            (self.set.borrow().is_subset(&other.set.borrow())
-                && self.set.borrow().len() < other.set.borrow().len())
-            .into(),
-        )
+        Object::Boolean((self.set.is_subset(&other.set) && self.set.len() < other.set.len()).into())
     }
 
     fn subset_eq(&self, other: &Set) -> Object {
-        Object::Boolean(self.set.borrow().is_subset(&other.set.borrow()).into())
+        Object::Boolean(self.set.is_subset(&other.set).into())
     }
 }
 
@@ -713,7 +696,7 @@ impl InfixOperable for Set {
     }
 
     fn contains(&self, val: &Object) -> Option<Object> {
-        Some(self.set.borrow().contains(val).into())
+        Some(self.set.contains(val).into())
     }
 
     fn equality(&self, other: &Object) -> Option<Object> {
@@ -740,7 +723,7 @@ impl From<Vec<Object>> for Set {
             set.insert(obj);
         }
 
-        let set = GcCell::new(set);
+        let set = set;
 
         Self { set }
     }
@@ -748,7 +731,7 @@ impl From<Vec<Object>> for Set {
 
 impl From<BTreeSet<Object>> for Set {
     fn from(set: BTreeSet<Object>) -> Self {
-        let set = GcCell::new(set);
+        let set = set;
         Self { set }
     }
 }
@@ -757,7 +740,6 @@ impl fmt::Display for Set {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let list = self
             .set
-            .borrow()
             .iter()
             .map(quote_mystring)
             .collect::<Vec<_>>()
