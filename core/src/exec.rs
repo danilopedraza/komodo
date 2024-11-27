@@ -10,6 +10,8 @@ use crate::object::{
     FunctionPatternKind, Kind, List, PatternFunction, Range,
 };
 
+type ExecResult<T> = Result<T, Error>;
+
 use crate::ast::{ASTNode, ASTNodeKind, Declaration, InfixOperator};
 use crate::cst::{ComprehensionKind, PrefixOperator};
 use crate::env::{EnvResponse, Environment, ScopeDepth, ValueKind};
@@ -67,17 +69,17 @@ pub fn truthy(val: &Object) -> bool {
     }
 }
 
-pub fn list(l: &[ASTNode], env: &mut Environment) -> Result<Vec<Object>, Error> {
+pub fn list(l: &[ASTNode], env: &mut Environment) -> ExecResult<Vec<Object>> {
     l.iter().map(|node| exec(node, env)).collect()
 }
 
-fn function(params: &[String], result: &ASTNode, env: &Environment) -> Result<Object, Error> {
+fn function(params: &[String], result: &ASTNode, env: &Environment) -> ExecResult<Object> {
     Ok(Object::Function(object::Function::Anonymous(
         AnonFunction::new(params.to_owned(), result.to_owned(), env.clone()),
     )))
 }
 
-pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
+pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<Object> {
     let res = match &node.kind {
         ASTNodeKind::Symbol { name } => symbol(name, env, node.position),
         ASTNodeKind::Set { list } => extension_set(list, env),
@@ -155,11 +157,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
     }
 }
 
-fn case(
-    expr: &ASTNode,
-    pairs: &[(ASTNode, ASTNode)],
-    env: &mut Environment,
-) -> Result<Object, Error> {
+fn case(expr: &ASTNode, pairs: &[(ASTNode, ASTNode)], env: &mut Environment) -> ExecResult<Object> {
     let expr_obj = exec(expr, env)?;
 
     for (pattern, res) in pairs {
@@ -183,7 +181,7 @@ fn case(
     ))
 }
 
-fn declaration(decl: &Declaration, env: &mut Environment) -> Result<Object, Error> {
+fn declaration(decl: &Declaration, env: &mut Environment) -> ExecResult<Object> {
     match decl {
         Declaration::Symbolic { name, constraint } => let_without_value(name, constraint, env),
         Declaration::Inmutable { left, right } => {
@@ -213,7 +211,7 @@ fn get_named_container_element(node: &ASTNode) -> Option<(&str, &ASTNode, Positi
     }
 }
 
-fn assignment(left: &ASTNode, right: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
+fn assignment(left: &ASTNode, right: &ASTNode, env: &mut Environment) -> ExecResult<Object> {
     let value = exec(right, env)?;
 
     if let Some((name, index, name_position)) = get_named_container_element(left) {
@@ -289,7 +287,7 @@ fn get_mutable_value<'a>(
     }
 }
 
-fn block(exprs: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
+fn block(exprs: &[ASTNode], env: &mut Environment) -> ExecResult<Object> {
     let mut res = Object::empty_tuple();
 
     for exp in exprs {
@@ -303,12 +301,12 @@ fn import_from(
     module: &ModuleAddress,
     values: &[(String, Position)],
     env: &mut Environment,
-) -> Result<Object, Error> {
+) -> ExecResult<Object> {
     run::import_from(module, values, env)?;
     Ok(Object::empty_tuple())
 }
 
-fn set_cons(some: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
+fn set_cons(some: Object, most: &ASTNode, env: &mut Environment) -> ExecResult<Object> {
     match exec(most, env)? {
         Object::List(lst) => {
             let mut res = BTreeSet::new();
@@ -337,7 +335,7 @@ fn set_cons(some: Object, most: &ASTNode, env: &mut Environment) -> Result<Objec
     }
 }
 
-fn dictionary(pairs: &Vec<(ASTNode, ASTNode)>, env: &mut Environment) -> Result<Object, Error> {
+fn dictionary(pairs: &Vec<(ASTNode, ASTNode)>, env: &mut Environment) -> ExecResult<Object> {
     let mut dict = Dictionary::default();
 
     for (key, value) in pairs {
@@ -347,11 +345,11 @@ fn dictionary(pairs: &Vec<(ASTNode, ASTNode)>, env: &mut Environment) -> Result<
     Ok(Object::Dictionary(dict))
 }
 
-fn decimal(int: &str, dec: &str) -> Result<Object, Error> {
+fn decimal(int: &str, dec: &str) -> ExecResult<Object> {
     Ok(Object::Decimal(Decimal::new(int, dec)))
 }
 
-fn cons(first: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
+fn cons(first: Object, most: &ASTNode, env: &mut Environment) -> ExecResult<Object> {
     match exec(most, env)? {
         Object::List(lst) => {
             let mut res = vec![first];
@@ -378,23 +376,23 @@ fn cons(first: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, 
     }
 }
 
-fn extension_list(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
+fn extension_list(l: &[ASTNode], env: &mut Environment) -> ExecResult<Object> {
     list(l, env).map(|lst| Object::List(List::from(lst)))
 }
 
-fn tuple(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
+fn tuple(l: &[ASTNode], env: &mut Environment) -> ExecResult<Object> {
     list(l, env).map(|lst| Object::Tuple(Tuple::from(lst)))
 }
 
-fn string(str: &str) -> Result<Object, Error> {
+fn string(str: &str) -> ExecResult<Object> {
     Ok(Object::String(MyString::from(str)))
 }
 
-fn char(chr: char) -> Result<Object, Error> {
+fn char(chr: char) -> ExecResult<Object> {
     Ok(Object::Char(Char::from(chr)))
 }
 
-fn boolean(val: bool) -> Result<Object, Error> {
+fn boolean(val: bool) -> ExecResult<Object> {
     Ok(Object::Boolean(Bool::from(val)))
 }
 
@@ -403,7 +401,7 @@ fn let_pattern(
     right: &ASTNode,
     kind: ValueKind,
     env: &mut Environment,
-) -> Result<Object, Error> {
+) -> ExecResult<Object> {
     let value = exec(right, env)?;
     match match_(left, &value) {
         Some(Match(map)) => {
@@ -423,7 +421,7 @@ fn let_pattern(
     }
 }
 
-fn let_without_value(name: &str, property: &str, env: &mut Environment) -> Result<Object, Error> {
+fn let_without_value(name: &str, property: &str, env: &mut Environment) -> ExecResult<Object> {
     let symbol = Object::Symbol(Symbol {
         name: name.to_owned(),
         property: property.to_owned(),
@@ -434,15 +432,15 @@ fn let_without_value(name: &str, property: &str, env: &mut Environment) -> Resul
     Ok(symbol)
 }
 
-fn integer(str: &str, radix: Radix) -> Result<Object, Error> {
+fn integer(str: &str, radix: Radix) -> ExecResult<Object> {
     Ok(Object::Integer(Integer::new(str, radix)))
 }
 
-fn extension_set(l: &[ASTNode], env: &mut Environment) -> Result<Object, Error> {
+fn extension_set(l: &[ASTNode], env: &mut Environment) -> ExecResult<Object> {
     list(l, env).map(|lst| Object::Set(Set::from(lst)))
 }
 
-fn symbol(str: &str, env: &mut Environment, position: Position) -> Result<Object, Error> {
+fn symbol(str: &str, env: &mut Environment, position: Position) -> ExecResult<Object> {
     match env.get(str) {
         EnvResponse::Inmutable(obj, _) => Ok(obj.clone()),
         EnvResponse::Mutable(obj, _) => Ok(obj.clone()),
@@ -459,7 +457,7 @@ fn comprehension(
     iterator: &ASTNode,
     kind: ComprehensionKind,
     env: &mut Environment,
-) -> Result<Object, Error> {
+) -> ExecResult<Object> {
     let iterator = get_iterable(iterator, env)?;
 
     match kind {
@@ -494,7 +492,7 @@ fn let_function(
     value: &ASTNode,
     kind: FunctionPatternKind,
     env: &mut Environment,
-) -> Result<Object, Error> {
+) -> ExecResult<Object> {
     let function: &mut PatternFunction = match env.get(name) {
         EnvResponse::NotFound => {
             env.set_mutable(
@@ -527,7 +525,7 @@ fn if_(
     first: &ASTNode,
     second: &ASTNode,
     env: &mut Environment,
-) -> Result<Object, Error> {
+) -> ExecResult<Object> {
     if truthy(&cond) {
         exec(first, env)
     } else {
@@ -540,7 +538,7 @@ fn for_(
     iterable: &ASTNode,
     proc: &[ASTNode],
     env: &mut Environment,
-) -> Result<Object, Error> {
+) -> ExecResult<Object> {
     let iter = get_iterable(iterable, env)?;
 
     env.push_scope();
@@ -578,7 +576,7 @@ fn call(
     args: &[ASTNode],
     env: &mut Environment,
     call_pos: Position,
-) -> Result<Object, Error> {
+) -> ExecResult<Object> {
     let func_name = match &func_node.kind {
         ASTNodeKind::Symbol { name } => Some(name),
         _ => None,
@@ -635,7 +633,7 @@ fn fraction(
     denom: &ASTNode,
     position: Position,
     env: &mut Environment,
-) -> Result<Object, Error> {
+) -> ExecResult<Object> {
     match (exec(numer, env)?, exec(denom, env)?) {
         (Object::Integer(_), Object::Integer(int)) if int.is_zero() => Err(Error::with_position(
             ExecError::DenominatorZero.into(),
@@ -655,12 +653,7 @@ fn fraction(
     }
 }
 
-fn infix(
-    op: InfixOperator,
-    lhs: &Object,
-    rhs: &Object,
-    infix_pos: Position,
-) -> Result<Object, Error> {
+fn infix(op: InfixOperator, lhs: &Object, rhs: &Object, infix_pos: Position) -> ExecResult<Object> {
     let lhs_kind = lhs.kind();
     let rhs_kind = rhs.kind();
 
@@ -710,7 +703,7 @@ fn infix(
     }
 }
 
-fn prefix(op: PrefixOperator, obj: Object, prefix_pos: Position) -> Result<Object, Error> {
+fn prefix(op: PrefixOperator, obj: Object, prefix_pos: Position) -> ExecResult<Object> {
     let res = match op {
         PrefixOperator::BitwiseNot => obj.bitwise_not(),
         PrefixOperator::LogicNot => obj.logic_not(),
