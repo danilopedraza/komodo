@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, path::PathBuf};
 
 use crate::object::Object;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Address(usize);
 
 #[derive(Debug, PartialEq, Eq)]

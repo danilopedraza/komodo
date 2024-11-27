@@ -125,7 +125,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<(Object, Addres
 
             match container_obj {
                 Object::List(list) => match list.get(&element_obj) {
-                    Ok(obj) => Ok((obj, Address::default())),
+                    Ok(obj) => Ok(obj),
                     Err(eval_err) => Err(Error::with_position(eval_err.into(), index.position)),
                 },
                 Object::Dictionary(dict) => match dict.get(&element_obj) {
@@ -237,7 +237,7 @@ fn assignment(
 
         let element_ref = match container {
             Object::List(list) => match list.get_mut(&index_obj) {
-                Ok(obj) => Ok(obj),
+                Ok(obj) => Ok(&mut obj.0),
                 Err(eval_err) => Err(Error::with_position(eval_err.into(), index.position)),
             },
             Object::Dictionary(dict) => match dict.get_mut(&index_obj) {
@@ -335,7 +335,7 @@ fn set_cons(
             res.insert(some);
 
             for obj in lst.list {
-                res.insert(obj.to_owned());
+                res.insert(obj.0.to_owned());
             }
 
             Ok((Object::Set(res.into()), Address::default()))
@@ -379,7 +379,7 @@ fn cons(
     most: &ASTNode,
     env: &mut Environment,
 ) -> ExecResult<(Object, Address)> {
-    let first = first.0;
+    let first = first;
 
     match exec(most, env)?.0 {
         Object::List(lst) => {
@@ -392,7 +392,7 @@ fn cons(
             Ok((Object::List(res.into()), Address::default()))
         }
         Object::Set(set) => {
-            let mut res = vec![first];
+            let mut res = vec![first.0];
 
             for obj in set.set {
                 res.push(obj.to_owned());
@@ -504,7 +504,7 @@ fn comprehension(
             env.push_scope();
 
             for val in iterator {
-                env.set_inmutable(variable, val);
+                env.set_inmutable(variable, val.0);
                 new_list.push(exec(element, env)?);
             }
 
@@ -515,7 +515,7 @@ fn comprehension(
             env.push_scope();
 
             for val in iterator {
-                env.set_inmutable(variable, val);
+                env.set_inmutable(variable, val.0);
                 new_set.insert(exec(element, env)?.0);
             }
 
@@ -586,7 +586,7 @@ fn for_(
     env.push_scope();
 
     for val in iter {
-        env.set_inmutable(symbol, val.clone());
+        env.set_inmutable(symbol, val.0.clone());
 
         for step in proc {
             exec(step, env)?;
@@ -601,11 +601,18 @@ fn for_(
 fn get_iterable(
     node: &ASTNode,
     env: &mut Environment,
-) -> Result<Box<dyn Iterator<Item = Object>>, Error> {
+) -> Result<Box<dyn Iterator<Item = (Object, Address)>>, Error> {
     match exec(node, env)?.0 {
-        Object::Set(set) => Ok(Box::new(set.set.clone().into_iter())),
+        Object::Set(set) => Ok(Box::new(
+            set.set
+                .clone()
+                .into_iter()
+                .map(|obj| (obj, Address::default())),
+        )),
         Object::List(list) => Ok(Box::new(list.list.into_iter())),
-        Object::Range(range) => Ok(Box::new(range.into_iter())),
+        Object::Range(range) => Ok(Box::new(
+            range.into_iter().map(|obj| (obj, Address::default())),
+        )),
         obj => Err(Error::WithPosition(
             ExecError::NonIterableObject(obj.kind()).into(),
             node.position,

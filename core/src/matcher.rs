@@ -105,7 +105,10 @@ fn empty_match() -> Option<Match> {
 
 fn match_extension_list(pattern: &[ASTNode], val: &Object) -> Option<Match> {
     match val {
-        Object::List(List { list }) => match_list(pattern, list),
+        Object::List(List { list }) => match_list(
+            pattern,
+            &list.iter().map(|(obj, _)| obj.clone()).collect::<Vec<_>>(),
+        ),
         _ => None,
     }
 }
@@ -147,7 +150,7 @@ fn match_list(pattern: &[ASTNode], list: &[Object]) -> Option<Match> {
 fn match_prefix_crop(first: &ASTNode, most: &ASTNode, val: &Object) -> Option<Match> {
     match val {
         Object::List(List { list }) if !list.is_empty() => {
-            let first_match = match_(first, &list[0]);
+            let first_match = match_(first, &list[0].0);
 
             let last_list = Object::List(List::from(list[1..].to_owned()));
             let last_match = match_(most, &last_list);
@@ -274,6 +277,7 @@ mod tests {
             pattern, range, set_cons, string, symbol, wildcard,
         },
         cst::tests::dummy_pos,
+        env::Address,
         object::{Dictionary, Fraction, Integer, Range, Set, Symbol},
     };
 
@@ -288,10 +292,10 @@ mod tests {
 
         let args = [
             Object::List(List {
-                list: vec![Object::Integer(Integer::from(1))],
+                list: vec![(Object::Integer(Integer::from(1)), Address::default())],
             }),
             Object::List(List {
-                list: vec![Object::Integer(Integer::from(2))],
+                list: vec![(Object::Integer(Integer::from(2)), Address::default())],
             }),
         ];
 

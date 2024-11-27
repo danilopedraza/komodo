@@ -1525,7 +1525,7 @@ impl ExternFunction {
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct List {
-    pub list: Vec<Object>,
+    pub list: Vec<(Object, Address)>,
 }
 
 impl List {
@@ -1544,7 +1544,7 @@ impl List {
         Object::List(list.into())
     }
 
-    pub fn get(&self, index: &Object) -> Result<Object, ExecError> {
+    pub fn get(&self, index: &Object) -> Result<(Object, Address), ExecError> {
         match index {
             Object::Integer(int) => {
                 let index = int.to_machine_magnitude();
@@ -1557,7 +1557,7 @@ impl List {
         }
     }
 
-    pub fn get_mut(&mut self, index: &Object) -> Result<&mut Object, ExecError> {
+    pub fn get_mut(&mut self, index: &Object) -> Result<&mut (Object, Address), ExecError> {
         match index {
             Object::Integer(int) => {
                 let index = int.to_machine_magnitude();
@@ -1579,13 +1579,17 @@ impl Kind for List {
 
 impl From<Vec<Object>> for List {
     fn from(list: Vec<Object>) -> Self {
+        let list = list
+            .into_iter()
+            .map(|obj| (obj, Address::default()))
+            .collect();
+
         Self { list }
     }
 }
 
 impl From<Vec<(Object, Address)>> for List {
     fn from(list: Vec<(Object, Address)>) -> Self {
-        let list = list.into_iter().map(|(obj, _)| obj).collect();
         Self { list }
     }
 }
@@ -1594,7 +1598,7 @@ impl InfixOperable for List {
     fn sum(&self, other: &Object) -> Option<Object> {
         match other {
             Object::List(List { list: other_list }) => {
-                let list: Vec<Object> = self
+                let list: Vec<(Object, Address)> = self
                     .list
                     .iter()
                     .chain(other_list)
@@ -1615,7 +1619,11 @@ impl InfixOperable for List {
     }
 
     fn contains(&self, val: &Object) -> Option<Object> {
-        Some(self.list.contains(val).into())
+        Some(
+            self.list
+                .contains(&(val.clone(), Address::default()))
+                .into(),
+        )
     }
 
     fn equality(&self, other: &Object) -> Option<Object> {
@@ -1640,7 +1648,7 @@ impl fmt::Display for List {
         let list = self
             .list
             .iter()
-            .map(quote_mystring)
+            .map(|(obj, _)| quote_mystring(obj))
             .collect::<Vec<_>>()
             .join(", ");
 
