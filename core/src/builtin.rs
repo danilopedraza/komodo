@@ -1,7 +1,7 @@
 use crate::{
     env::{Environment, ExecContext},
     exec::truthy,
-    object::{ExternFunction, FailedAssertion, Function, MyString, Object, Tuple},
+    object::{ExternFunction, FailedAssertion, Function, MyString, Object},
 };
 
 use std::io::{stdin, BufRead};
@@ -9,13 +9,13 @@ use std::io::{stdin, BufRead};
 fn komodo_println(args: &[Object]) -> Object {
     let str = args[0].to_string();
     println!("{str}");
-    Object::Tuple(Tuple::from(vec![]))
+    Object::empty_tuple()
 }
 
 fn komodo_print(args: &[Object]) -> Object {
     let str = args[0].to_string();
     print!("{str}");
-    Object::Tuple(Tuple::from(vec![]))
+    Object::empty_tuple()
 }
 
 fn komodo_getln(_args: &[Object]) -> Object {

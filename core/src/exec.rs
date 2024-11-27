@@ -14,7 +14,7 @@ type ExecResult<T> = Result<T, Error>;
 
 use crate::ast::{ASTNode, ASTNodeKind, Declaration, InfixOperator};
 use crate::cst::{ComprehensionKind, PrefixOperator};
-use crate::env::{EnvResponse, Environment, ScopeDepth, ValueKind};
+use crate::env::{Address, EnvResponse, Environment, ScopeDepth, ValueKind};
 use crate::object::{Bool, Char, Integer, MyString, Object, Set, Symbol, Tuple};
 use crate::run::{self, ModuleAddress};
 
@@ -69,17 +69,26 @@ pub fn truthy(val: &Object) -> bool {
     }
 }
 
-pub fn list(l: &[ASTNode], env: &mut Environment) -> ExecResult<Vec<Object>> {
+pub fn list(l: &[ASTNode], env: &mut Environment) -> ExecResult<Vec<(Object, Address)>> {
     l.iter().map(|node| exec(node, env)).collect()
 }
 
-fn function(params: &[String], result: &ASTNode, env: &Environment) -> ExecResult<Object> {
-    Ok(Object::Function(object::Function::Anonymous(
-        AnonFunction::new(params.to_owned(), result.to_owned(), env.clone()),
-    )))
+fn function(
+    params: &[String],
+    result: &ASTNode,
+    env: &Environment,
+) -> ExecResult<(Object, Address)> {
+    Ok((
+        Object::Function(object::Function::Anonymous(AnonFunction::new(
+            params.to_owned(),
+            result.to_owned(),
+            env.clone(),
+        ))),
+        Address::default(),
+    ))
 }
 
-pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<Object> {
+pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<(Object, Address)> {
     let res = match &node.kind {
         ASTNodeKind::Symbol { name } => symbol(name, env, node.position),
         ASTNodeKind::Set { list } => extension_set(list, env),
@@ -111,16 +120,16 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<Object> {
         ASTNodeKind::Fraction { numer, denom } => fraction(numer, denom, node.position, env),
         ASTNodeKind::Dictionary { pairs, complete: _ } => dictionary(pairs, env),
         ASTNodeKind::IndexNotation { container, index } => {
-            let container_obj = exec(container, env)?;
-            let element_obj = exec(index, env)?;
+            let container_obj = exec(container, env)?.0;
+            let element_obj = exec(index, env)?.0;
 
             match container_obj {
                 Object::List(list) => match list.get(&element_obj) {
-                    Ok(obj) => Ok(obj),
+                    Ok(obj) => Ok((obj, Address::default())),
                     Err(eval_err) => Err(Error::with_position(eval_err.into(), index.position)),
                 },
                 Object::Dictionary(dict) => match dict.get(&element_obj) {
-                    Ok(obj) => Ok(obj),
+                    Ok(obj) => Ok((obj, Address::default())),
                     Err(eval_err) => Err(Error::with_position(eval_err.into(), index.position)),
                 },
                 obj => Err(Error::with_position(
@@ -147,7 +156,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<Object> {
         ASTNodeKind::Case { expr, pairs } => case(expr, pairs, env),
     };
 
-    if let Ok(Object::Error(FailedAssertion(msg))) = res {
+    if let Ok((Object::Error(FailedAssertion(msg)), _)) = res {
         Err(Error::with_position(
             ExecError::FailedAssertion(msg).into(),
             node.position,
@@ -157,8 +166,12 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<Object> {
     }
 }
 
-fn case(expr: &ASTNode, pairs: &[(ASTNode, ASTNode)], env: &mut Environment) -> ExecResult<Object> {
-    let expr_obj = exec(expr, env)?;
+fn case(
+    expr: &ASTNode,
+    pairs: &[(ASTNode, ASTNode)],
+    env: &mut Environment,
+) -> ExecResult<(Object, Address)> {
+    let expr_obj = exec(expr, env)?.0;
 
     for (pattern, res) in pairs {
         if let Some(Match(map)) = match_(pattern, &expr_obj) {
@@ -181,7 +194,7 @@ fn case(expr: &ASTNode, pairs: &[(ASTNode, ASTNode)], env: &mut Environment) -> 
     ))
 }
 
-fn declaration(decl: &Declaration, env: &mut Environment) -> ExecResult<Object> {
+fn declaration(decl: &Declaration, env: &mut Environment) -> ExecResult<(Object, Address)> {
     match decl {
         Declaration::Symbolic { name, constraint } => let_without_value(name, constraint, env),
         Declaration::Inmutable { left, right } => {
@@ -211,11 +224,15 @@ fn get_named_container_element(node: &ASTNode) -> Option<(&str, &ASTNode, Positi
     }
 }
 
-fn assignment(left: &ASTNode, right: &ASTNode, env: &mut Environment) -> ExecResult<Object> {
-    let value = exec(right, env)?;
+fn assignment(
+    left: &ASTNode,
+    right: &ASTNode,
+    env: &mut Environment,
+) -> ExecResult<(Object, Address)> {
+    let value = exec(right, env)?.0;
 
     if let Some((name, index, name_position)) = get_named_container_element(left) {
-        let index_obj = exec(index, env)?;
+        let index_obj = exec(index, env)?.0;
         let container = get_mutable_value(name, env, name_position)?;
 
         let element_ref = match container {
@@ -234,13 +251,13 @@ fn assignment(left: &ASTNode, right: &ASTNode, env: &mut Environment) -> ExecRes
         }?;
 
         *element_ref = value;
-        return Ok(element_ref.to_owned());
+        return Ok((element_ref.to_owned(), Address::default()));
     }
 
     match match_(left, &value) {
         Some(Match(map)) => {
             make_assignment(map, env, left.position)?;
-            Ok(value)
+            Ok((value, Address::default()))
         }
         None => Err(Error::with_position(
             ExecError::BadMatch.into(),
@@ -287,8 +304,8 @@ fn get_mutable_value<'a>(
     }
 }
 
-fn block(exprs: &[ASTNode], env: &mut Environment) -> ExecResult<Object> {
-    let mut res = Object::empty_tuple();
+fn block(exprs: &[ASTNode], env: &mut Environment) -> ExecResult<(Object, Address)> {
+    let mut res = (Object::empty_tuple(), Address::default());
 
     for exp in exprs {
         res = exec(exp, env)?;
@@ -301,13 +318,18 @@ fn import_from(
     module: &ModuleAddress,
     values: &[(String, Position)],
     env: &mut Environment,
-) -> ExecResult<Object> {
+) -> ExecResult<(Object, Address)> {
     run::import_from(module, values, env)?;
-    Ok(Object::empty_tuple())
+    Ok((Object::empty_tuple(), Address::default()))
 }
 
-fn set_cons(some: Object, most: &ASTNode, env: &mut Environment) -> ExecResult<Object> {
-    match exec(most, env)? {
+fn set_cons(
+    some: (Object, Address),
+    most: &ASTNode,
+    env: &mut Environment,
+) -> ExecResult<(Object, Address)> {
+    let some = some.0;
+    match exec(most, env)?.0 {
         Object::List(lst) => {
             let mut res = BTreeSet::new();
             res.insert(some);
@@ -316,7 +338,7 @@ fn set_cons(some: Object, most: &ASTNode, env: &mut Environment) -> ExecResult<O
                 res.insert(obj.to_owned());
             }
 
-            Ok(Object::Set(res.into()))
+            Ok((Object::Set(res.into()), Address::default()))
         }
         Object::Set(set) => {
             let mut res = BTreeSet::new();
@@ -326,7 +348,7 @@ fn set_cons(some: Object, most: &ASTNode, env: &mut Environment) -> ExecResult<O
                 res.insert(obj.to_owned());
             }
 
-            Ok(Object::Set(res.into()))
+            Ok((Object::Set(res.into()), Address::default()))
         }
         obj => Err(Error::WithPosition(
             ExecError::NonPrependableObject(obj.kind()).into(),
@@ -335,22 +357,31 @@ fn set_cons(some: Object, most: &ASTNode, env: &mut Environment) -> ExecResult<O
     }
 }
 
-fn dictionary(pairs: &Vec<(ASTNode, ASTNode)>, env: &mut Environment) -> ExecResult<Object> {
+fn dictionary(
+    pairs: &Vec<(ASTNode, ASTNode)>,
+    env: &mut Environment,
+) -> ExecResult<(Object, Address)> {
     let mut dict = Dictionary::default();
 
     for (key, value) in pairs {
-        dict.dict.insert(exec(key, env)?, exec(value, env)?);
+        dict.dict.insert(exec(key, env)?.0, exec(value, env)?.0);
     }
 
-    Ok(Object::Dictionary(dict))
+    Ok((Object::Dictionary(dict), Address::default()))
 }
 
-fn decimal(int: &str, dec: &str) -> ExecResult<Object> {
-    Ok(Object::Decimal(Decimal::new(int, dec)))
+fn decimal(int: &str, dec: &str) -> ExecResult<(Object, Address)> {
+    Ok((Object::Decimal(Decimal::new(int, dec)), Address::default()))
 }
 
-fn cons(first: Object, most: &ASTNode, env: &mut Environment) -> ExecResult<Object> {
-    match exec(most, env)? {
+fn cons(
+    first: (Object, Address),
+    most: &ASTNode,
+    env: &mut Environment,
+) -> ExecResult<(Object, Address)> {
+    let first = first.0;
+
+    match exec(most, env)?.0 {
         Object::List(lst) => {
             let mut res = vec![first];
 
@@ -358,7 +389,7 @@ fn cons(first: Object, most: &ASTNode, env: &mut Environment) -> ExecResult<Obje
                 res.push(obj.to_owned());
             }
 
-            Ok(Object::List(res.into()))
+            Ok((Object::List(res.into()), Address::default()))
         }
         Object::Set(set) => {
             let mut res = vec![first];
@@ -367,7 +398,7 @@ fn cons(first: Object, most: &ASTNode, env: &mut Environment) -> ExecResult<Obje
                 res.push(obj.to_owned());
             }
 
-            Ok(Object::List(res.into()))
+            Ok((Object::List(res.into()), Address::default()))
         }
         obj => Err(Error::WithPosition(
             ExecError::NonPrependableObject(obj.kind()).into(),
@@ -376,24 +407,24 @@ fn cons(first: Object, most: &ASTNode, env: &mut Environment) -> ExecResult<Obje
     }
 }
 
-fn extension_list(l: &[ASTNode], env: &mut Environment) -> ExecResult<Object> {
-    list(l, env).map(|lst| Object::List(List::from(lst)))
+fn extension_list(l: &[ASTNode], env: &mut Environment) -> ExecResult<(Object, Address)> {
+    list(l, env).map(|lst| (Object::List(List::from(lst)), Address::default()))
 }
 
-fn tuple(l: &[ASTNode], env: &mut Environment) -> ExecResult<Object> {
-    list(l, env).map(|lst| Object::Tuple(Tuple::from(lst)))
+fn tuple(l: &[ASTNode], env: &mut Environment) -> ExecResult<(Object, Address)> {
+    list(l, env).map(|lst| (Object::Tuple(Tuple::from(lst)), Address::default()))
 }
 
-fn string(str: &str) -> ExecResult<Object> {
-    Ok(Object::String(MyString::from(str)))
+fn string(str: &str) -> ExecResult<(Object, Address)> {
+    Ok((Object::String(MyString::from(str)), Address::default()))
 }
 
-fn char(chr: char) -> ExecResult<Object> {
-    Ok(Object::Char(Char::from(chr)))
+fn char(chr: char) -> ExecResult<(Object, Address)> {
+    Ok((Object::Char(Char::from(chr)), Address::default()))
 }
 
-fn boolean(val: bool) -> ExecResult<Object> {
-    Ok(Object::Boolean(Bool::from(val)))
+fn boolean(val: bool) -> ExecResult<(Object, Address)> {
+    Ok((Object::Boolean(Bool::from(val)), Address::default()))
 }
 
 fn let_pattern(
@@ -401,8 +432,8 @@ fn let_pattern(
     right: &ASTNode,
     kind: ValueKind,
     env: &mut Environment,
-) -> ExecResult<Object> {
-    let value = exec(right, env)?;
+) -> ExecResult<(Object, Address)> {
+    let value = exec(right, env)?.0;
     match match_(left, &value) {
         Some(Match(map)) => {
             for (name, val) in map {
@@ -412,7 +443,7 @@ fn let_pattern(
                 }
             }
 
-            Ok(value)
+            Ok((value, Address::default()))
         }
         None => Err(Error::with_position(
             ExecError::BadMatch.into(),
@@ -421,7 +452,11 @@ fn let_pattern(
     }
 }
 
-fn let_without_value(name: &str, property: &str, env: &mut Environment) -> ExecResult<Object> {
+fn let_without_value(
+    name: &str,
+    property: &str,
+    env: &mut Environment,
+) -> ExecResult<(Object, Address)> {
     let symbol = Object::Symbol(Symbol {
         name: name.to_owned(),
         property: property.to_owned(),
@@ -429,21 +464,24 @@ fn let_without_value(name: &str, property: &str, env: &mut Environment) -> ExecR
 
     env.set_inmutable(name, symbol.clone());
 
-    Ok(symbol)
+    Ok((symbol, Address::default()))
 }
 
-fn integer(str: &str, radix: Radix) -> ExecResult<Object> {
-    Ok(Object::Integer(Integer::new(str, radix)))
+fn integer(str: &str, radix: Radix) -> ExecResult<(Object, Address)> {
+    Ok((
+        Object::Integer(Integer::new(str, radix)),
+        Address::default(),
+    ))
 }
 
-fn extension_set(l: &[ASTNode], env: &mut Environment) -> ExecResult<Object> {
-    list(l, env).map(|lst| Object::Set(Set::from(lst)))
+fn extension_set(l: &[ASTNode], env: &mut Environment) -> ExecResult<(Object, Address)> {
+    list(l, env).map(|lst| (Object::Set(Set::from(lst)), Address::default()))
 }
 
-fn symbol(str: &str, env: &mut Environment, position: Position) -> ExecResult<Object> {
+fn symbol(str: &str, env: &mut Environment, position: Position) -> ExecResult<(Object, Address)> {
     match env.get(str) {
-        EnvResponse::Inmutable(obj, _) => Ok(obj.clone()),
-        EnvResponse::Mutable(obj, _) => Ok(obj.clone()),
+        EnvResponse::Inmutable(obj, _) => Ok((obj.clone(), Address::default())),
+        EnvResponse::Mutable(obj, _) => Ok((obj.clone(), Address::default())),
         EnvResponse::NotFound => Err(Error::with_position(
             ExecError::UnknownValue(str.to_owned()).into(),
             position,
@@ -457,7 +495,7 @@ fn comprehension(
     iterator: &ASTNode,
     kind: ComprehensionKind,
     env: &mut Environment,
-) -> ExecResult<Object> {
+) -> ExecResult<(Object, Address)> {
     let iterator = get_iterable(iterator, env)?;
 
     match kind {
@@ -470,7 +508,7 @@ fn comprehension(
                 new_list.push(exec(element, env)?);
             }
 
-            Ok(Object::List(List::from(new_list)))
+            Ok((Object::List(List::from(new_list)), Address::default()))
         }
         ComprehensionKind::Set => {
             let mut new_set = BTreeSet::new();
@@ -478,10 +516,10 @@ fn comprehension(
 
             for val in iterator {
                 env.set_inmutable(variable, val);
-                new_set.insert(exec(element, env)?);
+                new_set.insert(exec(element, env)?.0);
             }
 
-            Ok(Object::Set(Set::from(new_set)))
+            Ok((Object::Set(Set::from(new_set)), Address::default()))
         }
     }
 }
@@ -492,7 +530,7 @@ fn let_function(
     value: &ASTNode,
     kind: FunctionPatternKind,
     env: &mut Environment,
-) -> ExecResult<Object> {
+) -> ExecResult<(Object, Address)> {
     let function: &mut PatternFunction = match env.get(name) {
         EnvResponse::NotFound => {
             env.set_mutable(
@@ -517,15 +555,19 @@ fn let_function(
         .borrow_mut()
         .set_mutable(name, Object::Function(Function::Pattern(function.clone())));
 
-    Ok(Object::Function(Function::Pattern(function.clone())))
+    Ok((
+        Object::Function(Function::Pattern(function.clone())),
+        Address::default(),
+    ))
 }
 
 fn if_(
-    cond: Object,
+    cond: (Object, Address),
     first: &ASTNode,
     second: &ASTNode,
     env: &mut Environment,
-) -> ExecResult<Object> {
+) -> ExecResult<(Object, Address)> {
+    let cond = cond.0;
     if truthy(&cond) {
         exec(first, env)
     } else {
@@ -538,7 +580,7 @@ fn for_(
     iterable: &ASTNode,
     proc: &[ASTNode],
     env: &mut Environment,
-) -> ExecResult<Object> {
+) -> ExecResult<(Object, Address)> {
     let iter = get_iterable(iterable, env)?;
 
     env.push_scope();
@@ -553,14 +595,14 @@ fn for_(
 
     env.pop_scope();
 
-    Ok(Object::empty_tuple())
+    Ok((Object::empty_tuple(), Address::default()))
 }
 
 fn get_iterable(
     node: &ASTNode,
     env: &mut Environment,
 ) -> Result<Box<dyn Iterator<Item = Object>>, Error> {
-    match exec(node, env)? {
+    match exec(node, env)?.0 {
         Object::Set(set) => Ok(Box::new(set.set.clone().into_iter())),
         Object::List(list) => Ok(Box::new(list.list.into_iter())),
         Object::Range(range) => Ok(Box::new(range.into_iter())),
@@ -576,13 +618,13 @@ fn call(
     args: &[ASTNode],
     env: &mut Environment,
     call_pos: Position,
-) -> ExecResult<Object> {
+) -> ExecResult<(Object, Address)> {
     let func_name = match &func_node.kind {
         ASTNodeKind::Symbol { name } => Some(name),
         _ => None,
     };
 
-    let func = exec(func_node, env)?;
+    let func = exec(func_node, env)?.0;
     if let Object::Function(ref f) = func {
         if args.len() < f.param_number() {
             return Err(Error::WithPosition(
@@ -598,7 +640,7 @@ fn call(
 
     let mut func_args = vec![];
     for arg in args {
-        let func_arg = exec(arg, env)?;
+        let func_arg = exec(arg, env)?.0;
         func_args.push(func_arg);
     }
 
@@ -610,7 +652,7 @@ fn call(
                 env.set_mutable(name, Object::Function(f.clone()));
             }
 
-            res
+            res.map(|obj| (obj, Address::default()))
         }
         obj => Err(Error::WithPosition(
             ExecError::NonCallableObject(obj.kind()).into(),
@@ -633,15 +675,16 @@ fn fraction(
     denom: &ASTNode,
     position: Position,
     env: &mut Environment,
-) -> ExecResult<Object> {
-    match (exec(numer, env)?, exec(denom, env)?) {
+) -> ExecResult<(Object, Address)> {
+    match (exec(numer, env)?.0, exec(denom, env)?.0) {
         (Object::Integer(_), Object::Integer(int)) if int.is_zero() => Err(Error::with_position(
             ExecError::DenominatorZero.into(),
             denom.position,
         )),
-        (Object::Integer(numer), Object::Integer(denom)) => {
-            Ok(Object::Fraction(Fraction::new(numer, denom)))
-        }
+        (Object::Integer(numer), Object::Integer(denom)) => Ok((
+            Object::Fraction(Fraction::new(numer, denom)),
+            Address::default(),
+        )),
         (numer, denom) => Err(Error::with_position(
             ExecError::BadFraction {
                 numer_kind: numer.kind(),
@@ -653,7 +696,14 @@ fn fraction(
     }
 }
 
-fn infix(op: InfixOperator, lhs: &Object, rhs: &Object, infix_pos: Position) -> ExecResult<Object> {
+fn infix(
+    op: InfixOperator,
+    lhs: &(Object, Address),
+    rhs: &(Object, Address),
+    infix_pos: Position,
+) -> ExecResult<(Object, Address)> {
+    let lhs = &lhs.0;
+    let rhs = &rhs.0;
     let lhs_kind = lhs.kind();
     let rhs_kind = rhs.kind();
 
@@ -699,11 +749,17 @@ fn infix(op: InfixOperator, lhs: &Object, rhs: &Object, infix_pos: Position) -> 
             .into(),
             infix_pos,
         )),
-        Some(obj) => Ok(obj),
+        Some(obj) => Ok((obj, Address::default())),
     }
 }
 
-fn prefix(op: PrefixOperator, obj: Object, prefix_pos: Position) -> ExecResult<Object> {
+fn prefix(
+    op: PrefixOperator,
+    obj: (Object, Address),
+    prefix_pos: Position,
+) -> ExecResult<(Object, Address)> {
+    let obj = obj.0;
+
     let res = match op {
         PrefixOperator::BitwiseNot => obj.bitwise_not(),
         PrefixOperator::LogicNot => obj.logic_not(),
@@ -719,7 +775,7 @@ fn prefix(op: PrefixOperator, obj: Object, prefix_pos: Position) -> ExecResult<O
             .into(),
             prefix_pos,
         )),
-        Some(obj) => Ok(obj),
+        Some(obj) => Ok((obj, Address::default())),
     }
 }
 
@@ -762,8 +818,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(&node, &mut Default::default()),
-            Ok(Object::Set(Set::from(vec![Object::Integer(1.into()),]))),
+            exec(&node, &mut Default::default()).unwrap().0,
+            Object::Set(Set::from(vec![Object::Integer(1.into()),])),
         );
     }
 
@@ -777,8 +833,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(&node, &mut Default::default()),
-            Ok(Object::Integer(Integer::from("1")))
+            exec(&node, &mut Default::default()).unwrap().0,
+            Object::Integer(Integer::from("1")),
         );
     }
 
@@ -792,8 +848,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Default::default()),
-            Ok(Object::Integer(Integer::from(-1)))
+            exec(node, &mut Default::default()).unwrap().0,
+            Object::Integer(Integer::from(-1))
         );
     }
 
@@ -807,8 +863,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Default::default()),
-            Ok(Object::Integer(Integer::from("0")))
+            exec(node, &mut Default::default()).unwrap().0,
+            Object::Integer(Integer::from("0"))
         );
     }
 
@@ -825,7 +881,10 @@ mod tests {
         env.set_inmutable("a", Object::Symbol(Symbol::new("a".into(), "Foo".into())));
         env.set_inmutable("b", Object::Symbol(Symbol::new("b".into(), "Foo".into())));
 
-        assert_eq!(exec(node, &mut env), Ok(Object::Boolean(false.into())));
+        assert_eq!(
+            exec(node, &mut env).unwrap().0,
+            Object::Boolean(false.into())
+        );
     }
 
     #[test]
@@ -837,8 +896,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Default::default()),
-            Ok(Object::Integer(Integer::from(0)))
+            exec(node, &mut Default::default()).unwrap().0,
+            Object::Integer(Integer::from(0))
         );
     }
 
@@ -857,8 +916,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Default::default()),
-            Ok(Object::Boolean(Bool::from(false)))
+            exec(node, &mut Default::default()).unwrap().0,
+            Object::Boolean(Bool::from(false))
         );
     }
 
@@ -882,8 +941,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Default::default()),
-            Ok(Object::Boolean(Bool::from(true)))
+            exec(node, &mut Default::default()).unwrap().0,
+            Object::Boolean(Bool::from(true))
         );
     }
 
@@ -907,8 +966,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Default::default()),
-            Ok(Object::Boolean(Bool::from(true)))
+            exec(node, &mut Default::default()).unwrap().0,
+            Object::Boolean(Bool::from(true))
         );
     }
 
@@ -932,8 +991,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Default::default()),
-            Ok(Object::Boolean(Bool::from(true)))
+            exec(node, &mut Default::default()).unwrap().0,
+            Object::Boolean(Bool::from(true))
         );
     }
 
@@ -957,8 +1016,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Default::default()),
-            Ok(Object::Integer(Integer::from(7)))
+            exec(node, &mut Default::default()).unwrap().0,
+            Object::Integer(Integer::from(7))
         );
     }
 
@@ -977,8 +1036,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Default::default()),
-            Ok(Object::Integer(Integer::from(32)))
+            exec(node, &mut Default::default()).unwrap().0,
+            Object::Integer(Integer::from(32))
         );
     }
 
@@ -997,8 +1056,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Default::default()),
-            Ok(Object::Integer(Integer::from(4)))
+            exec(node, &mut Default::default()).unwrap().0,
+            Object::Integer(Integer::from(4))
         );
     }
 
@@ -1012,8 +1071,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Default::default()),
-            Ok(Object::Integer(Integer::from(1)))
+            exec(node, &mut Default::default()).unwrap().0,
+            Object::Integer(Integer::from(1))
         );
     }
 
@@ -1039,8 +1098,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Default::default()),
-            Ok(Object::Boolean(Bool::from(false)))
+            exec(node, &mut Default::default()).unwrap().0,
+            Object::Boolean(Bool::from(false))
         );
     }
 
@@ -1061,7 +1120,10 @@ mod tests {
             dummy_pos(),
         );
 
-        assert_eq!(exec(node, &mut env), Ok(Object::Integer(Integer::from(5))));
+        assert_eq!(
+            exec(node, &mut env).unwrap().0,
+            Object::Integer(Integer::from(5))
+        );
     }
 
     #[test]
@@ -1072,7 +1134,10 @@ mod tests {
 
         let node = &symbol("x", dummy_pos());
 
-        assert_eq!(exec(node, &mut env), Ok(Object::Boolean(Bool::from(true))));
+        assert_eq!(
+            exec(node, &mut env).unwrap().0,
+            Object::Boolean(Bool::from(true))
+        );
     }
 
     #[test]
@@ -1101,11 +1166,11 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Environment::default()),
-            Ok(Object::Tuple(Tuple::from(vec![
+            exec(node, &mut Environment::default()).unwrap().0,
+            Object::Tuple(Tuple::from(vec![
                 Object::Integer(Integer::from(1)),
                 Object::Integer(Integer::from(2)),
-            ]))),
+            ])),
         );
     }
 
@@ -1123,18 +1188,16 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Environment::default()),
-            Ok(Object::Function(object::Function::Anonymous(
-                AnonFunction::new(
-                    vec![String::from("x"),],
-                    infix(
-                        InfixOperator::Product,
-                        dec_integer("2", dummy_pos()),
-                        symbol("x", dummy_pos()),
-                        dummy_pos()
-                    ),
-                    Environment::default(),
-                )
+            exec(node, &mut Environment::default()).unwrap().0,
+            Object::Function(object::Function::Anonymous(AnonFunction::new(
+                vec![String::from("x"),],
+                infix(
+                    InfixOperator::Product,
+                    dec_integer("2", dummy_pos()),
+                    symbol("x", dummy_pos()),
+                    dummy_pos()
+                ),
+                Environment::default(),
             ))),
         );
     }
@@ -1157,8 +1220,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Environment::default()),
-            Ok(Object::Integer(Integer::from(2)))
+            exec(node, &mut Environment::default()).unwrap().0,
+            Object::Integer(Integer::from(2))
         );
     }
 
@@ -1180,8 +1243,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Environment::default()),
-            Ok(Object::Integer(Integer::from(3))),
+            exec(node, &mut Environment::default()).unwrap().0,
+            Object::Integer(Integer::from(3)),
         );
     }
 
@@ -1249,7 +1312,7 @@ mod tests {
             dummy_pos(),
         );
 
-        assert_eq!(exec(node, &mut env), Ok(Object::empty_tuple()),);
+        assert_eq!(exec(node, &mut env).unwrap().0, Object::empty_tuple(),);
 
         assert_eq!(
             *ARGS.lock().unwrap(),
@@ -1262,10 +1325,10 @@ mod tests {
         let node = &extension_list(vec![dec_integer("1", dummy_pos())], dummy_pos());
 
         assert_eq!(
-            exec(node, &mut Environment::default()),
-            Ok(Object::List(crate::object::List::from(vec![
-                Object::Integer(crate::object::Integer::from(1)),
-            ]))),
+            exec(node, &mut Environment::default()).unwrap().0,
+            Object::List(crate::object::List::from(vec![Object::Integer(
+                crate::object::Integer::from(1)
+            ),])),
         )
     }
 
@@ -1302,8 +1365,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Environment::default()),
-            Ok(Object::Integer(Integer::from(5))),
+            exec(node, &mut Environment::default()).unwrap().0,
+            Object::Integer(Integer::from(5)),
         );
     }
 
@@ -1326,11 +1389,11 @@ mod tests {
         );
 
         assert_eq!(
-            exec(node, &mut Environment::default()),
-            Ok(Object::List(List::from(vec![
+            exec(node, &mut Environment::default()).unwrap().0,
+            Object::List(List::from(vec![
                 Object::Integer(Integer::from(1)),
                 Object::Integer(Integer::from(2)),
-            ])))
+            ]))
         );
     }
 
@@ -1344,7 +1407,7 @@ mod tests {
 
         let obj = Object::List(vec![Object::Integer(1.into()), Object::Integer(2.into())].into());
 
-        assert_eq!(exec(&node, &mut Environment::default()), Ok(obj));
+        assert_eq!(exec(&node, &mut Environment::default()).unwrap().0, obj);
     }
 
     #[test]
@@ -1379,8 +1442,8 @@ mod tests {
         let expected = Decimal::from(BigDecimal::from(3) / BigDecimal::from(2));
 
         assert_eq!(
-            exec(&node, &mut Environment::default()),
-            Ok(Object::Decimal(expected)),
+            exec(&node, &mut Environment::default()).unwrap().0,
+            Object::Decimal(expected),
         );
     }
 
@@ -1393,8 +1456,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(&node, &mut Environment::default()),
-            Ok(Object::Range(Range::_new(1, 3))),
+            exec(&node, &mut Environment::default()).unwrap().0,
+            Object::Range(Range::_new(1, 3)),
         );
     }
 
@@ -1407,8 +1470,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(&node, &mut Environment::default()),
-            Ok(Object::Fraction(Fraction::_new(1, 2))),
+            exec(&node, &mut Environment::default()).unwrap().0,
+            Object::Fraction(Fraction::_new(1, 2)),
         );
     }
 
@@ -1449,12 +1512,12 @@ mod tests {
         );
 
         assert_eq!(
-            exec(&node, &mut Environment::default()),
-            Ok(Object::List(List::from(vec![
+            exec(&node, &mut Environment::default()).unwrap().0,
+            Object::List(List::from(vec![
                 Object::Integer(1.into()),
                 Object::Integer(2.into()),
                 Object::Integer(3.into()),
-            ])))
+            ]))
         );
     }
 
@@ -1485,8 +1548,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(&node, &mut Environment::default()),
-            Ok(Object::Integer(23.into()))
+            exec(&node, &mut Environment::default()).unwrap().0,
+            Object::Integer(23.into())
         );
     }
 
@@ -1556,11 +1619,11 @@ mod tests {
         );
 
         assert_eq!(
-            exec(&node, &mut Environment::default()),
-            Ok(Object::Set(Set::from(vec![
+            exec(&node, &mut Environment::default()).unwrap().0,
+            Object::Set(Set::from(vec![
                 Object::Integer(1.into()),
                 Object::Integer(2.into())
-            ]))),
+            ])),
         );
     }
 
@@ -1575,8 +1638,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(&node, &mut Environment::default()),
-            Ok(Object::Set(Set::from(vec![]))),
+            exec(&node, &mut Environment::default()).unwrap().0,
+            Set::empty_set(),
         );
     }
 
@@ -1590,7 +1653,7 @@ mod tests {
             property: String::from("Real"),
         });
 
-        assert_eq!(exec(&node, &mut env), Ok(symbol.clone()),);
+        assert_eq!(exec(&node, &mut env).unwrap().0, symbol.clone(),);
 
         assert_eq!(env.get("x"), EnvResponse::Inmutable(&symbol, ScopeDepth(0)),);
     }
@@ -1663,7 +1726,10 @@ mod tests {
 
         assert!(exec(&assignment, &mut env).is_ok());
 
-        assert_eq!(exec(&element, &mut env), Ok(Object::String("foo".into())),);
+        assert_eq!(
+            exec(&element, &mut env).unwrap().0,
+            Object::String("foo".into()),
+        );
     }
 
     #[test]
@@ -1705,7 +1771,7 @@ mod tests {
         let first_res = exec(&call, &mut env);
         let second_res = exec(&call, &mut env);
 
-        assert_eq!(first_res, Ok(Object::empty_tuple()));
+        assert_eq!(first_res.as_ref().unwrap().0, Object::empty_tuple());
 
         assert_eq!(first_res, second_res);
 
@@ -1727,8 +1793,8 @@ mod tests {
         );
 
         assert_eq!(
-            exec(&node, &mut Environment::default()),
-            Ok(Object::Integer(10.into())),
+            exec(&node, &mut Environment::default()).unwrap().0,
+            Object::Integer(10.into()),
         );
     }
 

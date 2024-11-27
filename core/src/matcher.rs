@@ -263,7 +263,7 @@ fn match_constant(pattern: &ASTNode, val: &Object) -> Option<Match> {
 }
 
 fn isolated_unchecked_exec(node: &ASTNode) -> Object {
-    exec(node, &mut Environment::default()).unwrap()
+    exec(node, &mut Environment::default()).unwrap().0
 }
 
 #[cfg(test)]
@@ -318,7 +318,7 @@ mod tests {
             match_(&pattern, &value),
             Some(Match::from(vec![
                 (String::from("first"), Object::Integer(Integer::from(4))),
-                (String::from("most"), Object::List(List::from(vec![]))),
+                (String::from("most"), Object::empty_list()),
             ])),
         );
     }

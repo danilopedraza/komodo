@@ -15,7 +15,7 @@ use num_rational::{BigRational, Ratio};
 
 use crate::{
     ast::ASTNode,
-    env::Environment,
+    env::{Address, Environment},
     error::{Error, Position},
     exec::{exec, ExecError},
     lexer::Radix,
@@ -104,7 +104,11 @@ pub enum Object {
 
 impl Object {
     pub fn empty_tuple() -> Self {
-        Self::Tuple(Tuple::from(vec![]))
+        Self::Tuple(Tuple::empty_tuple())
+    }
+
+    pub fn empty_list() -> Self {
+        Self::List(List::empty_list())
     }
 
     pub fn is_zero(&self) -> bool {
@@ -625,6 +629,12 @@ pub struct Set {
 }
 
 impl Set {
+    pub fn empty_set() -> Object {
+        Object::Set(Self {
+            set: BTreeSet::new(),
+        })
+    }
+
     fn union(&self, other: &Set) -> Object {
         let set = self
             .set
@@ -721,6 +731,20 @@ impl From<Vec<Object>> for Set {
 
         for obj in list {
             set.insert(obj);
+        }
+
+        let set = set;
+
+        Self { set }
+    }
+}
+
+impl From<Vec<(Object, Address)>> for Set {
+    fn from(list: Vec<(Object, Address)>) -> Self {
+        let mut set = BTreeSet::new();
+
+        for obj in list {
+            set.insert(obj.0);
         }
 
         let set = set;
@@ -1240,6 +1264,12 @@ pub struct Tuple {
     pub list: Vec<Object>,
 }
 
+impl Tuple {
+    pub fn empty_tuple() -> Self {
+        Self { list: Vec::new() }
+    }
+}
+
 impl InfixOperable for Tuple {
     fn equality(&self, other: &Object) -> Option<Object> {
         match other {
@@ -1272,6 +1302,13 @@ impl fmt::Display for Tuple {
 
 impl From<Vec<Object>> for Tuple {
     fn from(list: Vec<Object>) -> Self {
+        Self { list }
+    }
+}
+
+impl From<Vec<(Object, Address)>> for Tuple {
+    fn from(list: Vec<(Object, Address)>) -> Self {
+        let list = list.into_iter().map(|(obj, _)| obj).collect();
         Self { list }
     }
 }
@@ -1392,7 +1429,7 @@ impl PatternFunction {
 
         env.pop_scope();
 
-        res
+        res.map(|(obj, _)| obj)
     }
 
     fn call(&mut self, args: &[Object], call_pos: Position) -> Result<Object, Error> {
@@ -1453,7 +1490,7 @@ impl AnonFunction {
 
         self.env.pop_scope();
 
-        Ok(res)
+        Ok(res.0)
     }
 
     fn param_number(&self) -> usize {
@@ -1492,6 +1529,10 @@ pub struct List {
 }
 
 impl List {
+    pub fn empty_list() -> Self {
+        Self { list: Vec::new() }
+    }
+
     fn multiply(&self, num: &Integer) -> Object {
         let times = num.to_machine_magnitude();
         let mut list = vec![];
@@ -1538,6 +1579,13 @@ impl Kind for List {
 
 impl From<Vec<Object>> for List {
     fn from(list: Vec<Object>) -> Self {
+        Self { list }
+    }
+}
+
+impl From<Vec<(Object, Address)>> for List {
+    fn from(list: Vec<(Object, Address)>) -> Self {
+        let list = list.into_iter().map(|(obj, _)| obj).collect();
         Self { list }
     }
 }

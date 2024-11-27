@@ -42,7 +42,7 @@ pub fn run(source: &str, env: &mut Environment) -> Result<(), Error> {
 }
 
 pub fn run_node(node: ASTNode, env: &mut Environment) -> Result<Object, Error> {
-    exec(&node, env)
+    exec(&node, env).map(|(obj, _)| obj)
 }
 
 static STDLIB_PATH: &str = "../std/";

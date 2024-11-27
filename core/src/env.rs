@@ -2,6 +2,9 @@ use std::{collections::BTreeMap, path::PathBuf};
 
 use crate::object::Object;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub struct Address(usize);
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct ScopeDepth(pub usize);
 
