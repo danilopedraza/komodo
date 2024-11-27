@@ -2,7 +2,7 @@ use komodo::{
     builtin::standard_env,
     env::ExecContext,
     error::{Error, Position},
-    exec::EvalError,
+    exec::ExecError,
     run::run,
 };
 
@@ -14,7 +14,7 @@ fn failed_assertion() {
     assert_eq!(
         run(code, &mut env),
         Err(Error::with_position(
-            EvalError::FailedAssertion(Some("1 is different from 2".into())).into(),
+            ExecError::FailedAssertion(Some("1 is different from 2".into())).into(),
             Position::new(0, code.len())
         )),
     );

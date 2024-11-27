@@ -17,7 +17,7 @@ use crate::{
     ast::ASTNode,
     env::Environment,
     error::{Error, Position},
-    exec::{exec, EvalError},
+    exec::{exec, ExecError},
     lexer::Radix,
     matcher::{match_call, Match},
 };
@@ -767,18 +767,18 @@ impl From<Vec<(Object, Object)>> for Dictionary {
 }
 
 impl Dictionary {
-    pub fn get(&self, index: &Object) -> Result<Object, EvalError> {
+    pub fn get(&self, index: &Object) -> Result<Object, ExecError> {
         match self.dict.get(index) {
-            None => Err(EvalError::NonExistentKey {
+            None => Err(ExecError::NonExistentKey {
                 key: index.to_string(),
             }),
             Some(val) => Ok(val.to_owned()),
         }
     }
 
-    pub fn get_mut(&mut self, index: &Object) -> Result<&mut Object, EvalError> {
+    pub fn get_mut(&mut self, index: &Object) -> Result<&mut Object, ExecError> {
         match self.dict.get_mut(index) {
-            None => Err(EvalError::NonExistentKey {
+            None => Err(ExecError::NonExistentKey {
                 key: index.to_string(),
             }),
             Some(val) => Ok(val),
@@ -1415,7 +1415,7 @@ impl PatternFunction {
             }
 
             Err(Error::with_position(
-                EvalError::UnmatchedCall.into(),
+                ExecError::UnmatchedCall.into(),
                 call_pos,
             ))
         }
@@ -1503,29 +1503,29 @@ impl List {
         Object::List(list.into())
     }
 
-    pub fn get(&self, index: &Object) -> Result<Object, EvalError> {
+    pub fn get(&self, index: &Object) -> Result<Object, ExecError> {
         match index {
             Object::Integer(int) => {
                 let index = int.to_machine_magnitude();
                 match self.list.get(index) {
                     Some(val) => Ok(val.to_owned()),
-                    None => Err(EvalError::ListIndexOutOfBounds),
+                    None => Err(ExecError::ListIndexOutOfBounds),
                 }
             }
-            obj => Err(EvalError::InvalidIndex { kind: obj.kind() }),
+            obj => Err(ExecError::InvalidIndex { kind: obj.kind() }),
         }
     }
 
-    pub fn get_mut(&mut self, index: &Object) -> Result<&mut Object, EvalError> {
+    pub fn get_mut(&mut self, index: &Object) -> Result<&mut Object, ExecError> {
         match index {
             Object::Integer(int) => {
                 let index = int.to_machine_magnitude();
                 match self.list.get_mut(index) {
                     Some(val) => Ok(val),
-                    None => Err(EvalError::ListIndexOutOfBounds),
+                    None => Err(ExecError::ListIndexOutOfBounds),
                 }
             }
-            obj => Err(EvalError::InvalidIndex { kind: obj.kind() }),
+            obj => Err(ExecError::InvalidIndex { kind: obj.kind() }),
         }
     }
 }

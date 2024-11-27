@@ -17,7 +17,7 @@ use crate::object::{Bool, Char, Integer, MyString, Object, Set, Symbol, Tuple};
 use crate::run::{self, ModuleAddress};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum EvalError {
+pub enum ExecError {
     BadFraction {
         numer_kind: String,
         denom_kind: String,
@@ -122,7 +122,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
                     Err(eval_err) => Err(Error::with_position(eval_err.into(), index.position)),
                 },
                 obj => Err(Error::with_position(
-                    EvalError::IndexingNonContainer { kind: obj.kind() }.into(),
+                    ExecError::IndexingNonContainer { kind: obj.kind() }.into(),
                     container.position,
                 )),
             }
@@ -147,7 +147,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> Result<Object, Error> {
 
     if let Ok(Object::Error(FailedAssertion(msg))) = res {
         Err(Error::with_position(
-            EvalError::FailedAssertion(msg).into(),
+            ExecError::FailedAssertion(msg).into(),
             node.position,
         ))
     } else {
@@ -178,7 +178,7 @@ fn case(
     }
 
     Err(Error::with_position(
-        EvalError::UnmatchedExpression.into(),
+        ExecError::UnmatchedExpression.into(),
         expr.position,
     ))
 }
@@ -230,7 +230,7 @@ fn assignment(left: &ASTNode, right: &ASTNode, env: &mut Environment) -> Result<
                 Err(eval_err) => Err(Error::with_position(eval_err.into(), index.position)),
             },
             obj => Err(Error::with_position(
-                EvalError::IndexingNonContainer { kind: obj.kind() }.into(),
+                ExecError::IndexingNonContainer { kind: obj.kind() }.into(),
                 name_position,
             )),
         }?;
@@ -245,7 +245,7 @@ fn assignment(left: &ASTNode, right: &ASTNode, env: &mut Environment) -> Result<
             Ok(value)
         }
         None => Err(Error::with_position(
-            EvalError::BadMatch.into(),
+            ExecError::BadMatch.into(),
             left.position.join(right.position),
         )),
     }
@@ -272,18 +272,18 @@ fn get_mutable_value<'a>(
     match env.get(name) {
         EnvResponse::Mutable(obj_ref, ScopeDepth(0)) => Ok(obj_ref),
         EnvResponse::Mutable(_, _) => Err(Error::with_position(
-            EvalError::MutationOutOfScope {
+            ExecError::MutationOutOfScope {
                 name: name.to_string(),
             }
             .into(),
             position,
         )),
         EnvResponse::Inmutable(_, _) => Err(Error::with_position(
-            EvalError::InmutableAssign(name.into()).into(),
+            ExecError::InmutableAssign(name.into()).into(),
             position,
         )),
         EnvResponse::NotFound => Err(Error::with_position(
-            EvalError::UnknownValue(name.into()).into(),
+            ExecError::UnknownValue(name.into()).into(),
             position,
         )),
     }
@@ -331,7 +331,7 @@ fn set_cons(some: Object, most: &ASTNode, env: &mut Environment) -> Result<Objec
             Ok(Object::Set(res.into()))
         }
         obj => Err(Error::WithPosition(
-            EvalError::NonPrependableObject(obj.kind()).into(),
+            ExecError::NonPrependableObject(obj.kind()).into(),
             most.position,
         )),
     }
@@ -372,7 +372,7 @@ fn cons(first: Object, most: &ASTNode, env: &mut Environment) -> Result<Object, 
             Ok(Object::List(res.into()))
         }
         obj => Err(Error::WithPosition(
-            EvalError::NonPrependableObject(obj.kind()).into(),
+            ExecError::NonPrependableObject(obj.kind()).into(),
             most.position,
         )),
     }
@@ -417,7 +417,7 @@ fn let_pattern(
             Ok(value)
         }
         None => Err(Error::with_position(
-            EvalError::BadMatch.into(),
+            ExecError::BadMatch.into(),
             left.position.join(right.position),
         )),
     }
@@ -447,7 +447,7 @@ fn symbol(str: &str, env: &mut Environment, position: Position) -> Result<Object
         EnvResponse::Inmutable(obj, _) => Ok(obj.clone()),
         EnvResponse::Mutable(obj, _) => Ok(obj.clone()),
         EnvResponse::NotFound => Err(Error::with_position(
-            EvalError::UnknownValue(str.to_owned()).into(),
+            ExecError::UnknownValue(str.to_owned()).into(),
             position,
         )),
     }
@@ -567,7 +567,7 @@ fn get_iterable(
         Object::List(list) => Ok(Box::new(list.list.into_iter())),
         Object::Range(range) => Ok(Box::new(range.into_iter())),
         obj => Err(Error::WithPosition(
-            EvalError::NonIterableObject(obj.kind()).into(),
+            ExecError::NonIterableObject(obj.kind()).into(),
             node.position,
         )),
     }
@@ -588,7 +588,7 @@ fn call(
     if let Object::Function(ref f) = func {
         if args.len() < f.param_number() {
             return Err(Error::WithPosition(
-                EvalError::MissingFunctionArguments {
+                ExecError::MissingFunctionArguments {
                     expected: f.param_number(),
                     actual: args.len(),
                 }
@@ -615,7 +615,7 @@ fn call(
             res
         }
         obj => Err(Error::WithPosition(
-            EvalError::NonCallableObject(obj.kind()).into(),
+            ExecError::NonCallableObject(obj.kind()).into(),
             func_node.position,
         ))?,
     }
@@ -638,14 +638,14 @@ fn fraction(
 ) -> Result<Object, Error> {
     match (exec(numer, env)?, exec(denom, env)?) {
         (Object::Integer(_), Object::Integer(int)) if int.is_zero() => Err(Error::with_position(
-            EvalError::DenominatorZero.into(),
+            ExecError::DenominatorZero.into(),
             denom.position,
         )),
         (Object::Integer(numer), Object::Integer(denom)) => {
             Ok(Object::Fraction(Fraction::new(numer, denom)))
         }
         (numer, denom) => Err(Error::with_position(
-            EvalError::BadFraction {
+            ExecError::BadFraction {
                 numer_kind: numer.kind(),
                 denom_kind: denom.kind(),
             }
@@ -670,7 +670,7 @@ fn infix(
         InfixOperator::Division => {
             if rhs.is_zero() {
                 return Err(Error::with_position(
-                    EvalError::DenominatorZero.into(),
+                    ExecError::DenominatorZero.into(),
                     infix_pos,
                 ));
             } else {
@@ -698,7 +698,7 @@ fn infix(
 
     match res {
         None => Err(Error::WithPosition(
-            EvalError::NonExistentInfixOperation {
+            ExecError::NonExistentInfixOperation {
                 op: op.ident(),
                 lhs: lhs_kind,
                 rhs: rhs_kind,
@@ -719,7 +719,7 @@ fn prefix(op: PrefixOperator, obj: Object, prefix_pos: Position) -> Result<Objec
 
     match res {
         None => Err(Error::WithPosition(
-            EvalError::NonExistentPrefixOperation {
+            ExecError::NonExistentPrefixOperation {
                 op: op.ident(),
                 rhs: obj.kind(),
             }
@@ -755,7 +755,7 @@ mod tests {
         assert_eq!(
             exec(&node, &mut Default::default()),
             Err(Error::with_position(
-                EvalError::UnknownValue(String::from("a")).into(),
+                ExecError::UnknownValue(String::from("a")).into(),
                 dummy_pos()
             ))
         );
@@ -1212,7 +1212,7 @@ mod tests {
         assert_eq!(
             exec(node, &mut Environment::default()),
             Err(Error::WithPosition(
-                EvalError::MissingFunctionArguments {
+                ExecError::MissingFunctionArguments {
                     expected: 2,
                     actual: 1,
                 }
@@ -1371,7 +1371,7 @@ mod tests {
         assert_eq!(
             exec(&call, &mut env),
             Err(Error::WithPosition(
-                ErrorKind::Exec(EvalError::MissingFunctionArguments {
+                ErrorKind::Exec(ExecError::MissingFunctionArguments {
                     expected: 1,
                     actual: 0
                 }),
@@ -1430,7 +1430,7 @@ mod tests {
         assert_eq!(
             exec(&node, &mut Environment::default()),
             Err(Error::with_position(
-                EvalError::DenominatorZero.into(),
+                ExecError::DenominatorZero.into(),
                 pos(5, 1)
             )),
         );
@@ -1477,7 +1477,7 @@ mod tests {
         assert_eq!(
             exec(&node, &mut Environment::default()),
             Err(Error::with_position(
-                EvalError::DenominatorZero.into(),
+                ExecError::DenominatorZero.into(),
                 dummy_pos()
             )),
         );
@@ -1508,7 +1508,7 @@ mod tests {
         assert_eq!(
             exec(&node, &mut Environment::default()),
             Err(Error::with_position(
-                EvalError::IndexingNonContainer {
+                ExecError::IndexingNonContainer {
                     kind: String::from("Integer")
                 }
                 .into(),
@@ -1528,7 +1528,7 @@ mod tests {
         assert_eq!(
             exec(&node, &mut Environment::default()),
             Err(Error::with_position(
-                EvalError::ListIndexOutOfBounds.into(),
+                ExecError::ListIndexOutOfBounds.into(),
                 dummy_pos()
             ))
         );
@@ -1545,7 +1545,7 @@ mod tests {
         assert_eq!(
             exec(&node, &mut Environment::default()),
             Err(Error::with_position(
-                EvalError::InvalidIndex {
+                ExecError::InvalidIndex {
                     kind: String::from("Decimal")
                 }
                 .into(),
@@ -1647,7 +1647,7 @@ mod tests {
         assert_eq!(
             exec(&assignment, &mut env),
             Err(Error::with_position(
-                EvalError::InmutableAssign(String::from("x")).into(),
+                ExecError::InmutableAssign(String::from("x")).into(),
                 dummy_pos()
             )),
         );
@@ -1760,7 +1760,7 @@ mod tests {
         assert_eq!(
             exec(&call(func, vec![], dummy_pos()), &mut env),
             Err(Error::with_position(
-                ErrorKind::Exec(EvalError::MutationOutOfScope {
+                ErrorKind::Exec(ExecError::MutationOutOfScope {
                     name: String::from("a")
                 }),
                 dummy_pos()

@@ -10,7 +10,7 @@ use codespan_reporting::{
 use unindent::unindent;
 
 use crate::{
-    exec::EvalError,
+    exec::ExecError,
     lexer::{LexerError, TokenType},
     parser::ParserError,
     run::ImportError,
@@ -91,7 +91,7 @@ pub enum ErrorKind {
     Lexer(LexerError),
     Parser(ParserError),
     Weeder(WeederError),
-    Exec(EvalError),
+    Exec(ExecError),
     Import(ImportError),
 }
 
@@ -113,8 +113,8 @@ impl From<WeederError> for ErrorKind {
     }
 }
 
-impl From<EvalError> for ErrorKind {
-    fn from(err: EvalError) -> Self {
+impl From<ExecError> for ErrorKind {
+    fn from(err: ExecError) -> Self {
         Self::Exec(err)
     }
 }
@@ -297,34 +297,34 @@ fn weeder_error_msg(err: &WeederError) -> String {
     }
 }
 
-fn exec_error_msg(err: &EvalError) -> String {
+fn exec_error_msg(err: &ExecError) -> String {
     match err {
-        EvalError::BadFraction {
+        ExecError::BadFraction {
             numer_kind,
             denom_kind,
         } => bad_fraction(numer_kind, denom_kind),
-        EvalError::BadMatch => "The pattern did not match its assigned value".into(),
-        EvalError::DenominatorZero => "Division by zero".into(),
-        EvalError::FailedAssertion(msg) => failed_assertion(msg),
-        EvalError::MissingFunctionArguments { expected, actual } => {
+        ExecError::BadMatch => "The pattern did not match its assigned value".into(),
+        ExecError::DenominatorZero => "Division by zero".into(),
+        ExecError::FailedAssertion(msg) => failed_assertion(msg),
+        ExecError::MissingFunctionArguments { expected, actual } => {
             missing_func_arguments(*expected, *actual)
         }
-        EvalError::MutationOutOfScope { name } => mutation_out_of_scope(name),
-        EvalError::NonCallableObject(kind) => non_callable_object(kind),
-        EvalError::NonIterableObject(kind) => non_iterable_object(kind),
-        EvalError::NonPrependableObject(kind) => non_prependable_object(kind),
-        EvalError::NonExistentPrefixOperation { op, rhs } => non_existent_prefix(op, rhs),
-        EvalError::NonExistentInfixOperation { op, lhs, rhs } => non_existent_infix(op, lhs, rhs),
-        EvalError::IndexingNonContainer { kind } => indexing_non_container(kind),
-        EvalError::ListIndexOutOfBounds => "List index out of bounds".into(),
-        EvalError::InvalidIndex { kind } => invalid_index(kind),
-        EvalError::NonExistentKey { key } => non_existent_key(key),
-        EvalError::UnknownValue(value) => unknown_value(value),
-        EvalError::InmutableAssign(value) => inmutable_assign(value),
-        EvalError::UnmatchedCall => {
+        ExecError::MutationOutOfScope { name } => mutation_out_of_scope(name),
+        ExecError::NonCallableObject(kind) => non_callable_object(kind),
+        ExecError::NonIterableObject(kind) => non_iterable_object(kind),
+        ExecError::NonPrependableObject(kind) => non_prependable_object(kind),
+        ExecError::NonExistentPrefixOperation { op, rhs } => non_existent_prefix(op, rhs),
+        ExecError::NonExistentInfixOperation { op, lhs, rhs } => non_existent_infix(op, lhs, rhs),
+        ExecError::IndexingNonContainer { kind } => indexing_non_container(kind),
+        ExecError::ListIndexOutOfBounds => "List index out of bounds".into(),
+        ExecError::InvalidIndex { kind } => invalid_index(kind),
+        ExecError::NonExistentKey { key } => non_existent_key(key),
+        ExecError::UnknownValue(value) => unknown_value(value),
+        ExecError::InmutableAssign(value) => inmutable_assign(value),
+        ExecError::UnmatchedCall => {
             "None of the patterns in the function matched the arguments of this call".into()
         }
-        EvalError::UnmatchedExpression => "None of the patterns matched the expression".into(),
+        ExecError::UnmatchedExpression => "None of the patterns matched the expression".into(),
     }
 }
 
