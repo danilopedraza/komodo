@@ -625,7 +625,7 @@ impl From<BigDecimal> for Decimal {
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Set {
-    pub set: BTreeSet<Object>,
+    pub set: BTreeSet<(Object, Address)>,
 }
 
 impl Set {
@@ -706,7 +706,7 @@ impl InfixOperable for Set {
     }
 
     fn contains(&self, val: &Object) -> Option<Object> {
-        Some(self.set.contains(val).into())
+        Some(self.set.contains(&(val.clone(), Address::default())).into())
     }
 
     fn equality(&self, other: &Object) -> Option<Object> {
@@ -730,7 +730,7 @@ impl From<Vec<Object>> for Set {
         let mut set = BTreeSet::new();
 
         for obj in list {
-            set.insert(obj);
+            set.insert((obj, Address::default()));
         }
 
         let set = set;
@@ -744,7 +744,7 @@ impl From<Vec<(Object, Address)>> for Set {
         let mut set = BTreeSet::new();
 
         for obj in list {
-            set.insert(obj.0);
+            set.insert(obj);
         }
 
         let set = set;
@@ -755,7 +755,17 @@ impl From<Vec<(Object, Address)>> for Set {
 
 impl From<BTreeSet<Object>> for Set {
     fn from(set: BTreeSet<Object>) -> Self {
-        let set = set;
+        let mut new_set = BTreeSet::new();
+        for obj in set {
+            new_set.insert((obj, Address::default()));
+        }
+
+        Self { set: new_set }
+    }
+}
+
+impl From<BTreeSet<(Object, Address)>> for Set {
+    fn from(set: BTreeSet<(Object, Address)>) -> Self {
         Self { set }
     }
 }
@@ -765,7 +775,7 @@ impl fmt::Display for Set {
         let list = self
             .set
             .iter()
-            .map(quote_mystring)
+            .map(|(obj, _)| quote_mystring(obj))
             .collect::<Vec<_>>()
             .join(", ");
 
