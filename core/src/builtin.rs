@@ -1,5 +1,5 @@
 use crate::{
-    env::{Environment, ExecContext},
+    env::{Address, Environment, ExecContext},
     exec::truthy,
     object::{ExternFunction, FailedAssertion, Function, MyString, Object},
 };
@@ -40,7 +40,7 @@ fn env_with(assets: Vec<(&str, Object)>, ctx: ExecContext) -> Environment {
     let mut env = Environment::new(ctx);
 
     for (name, value) in assets {
-        env.set_inmutable(name, value);
+        env.set_inmutable(name, (value, Address::default()));
     }
 
     env

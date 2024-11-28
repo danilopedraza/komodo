@@ -267,13 +267,13 @@ fn assignment(
 }
 
 fn make_assignment(
-    map: BTreeMap<String, Object>,
+    map: BTreeMap<String, (Object, Address)>,
     env: &mut Environment,
     position: Position,
 ) -> Result<(), Error> {
     for (key, val) in map {
         let obj_ref = get_mutable_value(&key, env, position)?;
-        *obj_ref = val;
+        *obj_ref = val.0;
     }
 
     Ok(())
@@ -285,7 +285,7 @@ fn get_mutable_value<'a>(
     position: Position,
 ) -> Result<&'a mut Object, Error> {
     match env.get(name) {
-        EnvResponse::Mutable(obj_ref, ScopeDepth(0)) => Ok(obj_ref),
+        EnvResponse::Mutable(obj_ref, ScopeDepth(0)) => Ok(obj_ref.0),
         EnvResponse::Mutable(_, _) => Err(Error::with_position(
             ExecError::MutationOutOfScope {
                 name: name.to_string(),
@@ -462,7 +462,7 @@ fn let_without_value(
         property: property.to_owned(),
     });
 
-    env.set_inmutable(name, symbol.clone());
+    env.set_inmutable(name, (symbol.clone(), Address::default()));
 
     Ok((symbol, Address::default()))
 }
@@ -480,8 +480,8 @@ fn extension_set(l: &[ASTNode], env: &mut Environment) -> ExecResult<(Object, Ad
 
 fn symbol(str: &str, env: &mut Environment, position: Position) -> ExecResult<(Object, Address)> {
     match env.get(str) {
-        EnvResponse::Inmutable(obj, _) => Ok((obj.clone(), Address::default())),
-        EnvResponse::Mutable(obj, _) => Ok((obj.clone(), Address::default())),
+        EnvResponse::Inmutable((obj, addr), _) => Ok((obj.to_owned(), addr)),
+        EnvResponse::Mutable((obj, addr), _) => Ok((obj.to_owned(), addr)),
         EnvResponse::NotFound => Err(Error::with_position(
             ExecError::UnknownValue(str.to_owned()).into(),
             position,
@@ -504,7 +504,7 @@ fn comprehension(
             env.push_scope();
 
             for val in iterator {
-                env.set_inmutable(variable, val.0);
+                env.set_inmutable(variable, val);
                 new_list.push(exec(element, env)?);
             }
 
@@ -515,7 +515,7 @@ fn comprehension(
             env.push_scope();
 
             for val in iterator {
-                env.set_inmutable(variable, val.0);
+                env.set_inmutable(variable, val);
                 new_set.insert(exec(element, env)?.0);
             }
 
@@ -535,25 +535,31 @@ fn let_function(
         EnvResponse::NotFound => {
             env.set_mutable(
                 name,
-                Object::Function(Function::Pattern(PatternFunction::new(Rc::new(
-                    RefCell::new(env.clone()),
-                )))),
+                (
+                    Object::Function(Function::Pattern(PatternFunction::new(Rc::new(
+                        RefCell::new(env.clone()),
+                    )))),
+                    Address::default(),
+                ),
             );
 
             match env.get(name) {
-                EnvResponse::Mutable(Object::Function(Function::Pattern(f)), _) => f,
+                EnvResponse::Mutable((Object::Function(Function::Pattern(f)), _), _) => f,
                 _ => unimplemented!(),
             }
         }
-        EnvResponse::Mutable(Object::Function(Function::Pattern(f)), _) => f,
+        EnvResponse::Mutable((Object::Function(Function::Pattern(f)), _), _) => f,
         _ => unimplemented!(),
     };
 
     function.add_pattern(args, value, kind);
-    function
-        .env
-        .borrow_mut()
-        .set_mutable(name, Object::Function(Function::Pattern(function.clone())));
+    function.env.borrow_mut().set_mutable(
+        name,
+        (
+            Object::Function(Function::Pattern(function.clone())),
+            Address::default(),
+        ),
+    );
 
     Ok((
         Object::Function(Function::Pattern(function.clone())),
@@ -586,7 +592,7 @@ fn for_(
     env.push_scope();
 
     for val in iter {
-        env.set_inmutable(symbol, val.0.clone());
+        env.set_inmutable(symbol, val.clone());
 
         for step in proc {
             exec(step, env)?;
@@ -656,7 +662,7 @@ fn call(
             let res = f.call(&func_args, env, call_pos);
 
             if let Some(name) = func_name {
-                env.set_mutable(name, Object::Function(f.clone()));
+                env.set_mutable(name, (Object::Function(f.clone()), Address::default()));
             }
 
             res.map(|obj| (obj, Address::default()))
@@ -885,8 +891,20 @@ mod tests {
         );
 
         let mut env = Environment::default();
-        env.set_inmutable("a", Object::Symbol(Symbol::new("a".into(), "Foo".into())));
-        env.set_inmutable("b", Object::Symbol(Symbol::new("b".into(), "Foo".into())));
+        env.set_inmutable(
+            "a",
+            (
+                Object::Symbol(Symbol::new("a".into(), "Foo".into())),
+                Address::default(),
+            ),
+        );
+        env.set_inmutable(
+            "b",
+            (
+                Object::Symbol(Symbol::new("b".into(), "Foo".into())),
+                Address::default(),
+            ),
+        );
 
         assert_eq!(
             exec(node, &mut env).unwrap().0,
@@ -1113,7 +1131,10 @@ mod tests {
     #[test]
     fn if_expr() {
         let mut env = Environment::default();
-        env.set_inmutable("a", Object::Integer(Integer::from(-5)));
+        env.set_inmutable(
+            "a",
+            (Object::Integer(Integer::from(-5)), Address::default()),
+        );
 
         let node = &_if(
             infix(
@@ -1136,7 +1157,7 @@ mod tests {
     #[test]
     fn scope_hierarchy() {
         let mut env = Environment::default();
-        env.set_inmutable("x", Object::Boolean(Bool::from(true)));
+        env.set_inmutable("x", (Object::Boolean(Bool::from(true)), Address::default()));
         env.push_scope();
 
         let node = &symbol("x", dummy_pos());
@@ -1161,7 +1182,10 @@ mod tests {
 
         assert_eq!(
             env.get("x"),
-            EnvResponse::Inmutable(&Object::Integer(Integer::from(0)), ScopeDepth(0))
+            EnvResponse::Inmutable(
+                (&Object::Integer(Integer::from(0)), Address::default()),
+                ScopeDepth(0)
+            )
         );
     }
 
@@ -1298,7 +1322,10 @@ mod tests {
         let mut env = Environment::default();
         env.set_inmutable(
             "f",
-            Object::Function(Function::Extern(ExternFunction::new(test, 1))),
+            (
+                Object::Function(Function::Extern(ExternFunction::new(test, 1))),
+                Address::default(),
+            ),
         );
 
         let node = &_for(
@@ -1662,7 +1689,10 @@ mod tests {
 
         assert_eq!(exec(&node, &mut env).unwrap().0, symbol.clone(),);
 
-        assert_eq!(env.get("x"), EnvResponse::Inmutable(&symbol, ScopeDepth(0)),);
+        assert_eq!(
+            env.get("x"),
+            EnvResponse::Inmutable((&symbol, Address::default()), ScopeDepth(0)),
+        );
     }
 
     #[test]
@@ -1686,7 +1716,10 @@ mod tests {
 
         assert_eq!(
             env.get("x"),
-            EnvResponse::Mutable(&mut Object::Integer(1.into()), ScopeDepth(0))
+            EnvResponse::Mutable(
+                (&mut Object::Integer(1.into()), Address::default()),
+                ScopeDepth(0)
+            )
         );
     }
 
@@ -1721,7 +1754,7 @@ mod tests {
         let list = Object::List(vec![Object::Integer(1.into()), Object::Integer(2.into())].into());
         let mut env = Environment::default();
 
-        env.set_mutable("list", list);
+        env.set_mutable("list", (list, Address::default()));
 
         let element = container_element(
             symbol("list", dummy_pos()),
@@ -1754,7 +1787,7 @@ mod tests {
 
         let mut env = Environment::default();
 
-        env.set_inmutable("foo", foo_obj);
+        env.set_inmutable("foo", (foo_obj, Address::default()));
 
         let func_decl = memoized_function_declaration(
             "bar",
@@ -1821,7 +1854,7 @@ mod tests {
         );
 
         let mut env = Environment::default();
-        env.set_mutable("a", Object::Integer(0.into()));
+        env.set_mutable("a", (Object::Integer(0.into()), Address::default()));
 
         assert_eq!(
             exec(&call(func, vec![], dummy_pos()), &mut env),

@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use komodo::{
     builtin::komodo_assert,
-    env::Environment,
+    env::{Address, Environment},
     object::{ExternFunction, Function, Object},
 };
 
@@ -26,20 +26,25 @@ pub fn standard_env() -> Environment {
         Object::String(res.into())
     }
 
-    let mut env = Environment::default();
-    env.set_inmutable(
-        "println",
-        Object::Function(Function::Extern(ExternFunction::new(komodo_println, 1))),
-    );
-    env.set_inmutable(
-        "getln",
-        Object::Function(Function::Extern(ExternFunction::new(komodo_getln, 0))),
-    );
+    let assets = vec![
+        (
+            "println",
+            Object::Function(Function::Extern(ExternFunction::new(komodo_println, 1))),
+        ),
+        (
+            "getln",
+            Object::Function(Function::Extern(ExternFunction::new(komodo_getln, 0))),
+        ),
+        (
+            "assert",
+            Object::Function(Function::Extern(ExternFunction::new(komodo_assert, 1))),
+        ),
+    ];
 
-    env.set_inmutable(
-        "assert",
-        Object::Function(Function::Extern(ExternFunction::new(komodo_assert, 1))),
-    );
+    let mut env = Environment::default();
+    for (name, obj) in assets {
+        env.set_inmutable(name, (obj, Address::default()));
+    }
 
     env
 }

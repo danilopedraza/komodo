@@ -111,8 +111,10 @@ pub fn import_from(
 
     for (value, position) in values {
         match temp_env.get(value) {
-            EnvResponse::Mutable(obj, _) => env.set_mutable(value, obj.to_owned()),
-            EnvResponse::Inmutable(obj, _) => env.set_inmutable(value, obj.to_owned()),
+            EnvResponse::Mutable((obj, addr), _) => env.set_mutable(value, (obj.to_owned(), addr)),
+            EnvResponse::Inmutable((obj, addr), _) => {
+                env.set_inmutable(value, (obj.to_owned(), addr))
+            }
             EnvResponse::NotFound => {
                 let module = module.to_string();
                 let symbol = value.to_string();

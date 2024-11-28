@@ -1415,7 +1415,7 @@ impl PatternFunction {
     }
 
     fn exec_call(
-        matched_values: BTreeMap<String, Object>,
+        matched_values: BTreeMap<String, (Object, Address)>,
         result_node: &ASTNode,
         env: &mut Environment,
     ) -> Result<Object, Error> {
@@ -1483,7 +1483,8 @@ impl AnonFunction {
         self.env.push_scope();
 
         for (arg, param) in zip(args, &self.params) {
-            self.env.set_inmutable(param, arg.clone());
+            self.env
+                .set_inmutable(param, (arg.clone(), Address::default()));
         }
 
         let res = exec(&self.result, &mut self.env)?;

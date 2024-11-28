@@ -10,15 +10,15 @@ pub struct ScopeDepth(pub usize);
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum EnvResponse<'a> {
-    Mutable(&'a mut Object, ScopeDepth),
-    Inmutable(&'a Object, ScopeDepth),
+    Mutable((&'a mut Object, Address), ScopeDepth),
+    Inmutable((&'a Object, Address), ScopeDepth),
     NotFound,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 enum ScopeResponse<'a> {
-    Mutable(&'a mut Object),
-    Inmutable(&'a Object),
+    Mutable((&'a mut Object, Address)),
+    Inmutable((&'a Object, Address)),
     NotFound,
 }
 
@@ -30,26 +30,26 @@ pub enum ValueKind {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 struct Scope {
-    dict: BTreeMap<String, (ValueKind, Object)>,
+    dict: BTreeMap<String, (ValueKind, Object, Address)>,
 }
 
 impl Scope {
     fn get(&mut self, name: &str) -> ScopeResponse {
         match self.dict.get_mut(name) {
-            Some((ValueKind::Inmutable, value)) => ScopeResponse::Inmutable(value),
-            Some((ValueKind::Mutable, value)) => ScopeResponse::Mutable(value),
+            Some((ValueKind::Inmutable, value, addr)) => ScopeResponse::Inmutable((value, *addr)),
+            Some((ValueKind::Mutable, value, addr)) => ScopeResponse::Mutable((value, *addr)),
             None => ScopeResponse::NotFound,
         }
     }
 
-    fn set_mutable(&mut self, name: &str, val: Object) {
+    fn set_mutable(&mut self, name: &str, (obj, addr): (Object, Address)) {
         self.dict
-            .insert(name.to_string(), (ValueKind::Mutable, val));
+            .insert(name.to_string(), (ValueKind::Mutable, obj, addr));
     }
 
-    fn set_inmutable(&mut self, name: &str, val: Object) {
+    fn set_inmutable(&mut self, name: &str, (obj, addr): (Object, Address)) {
         self.dict
-            .insert(name.to_string(), (ValueKind::Inmutable, val));
+            .insert(name.to_string(), (ValueKind::Inmutable, obj, addr));
     }
 }
 
@@ -116,14 +116,14 @@ impl Environment {
         }
     }
 
-    pub fn set_mutable(&mut self, name: &str, val: Object) {
+    pub fn set_mutable(&mut self, name: &str, val: (Object, Address)) {
         self.scopes
             .last_mut()
             .unwrap_or(&mut self.base)
             .set_mutable(name, val);
     }
 
-    pub fn set_inmutable(&mut self, name: &str, val: Object) {
+    pub fn set_inmutable(&mut self, name: &str, val: (Object, Address)) {
         self.scopes
             .last_mut()
             .unwrap_or(&mut self.base)

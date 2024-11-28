@@ -2,20 +2,20 @@ use std::{collections::BTreeMap, iter::zip};
 
 use crate::{
     ast::{ASTNode, ASTNodeKind, InfixOperator},
-    env::Environment,
+    env::{Address, Environment},
     exec::exec,
     object::{Dictionary, List, Object, Set, Tuple},
 };
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Match(pub BTreeMap<String, Object>);
+pub struct Match(pub BTreeMap<String, (Object, Address)>);
 
 impl From<Vec<(String, Object)>> for Match {
     fn from(map: Vec<(String, Object)>) -> Self {
         let mut res = BTreeMap::new();
 
         for (key, value) in map {
-            res.insert(key, value);
+            res.insert(key, (value, Address::default()));
         }
 
         Self(res)
@@ -25,7 +25,7 @@ impl From<Vec<(String, Object)>> for Match {
 impl From<(String, Object)> for Match {
     fn from((key, value): (String, Object)) -> Self {
         let mut res = BTreeMap::new();
-        res.insert(key, value);
+        res.insert(key, (value, Address::default()));
         Self(res)
     }
 }
