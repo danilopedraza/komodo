@@ -64,28 +64,18 @@ impl ExecContext {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct Environment {
     base: Scope,
     scopes: Vec<Scope>,
     pub ctx: ExecContext,
 }
 
-impl Default for Environment {
-    fn default() -> Self {
-        Self {
-            base: Scope::default(),
-            scopes: vec![Scope::default()],
-            ctx: ExecContext::default(),
-        }
-    }
-}
-
 impl Environment {
     pub fn new(ctx: ExecContext) -> Self {
         Self {
             base: Scope::default(),
-            scopes: vec![Scope::default()],
+            scopes: Vec::default(),
             ctx,
         }
     }
