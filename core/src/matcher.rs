@@ -115,7 +115,10 @@ fn match_extension_list(pattern: &[ASTNode], val: &Object) -> Option<Match> {
 
 fn match_tuple(pattern: &[ASTNode], val: &Object) -> Option<Match> {
     match val {
-        Object::Tuple(Tuple { list }) => match_list(pattern, list),
+        Object::Tuple(Tuple { list }) => match_list(
+            pattern,
+            &list.iter().map(|(obj, _)| obj.clone()).collect::<Vec<_>>(),
+        ),
         _ => None,
     }
 }

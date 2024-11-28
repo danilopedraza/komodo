@@ -1261,7 +1261,7 @@ impl PrefixOperable for Symbol {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Tuple {
-    pub list: Vec<Object>,
+    pub list: Vec<(Object, Address)>,
 }
 
 impl Tuple {
@@ -1292,7 +1292,7 @@ impl fmt::Display for Tuple {
         let list = self
             .list
             .iter()
-            .map(|obj| obj.to_string())
+            .map(|obj| obj.0.to_string())
             .collect::<Vec<_>>()
             .join(", ");
 
@@ -1302,13 +1302,16 @@ impl fmt::Display for Tuple {
 
 impl From<Vec<Object>> for Tuple {
     fn from(list: Vec<Object>) -> Self {
+        let list = list
+            .into_iter()
+            .map(|obj| (obj, Address::default()))
+            .collect();
         Self { list }
     }
 }
 
 impl From<Vec<(Object, Address)>> for Tuple {
     fn from(list: Vec<(Object, Address)>) -> Self {
-        let list = list.into_iter().map(|(obj, _)| obj).collect();
         Self { list }
     }
 }
