@@ -5,6 +5,11 @@ use crate::object::Object;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Address(usize);
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
+struct Store {
+    memory: Vec<Object>,
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct ScopeDepth(pub usize);
 
@@ -66,6 +71,7 @@ impl ExecContext {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct Environment {
+    store: Store,
     base: Scope,
     scopes: Vec<Scope>,
     pub ctx: ExecContext,
@@ -74,9 +80,8 @@ pub struct Environment {
 impl Environment {
     pub fn new(ctx: ExecContext) -> Self {
         Self {
-            base: Scope::default(),
-            scopes: Vec::default(),
             ctx,
+            ..Self::default()
         }
     }
 
