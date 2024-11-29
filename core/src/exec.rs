@@ -344,7 +344,7 @@ fn set_cons(
             let mut res = BTreeSet::new();
             res.insert(some);
 
-            for obj in set.set {
+            for obj in set.iter() {
                 res.insert(obj.0.to_owned());
             }
 
@@ -394,7 +394,7 @@ fn cons(
         Object::Set(set) => {
             let mut res = vec![first.0];
 
-            for obj in set.set {
+            for obj in set.iter() {
                 res.push(obj.0.to_owned());
             }
 
@@ -609,7 +609,7 @@ fn get_iterable(
     env: &mut Environment,
 ) -> Result<Box<dyn Iterator<Item = (Object, Address)>>, Error> {
     match exec(node, env)?.0 {
-        Object::Set(set) => Ok(Box::new(set.set.clone().into_iter())),
+        Object::Set(set) => Ok(Box::new(set.into_iter())),
         Object::List(list) => Ok(Box::new(list.list.into_iter())),
         Object::Range(range) => Ok(Box::new(
             range.into_iter().map(|obj| (obj, Address::default())),

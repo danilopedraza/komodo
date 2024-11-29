@@ -4,7 +4,7 @@ use crate::{
     ast::{ASTNode, ASTNodeKind, InfixOperator},
     env::{Address, Environment},
     exec::exec,
-    object::{Dictionary, List, Object, Set, Tuple},
+    object::{Dictionary, List, Object, Tuple},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -125,7 +125,7 @@ fn match_tuple(pattern: &[ASTNode], val: &Object) -> Option<Match> {
 
 fn match_extension_set(patterns: &[ASTNode], val: &Object) -> Option<Match> {
     match val {
-        Object::Set(Set { set }) => {
+        Object::Set(set) => {
             let mut res = empty_match();
 
             for (pattern, val) in zip(patterns, set.iter()) {
@@ -229,13 +229,10 @@ fn match_range(lhs: &ASTNode, rhs: &ASTNode, val: &Object) -> Option<Match> {
 fn set_cons(some: &ASTNode, most: &ASTNode, val: &Object) -> Option<Match> {
     match val {
         Object::Set(set) => {
-            for val in set.set.iter() {
-                let mut new_set = set.set.clone();
+            for val in set.iter() {
+                let mut new_set = set.clone();
                 new_set.remove(val);
-                let res = join(
-                    match_(some, &val.0),
-                    match_(most, &Object::Set(new_set.into())),
-                );
+                let res = join(match_(some, &val.0), match_(most, &new_set.into()));
 
                 if res.is_some() {
                     return res;

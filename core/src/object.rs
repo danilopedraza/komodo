@@ -1,7 +1,10 @@
 use std::{
     cell::RefCell,
     cmp::min,
-    collections::{BTreeMap, BTreeSet},
+    collections::{
+        btree_set::{IntoIter, Iter},
+        BTreeMap, BTreeSet,
+    },
     fmt,
     hash::Hash,
     iter::zip,
@@ -139,6 +142,12 @@ impl Object {
 impl From<bool> for Object {
     fn from(val: bool) -> Self {
         Object::Boolean(val.into())
+    }
+}
+
+impl From<Set> for Object {
+    fn from(set: Set) -> Self {
+        Self::Set(set)
     }
 }
 
@@ -625,7 +634,7 @@ impl From<BigDecimal> for Decimal {
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Set {
-    pub set: BTreeSet<(Object, Address)>,
+    set: BTreeSet<(Object, Address)>,
 }
 
 impl Set {
@@ -659,6 +668,19 @@ impl Set {
 
     fn subset_eq(&self, other: &Set) -> Object {
         Object::Boolean(self.set.is_subset(&other.set).into())
+    }
+
+    pub fn iter(&self) -> Iter<'_, (Object, Address)> {
+        self.set.iter()
+    }
+
+    #[allow(clippy::should_implement_trait)]
+    pub fn into_iter(self) -> IntoIter<(Object, Address)> {
+        self.set.into_iter()
+    }
+
+    pub fn remove(&mut self, val: &(Object, Address)) -> bool {
+        self.set.remove(val)
     }
 }
 
