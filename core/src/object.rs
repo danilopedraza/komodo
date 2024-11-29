@@ -634,7 +634,7 @@ impl From<BigDecimal> for Decimal {
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Set {
-    set: BTreeSet<(Object, Address)>,
+    set: BTreeSet<Object>,
 }
 
 impl Set {
@@ -670,16 +670,16 @@ impl Set {
         Object::Boolean(self.set.is_subset(&other.set).into())
     }
 
-    pub fn iter(&self) -> Iter<'_, (Object, Address)> {
+    pub fn iter(&self) -> Iter<'_, Object> {
         self.set.iter()
     }
 
     #[allow(clippy::should_implement_trait)]
-    pub fn into_iter(self) -> IntoIter<(Object, Address)> {
+    pub fn into_iter(self) -> IntoIter<Object> {
         self.set.into_iter()
     }
 
-    pub fn remove(&mut self, val: &(Object, Address)) -> bool {
+    pub fn remove(&mut self, val: &Object) -> bool {
         self.set.remove(val)
     }
 }
@@ -728,7 +728,7 @@ impl InfixOperable for Set {
     }
 
     fn contains(&self, val: &Object) -> Option<Object> {
-        Some(self.set.contains(&(val.clone(), Address::default())).into())
+        Some(self.set.contains(val).into())
     }
 
     fn equality(&self, other: &Object) -> Option<Object> {
@@ -752,7 +752,7 @@ impl From<Vec<Object>> for Set {
         let mut set = BTreeSet::new();
 
         for obj in list {
-            set.insert((obj, Address::default()));
+            set.insert(obj);
         }
 
         let set = set;
@@ -766,7 +766,7 @@ impl From<Vec<(Object, Address)>> for Set {
         let mut set = BTreeSet::new();
 
         for obj in list {
-            set.insert(obj);
+            set.insert(obj.0);
         }
 
         let set = set;
@@ -777,18 +777,18 @@ impl From<Vec<(Object, Address)>> for Set {
 
 impl From<BTreeSet<Object>> for Set {
     fn from(set: BTreeSet<Object>) -> Self {
-        let mut new_set = BTreeSet::new();
-        for obj in set {
-            new_set.insert((obj, Address::default()));
-        }
-
-        Self { set: new_set }
+        Self { set }
     }
 }
 
 impl From<BTreeSet<(Object, Address)>> for Set {
     fn from(set: BTreeSet<(Object, Address)>) -> Self {
-        Self { set }
+        let mut new_set = BTreeSet::new();
+        for obj in set {
+            new_set.insert(obj.0);
+        }
+
+        Self { set: new_set }
     }
 }
 
@@ -797,7 +797,7 @@ impl fmt::Display for Set {
         let list = self
             .set
             .iter()
-            .map(|(obj, _)| quote_mystring(obj))
+            .map(quote_mystring)
             .collect::<Vec<_>>()
             .join(", ");
 

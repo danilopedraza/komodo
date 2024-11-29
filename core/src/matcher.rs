@@ -129,7 +129,7 @@ fn match_extension_set(patterns: &[ASTNode], val: &Object) -> Option<Match> {
             let mut res = empty_match();
 
             for (pattern, val) in zip(patterns, set.iter()) {
-                res = join(res, match_(pattern, &val.0));
+                res = join(res, match_(pattern, val));
             }
 
             res
@@ -232,7 +232,7 @@ fn set_cons(some: &ASTNode, most: &ASTNode, val: &Object) -> Option<Match> {
             for val in set.iter() {
                 let mut new_set = set.clone();
                 new_set.remove(val);
-                let res = join(match_(some, &val.0), match_(most, &new_set.into()));
+                let res = join(match_(some, val), match_(most, &new_set.into()));
 
                 if res.is_some() {
                     return res;

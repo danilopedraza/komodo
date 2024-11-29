@@ -345,7 +345,7 @@ fn set_cons(
             res.insert(some);
 
             for obj in set.iter() {
-                res.insert(obj.0.to_owned());
+                res.insert(obj.to_owned());
             }
 
             Ok((Object::Set(res.into()), Address::default()))
@@ -395,7 +395,7 @@ fn cons(
             let mut res = vec![first.0];
 
             for obj in set.iter() {
-                res.push(obj.0.to_owned());
+                res.push(obj.to_owned());
             }
 
             Ok((Object::List(res.into()), Address::default()))
@@ -609,7 +609,9 @@ fn get_iterable(
     env: &mut Environment,
 ) -> Result<Box<dyn Iterator<Item = (Object, Address)>>, Error> {
     match exec(node, env)?.0 {
-        Object::Set(set) => Ok(Box::new(set.into_iter())),
+        Object::Set(set) => Ok(Box::new(
+            set.into_iter().map(|obj| (obj, Address::default())),
+        )),
         Object::List(list) => Ok(Box::new(list.list.into_iter())),
         Object::Range(range) => Ok(Box::new(
             range.into_iter().map(|obj| (obj, Address::default())),
