@@ -121,6 +121,7 @@
             src = ./.;
             strictDeps = true;
             doCheck = false;
+            cargoBuildOptions = default: default ++ [ "--all-features" ];
 
             # Required because ring crate is special. This also seems to have
             # fixed some issues with the x86_64-windows cross-compile :shrug:
