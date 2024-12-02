@@ -3,7 +3,10 @@
 CURRENT_DIR = $(shell pwd)
 WEBSITE_DIR = $(CURRENT_DIR)/site
 
-build: build-site build-playground build-book
+build: build-site build-playground build-book build-installer
+
+build-installer:
+	cp $(CURRENT_DIR)/installer/linux/install.sh $(WEBSITE_DIR)
 
 build-core-windows-amd64:
 	cd $(CURRENT_DIR)/core
