@@ -3,6 +3,7 @@ name = "komodo-browser"
 version = "0.1.0"
 authors = ["Danilo Pedraza <cpedraza@unal.edu.co>"]
 edition = "2021"
+resolver = "2"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
