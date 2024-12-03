@@ -379,8 +379,6 @@ fn cons(
     most: &ASTNode,
     env: &mut Environment,
 ) -> ExecResult<(Object, Address)> {
-    let first = first;
-
     match exec(most, env)?.0 {
         Object::List(lst) => {
             let mut res = vec![first];
