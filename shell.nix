@@ -5,6 +5,7 @@
 
 pkgs.mkShell {
   packages = [
+    pkgs.bashInteractive
     pkgs.mdbook
     pkgs.nodejs_20
     pkgs.rustup
