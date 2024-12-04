@@ -135,4 +135,8 @@ section div {
   html {
     font-size: 100%;
   }
+
+  #install-command {
+    display: none;
+  }
 }
