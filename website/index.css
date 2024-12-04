@@ -118,6 +118,13 @@ section div {
   text-decoration: underline;
 }
 
+.code-box {
+  background-color: #181c1f;
+  color: white;
+  font-family: monospace;
+  padding: 5px;
+}
+
 @media (width <= 700px) {
   .row {
     width: 100%;
