@@ -443,11 +443,12 @@ impl Decimal {
         while exp != zero {
             if &exp % two == one {
                 val *= &base;
+                val = val.normalized();
             }
-            base = &base * &base;
+
+            base = base.square().normalized();
 
             exp = &exp / two;
-            val = val.normalized();
         }
 
         let must_invert = exponent.val.is_negative();
