@@ -1,4 +1,5 @@
 use std::{
+    env::{self, VarError},
     fmt::{self, Debug},
     fs,
     path::{Path, PathBuf},
@@ -45,7 +46,8 @@ pub fn run_node(node: ASTNode, env: &mut Environment) -> Result<Object, Error> {
     exec(&node, env).map(|(obj, _)| obj)
 }
 
-static STDLIB_PATH: &str = "../std/";
+static STDLIB_PATH: &str = "/usr/local/bin/komodo/";
+static STDLIB_PATH_VAR: &str = "KOMODO_STD";
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ModuleAddress {
@@ -74,12 +76,27 @@ impl fmt::Display for ModuleAddress {
     }
 }
 
+fn get_std_path(env_var: Result<String, VarError>) -> PathBuf {
+    match env_var {
+        Ok(path) if path.is_empty() => Path::new(STDLIB_PATH).to_path_buf(),
+        Ok(path) => Path::new(&path).to_path_buf(),
+        Err(VarError::NotPresent) => Path::new(STDLIB_PATH).to_path_buf(),
+        Err(VarError::NotUnicode(_)) => {
+            eprintln!(
+                "The environment variable '{STDLIB_PATH_VAR}' is present, but it's not Unicode!"
+            );
+            eprintln!("Proceeding with the default directory: {STDLIB_PATH}");
+            Path::new(STDLIB_PATH).to_path_buf()
+        }
+    }
+}
+
 fn get_module_code(module: &ModuleAddress, env: &Environment) -> Result<String, Error> {
     let reference_path = &env.ctx.reference_path;
 
     let path = match module {
         ModuleAddress::StandardLibrary { name } => {
-            Path::new(STDLIB_PATH).join(Path::new(&format!("{name}.komodo")))
+            get_std_path(env::var(STDLIB_PATH_VAR)).join(Path::new(&format!("{name}.komodo")))
         }
         ModuleAddress::LocalPath { path } => reference_path.join(Path::new(&path)),
     };
