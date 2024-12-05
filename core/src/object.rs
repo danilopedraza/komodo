@@ -453,7 +453,7 @@ impl Decimal {
 
         let must_invert = exponent.val.is_negative();
         if must_invert {
-            val = val.inverse();
+            val = val.inverse().normalized();
         }
 
         Decimal { val }
@@ -1093,7 +1093,7 @@ impl InfixOperable for Integer {
             Object::Integer(int) => {
                 if int.val.is_negative() {
                     let inverse = self.val.to_owned().pow(int.val.magnitude());
-                    let val = BigDecimal::new(inverse, 0).inverse();
+                    let val = BigDecimal::new(inverse, 0).inverse().normalized();
 
                     Some(Object::Decimal(Decimal { val }))
                 } else {
@@ -2151,5 +2151,15 @@ mod tests {
         let c = a.pow(&b).unwrap().to_string();
 
         assert_eq!(c, "25");
+    }
+
+    #[test]
+    fn contain_zeros_integer_negative_pow() {
+        let a = Object::Integer(Integer::new("10", Radix::Decimal));
+        let b = a.inverse().unwrap();
+
+        let c = a.pow(&b).unwrap().to_string();
+
+        assert_eq!(c, "1E-10");
     }
 }
