@@ -447,6 +447,7 @@ impl Decimal {
             base = &base * &base;
 
             exp = &exp / two;
+            val = val.normalized();
         }
 
         let must_invert = exponent.val.is_negative();
@@ -2139,5 +2140,15 @@ mod tests {
         let b = Object::Fraction(Fraction::new(11.into(), 2.into()));
 
         assert_eq!(a.equality(&b), Some(Object::Boolean(true.into())));
+    }
+
+    #[test]
+    fn contain_zeros_pow() {
+        let a = Object::Decimal(Decimal::new("5", "0"));
+        let b = Object::Integer(Integer::new("2", Radix::Decimal));
+
+        let c = a.pow(&b).unwrap().to_string();
+
+        assert_eq!(c, "25");
     }
 }
