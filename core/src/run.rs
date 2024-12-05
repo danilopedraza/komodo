@@ -6,7 +6,8 @@ use std::{
 };
 
 use crate::{
-    ast::{ASTNode, ASTNodeKind},
+    ast::ASTNode,
+    builtin::standard_env,
     cst::CSTNode,
     env::{EnvResponse, Environment},
     error::{Error, Position},
@@ -91,9 +92,7 @@ fn get_std_path(env_var: Result<String, VarError>) -> PathBuf {
     }
 }
 
-fn get_module_code(module: &ModuleAddress, env: &Environment) -> Result<String, Error> {
-    let reference_path = &env.ctx.reference_path;
-
+fn get_module_code(module: &ModuleAddress, reference_path: &Path) -> Result<String, Error> {
     let path = match module {
         ModuleAddress::StandardLibrary { name } => {
             get_std_path(env::var(STDLIB_PATH_VAR)).join(Path::new(&format!("{name}.komodo")))
@@ -110,21 +109,10 @@ pub fn import_from(
     values: &[(String, Position)],
     env: &mut Environment,
 ) -> Result<(), Error> {
-    let source = get_module_code(module, env)?;
-    let lexer = Lexer::from(source.as_str());
-    let parser = Parser::from(lexer);
-    let nodes = collect_nodes(parser)?;
-
-    let mut temp_env = Environment::default();
-
-    for node in nodes {
-        match &node.kind {
-            ASTNodeKind::Declaration { .. } | ASTNodeKind::ImportFrom { .. } => {
-                run_node(node, &mut temp_env)?;
-            }
-            _ => continue,
-        }
-    }
+    let ctx = env.ctx();
+    let source = get_module_code(module, &ctx.reference_path)?;
+    let mut temp_env = standard_env(ctx);
+    run(&source, &mut temp_env)?;
 
     for (value, position) in values {
         match temp_env.get(value) {

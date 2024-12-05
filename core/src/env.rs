@@ -74,7 +74,7 @@ pub struct Environment {
     store: Store,
     base: Scope,
     scopes: Vec<Scope>,
-    pub ctx: ExecContext,
+    ctx: ExecContext,
 }
 
 impl Environment {
@@ -83,6 +83,10 @@ impl Environment {
             ctx,
             ..Self::default()
         }
+    }
+
+    pub fn ctx(&self) -> ExecContext {
+        self.ctx.clone()
     }
 
     pub fn get(&mut self, name: &str) -> EnvResponse<'_> {
