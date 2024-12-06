@@ -1,9 +1,10 @@
+use std::path::PathBuf;
 use std::{iter::Peekable, vec};
 
 use crate::cst::dictionary;
 use crate::cst::*;
 use crate::error::{Error, Position};
-use crate::lexer::{Radix, Token, TokenType};
+use crate::lexer::{Lexer, Radix, Token, TokenType};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParserError {
@@ -15,6 +16,7 @@ pub enum ParserError {
 }
 
 pub struct Parser<T: Iterator<Item = Result<Token, Error>>> {
+    path: PathBuf,
     tokens: Peekable<T>,
     cur_pos: Position,
     ignore_whitespace: bool,
@@ -35,6 +37,10 @@ impl<T: Iterator<Item = Result<Token, Error>>> Iterator for Parser<T> {
 type NodeResult = Result<CSTNode, Error>;
 
 impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
+    pub fn path(&self) -> PathBuf {
+        self.path.to_path_buf()
+    }
+
     fn peek_pos(&mut self) -> Position {
         if let Some(Ok(Token { position, .. })) = self.tokens.peek() {
             *position
@@ -101,6 +107,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                     return Err(Error::with_position(
                         ParserError::EOFReached.into(),
                         self.cur_pos,
+                        self.path.to_path_buf(),
                     ))
                 }
             }
@@ -129,6 +136,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             Err(Error::with_position(
                 ParserError::MemoizeInVarExpression.into(),
                 self.cur_pos,
+                self.path.to_path_buf(),
             ))
         } else {
             self.declaration(DeclarationKind::Mutable, self.cur_pos.start)
@@ -206,7 +214,11 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn err_with_cur<P>(&self, err: ParserError) -> Result<P, Error> {
-        Err(Error::with_position(err.into(), self.cur_pos))
+        Err(Error::with_position(
+            err.into(),
+            self.cur_pos,
+            self.path.to_path_buf(),
+        ))
     }
 
     fn symbol(&self, literal: String) -> NodeResult {
@@ -234,6 +246,8 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 Some(node) => vec![node],
             };
 
+            let path = parser.path.to_path_buf();
+
             match parser.peek_token()? {
                 Some(tok) if tok == terminator => {
                     parser.next_token()?;
@@ -242,6 +256,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 None => Err(Error::with_position(
                     ParserError::EOFReached.into(),
                     parser.cur_pos,
+                    path,
                 )),
                 _ => loop {
                     let expr = parser.expression(Precedence::Lowest)?;
@@ -264,6 +279,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                                 )
                                 .into(),
                                 parser.cur_pos,
+                                path,
                             ))
                         }
                         None => {
@@ -271,6 +287,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                                 ParserError::EOFExpecting(vec![TokenType::Comma, terminator])
                                     .into(),
                                 parser.cur_pos,
+                                path,
                             ))
                         }
                     }
@@ -478,14 +495,13 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
         let ident = match self.next_token()? {
             Some(TokenType::Ident(s)) => Ok(s),
-            Some(tok) => Err(Error::with_position(
-                ParserError::UnexpectedToken(vec![TokenType::Ident(String::from(""))], tok).into(),
-                self.cur_pos,
+            Some(tok) => self.err_with_cur(ParserError::UnexpectedToken(
+                vec![TokenType::Ident(String::from(""))],
+                tok,
             )),
-            None => Err(Error::with_position(
-                ParserError::EOFExpecting(vec![TokenType::Ident(String::from(""))]).into(),
-                self.cur_pos,
-            )),
+            None => self.err_with_cur(ParserError::EOFExpecting(vec![TokenType::Ident(
+                String::from(""),
+            )])),
         }?;
 
         self.consume(TokenType::In)?;
@@ -520,14 +536,8 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     fn consume(&mut self, expected_tok: TokenType) -> Result<(), Error> {
         match self.next_token()? {
             Some(tok) if tok == expected_tok => Ok(()),
-            Some(tok) => Err(Error::with_position(
-                ParserError::UnexpectedToken(vec![expected_tok], tok).into(),
-                self.cur_pos,
-            )),
-            None => Err(Error::with_position(
-                ParserError::EOFExpecting(vec![expected_tok]).into(),
-                self.cur_pos,
-            )),
+            Some(tok) => self.err_with_cur(ParserError::UnexpectedToken(vec![expected_tok], tok)),
+            None => self.err_with_cur(ParserError::EOFExpecting(vec![expected_tok])),
         }
     }
 
@@ -608,23 +618,15 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 Some(TokenType::Rbrace) => {
                     Ok(extension_set(vec![first], parser.start_to_cur(start)))
                 }
-                Some(tok) => Err(Error::with_position(
-                    ParserError::UnexpectedToken(
-                        vec![TokenType::Comma, TokenType::Rbrace, TokenType::Colon],
-                        tok,
-                    )
-                    .into(),
-                    parser.cur_pos,
+                Some(tok) => parser.err_with_cur(ParserError::UnexpectedToken(
+                    vec![TokenType::Comma, TokenType::Rbrace, TokenType::Colon],
+                    tok,
                 )),
-                None => Err(Error::with_position(
-                    ParserError::EOFExpecting(vec![
-                        TokenType::Comma,
-                        TokenType::Rbrace,
-                        TokenType::Colon,
-                    ])
-                    .into(),
-                    parser.cur_pos,
-                )),
+                None => parser.err_with_cur(ParserError::EOFExpecting(vec![
+                    TokenType::Comma,
+                    TokenType::Rbrace,
+                    TokenType::Colon,
+                ])),
             }
         })
     }
@@ -665,15 +667,11 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                     pairs.push((left, right));
                 }
                 None => {
-                    return Err(Error::with_position(
-                        ParserError::EOFExpecting(vec![
-                            TokenType::Comma,
-                            TokenType::Colon,
-                            TokenType::Rbrace,
-                        ])
-                        .into(),
-                        self.cur_pos,
-                    ))
+                    return self.err_with_cur(ParserError::EOFExpecting(vec![
+                        TokenType::Comma,
+                        TokenType::Colon,
+                        TokenType::Rbrace,
+                    ]))
                 }
             }
         }
@@ -682,10 +680,22 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 }
 
-impl<T: Iterator<Item = Result<Token, Error>>> From<T> for Parser<T> {
-    fn from(tokens: T) -> Self {
+impl<T: Iterator<Item = Result<Token, Error>>> From<(T, PathBuf)> for Parser<T> {
+    fn from((tokens, path): (T, PathBuf)) -> Self {
         Self {
+            path,
             tokens: tokens.peekable(),
+            cur_pos: Position::new(0, 0),
+            ignore_whitespace: false,
+        }
+    }
+}
+
+impl<'a> From<Lexer<'a>> for Parser<Lexer<'a>> {
+    fn from(lexer: Lexer<'a>) -> Self {
+        Self {
+            path: lexer.path(),
+            tokens: lexer.peekable(),
             cur_pos: Position::new(0, 0),
             ignore_whitespace: false,
         }
@@ -707,10 +717,18 @@ mod tests {
     use std::iter;
     use unindent::unindent;
 
+    fn lexer_from(source: &str) -> Lexer<'_> {
+        Lexer::from((source, PathBuf::default()))
+    }
+
+    fn parser_from<T: Iterator<Item = Result<Token, Error>>>(iter: T) -> Parser<T> {
+        Parser::from((iter, PathBuf::default()))
+    }
+
     #[test]
     fn empty_expression() {
         assert_eq!(
-            Parser::from(iter::empty::<Result<Token, Error>>()).next(),
+            Parser::from((iter::empty::<Result<Token, Error>>(), PathBuf::default())).next(),
             None
         );
     }
@@ -722,7 +740,7 @@ mod tests {
             _pos(0, 1),
         )];
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(dec_integer("0", _pos(0, 1))))
         );
     }
@@ -738,7 +756,7 @@ mod tests {
             Token::new(TokenType::Rparen, _pos(4, 1)),
         ];
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(dec_integer("365", _pos(1, 3)))),
         );
     }
@@ -753,10 +771,11 @@ mod tests {
             ),
         ];
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Err(Error::with_position(
                 ParserError::EOFExpecting(vec![TokenType::Rparen,]).into(),
                 _pos(1, 2),
+                PathBuf::default(),
             )))
         );
     }
@@ -775,7 +794,7 @@ mod tests {
             ),
         ];
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(infix(
                 InfixOperator::Sum,
                 dec_integer("1", _pos(0, 1)),
@@ -795,10 +814,11 @@ mod tests {
             Token::new(TokenType::Plus, _pos(1, 1)),
         ];
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Err(Error::with_position(
                 ParserError::EOFReached.into(),
                 _pos(1, 1),
+                PathBuf::default(),
             )))
         );
     }
@@ -822,7 +842,7 @@ mod tests {
             ),
         ];
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(infix(
                 InfixOperator::Product,
                 dec_integer("1", _pos(0, 1)),
@@ -856,7 +876,7 @@ mod tests {
             ),
         ];
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(infix(
                 InfixOperator::Sum,
                 infix(
@@ -883,7 +903,7 @@ mod tests {
             ),
         ];
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(let_(
                 symbol("x", _pos(4, 1)),
                 Some(dec_integer("1", _pos(9, 1))),
@@ -917,7 +937,7 @@ mod tests {
         ];
 
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(infix(
                 InfixOperator::NotEquality,
                 infix(
@@ -954,7 +974,7 @@ mod tests {
         ];
 
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(let_(
                 infix(
                     InfixOperator::Call,
@@ -984,7 +1004,7 @@ mod tests {
         ];
 
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(extension_set(vec![], _pos(0, 2))))
         );
     }
@@ -1002,7 +1022,7 @@ mod tests {
         ];
 
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(extension_set(
                 vec![boolean(true, _pos(2, 4)), boolean(false, _pos(9, 4)),],
                 _pos(0, 14)
@@ -1018,7 +1038,7 @@ mod tests {
         ];
 
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(tuple(vec![], _pos(0, 2))))
         );
     }
@@ -1034,7 +1054,7 @@ mod tests {
         ];
 
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(tuple(
                 vec![symbol("Real", _pos(1, 4)), symbol("Real", _pos(7, 4))],
                 _pos(0, 12)
@@ -1045,10 +1065,10 @@ mod tests {
     #[test]
     fn set_comprehension() {
         let input = "{a for a in S}";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
-            Parser::from(lexer).next(),
+            parser_from(lexer).next(),
             Some(Ok(comprehension(
                 symbol("a", _pos(1, 1)),
                 "a".into(),
@@ -1084,7 +1104,7 @@ mod tests {
         ];
 
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(let_(
                 pattern(
                     symbol("x", _pos(4, 1)),
@@ -1124,7 +1144,7 @@ mod tests {
         ];
 
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(infix(
                 InfixOperator::LeftShift,
                 infix(
@@ -1141,7 +1161,7 @@ mod tests {
 
     #[test]
     fn shift_and_comparison() {
-        let lexer = Lexer::from("1 << 1 > 1");
+        let lexer = lexer_from("1 << 1 > 1");
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1161,7 +1181,7 @@ mod tests {
 
     #[test]
     fn bitwise() {
-        let lexer = Lexer::from("a & b || c");
+        let lexer = lexer_from("a & b || c");
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1181,7 +1201,7 @@ mod tests {
 
     #[test]
     fn logic_infix_operators() {
-        let lexer = Lexer::from("a && b || c");
+        let lexer = lexer_from("a && b || c");
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1201,7 +1221,7 @@ mod tests {
 
     #[test]
     fn complex_precedence() {
-        let lexer = Lexer::from("  a + b || a & b << c");
+        let lexer = lexer_from("  a + b || a & b << c");
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1231,7 +1251,7 @@ mod tests {
 
     #[test]
     fn bitwise_xor() {
-        let lexer = Lexer::from("a ^ b & c || d");
+        let lexer = lexer_from("a ^ b & c || d");
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1256,7 +1276,7 @@ mod tests {
 
     #[test]
     fn something_after_empty_set() {
-        let lexer = Lexer::from("({}, 0)");
+        let lexer = lexer_from("({}, 0)");
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1272,7 +1292,7 @@ mod tests {
 
     #[test]
     fn prefixes() {
-        let lexer = Lexer::from("!(~1 /= -1)");
+        let lexer = lexer_from("!(~1 /= -1)");
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1315,7 +1335,7 @@ mod tests {
         ];
 
         assert_eq!(
-            Parser::from(tokens.into_iter().map(Ok)).next(),
+            parser_from(tokens.into_iter().map(Ok)).next(),
             Some(Ok(_if(
                 infix(
                     InfixOperator::Less,
@@ -1334,7 +1354,7 @@ mod tests {
     fn function_call() {
         let input = "f(x, y)";
 
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1354,7 +1374,7 @@ mod tests {
     fn comma_last_item() {
         let input = "(1,)";
 
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1366,7 +1386,7 @@ mod tests {
     fn anon_function() {
         let input = "x -> 2*x";
 
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1388,7 +1408,7 @@ mod tests {
     fn anon_function_call() {
         let input = "((x, y) -> x)(1, 2)";
 
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1416,7 +1436,7 @@ mod tests {
     fn char_and_string() {
         let input = "('a', \"b\")";
 
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1431,7 +1451,7 @@ mod tests {
     fn for_loop() {
         let input = "for i in list do println(i)";
 
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1453,7 +1473,7 @@ mod tests {
     fn list() {
         let input = "[[], 2]";
 
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1471,7 +1491,7 @@ mod tests {
     fn singleton_empty_set() {
         let input = "{{}}";
 
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1486,7 +1506,7 @@ mod tests {
     fn wildcard_() {
         let input = "[a, 1, _]";
 
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1504,7 +1524,7 @@ mod tests {
     #[test]
     fn prepend_only() {
         let code = "[1|[2,3]]";
-        let lexer = Lexer::from(code);
+        let lexer = lexer_from(code);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1522,7 +1542,7 @@ mod tests {
     #[test]
     fn consume_comprehension_list() {
         let input = "[a for a in b] + []";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1544,13 +1564,14 @@ mod tests {
     #[test]
     fn expected_rparen() {
         let input = "(15]";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
             Some(Err(Error::with_position(
                 ParserError::UnexpectedToken(vec![TokenType::Rparen], TokenType::Rbrack).into(),
                 _pos(3, 1),
+                PathBuf::default()
             ))),
         );
     }
@@ -1558,13 +1579,14 @@ mod tests {
     #[test]
     fn expected_expression() {
         let input = "1 + )";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
             Some(Err(Error::with_position(
                 ParserError::ExpectedExpression(TokenType::Rparen).into(),
-                _pos(4, 1)
+                _pos(4, 1),
+                PathBuf::default(),
             ))),
         );
     }
@@ -1572,7 +1594,7 @@ mod tests {
     #[test]
     fn oop_function_call() {
         let input = "list.map(func) + []";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1598,7 +1620,7 @@ mod tests {
     #[test]
     fn decimal() {
         let input = "1.5";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1614,7 +1636,7 @@ mod tests {
     #[test]
     fn range() {
         let input = "5 in 0..10+1";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1640,7 +1662,7 @@ mod tests {
     #[test]
     fn fraction() {
         let input = "1 // 2";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1656,7 +1678,7 @@ mod tests {
     #[test]
     fn oop_cal_with_int() {
         let input = "2.f()";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1677,7 +1699,7 @@ mod tests {
     #[test]
     fn dictionary_() {
         let input = "{'a' => 2, 1 => 5}";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1695,7 +1717,7 @@ mod tests {
     #[test]
     fn container_element() {
         let input = "(list[0])";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1711,7 +1733,7 @@ mod tests {
     #[test]
     fn ad_infinitum_() {
         let input = "[1, 2,..]";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1729,7 +1751,7 @@ mod tests {
     #[test]
     fn ad_infinitum_dict() {
         let input = "{1 => 5,..}";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1744,7 +1766,7 @@ mod tests {
     #[test]
     fn set_cons_() {
         let input = "{first|_}";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1759,7 +1781,7 @@ mod tests {
     #[test]
     fn import_statement() {
         let input = "import foo";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1774,7 +1796,7 @@ mod tests {
     #[test]
     fn import_with_alias() {
         let input = "import foo as bar";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1789,7 +1811,7 @@ mod tests {
     #[test]
     fn import_from_() {
         let input = "from foo import bar";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1804,7 +1826,7 @@ mod tests {
     #[test]
     fn import_several_values() {
         let input = "from foo import (bar, baz)";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1822,7 +1844,7 @@ mod tests {
     #[test]
     fn let_with_type() {
         let input = "let map(iter: List, fn: Function) := iter";
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1866,7 +1888,7 @@ mod tests {
         ",
         );
 
-        let lexer = Lexer::from(input.as_str());
+        let lexer = lexer_from(input.as_str());
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1896,7 +1918,7 @@ mod tests {
         ",
         );
 
-        let lexer = Lexer::from(input.as_str());
+        let lexer = lexer_from(input.as_str());
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1941,7 +1963,7 @@ mod tests {
         ]",
         );
 
-        let lexer = Lexer::from(input.as_str());
+        let lexer = lexer_from(input.as_str());
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1956,7 +1978,7 @@ mod tests {
     fn prefix_and_call() {
         let input = "-f()";
 
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1977,7 +1999,7 @@ mod tests {
     fn var_() {
         let input = "var x := 0";
 
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -1997,7 +2019,7 @@ mod tests {
     fn memoize() {
         let input = "let memoize f(x) := 1";
 
-        let lexer = Lexer::from(input);
+        let lexer = lexer_from(input);
 
         assert_eq!(
             Parser::from(lexer).next(),
@@ -2027,7 +2049,7 @@ mod tests {
         ",
         );
 
-        let lexer = Lexer::from(input.as_str());
+        let lexer = lexer_from(input.as_str());
 
         assert_eq!(
             Parser::from(lexer).next(),

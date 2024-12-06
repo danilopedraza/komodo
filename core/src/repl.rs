@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::{
     ast::ASTNode,
     builtin::standard_env,
@@ -42,12 +44,21 @@ impl Repl {
                     self.code.push(' ');
                 }
                 self.code.push_str(&line);
-                let lexer = Lexer::from(self.code.as_str());
+                let lexer = Lexer::from((self.code.as_str(), PathBuf::default()));
                 let mut parser = Parser::from(lexer);
 
                 match parser.next() {
                     None => (String::from(""), ReplResponse::Continue),
-                    Some(res) => self.exec_response(res.and_then(rewrite)),
+                    Some(res) => self.exec_response(res.and_then(|node| {
+                        let rewritten = rewrite(node);
+
+                        match rewritten {
+                            Ok(val) => Ok(val),
+                            Err((err, pos)) => {
+                                Err(Error::with_position(err.into(), pos, PathBuf::default()))
+                            }
+                        }
+                    })),
                 }
             }
             Err(ReadlineError::Interrupted | ReadlineError::Eof) => {
@@ -63,7 +74,7 @@ impl Repl {
                 self.code.clear();
                 (obj.to_string(), ReplResponse::Continue)
             }
-            Err(Error::WithPosition(ErrorKind::Parser(ParserError::EOFExpecting(_)), _)) => {
+            Err(Error::WithPosition(ErrorKind::Parser(ParserError::EOFExpecting(_)), _, _)) => {
                 (String::from(""), ReplResponse::WaitForMore)
             }
             Err(err) => {

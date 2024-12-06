@@ -1491,6 +1491,7 @@ impl PatternFunction {
             Err(Error::with_position(
                 ExecError::UnmatchedCall.into(),
                 call_pos,
+                self.env.borrow().file_path(),
             ))
         }
     }

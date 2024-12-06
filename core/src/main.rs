@@ -27,10 +27,13 @@ fn run_file(path: &str) -> std::io::Result<()> {
     match input_res {
         Ok(input) => {
             let reference_path = get_reference_path(path.into())?;
-            let mut env = standard_env(ExecContext::new(reference_path));
+            let mut env = standard_env(ExecContext::new(
+                Path::new(path).to_path_buf(),
+                reference_path,
+            ));
             let res = run(&input, &mut env);
             if let Err(err) = res {
-                err.emit(path, &input);
+                err.emit();
                 Err(Error::new(ErrorKind::Other, ""))
             } else {
                 Ok(())
@@ -47,7 +50,7 @@ fn run_komodo(args: &[String]) -> std::io::Result<()> {
         #[cfg(feature = "repl")]
         repl(
             &mut MyCLI::default(),
-            ExecContext::new(get_reference_path(".".into())?),
+            ExecContext::new(PathBuf::default(), get_reference_path(".".into())?),
         );
         Ok(())
     }

@@ -60,12 +60,16 @@ impl Scope {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct ExecContext {
+    pub executed_file_path: PathBuf,
     pub reference_path: PathBuf,
 }
 
 impl ExecContext {
-    pub fn new(reference_path: PathBuf) -> Self {
-        Self { reference_path }
+    pub fn new(executed_file_path: PathBuf, reference_path: PathBuf) -> Self {
+        Self {
+            executed_file_path,
+            reference_path,
+        }
     }
 }
 
@@ -87,6 +91,10 @@ impl Environment {
 
     pub fn ctx(&self) -> ExecContext {
         self.ctx.clone()
+    }
+
+    pub fn file_path(&self) -> PathBuf {
+        self.ctx.executed_file_path.to_path_buf()
     }
 
     pub fn get(&mut self, name: &str) -> EnvResponse<'_> {

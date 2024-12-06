@@ -9,13 +9,13 @@ use crate::{
     ast::ASTNode,
     builtin::standard_env,
     cst::CSTNode,
-    env::{EnvResponse, Environment},
+    env::{EnvResponse, Environment, ExecContext},
     error::{Error, Position},
     exec::exec,
     lexer::{Lexer, Token},
     object::Object,
     parser::Parser,
-    weeder::rewrite,
+    weeder::{rewrite, WeederError},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -26,13 +26,20 @@ pub enum ImportError {
 fn collect_nodes<T: Iterator<Item = Result<Token, Error>>>(
     parser: Parser<T>,
 ) -> Result<Vec<ASTNode>, Error> {
+    let path = parser.path();
     let cst_nodes: Result<Vec<CSTNode>, Error> = parser.collect();
 
-    cst_nodes?.into_iter().map(rewrite).collect()
+    let res: Result<Vec<ASTNode>, (WeederError, Position)> =
+        cst_nodes?.into_iter().map(rewrite).collect();
+
+    match res {
+        Err((err, pos)) => Err(Error::with_position(err.into(), pos, path)),
+        Ok(val) => Ok(val),
+    }
 }
 
 pub fn run(source: &str, env: &mut Environment) -> Result<(), Error> {
-    let lexer = Lexer::from(source);
+    let lexer = Lexer::from((source, env.file_path()));
     let parser = Parser::from(lexer);
     let nodes = collect_nodes(parser)?;
 
@@ -92,14 +99,16 @@ fn get_std_path(env_var: Result<String, VarError>) -> PathBuf {
     }
 }
 
-fn get_module_code(module: &ModuleAddress, reference_path: &Path) -> Result<String, Error> {
-    let path = match module {
+fn get_module_path(module: &ModuleAddress, reference_path: &Path) -> PathBuf {
+    match module {
         ModuleAddress::StandardLibrary { name } => {
             get_std_path(env::var(STDLIB_PATH_VAR)).join(Path::new(&format!("{name}.komodo")))
         }
         ModuleAddress::LocalPath { path } => reference_path.join(Path::new(&path)),
-    };
+    }
+}
 
+fn get_module_code(path: &Path) -> Result<String, Error> {
     let source = fs::read_to_string(path)?;
     Ok(source)
 }
@@ -109,9 +118,10 @@ pub fn import_from(
     values: &[(String, Position)],
     env: &mut Environment,
 ) -> Result<(), Error> {
-    let ctx = env.ctx();
-    let source = get_module_code(module, &ctx.reference_path)?;
-    let mut temp_env = standard_env(ctx);
+    let reference_path = env.ctx().reference_path;
+    let path = get_module_path(module, &reference_path);
+    let source = get_module_code(&path)?;
+    let mut temp_env = standard_env(ExecContext::new(path, reference_path));
     run(&source, &mut temp_env)?;
 
     for (value, position) in values {
@@ -126,6 +136,7 @@ pub fn import_from(
                 return Err(Error::with_position(
                     ImportError::SymbolNotFound { module, symbol }.into(),
                     *position,
+                    env.file_path(),
                 ));
             }
         }

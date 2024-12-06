@@ -99,6 +99,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<(Object, Addres
             &exec(lhs, env)?,
             &exec(rhs, env)?,
             node.position,
+            env,
         ),
         ASTNodeKind::Boolean(val) => boolean(*val),
         ASTNodeKind::Call { called, args } => call(called, args, env, node.position),
@@ -108,7 +109,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<(Object, Addres
             positive,
             negative,
         } => if_(exec(cond, env)?, positive, negative, env),
-        ASTNodeKind::Prefix { op, val } => prefix(*op, exec(val, env)?, node.position),
+        ASTNodeKind::Prefix { op, val } => prefix(*op, exec(val, env)?, node.position, env),
         ASTNodeKind::String { str } => string(str),
         ASTNodeKind::Tuple { list: values } => tuple(values, env),
         ASTNodeKind::For { val, iter, proc } => for_(val, iter, proc, env),
@@ -126,15 +127,24 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<(Object, Addres
             match container_obj {
                 Object::List(list) => match list.get(&element_obj) {
                     Ok(obj) => Ok(obj),
-                    Err(eval_err) => Err(Error::with_position(eval_err.into(), index.position)),
+                    Err(eval_err) => Err(Error::with_position(
+                        eval_err.into(),
+                        index.position,
+                        env.file_path(),
+                    )),
                 },
                 Object::Dictionary(dict) => match dict.get(&element_obj) {
                     Ok(obj) => Ok((obj, Address::default())),
-                    Err(eval_err) => Err(Error::with_position(eval_err.into(), index.position)),
+                    Err(eval_err) => Err(Error::with_position(
+                        eval_err.into(),
+                        index.position,
+                        env.file_path(),
+                    )),
                 },
                 obj => Err(Error::with_position(
                     ExecError::IndexingNonContainer { kind: obj.kind() }.into(),
                     container.position,
+                    env.file_path(),
                 )),
             }
         }
@@ -160,6 +170,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<(Object, Addres
         Err(Error::with_position(
             ExecError::FailedAssertion(msg).into(),
             node.position,
+            env.file_path(),
         ))
     } else {
         res
@@ -191,6 +202,7 @@ fn case(
     Err(Error::with_position(
         ExecError::UnmatchedExpression.into(),
         expr.position,
+        env.file_path(),
     ))
 }
 
@@ -238,15 +250,24 @@ fn assignment(
         let element_ref = match container {
             Object::List(list) => match list.get_mut(&index_obj) {
                 Ok(obj) => Ok(&mut obj.0),
-                Err(eval_err) => Err(Error::with_position(eval_err.into(), index.position)),
+                Err(eval_err) => Err(Error::with_position(
+                    eval_err.into(),
+                    index.position,
+                    env.file_path(),
+                )),
             },
             Object::Dictionary(dict) => match dict.get_mut(&index_obj) {
                 Ok(obj) => Ok(obj),
-                Err(eval_err) => Err(Error::with_position(eval_err.into(), index.position)),
+                Err(eval_err) => Err(Error::with_position(
+                    eval_err.into(),
+                    index.position,
+                    env.file_path(),
+                )),
             },
             obj => Err(Error::with_position(
                 ExecError::IndexingNonContainer { kind: obj.kind() }.into(),
                 name_position,
+                env.file_path(),
             )),
         }?;
 
@@ -262,6 +283,7 @@ fn assignment(
         None => Err(Error::with_position(
             ExecError::BadMatch.into(),
             left.position.join(right.position),
+            env.file_path(),
         )),
     }
 }
@@ -284,6 +306,7 @@ fn get_mutable_value<'a>(
     env: &'a mut Environment,
     position: Position,
 ) -> Result<&'a mut Object, Error> {
+    let path = env.file_path();
     match env.get(name) {
         EnvResponse::Mutable(obj_ref, ScopeDepth(0)) => Ok(obj_ref.0),
         EnvResponse::Mutable(_, _) => Err(Error::with_position(
@@ -292,14 +315,17 @@ fn get_mutable_value<'a>(
             }
             .into(),
             position,
+            path,
         )),
         EnvResponse::Inmutable(_, _) => Err(Error::with_position(
             ExecError::InmutableAssign(name.into()).into(),
             position,
+            path,
         )),
         EnvResponse::NotFound => Err(Error::with_position(
             ExecError::UnknownValue(name.into()).into(),
             position,
+            path,
         )),
     }
 }
@@ -353,6 +379,7 @@ fn set_cons(
         obj => Err(Error::WithPosition(
             ExecError::NonPrependableObject(obj.kind()).into(),
             most.position,
+            env.file_path(),
         )),
     }
 }
@@ -401,6 +428,7 @@ fn cons(
         obj => Err(Error::WithPosition(
             ExecError::NonPrependableObject(obj.kind()).into(),
             most.position,
+            env.file_path(),
         )),
     }
 }
@@ -446,6 +474,7 @@ fn let_pattern(
         None => Err(Error::with_position(
             ExecError::BadMatch.into(),
             left.position.join(right.position),
+            env.file_path(),
         )),
     }
 }
@@ -483,6 +512,7 @@ fn symbol(str: &str, env: &mut Environment, position: Position) -> ExecResult<(O
         EnvResponse::NotFound => Err(Error::with_position(
             ExecError::UnknownValue(str.to_owned()).into(),
             position,
+            env.file_path(),
         )),
     }
 }
@@ -617,6 +647,7 @@ fn get_iterable(
         obj => Err(Error::WithPosition(
             ExecError::NonIterableObject(obj.kind()).into(),
             node.position,
+            env.file_path(),
         )),
     }
 }
@@ -642,6 +673,7 @@ fn call(
                 }
                 .into(),
                 call_pos,
+                env.file_path(),
             ));
         }
     }
@@ -665,6 +697,7 @@ fn call(
         obj => Err(Error::WithPosition(
             ExecError::NonCallableObject(obj.kind()).into(),
             func_node.position,
+            env.file_path(),
         ))?,
     }
 }
@@ -688,6 +721,7 @@ fn fraction(
         (Object::Integer(_), Object::Integer(int)) if int.is_zero() => Err(Error::with_position(
             ExecError::DenominatorZero.into(),
             denom.position,
+            env.file_path(),
         )),
         (Object::Integer(numer), Object::Integer(denom)) => Ok((
             Object::Fraction(Fraction::new(numer, denom)),
@@ -700,6 +734,7 @@ fn fraction(
             }
             .into(),
             position,
+            env.file_path(),
         )),
     }
 }
@@ -709,6 +744,7 @@ fn infix(
     lhs: &(Object, Address),
     rhs: &(Object, Address),
     infix_pos: Position,
+    env: &Environment,
 ) -> ExecResult<(Object, Address)> {
     let lhs = &lhs.0;
     let rhs = &rhs.0;
@@ -723,6 +759,7 @@ fn infix(
                 return Err(Error::with_position(
                     ExecError::DenominatorZero.into(),
                     infix_pos,
+                    env.file_path(),
                 ));
             } else {
                 lhs.over(rhs)
@@ -756,6 +793,7 @@ fn infix(
             }
             .into(),
             infix_pos,
+            env.file_path(),
         )),
         Some(obj) => Ok((obj, Address::default())),
     }
@@ -765,6 +803,7 @@ fn prefix(
     op: PrefixOperator,
     obj: (Object, Address),
     prefix_pos: Position,
+    env: &Environment,
 ) -> ExecResult<(Object, Address)> {
     let obj = obj.0;
 
@@ -782,6 +821,7 @@ fn prefix(
             }
             .into(),
             prefix_pos,
+            env.file_path(),
         )),
         Some(obj) => Ok((obj, Address::default())),
     }
@@ -789,6 +829,7 @@ fn prefix(
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
     use std::sync::Mutex;
     use std::vec;
 
@@ -813,7 +854,8 @@ mod tests {
             exec(&node, &mut Default::default()),
             Err(Error::with_position(
                 ExecError::UnknownValue(String::from("a")).into(),
-                dummy_pos()
+                dummy_pos(),
+                PathBuf::default()
             ))
         );
     }
@@ -1300,6 +1342,7 @@ mod tests {
                 }
                 .into(),
                 pos(0, 5),
+                PathBuf::default()
             ))
         );
     }
@@ -1460,7 +1503,8 @@ mod tests {
                     expected: 1,
                     actual: 0
                 }),
-                dummy_pos()
+                dummy_pos(),
+                PathBuf::default()
             ))
         );
     }
@@ -1516,7 +1560,8 @@ mod tests {
             exec(&node, &mut Environment::default()),
             Err(Error::with_position(
                 ExecError::DenominatorZero.into(),
-                pos(5, 1)
+                pos(5, 1),
+                PathBuf::default()
             )),
         );
     }
@@ -1563,7 +1608,8 @@ mod tests {
             exec(&node, &mut Environment::default()),
             Err(Error::with_position(
                 ExecError::DenominatorZero.into(),
-                dummy_pos()
+                dummy_pos(),
+                PathBuf::default()
             )),
         );
     }
@@ -1597,7 +1643,8 @@ mod tests {
                     kind: String::from("Integer")
                 }
                 .into(),
-                dummy_pos()
+                dummy_pos(),
+                PathBuf::default()
             ))
         );
     }
@@ -1614,7 +1661,8 @@ mod tests {
             exec(&node, &mut Environment::default()),
             Err(Error::with_position(
                 ExecError::ListIndexOutOfBounds.into(),
-                dummy_pos()
+                dummy_pos(),
+                PathBuf::default()
             ))
         );
     }
@@ -1634,7 +1682,8 @@ mod tests {
                     kind: String::from("Decimal")
                 }
                 .into(),
-                dummy_pos()
+                dummy_pos(),
+                PathBuf::default()
             ))
         );
     }
@@ -1739,7 +1788,8 @@ mod tests {
             exec(&assignment, &mut env),
             Err(Error::with_position(
                 ExecError::InmutableAssign(String::from("x")).into(),
-                dummy_pos()
+                dummy_pos(),
+                PathBuf::default()
             )),
         );
     }
@@ -1857,7 +1907,8 @@ mod tests {
                 ErrorKind::Exec(ExecError::MutationOutOfScope {
                     name: String::from("a")
                 }),
-                dummy_pos()
+                dummy_pos(),
+                PathBuf::default()
             )),
         );
     }

@@ -1,8 +1,11 @@
-use std::sync::Mutex;
+use std::{
+    path::{Path, PathBuf},
+    sync::Mutex,
+};
 
 use komodo::{
     builtin::komodo_assert,
-    env::{Address, Environment},
+    env::{Address, Environment, ExecContext},
     object::{ExternFunction, Function, Object},
 };
 
@@ -41,7 +44,10 @@ pub fn standard_env() -> Environment {
         ),
     ];
 
-    let mut env = Environment::default();
+    let mut env = Environment::new(ExecContext::new(
+        Path::new("source.komodo").to_path_buf(),
+        PathBuf::default(),
+    ));
     for (name, obj) in assets {
         env.set_inmutable(name, (obj, Address::default()));
     }

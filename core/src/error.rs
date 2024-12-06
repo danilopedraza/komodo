@@ -1,3 +1,5 @@
+use std::{fs, path::PathBuf};
+
 use codespan_reporting::{
     diagnostic::{Diagnostic, Label},
     files::SimpleFiles,
@@ -19,23 +21,23 @@ use crate::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Error {
-    WithPosition(ErrorKind, Position),
+    WithPosition(ErrorKind, Position, PathBuf),
     IO(String),
 }
 
 impl Error {
-    pub fn with_position(err: ErrorKind, pos: Position) -> Self {
-        Self::WithPosition(err, pos)
+    pub fn with_position(err: ErrorKind, pos: Position, path: PathBuf) -> Self {
+        Self::WithPosition(err, pos, path)
     }
 
-    pub fn as_bytes(&self, filename: &str, source: &str) -> Vec<u8> {
+    pub fn as_bytes(&self) -> Vec<u8> {
         match self {
-            Self::WithPosition(err, pos) => {
+            Self::WithPosition(err, pos, path) => {
                 let mut files = SimpleFiles::new();
                 let mut writer = Buffer::no_color();
                 let config = codespan_reporting::term::Config::default();
 
-                let file_id = files.add(filename, source);
+                let file_id = files.add(path.to_str().unwrap(), fs::read_to_string(path).unwrap());
                 let diagnostic = Diagnostic::error()
                     .with_message(error_msg(err))
                     .with_labels(vec![Label::primary(
@@ -51,14 +53,14 @@ impl Error {
         }
     }
 
-    pub fn emit(&self, filename: &str, source: &str) {
+    pub fn emit(&self) {
         match self {
-            Self::WithPosition(err, pos) => {
+            Self::WithPosition(err, pos, path) => {
                 let mut files = SimpleFiles::new();
                 let writer = StandardStream::stderr(term::termcolor::ColorChoice::Always);
                 let config = codespan_reporting::term::Config::default();
 
-                let file_id = files.add(filename, source);
+                let file_id = files.add(path.to_str().unwrap(), fs::read_to_string(path).unwrap());
                 let diagnostic = Diagnostic::error()
                     .with_message(error_msg(err))
                     .with_labels(vec![Label::primary(
@@ -75,7 +77,7 @@ impl Error {
     pub fn msg(&self) -> String {
         match self {
             Self::IO(err) => err.to_string(),
-            Self::WithPosition(err, _) => error_msg(err),
+            Self::WithPosition(err, _, _) => error_msg(err),
         }
     }
 }

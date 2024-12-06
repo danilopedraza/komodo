@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, iter::Peekable, str::Chars, vec};
+use std::{collections::VecDeque, iter::Peekable, path::PathBuf, str::Chars, vec};
 
 use crate::error::{Error, Position};
 
@@ -111,6 +111,7 @@ pub enum TokenType {
 }
 
 pub struct Lexer<'a> {
+    path: PathBuf,
     input: Peekable<Chars<'a>>,
     cur_pos: usize,
     token_queue: VecDeque<Result<Token, Error>>,
@@ -137,6 +138,7 @@ impl Iterator for Lexer<'_> {
             Some(Err(err)) => Some(Err(Error::with_position(
                 err.into(),
                 Position::new(start, self.cur_pos - start),
+                self.path.to_path_buf(),
             ))),
             None => None,
         };
@@ -156,9 +158,10 @@ impl Iterator for Lexer<'_> {
 
 type LexerResult = Result<TokenType, LexerError>;
 
-impl<'a> From<&'a str> for Lexer<'a> {
-    fn from(input: &'a str) -> Self {
+impl<'a> From<(&'a str, PathBuf)> for Lexer<'a> {
+    fn from((input, path): (&'a str, PathBuf)) -> Self {
         Self {
+            path,
             input: input.chars().peekable(),
             cur_pos: 0,
             token_queue: VecDeque::default(),
@@ -168,6 +171,10 @@ impl<'a> From<&'a str> for Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
+    pub fn path(&self) -> PathBuf {
+        self.path.to_path_buf()
+    }
+
     fn emit_indents(&mut self) -> IndentLevel {
         let mut spaces = 0;
         let mut new_indent_level = 0;
@@ -462,7 +469,7 @@ impl<'a> Lexer<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::vec;
+    use std::{path::Path, vec};
 
     use unindent::unindent;
 
@@ -470,8 +477,12 @@ mod tests {
 
     use super::*;
 
+    fn lexer_from(source: &str) -> Lexer<'_> {
+        Lexer::from((source, PathBuf::default()))
+    }
+
     fn tokens_from(source: &str) -> Result<Vec<Token>, Error> {
-        Lexer::from(source).collect()
+        Lexer::from((source, PathBuf::default())).collect()
     }
 
     fn token_types_from(source: &str) -> Result<Vec<TokenType>, Error> {
@@ -483,20 +494,20 @@ mod tests {
 
     #[test]
     fn empty_string() {
-        assert!(Lexer::from("").next().is_none());
+        assert!(lexer_from("").next().is_none());
     }
 
     #[test]
     fn plus_operator() {
         assert_eq!(
-            Lexer::from("+").next(),
+            lexer_from("+").next(),
             Some(Ok(Token::new(TokenType::Plus, Position::new(0, 1))))
         );
     }
 
     #[test]
     fn whitespace() {
-        assert_eq!(Lexer::from(" \t").next(), None);
+        assert_eq!(lexer_from(" \t").next(), None);
     }
 
     #[test]
@@ -697,7 +708,7 @@ mod tests {
         let code = "'x'";
 
         assert_eq!(
-            Lexer::from(code).next(),
+            lexer_from(code).next(),
             Some(Ok(Token::new(TokenType::Char('x'), Position::new(0, 3)))),
         );
     }
@@ -707,10 +718,11 @@ mod tests {
         let code = "'x";
 
         assert_eq!(
-            Lexer::from(code).next(),
+            Lexer::from((code, Path::new("/bar/baz.komodo").to_path_buf())).next(),
             Some(Err(Error::with_position(
                 LexerError::UnterminatedChar.into(),
-                _pos(0, 2)
+                _pos(0, 2),
+                Path::new("/bar/baz.komodo").to_path_buf()
             ))),
         );
     }
@@ -720,10 +732,11 @@ mod tests {
         let code = "'x)";
 
         assert_eq!(
-            Lexer::from(code).next(),
+            Lexer::from((code, Path::new("/home/xd/hello.komodo").to_path_buf())).next(),
             Some(Err(Error::with_position(
                 LexerError::UnexpectedChar(')').into(),
-                _pos(0, 3)
+                _pos(0, 3),
+                Path::new("/home/xd/hello.komodo").to_path_buf()
             )))
         );
     }
@@ -733,7 +746,7 @@ mod tests {
         let code = "\"abc\"";
 
         assert_eq!(
-            Lexer::from(code).next(),
+            lexer_from(code).next(),
             Some(Ok(Token::new(
                 TokenType::String(String::from("abc")),
                 Position::new(0, 5)
@@ -746,10 +759,11 @@ mod tests {
         let code = "\"a";
 
         assert_eq!(
-            Lexer::from(code).next(),
+            Lexer::from((code, PathBuf::default())).next(),
             Some(Err(Error::with_position(
                 LexerError::UnterminatedString.into(),
-                _pos(0, 2)
+                _pos(0, 2),
+                PathBuf::default(),
             ))),
         );
     }
@@ -829,10 +843,11 @@ mod tests {
         let code = "''";
 
         assert_eq!(
-            Lexer::from(code).next(),
+            Lexer::from((code, Path::new("/foo.komodo").to_path_buf())).next(),
             Some(Err(Error::with_position(
                 LexerError::EmptyChar.into(),
-                _pos(0, 2)
+                _pos(0, 2),
+                Path::new("/foo.komodo").to_path_buf()
             ))),
         );
     }
@@ -842,7 +857,7 @@ mod tests {
         let code = "\"\\\"\"";
 
         assert_eq!(
-            Lexer::from(code).next(),
+            lexer_from(code).next(),
             Some(Ok(Token::new(
                 TokenType::String(String::from("\"")),
                 _pos(0, 4)
@@ -855,7 +870,7 @@ mod tests {
         let code = "s1";
 
         assert_eq!(
-            Lexer::from(code).next(),
+            lexer_from(code).next(),
             Some(Ok(Token::new(
                 TokenType::Ident(String::from("s1")),
                 _pos(0, 2),
@@ -950,7 +965,7 @@ mod tests {
         let code = "0x8";
 
         assert_eq!(
-            Lexer::from(code).next(),
+            lexer_from(code).next(),
             Some(Ok(Token {
                 token: TokenType::Integer("8".into(), Radix::Hex),
                 position: Position {
