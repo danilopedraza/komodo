@@ -11,3 +11,5 @@
 - Avoid exponential scaling of decimals when doing exponentiation with an integer.
 
 - The standard library path can be customized setting it with the `KOMODO_STD` environment variable.
+
+- Errors occurring when executing imported modules are now shown correctly.
