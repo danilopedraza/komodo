@@ -53,6 +53,9 @@ test-core-browser:
 	cargo test --all-features -- --test-threads=1
 	wasm-pack build --target web --out-dir komodo --dev
 
+test-installer:
+	docker run --rm -v $(CURRENT_DIR)/installer/linux/identity_script:/usr/bin/sudo -v $(CURRENT_DIR)/installer/linux/test.sh:/test.sh alpine/curl:8.9.1 sh "/test.sh"
+
 lint-core:
 	sh lint-rust.sh $(CURRENT_DIR)/core/Cargo.toml
 

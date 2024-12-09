@@ -1,7 +1,11 @@
 FROM alpine:latest
 
+USER root
 
-COPY ./install.sh /home/user/install.sh
-COPY ./test.sh /home/user/test.sh
+COPY identity_script /usr/local/bin/sudo
+COPY test.sh /test.sh
 
-RUN sh /home/user/install.sh
+RUN chmod +x /usr/local/bin/sudo
+
+RUN apk add curl
+RUN sh /test.sh
