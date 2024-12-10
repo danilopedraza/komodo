@@ -4,7 +4,7 @@ set -e
 echo "Installing Komodo... (this will require root access)"
 
 cd /tmp
-wget https://github.com/danilopedraza/komodo/releases/download/v0.1.0/komodo
+wget https://github.com/danilopedraza/komodo/releases/download/v0.2.0/komodo
 sudo chmod +x komodo
 sudo mv komodo /usr/local/bin/komodo
 

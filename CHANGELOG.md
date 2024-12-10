@@ -6,9 +6,11 @@
 
 - Code blocks: now indentation can be used to specify code blocks.
 
-# Upstream
+# 0.2.0
 
 - Avoid exponential scaling of decimals when doing exponentiation with an integer.
+
+- The standard library is now up, with the `utils` module.
 
 - The standard library path can be customized setting it with the `KOMODO_STD` environment variable.
 
