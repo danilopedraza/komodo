@@ -2,7 +2,7 @@
 
 set -e
 
-curl --proto '=https' --tlsv1.2 -sSf https://komodo-lang.org/install.sh | sh
+sh /install.sh
 
 if [ -f /usr/local/bin/komodo ]
 then
