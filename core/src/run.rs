@@ -54,7 +54,7 @@ pub fn run_node(node: ASTNode, env: &mut Environment) -> Result<Object, Error> {
     exec(&node, env).map(|(obj, _)| obj)
 }
 
-static STDLIB_PATH: &str = "/usr/local/bin/komodo/";
+static STDLIB_PATH: &str = "/usr/local/lib/komodo/";
 static STDLIB_PATH_VAR: &str = "KOMODO_STD";
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
