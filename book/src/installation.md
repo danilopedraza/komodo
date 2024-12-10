@@ -4,7 +4,7 @@ Currently, you can install Komodo downloading binaries or building from source.
 
 ## Download binaries
 
-There are pre-compiled binaries for x86-64 Linux [here](https://github.com/danilopedraza/komodo/releases/download/v0.2.0/komodo). If this is not your architecture, you will have to build from source.
+There are pre-compiled binaries for x86-64 Linux [here](https://github.com/danilopedraza/komodo/releases/download/v0.2.1/komodo). If this is not your architecture, you will have to build from source.
 
 You can use this to install Komodo for all users (requires root access):
 
@@ -15,7 +15,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://komodo-lang.org/install.sh | sh
 You can also install Komodo (only for your user) with these commands:
 
 ```
-wget https://github.com/danilopedraza/komodo/releases/download/v0.2.0/komodo
+wget https://github.com/danilopedraza/komodo/releases/download/v0.2.1/komodo
 chmod +x komodo
 mv komodo $HOME/.local/bin
 ```
