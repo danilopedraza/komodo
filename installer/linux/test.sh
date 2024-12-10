@@ -22,14 +22,19 @@ fi
 
 declare -a modules=("utils")
 
+someone_failed=false
 for module in "${modules[@]}"
 do
     if [ ! -f "/usr/local/lib/komodo/$module.komodo" ]
     then
         echo "❌ the module '$module.komodo' is not in /usr/local/lib/komodo/."
         echo "The standard library is incomplete."
-        exit 1
+        someone_failed=true
     fi
 done
+
+if [ "$someone_failed" = true ] ; then
+    exit 1
+fi
 
 echo "✅ The standard library has been installed successfully."
