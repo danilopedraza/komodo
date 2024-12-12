@@ -187,7 +187,7 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
                     position: _,
                 },
             ) => decimal(int, dec),
-            (lhs, rhs) => infix_node(ast::InfixOperator::Dot, lhs, rhs),
+            (lhs, rhs) => dot_notation(lhs, rhs),
         },
         InfixOperator::Equality => infix_node(ast::InfixOperator::Equality, lhs, rhs),
         InfixOperator::Exponentiation => infix_node(ast::InfixOperator::Exponentiation, lhs, rhs),
@@ -227,6 +227,13 @@ fn container_element(container: CSTNode, element: CSTNode) -> WeederResult<ASTNo
         container,
         index: element,
     })
+}
+
+fn dot_notation(lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTNodeKind> {
+    let lhs = Box::new(rewrite(lhs)?);
+    let rhs = Box::new(rewrite(rhs)?);
+
+    Ok(ASTNodeKind::DotNotation { lhs, rhs })
 }
 
 fn infix_node(op: ast::InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTNodeKind> {
@@ -438,7 +445,7 @@ mod tests {
     use crate::{
         ast,
         cst::{
-            self,
+            self, dictionary,
             tests::{dec_integer, dummy_pos, pattern, symbol},
             InfixOperator,
         },
@@ -613,6 +620,25 @@ mod tests {
         assert_eq!(
             rewrite(node),
             Ok(ast::tests::decimal("0", "00", dummy_pos())),
+        );
+    }
+
+    #[test]
+    fn dot_notation() {
+        let node = cst::infix(
+            InfixOperator::Dot,
+            dictionary(vec![], true, dummy_pos()),
+            symbol("foo", dummy_pos()),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            rewrite(node),
+            Ok(ast::tests::dot_notation(
+                ast::tests::dictionary(vec![], true, dummy_pos()),
+                ast::tests::symbol("foo", dummy_pos()),
+                dummy_pos(),
+            ))
         );
     }
 }

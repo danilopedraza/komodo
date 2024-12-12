@@ -158,6 +158,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<(Object, Addres
         ASTNodeKind::Assignment { left, right } => assignment(left, right, env),
         ASTNodeKind::Declaration(decl) => declaration(decl, env),
         ASTNodeKind::Case { expr, pairs } => case(expr, pairs, env),
+        ASTNodeKind::DotNotation { lhs, rhs } => object_attr(lhs, rhs, env),
     };
 
     if let Ok((Object::Error(FailedAssertion(msg)), _)) = res {
@@ -745,13 +746,13 @@ fn object_attr(
     obj: &ASTNode,
     attr: &ASTNode,
     env: &mut Environment,
-) -> ExecResult<Option<(Object, Address)>> {
+) -> ExecResult<(Object, Address)> {
     match (exec(obj, env)?.0, &attr.kind) {
         (Object::Dictionary(dict), ASTNodeKind::Symbol { name }) => {
             let element_obj = Object::String(name.as_str().into());
 
             match dict.get(&element_obj) {
-                Ok(obj) => Ok(Some((obj, Address::default()))),
+                Ok(obj) => Ok((obj, Address::default())),
                 Err(eval_err) => Err(Error::with_position(
                     eval_err.into(),
                     attr.position,
@@ -759,7 +760,7 @@ fn object_attr(
                 )),
             }
         }
-        _ => Ok(None),
+        _ => todo!(),
     }
 }
 
@@ -770,10 +771,6 @@ fn infix(
     infix_pos: Position,
     env: &mut Environment,
 ) -> ExecResult<(Object, Address)> {
-    if let Some(obj) = object_attr(lhs, rhs, env)? {
-        return Ok(obj);
-    }
-
     let lhs = &exec(lhs, env)?.0;
     let rhs = &exec(rhs, env)?.0;
     let lhs_kind = lhs.kind();
@@ -793,7 +790,6 @@ fn infix(
                 lhs.over(rhs)
             }
         }
-        InfixOperator::Dot => todo!(),
         InfixOperator::Equality => lhs.equality(rhs),
         InfixOperator::Exponentiation => lhs.pow(rhs),
         InfixOperator::Greater => lhs.greater(rhs),
@@ -867,9 +863,9 @@ mod tests {
     use super::*;
     use crate::ast::tests::{
         _for, _if, assignment, block, boolean, call, case, comprehension, cons, container_element,
-        dec_integer, decimal, dictionary, extension_list, extension_set, fraction, function,
-        function_declaration, infix, let_, memoized_function_declaration, pos, prefix, range,
-        set_cons, string, symbol, symbolic_let, tuple, var,
+        dec_integer, decimal, dictionary, dot_notation, extension_list, extension_set, fraction,
+        function, function_declaration, infix, let_, memoized_function_declaration, pos, prefix,
+        range, set_cons, string, symbol, symbolic_let, tuple, var,
     };
     use crate::cst::tests::dummy_pos;
     use crate::env::{EnvResponse, ScopeDepth};
@@ -1974,8 +1970,7 @@ mod tests {
         let dict = exec(&dict, &mut env).unwrap();
         env.set_inmutable("obj", dict);
 
-        let attr = infix(
-            InfixOperator::Dot,
+        let attr = dot_notation(
             symbol("obj", dummy_pos()),
             symbol("foo", dummy_pos()),
             dummy_pos(),
@@ -1993,8 +1988,7 @@ mod tests {
         let function = function(vec!["x"], symbol("x", dummy_pos()), dummy_pos());
 
         let call = call(
-            infix(
-                InfixOperator::Dot,
+            dot_notation(
                 dec_integer("5", dummy_pos()),
                 symbol("f", dummy_pos()),
                 dummy_pos(),

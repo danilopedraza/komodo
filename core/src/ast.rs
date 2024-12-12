@@ -11,7 +11,6 @@ pub enum InfixOperator {
     BitwiseAnd,
     BitwiseXor,
     Division,
-    Dot,
     Equality,
     Exponentiation,
     Greater,
@@ -37,7 +36,6 @@ impl InfixOperator {
             InfixOperator::BitwiseAnd => "bitwise AND",
             InfixOperator::BitwiseXor => "bitwise XOR",
             InfixOperator::Division => "division",
-            InfixOperator::Dot => "dot",
             InfixOperator::Equality => "equality",
             InfixOperator::Exponentiation => "exponentiation",
             InfixOperator::Greater => "greater",
@@ -113,6 +111,10 @@ pub enum ASTNodeKind {
         variable: String,
         iterator: Box<ASTNode>,
         kind: ComprehensionKind,
+    },
+    DotNotation {
+        lhs: Box<ASTNode>,
+        rhs: Box<ASTNode>,
     },
     IndexNotation {
         container: Box<ASTNode>,
@@ -488,5 +490,12 @@ pub mod tests {
         let expr = Box::new(expr);
 
         ASTNode::new(ASTNodeKind::Case { expr, pairs }, position)
+    }
+
+    pub fn dot_notation(lhs: ASTNode, rhs: ASTNode, position: Position) -> ASTNode {
+        let lhs = Box::new(lhs);
+        let rhs = Box::new(rhs);
+
+        ASTNode::new(ASTNodeKind::DotNotation { lhs, rhs }, position)
     }
 }
