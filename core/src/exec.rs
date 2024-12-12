@@ -391,7 +391,15 @@ fn dictionary(
     let mut dict = Dictionary::default();
 
     for (key, value) in pairs {
-        dict.dict.insert(exec(key, env)?.0, exec(value, env)?.0);
+        let key_obj = match key {
+            ASTNode {
+                kind: ASTNodeKind::Symbol { name },
+                ..
+            } => Object::String(name.as_str().into()),
+            key => exec(key, env)?.0,
+        };
+
+        dict.dict.insert(key_obj, exec(value, env)?.0);
     }
 
     Ok((Object::Dictionary(dict), Address::default()))
@@ -765,6 +773,7 @@ fn infix(
                 lhs.over(rhs)
             }
         }
+        InfixOperator::Dot => todo!(),
         InfixOperator::Equality => lhs.equality(rhs),
         InfixOperator::Exponentiation => lhs.pow(rhs),
         InfixOperator::Greater => lhs.greater(rhs),
@@ -838,7 +847,7 @@ mod tests {
     use super::*;
     use crate::ast::tests::{
         _for, _if, assignment, block, boolean, call, case, comprehension, cons, container_element,
-        dec_integer, decimal, extension_list, extension_set, fraction, function,
+        dec_integer, decimal, dictionary, extension_list, extension_set, fraction, function,
         function_declaration, infix, let_, memoized_function_declaration, pos, prefix, range,
         set_cons, string, symbol, symbolic_let, tuple, var,
     };
@@ -1910,6 +1919,52 @@ mod tests {
                 dummy_pos(),
                 PathBuf::default()
             )),
+        );
+    }
+
+    #[test]
+    fn object_attribute() {
+        let dict = dictionary(
+            vec![(symbol("foo", dummy_pos()), dec_integer("5", dummy_pos()))],
+            true,
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            exec(&dict, &mut Environment::default()),
+            Ok((
+                Object::Dictionary(Dictionary::from(vec![(
+                    Object::String("foo".into()),
+                    Object::Integer(5.into())
+                ),])),
+                Address::default()
+            ))
+        );
+    }
+
+    #[test]
+    #[ignore = "not yet implemented"]
+    fn field_notation() {
+        let dict = dictionary(
+            vec![(symbol("foo", dummy_pos()), dec_integer("5", dummy_pos()))],
+            true,
+            dummy_pos(),
+        );
+
+        let mut env = Environment::default();
+        let dict = exec(&dict, &mut env).unwrap();
+        env.set_inmutable("obj", dict);
+
+        let attr = infix(
+            InfixOperator::Dot,
+            symbol("obj", dummy_pos()),
+            symbol("foo", dummy_pos()),
+            dummy_pos(),
+        );
+
+        assert_eq!(
+            exec(&attr, &mut env),
+            Ok((Object::Integer(5.into()), Address::default()))
         );
     }
 }
