@@ -1986,4 +1986,31 @@ mod tests {
             Ok((Object::Integer(5.into()), Address::default()))
         );
     }
+
+    #[test]
+    #[ignore = "not yet implemented"]
+    fn false_oop_call() {
+        let function = function(vec!["x"], symbol("x", dummy_pos()), dummy_pos());
+
+        let call = call(
+            infix(
+                InfixOperator::Dot,
+                dec_integer("5", dummy_pos()),
+                symbol("f", dummy_pos()),
+                dummy_pos(),
+            ),
+            vec![],
+            dummy_pos(),
+        );
+
+        let mut env = Environment::default();
+
+        let function = exec(&function, &mut env).unwrap();
+        env.set_inmutable("f", function);
+
+        assert_eq!(
+            exec(&call, &mut env),
+            Ok((Object::Integer(5.into()), Address::default()))
+        );
+    }
 }
