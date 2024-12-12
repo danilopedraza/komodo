@@ -20,6 +20,6 @@
 
 - Fix bad default path for the standard library.
 
-# Upstream
+# 0.3.0
 
-
+- Add object-like notation for dictionaries. Add criteria for selecting between object function calls and pseudo-OOP calls.
