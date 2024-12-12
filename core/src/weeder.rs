@@ -187,19 +187,7 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
                     position: _,
                 },
             ) => decimal(int, dec),
-            (lhs, rhs) => match (rewrite(lhs)?, rewrite(rhs)?) {
-                (
-                    first_arg,
-                    ASTNode {
-                        kind: ASTNodeKind::Call { called, args },
-                        ..
-                    },
-                ) => Ok(ASTNodeKind::Call {
-                    called,
-                    args: vec![first_arg].into_iter().chain(args).collect(),
-                }),
-                (_, node) => Err((WeederError::BadDot, node.position)),
-            },
+            (lhs, rhs) => infix_node(ast::InfixOperator::Dot, lhs, rhs),
         },
         InfixOperator::Equality => infix_node(ast::InfixOperator::Equality, lhs, rhs),
         InfixOperator::Exponentiation => infix_node(ast::InfixOperator::Exponentiation, lhs, rhs),
@@ -499,33 +487,6 @@ mod tests {
                 ast::tests::dec_integer("2", dummy_pos()),
                 dummy_pos()
             ))
-        );
-    }
-
-    #[test]
-    fn oop_function_call() {
-        let node = cst::infix(
-            InfixOperator::Dot,
-            symbol("set", dummy_pos()),
-            cst::infix(
-                InfixOperator::Call,
-                symbol("map", dummy_pos()),
-                cst::tuple(vec![symbol("func", dummy_pos())], dummy_pos()),
-                dummy_pos(),
-            ),
-            dummy_pos(),
-        );
-
-        assert_eq!(
-            rewrite(node),
-            Ok(ast::tests::call(
-                ast::tests::symbol("map", dummy_pos()),
-                vec![
-                    ast::tests::symbol("set", dummy_pos()),
-                    ast::tests::symbol("func", dummy_pos())
-                ],
-                dummy_pos()
-            )),
         );
     }
 
