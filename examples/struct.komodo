@@ -1,0 +1,7 @@
+let someBeing := {
+    eyes => 3,
+    ears => () -> 5,
+}
+
+assert(someBeing.eyes = 3)
+assert(someBeing.ears() = 5)

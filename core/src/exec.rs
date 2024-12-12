@@ -661,22 +661,27 @@ fn call(
     env: &mut Environment,
     call_pos: Position,
 ) -> ExecResult<(Object, Address)> {
-    let (func_node, args): (&ASTNode, Vec<&ASTNode>) = match (func_node, args) {
+    let (func, args): (Object, Vec<&ASTNode>) = match (func_node, args) {
         (
             ASTNode {
                 kind: ASTNodeKind::DotNotation { lhs, rhs },
                 ..
             },
             args,
-        ) => {
-            let mut new_args = vec![lhs.as_ref()];
-            for arg in args {
-                new_args.push(arg);
+        ) => match exec(lhs, env) {
+            Ok((Object::Dictionary(_), _)) => {
+                (object_attr(lhs, rhs, env)?.0, args.iter().collect())
             }
+            _ => {
+                let mut new_args = vec![lhs.as_ref()];
+                for arg in args {
+                    new_args.push(arg);
+                }
 
-            (rhs.as_ref(), new_args)
-        }
-        (func_node, args) => (func_node, args.iter().collect()),
+                (exec(rhs, env)?.0, new_args)
+            }
+        },
+        (func_node, args) => (exec(func_node, env)?.0, args.iter().collect()),
     };
 
     let func_name = match &func_node.kind {
@@ -684,7 +689,6 @@ fn call(
         _ => None,
     };
 
-    let func = exec(func_node, env)?.0;
     if let Object::Function(ref f) = func {
         if args.len() < f.param_number() {
             return Err(Error::WithPosition(
@@ -2024,4 +2028,38 @@ mod tests {
             Ok((Object::Integer(5.into()), Address::default()))
         );
     }
+
+    // #[test]
+    // fn oop_call() {
+    //     let dict = dictionary(
+    //         vec![(
+    //             symbol("foo", dummy_pos()),
+    //             function(vec![], dec_integer("5", dummy_pos()), dummy_pos()),
+    //         )],
+    //         true,
+    //         dummy_pos(),
+    //     );
+
+    //     let mut env = Environment::default();
+    //     let dict = exec(&dict, &mut env).unwrap();
+    //     env.set_inmutable("obj", dict);
+
+    //     let attr = dot_notation(
+    //         symbol("obj", dummy_pos()),
+    //         symbol("foo", dummy_pos()),
+    //         dummy_pos(),
+    //     );
+
+    //     assert_eq!(
+    //         exec(&attr, &mut env),
+    //         Ok((
+    //             Object::Function(Function::Anonymous(AnonFunction::new(
+    //                 vec![],
+    //                 dec_integer("5", dummy_pos()),
+    //                 Environment::default()
+    //             ))),
+    //             Address::default()
+    //         ))
+    //     );
+    // }
 }
