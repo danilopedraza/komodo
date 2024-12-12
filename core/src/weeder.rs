@@ -304,7 +304,6 @@ fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind
                         Err((WeederError::MemoizedNonFunctionDeclaration, left.position))
                     }
                 }
-                // Ok(ASTNodeKind::Declaration { left, right, kind })
             }
         },
         CSTNode {
