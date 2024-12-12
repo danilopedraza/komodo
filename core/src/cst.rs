@@ -21,10 +21,10 @@ pub enum Precedence {
     Addition,
     Multiplication,
     Exponentiation,
-    Dot,
     Constraint,
     Prefix,
     Call,
+    Dot,
     // Highest,
 }
 

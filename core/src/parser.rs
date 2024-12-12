@@ -1601,14 +1601,14 @@ mod tests {
             Some(Ok(infix(
                 InfixOperator::Sum,
                 infix(
-                    InfixOperator::Dot,
-                    symbol("list", _pos(0, 4)),
+                    InfixOperator::Call,
                     infix(
-                        InfixOperator::Call,
+                        InfixOperator::Dot,
+                        symbol("list", _pos(0, 4)),
                         symbol("map", _pos(5, 3)),
-                        tuple(vec![symbol("func", _pos(9, 4))], _pos(8, 6)),
-                        _pos(5, 9)
+                        _pos(0, 8)
                     ),
+                    tuple(vec![symbol("func", _pos(9, 4))], _pos(8, 6)),
                     _pos(0, 14)
                 ),
                 extension_list(vec![], _pos(17, 2)),
@@ -1683,14 +1683,14 @@ mod tests {
         assert_eq!(
             Parser::from(lexer).next(),
             Some(Ok(infix(
-                InfixOperator::Dot,
-                dec_integer("2", _pos(0, 1)),
+                InfixOperator::Call,
                 infix(
-                    InfixOperator::Call,
+                    InfixOperator::Dot,
+                    dec_integer("2", _pos(0, 1)),
                     symbol("f", _pos(2, 1)),
-                    tuple(vec![], _pos(3, 2)),
-                    _pos(2, 3)
+                    _pos(0, 3)
                 ),
+                tuple(vec![], _pos(3, 2)),
                 _pos(0, 5)
             )))
         );
