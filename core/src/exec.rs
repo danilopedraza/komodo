@@ -94,13 +94,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<(Object, Addres
         ASTNodeKind::Set { list } => extension_set(list, env),
         ASTNodeKind::Integer { literal, radix } => integer(literal, *radix),
         ASTNodeKind::Function { params, result } => function(params, result, env),
-        ASTNodeKind::Infix { op, lhs, rhs } => infix(
-            op.clone(),
-            &exec(lhs, env)?,
-            &exec(rhs, env)?,
-            node.position,
-            env,
-        ),
+        ASTNodeKind::Infix { op, lhs, rhs } => infix(op.clone(), lhs, rhs, node.position, env),
         ASTNodeKind::Boolean(val) => boolean(*val),
         ASTNodeKind::Call { called, args } => call(called, args, env, node.position),
         ASTNodeKind::Char(chr) => char(*chr),
@@ -747,15 +741,41 @@ fn fraction(
     }
 }
 
+fn object_attr(
+    obj: &ASTNode,
+    attr: &ASTNode,
+    env: &mut Environment,
+) -> ExecResult<Option<(Object, Address)>> {
+    match (exec(obj, env)?.0, &attr.kind) {
+        (Object::Dictionary(dict), ASTNodeKind::Symbol { name }) => {
+            let element_obj = Object::String(name.as_str().into());
+
+            match dict.get(&element_obj) {
+                Ok(obj) => Ok(Some((obj, Address::default()))),
+                Err(eval_err) => Err(Error::with_position(
+                    eval_err.into(),
+                    attr.position,
+                    env.file_path(),
+                )),
+            }
+        }
+        _ => Ok(None),
+    }
+}
+
 fn infix(
     op: InfixOperator,
-    lhs: &(Object, Address),
-    rhs: &(Object, Address),
+    lhs: &ASTNode,
+    rhs: &ASTNode,
     infix_pos: Position,
-    env: &Environment,
+    env: &mut Environment,
 ) -> ExecResult<(Object, Address)> {
-    let lhs = &lhs.0;
-    let rhs = &rhs.0;
+    if let Some(obj) = object_attr(lhs, rhs, env)? {
+        return Ok(obj);
+    }
+
+    let lhs = &exec(lhs, env)?.0;
+    let rhs = &exec(rhs, env)?.0;
     let lhs_kind = lhs.kind();
     let rhs_kind = rhs.kind();
 
@@ -1943,7 +1963,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn field_notation() {
         let dict = dictionary(
             vec![(symbol("foo", dummy_pos()), dec_integer("5", dummy_pos()))],
