@@ -661,6 +661,24 @@ fn call(
     env: &mut Environment,
     call_pos: Position,
 ) -> ExecResult<(Object, Address)> {
+    let (func_node, args): (&ASTNode, Vec<&ASTNode>) = match (func_node, args) {
+        (
+            ASTNode {
+                kind: ASTNodeKind::DotNotation { lhs, rhs },
+                ..
+            },
+            args,
+        ) => {
+            let mut new_args = vec![lhs.as_ref()];
+            for arg in args {
+                new_args.push(arg);
+            }
+
+            (rhs.as_ref(), new_args)
+        }
+        (func_node, args) => (func_node, args.iter().collect()),
+    };
+
     let func_name = match &func_node.kind {
         ASTNodeKind::Symbol { name } => Some(name),
         _ => None,
@@ -1983,7 +2001,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn false_oop_call() {
         let function = function(vec!["x"], symbol("x", dummy_pos()), dummy_pos());
 
