@@ -8,25 +8,40 @@
 //   // Universidad Nacional de Colombia
 // ])
 
-#set heading(numbering: "1.1.1")
+#set heading(numbering: "1.1.1.")
 
-#align(center, text(17pt)[
-  *Resumen técnico del intérprete del \
-  lenguaje de programación Komodo*
-])
+#page(
+  align(
+    center + horizon,
+    [
+      #text(17pt)[*El lenguaje de programación Komodo*] \
+      \
+      \
+      César Danilo Pedraza Montoya \
+      #link("mailto:cpedraza@unal.edu.co")
+    ]
+  ),
+  numbering: none,
+)
 
-#align(center, [
-  César Danilo Pedraza Montoya \
-  #link("mailto:cpedraza@unal.edu.co")  
-])
-
-#outline()
+#page(outline())
 
 = Introducción
 
 Komodo es un lenguaje de programación hecho para probar ideas rápidamente. Es ideal para problemas con estructuras discretas como números y palabras.
 Komodo intenta que operar con estas entidades sea tan fácil como sea posible mientras se minimiza la cantidad de código necesario para llegar
-a una implementación exitosa. Komodo es un lenguaje de _scripting_ con respecto a su flexibilidad, y también es una _herramienta con opiniones_.
+a una implementación exitosa. La otra prioridad de Komodo es la sencillez: se busca que el lenguaje sea pequeño y con reglas simples,
+con el propósito de que pueda ser aprendido con facilidad.
+
+Komodo está diseñado con la intención de convertirse en una herramienta útil para generar estructuras discretas que puedan depender
+de muchas restricciones, para así estudiarlas. Esta es una tarea común en el estudio de areas de las matemáticas como la combinatoria, la teoría de la computación,
+la teoría de grafos o la teoría de códigos. Usar el computador como una herramienta de exploración matemática es una práctica conocida como matemática experimental.
+
+// ref de matemática experimental
+
+Este documento describe el lenguaje de programación Komodo. No es una guía de uso del lenguaje. También se exploran detalles del
+intérprete de Komodo creado por el autor. Sin embargo, no se describe todo el comportamiento esperado de una implementación del lenguaje,
+ni se proveen detalles del intérprete más allá de lo estructural.
 
 = Visión general
 
