@@ -382,7 +382,7 @@ fn missing_func_arguments(expected: usize, actual: usize) -> String {
 }
 
 fn mutation_out_of_scope(var_name: &str) -> String {
-    format!("`{var_name}` is a mutable value, but it only can be modified in its own scope")
+    format!("`{var_name}` is a mutable value, but it only can be modified in its own scope or in nested loops")
 }
 
 fn non_callable_object(kind: &str) -> String {

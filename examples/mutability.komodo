@@ -1,0 +1,7 @@
+let n := 10
+var x := 0
+
+for k in 0..n do
+    x := x + k
+
+assert(x = n*(n-1)/2)

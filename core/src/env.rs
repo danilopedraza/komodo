@@ -11,12 +11,10 @@ struct Store {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ScopeDepth(pub usize);
-
-#[derive(Debug, PartialEq, Eq)]
 pub enum EnvResponse<'a> {
-    Mutable((&'a mut Object, Address), ScopeDepth),
-    Inmutable((&'a Object, Address), ScopeDepth),
+    Mutable((&'a mut Object, Address)),
+    Inmutable((&'a Object, Address)),
+    MutableOriginally((&'a Object, Address)),
     NotFound,
 }
 
@@ -33,12 +31,34 @@ pub enum ValueKind {
     Mutable,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum ScopeKind {
+    Root,
+    Function,
+    Loop,
+    Block,
+}
+
+impl Default for ScopeKind {
+    fn default() -> Self {
+        Self::Root
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 struct Scope {
     dict: BTreeMap<String, (ValueKind, Object, Address)>,
+    kind: ScopeKind,
 }
 
 impl Scope {
+    fn new(kind: ScopeKind) -> Self {
+        Self {
+            dict: BTreeMap::default(),
+            kind,
+        }
+    }
+
     fn get(&mut self, name: &str) -> ScopeResponse {
         match self.dict.get_mut(name) {
             Some((ValueKind::Inmutable, value, addr)) => ScopeResponse::Inmutable((value, *addr)),
@@ -98,17 +118,23 @@ impl Environment {
     }
 
     pub fn get(&mut self, name: &str) -> EnvResponse<'_> {
-        let mut depth = 0;
+        let mut mutable_reachable = true;
+
         for scope in self.scopes.iter_mut().rev().chain([&mut self.base]) {
+            if scope.kind == ScopeKind::Function {
+                mutable_reachable = false;
+            }
+
             match scope.get(name) {
-                ScopeResponse::NotFound => {
-                    depth += 1;
-                    continue;
+                ScopeResponse::NotFound => continue,
+                ScopeResponse::Inmutable(val) => return EnvResponse::Inmutable(val),
+                ScopeResponse::Mutable(val) => {
+                    if mutable_reachable {
+                        return EnvResponse::Mutable(val);
+                    } else {
+                        return EnvResponse::MutableOriginally((val.0, val.1));
+                    }
                 }
-                ScopeResponse::Inmutable(val) => {
-                    return EnvResponse::Inmutable(val, ScopeDepth(depth))
-                }
-                ScopeResponse::Mutable(val) => return EnvResponse::Mutable(val, ScopeDepth(depth)),
             }
         }
 
@@ -117,8 +143,8 @@ impl Environment {
 
     pub fn get_current_scope(&mut self, name: &str) -> EnvResponse<'_> {
         match self.scopes.last_mut().unwrap_or(&mut self.base).get(name) {
-            ScopeResponse::Mutable(val) => EnvResponse::Mutable(val, ScopeDepth(0)),
-            ScopeResponse::Inmutable(val) => EnvResponse::Inmutable(val, ScopeDepth(0)),
+            ScopeResponse::Mutable(val) => EnvResponse::Mutable(val),
+            ScopeResponse::Inmutable(val) => EnvResponse::Inmutable(val),
             ScopeResponse::NotFound => EnvResponse::NotFound,
         }
     }
@@ -137,8 +163,8 @@ impl Environment {
             .set_inmutable(name, val);
     }
 
-    pub fn push_scope(&mut self) {
-        self.scopes.push(Scope::default());
+    pub fn push_scope(&mut self, kind: ScopeKind) {
+        self.scopes.push(Scope::new(kind));
     }
 
     pub fn pop_scope(&mut self) {

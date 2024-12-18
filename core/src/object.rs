@@ -18,7 +18,7 @@ use num_rational::{BigRational, Ratio};
 
 use crate::{
     ast::ASTNode,
-    env::{Address, Environment},
+    env::{Address, Environment, ScopeKind},
     error::{Error, Position},
     exec::{exec, ExecError},
     lexer::Radix,
@@ -1456,7 +1456,7 @@ impl PatternFunction {
         result_node: &ASTNode,
         env: &mut Environment,
     ) -> Result<Object, Error> {
-        env.push_scope();
+        env.push_scope(ScopeKind::Function);
 
         for (name, pattern_val) in matched_values {
             env.set_inmutable(&name, pattern_val);
@@ -1518,7 +1518,7 @@ impl AnonFunction {
     }
 
     fn call(&mut self, args: &[Object], _call_pos: Position) -> Result<Object, Error> {
-        self.env.push_scope();
+        self.env.push_scope(ScopeKind::Function);
 
         for (arg, param) in zip(args, &self.params) {
             self.env

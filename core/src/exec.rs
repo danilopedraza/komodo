@@ -14,7 +14,7 @@ type ExecResult<T> = Result<T, Error>;
 
 use crate::ast::{ASTNode, ASTNodeKind, Declaration, InfixOperator};
 use crate::cst::{ComprehensionKind, PrefixOperator};
-use crate::env::{Address, EnvResponse, Environment, ScopeDepth, ValueKind};
+use crate::env::{Address, EnvResponse, Environment, ScopeKind, ValueKind};
 use crate::object::{Bool, Char, Integer, MyString, Object, Set, Symbol, Tuple};
 use crate::run::{self, ModuleAddress};
 
@@ -181,7 +181,7 @@ fn case(
 
     for (pattern, res) in pairs {
         if let Some(Match(map)) = match_(pattern, &expr_obj) {
-            env.push_scope();
+            env.push_scope(ScopeKind::Block);
             for (key, val) in map {
                 env.set_inmutable(&key, val);
             }
@@ -303,8 +303,8 @@ fn get_mutable_value<'a>(
 ) -> Result<&'a mut Object, Error> {
     let path = env.file_path();
     match env.get(name) {
-        EnvResponse::Mutable(obj_ref, ScopeDepth(0)) => Ok(obj_ref.0),
-        EnvResponse::Mutable(_, _) => Err(Error::with_position(
+        EnvResponse::Mutable(obj_ref) => Ok(obj_ref.0),
+        EnvResponse::MutableOriginally(_) => Err(Error::with_position(
             ExecError::MutationOutOfScope {
                 name: name.to_string(),
             }
@@ -312,7 +312,7 @@ fn get_mutable_value<'a>(
             position,
             path,
         )),
-        EnvResponse::Inmutable(_, _) => Err(Error::with_position(
+        EnvResponse::Inmutable(_) => Err(Error::with_position(
             ExecError::InmutableAssign(name.into()).into(),
             position,
             path,
@@ -510,8 +510,10 @@ fn extension_set(l: &[ASTNode], env: &mut Environment) -> ExecResult<(Object, Ad
 
 fn symbol(str: &str, env: &mut Environment, position: Position) -> ExecResult<(Object, Address)> {
     match env.get(str) {
-        EnvResponse::Inmutable((obj, addr), _) => Ok((obj.to_owned(), addr)),
-        EnvResponse::Mutable((obj, addr), _) => Ok((obj.to_owned(), addr)),
+        EnvResponse::Inmutable((obj, addr)) | EnvResponse::MutableOriginally((obj, addr)) => {
+            Ok((obj.to_owned(), addr))
+        }
+        EnvResponse::Mutable((obj, addr)) => Ok((obj.to_owned(), addr)),
         EnvResponse::NotFound => Err(Error::with_position(
             ExecError::UnknownValue(str.to_owned()).into(),
             position,
@@ -532,7 +534,7 @@ fn comprehension(
     match kind {
         ComprehensionKind::List => {
             let mut new_list = vec![];
-            env.push_scope();
+            env.push_scope(ScopeKind::Block);
 
             for val in iterator {
                 env.set_inmutable(variable, val);
@@ -543,7 +545,7 @@ fn comprehension(
         }
         ComprehensionKind::Set => {
             let mut new_set = BTreeSet::new();
-            env.push_scope();
+            env.push_scope(ScopeKind::Block);
 
             for val in iterator {
                 env.set_inmutable(variable, val);
@@ -575,11 +577,11 @@ fn let_function(
             );
 
             match env.get(name) {
-                EnvResponse::Mutable((Object::Function(Function::Pattern(f)), _), _) => f,
+                EnvResponse::Mutable((Object::Function(Function::Pattern(f)), _)) => f,
                 _ => unimplemented!(),
             }
         }
-        EnvResponse::Mutable((Object::Function(Function::Pattern(f)), _), _) => f,
+        EnvResponse::Mutable((Object::Function(Function::Pattern(f)), _)) => f,
         _ => unimplemented!(),
     };
 
@@ -620,7 +622,7 @@ fn for_(
 ) -> ExecResult<(Object, Address)> {
     let iter = get_iterable(iterable, env)?;
 
-    env.push_scope();
+    env.push_scope(ScopeKind::Loop);
 
     for val in iter {
         env.set_inmutable(symbol, val.clone());
@@ -890,7 +892,7 @@ mod tests {
         range, set_cons, string, symbol, symbolic_let, tuple, var,
     };
     use crate::cst::tests::dummy_pos;
-    use crate::env::{EnvResponse, ScopeDepth};
+    use crate::env::EnvResponse;
     use crate::error::ErrorKind;
     use crate::{ast, object::*};
 
@@ -1242,7 +1244,7 @@ mod tests {
     fn scope_hierarchy() {
         let mut env = Environment::default();
         env.set_inmutable("x", (Object::Boolean(Bool::from(true)), Address::default()));
-        env.push_scope();
+        env.push_scope(ScopeKind::Block);
 
         let node = &symbol("x", dummy_pos());
 
@@ -1266,10 +1268,7 @@ mod tests {
 
         assert_eq!(
             env.get("x"),
-            EnvResponse::Inmutable(
-                (&Object::Integer(Integer::from(0)), Address::default()),
-                ScopeDepth(0)
-            )
+            EnvResponse::Inmutable((&Object::Integer(Integer::from(0)), Address::default()),)
         );
     }
 
@@ -1782,7 +1781,7 @@ mod tests {
 
         assert_eq!(
             env.get("x"),
-            EnvResponse::Inmutable((&symbol, Address::default()), ScopeDepth(0)),
+            EnvResponse::Inmutable((&symbol, Address::default()),),
         );
     }
 
@@ -1807,10 +1806,7 @@ mod tests {
 
         assert_eq!(
             env.get("x"),
-            EnvResponse::Mutable(
-                (&mut Object::Integer(1.into()), Address::default()),
-                ScopeDepth(0)
-            )
+            EnvResponse::Mutable((&mut Object::Integer(1.into()), Address::default()),)
         );
     }
 
@@ -2060,6 +2056,46 @@ mod tests {
                 ))),
                 Address::default()
             ))
+        );
+    }
+
+    #[test]
+    fn loop_mutation() {
+        let loop_node = _for(
+            "i",
+            extension_list(
+                vec![dec_integer("1", dummy_pos()), dec_integer("2", dummy_pos())],
+                dummy_pos(),
+            ),
+            vec![assignment(
+                symbol("res", dummy_pos()),
+                cons(
+                    symbol("i", dummy_pos()),
+                    symbol("res", dummy_pos()),
+                    dummy_pos(),
+                ),
+                dummy_pos(),
+            )],
+            dummy_pos(),
+        );
+
+        let mut env = Environment::default();
+
+        env.set_mutable("res", (Object::empty_list(), Address::default()));
+
+        assert_eq!(
+            exec(&loop_node, &mut env),
+            Ok((Object::empty_tuple(), Address::default()))
+        );
+
+        assert_eq!(
+            env.get("res"),
+            EnvResponse::Mutable((
+                &mut Object::List(
+                    vec![Object::Integer(2.into()), Object::Integer(1.into())].into()
+                ),
+                Address::default()
+            ),),
         );
     }
 }
