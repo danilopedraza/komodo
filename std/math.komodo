@@ -1,5 +1,11 @@
 let abs(n: Integer | Decimal | Fraction) := if n < 0 then -n else n
 
+let factorial(n : Integer) :=
+    var res := 1
+    for k in 2..(n+1) do
+        res := res * k
+    res
+
 let sign(n: Integer | Decimal | Fraction) := if n < 0 then -1 else 1
 
 
