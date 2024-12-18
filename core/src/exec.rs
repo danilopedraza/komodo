@@ -2029,37 +2029,37 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn oop_call() {
-    //     let dict = dictionary(
-    //         vec![(
-    //             symbol("foo", dummy_pos()),
-    //             function(vec![], dec_integer("5", dummy_pos()), dummy_pos()),
-    //         )],
-    //         true,
-    //         dummy_pos(),
-    //     );
+    #[test]
+    fn oop_call() {
+        let dict = dictionary(
+            vec![(
+                symbol("foo", dummy_pos()),
+                function(vec![], dec_integer("5", dummy_pos()), dummy_pos()),
+            )],
+            true,
+            dummy_pos(),
+        );
 
-    //     let mut env = Environment::default();
-    //     let dict = exec(&dict, &mut env).unwrap();
-    //     env.set_inmutable("obj", dict);
+        let mut env = Environment::default();
+        let dict = exec(&dict, &mut env).unwrap();
+        env.set_inmutable("obj", dict);
 
-    //     let attr = dot_notation(
-    //         symbol("obj", dummy_pos()),
-    //         symbol("foo", dummy_pos()),
-    //         dummy_pos(),
-    //     );
+        let attr = dot_notation(
+            symbol("obj", dummy_pos()),
+            symbol("foo", dummy_pos()),
+            dummy_pos(),
+        );
 
-    //     assert_eq!(
-    //         exec(&attr, &mut env),
-    //         Ok((
-    //             Object::Function(Function::Anonymous(AnonFunction::new(
-    //                 vec![],
-    //                 dec_integer("5", dummy_pos()),
-    //                 Environment::default()
-    //             ))),
-    //             Address::default()
-    //         ))
-    //     );
-    // }
+        assert_eq!(
+            exec(&attr, &mut env),
+            Ok((
+                Object::Function(Function::Anonymous(AnonFunction::new(
+                    vec![],
+                    dec_integer("5", dummy_pos()),
+                    Environment::default()
+                ))),
+                Address::default()
+            ))
+        );
+    }
 }
