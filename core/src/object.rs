@@ -620,6 +620,18 @@ impl InfixOperable for Decimal {
             _ => Some(Object::Boolean(true.into())),
         }
     }
+
+    fn rem(&self, other: &Object) -> Option<Object> {
+        match other {
+            Object::Decimal(Decimal { val }) => Some(Object::Decimal(Decimal {
+                val: &self.val % val,
+            })),
+            Object::Integer(Integer { val }) => Some(Object::Decimal(Decimal {
+                val: &self.val % BigDecimal::new(val.clone(), 0),
+            })),
+            _ => None,
+        }
+    }
 }
 
 impl fmt::Display for Decimal {
@@ -2162,5 +2174,13 @@ mod tests {
         let c = a.pow(&b).unwrap().to_string();
 
         assert_eq!(c, "1E-10");
+    }
+
+    #[test]
+    fn decimal_remainder() {
+        let a = Object::Decimal(Decimal::new("2", "4"));
+        let b = Object::Decimal(Decimal::new("0", "5"));
+
+        assert_eq!(a.rem(&b), Some(Object::Decimal(Decimal::new("0", "4"))));
     }
 }
