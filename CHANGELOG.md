@@ -27,3 +27,5 @@
 # Upstream
 
 - Enable mutability inside loops.
+
+- Enable value destructuring of loop variables. Now you can use any pattern as a loop variable.
