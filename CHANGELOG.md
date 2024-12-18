@@ -23,3 +23,7 @@
 # 0.3.0
 
 - Add object-like notation for dictionaries. Add criteria for selecting between object function calls and pseudo-OOP calls.
+
+# Upstream
+
+- Enable mutability inside loops.
