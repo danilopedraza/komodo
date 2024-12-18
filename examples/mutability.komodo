@@ -5,3 +5,7 @@ for k in 0..n do
     x := x + k
 
 assert(x = n*(n-1)/2)
+
+x := 0
+for _ in 0..10 do x := x + 1
+assert(x = 10)

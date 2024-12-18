@@ -270,14 +270,20 @@ fn assignment(
         return Ok((element_ref.to_owned(), Address::default()));
     }
 
-    match match_(left, &value) {
-        Some(Match(map)) => {
-            make_assignment(map, env, left.position)?;
-            Ok((value, Address::default()))
-        }
+    make_assignment(destructure(left, &value, env)?, env, left.position)?;
+    Ok((value, Address::default()))
+}
+
+fn destructure(
+    pattern: &ASTNode,
+    val: &Object,
+    env: &mut Environment,
+) -> ExecResult<BTreeMap<String, (Object, Address)>> {
+    match match_(pattern, val) {
+        Some(Match(map)) => Ok(map),
         None => Err(Error::with_position(
             ExecError::BadMatch.into(),
-            left.position.join(right.position),
+            pattern.position,
             env.file_path(),
         )),
     }
@@ -615,9 +621,9 @@ fn if_(
 }
 
 fn for_(
-    symbol: &str,
+    pattern: &ASTNode,
     iterable: &ASTNode,
-    proc: &[ASTNode],
+    proc: &ASTNode,
     env: &mut Environment,
 ) -> ExecResult<(Object, Address)> {
     let iter = get_iterable(iterable, env)?;
@@ -625,11 +631,11 @@ fn for_(
     env.push_scope(ScopeKind::Loop);
 
     for val in iter {
-        env.set_inmutable(symbol, val.clone());
-
-        for step in proc {
-            exec(step, env)?;
+        for (name, val) in destructure(pattern, &val.0, env)? {
+            env.set_inmutable(&name, val.clone());
         }
+
+        exec(proc, env)?;
     }
 
     env.pop_scope();
@@ -1413,7 +1419,7 @@ mod tests {
         );
 
         let node = &_for(
-            "val",
+            symbol("val", dummy_pos()),
             extension_list(
                 vec![
                     dec_integer("1", dummy_pos()),
@@ -2062,7 +2068,7 @@ mod tests {
     #[test]
     fn loop_mutation() {
         let loop_node = _for(
-            "i",
+            symbol("i", dummy_pos()),
             extension_list(
                 vec![dec_integer("1", dummy_pos()), dec_integer("2", dummy_pos())],
                 dummy_pos(),

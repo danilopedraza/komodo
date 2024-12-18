@@ -206,7 +206,7 @@ pub enum CSTNodeKind {
     },
     ExtensionList(Vec<CSTNode>),
     ExtensionSet(Vec<CSTNode>),
-    For(String, Box<CSTNode>, Vec<CSTNode>),
+    For(Box<CSTNode>, Box<CSTNode>),
     If(Box<CSTNode>, Box<CSTNode>, Box<CSTNode>),
     Import {
         name: Box<CSTNode>,
@@ -275,9 +275,34 @@ pub fn cons(first: CSTNode, most: CSTNode, position: Position) -> CSTNode {
     CSTNode::new(CSTNodeKind::Cons(Box::new(first), Box::new(most)), position)
 }
 
-pub fn _for(var: &str, iter: CSTNode, block: Vec<CSTNode>, position: Position) -> CSTNode {
+pub fn _for(var: CSTNode, iter: CSTNode, proc: Vec<CSTNode>, position: Position) -> CSTNode {
+    let var_pos = var.position.join(iter.position);
+    let proc_pos = proc
+        .first()
+        .unwrap()
+        .position
+        .join(proc.last().unwrap().position);
     CSTNode::new(
-        CSTNodeKind::For(var.into(), Box::new(iter), block),
+        CSTNodeKind::For(
+            Box::new(infix(InfixOperator::In, var, iter, var_pos)),
+            Box::new(CSTNode::new(CSTNodeKind::Block(proc), proc_pos)),
+        ),
+        position,
+    )
+}
+
+pub fn _for_single_instruction(
+    var: CSTNode,
+    iter: CSTNode,
+    proc: CSTNode,
+    position: Position,
+) -> CSTNode {
+    let var_pos = var.position.join(iter.position);
+    CSTNode::new(
+        CSTNodeKind::For(
+            Box::new(infix(InfixOperator::In, var, iter, var_pos)),
+            Box::new(proc),
+        ),
         position,
     )
 }

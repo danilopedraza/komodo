@@ -493,31 +493,16 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     fn for_(&mut self) -> NodeResult {
         let start = self.cur_pos.start;
 
-        let ident = match self.next_token()? {
-            Some(TokenType::Ident(s)) => Ok(s),
-            Some(tok) => self.err_with_cur(ParserError::UnexpectedToken(
-                vec![TokenType::Ident(String::from(""))],
-                tok,
-            )),
-            None => self.err_with_cur(ParserError::EOFExpecting(vec![TokenType::Ident(
-                String::from(""),
-            )])),
-        }?;
-
-        self.consume(TokenType::In)?;
-
-        let iter = self.expression(Precedence::Lowest)?;
+        let expr = self.expression(Precedence::Lowest)?;
 
         self.consume(TokenType::Do)?;
 
-        let CSTNode { kind, position } = self.expression(Precedence::Lowest)?;
+        let proc = self.expression(Precedence::Lowest)?;
 
-        let proc = match kind {
-            CSTNodeKind::Tuple(v) => v,
-            node => vec![CSTNode::new(node, position)],
-        };
-
-        Ok(_for(&ident, iter, proc, self.start_to_cur(start)))
+        Ok(CSTNode::new(
+            CSTNodeKind::For(Box::new(expr), Box::new(proc)),
+            self.start_to_cur(start),
+        ))
     }
 
     fn import_from(&mut self) -> NodeResult {
@@ -1455,15 +1440,15 @@ mod tests {
 
         assert_eq!(
             Parser::from(lexer).next(),
-            Some(Ok(_for(
-                "i",
+            Some(Ok(_for_single_instruction(
+                symbol("i", _pos(4, 1)),
                 symbol("list", _pos(9, 4)),
-                vec![infix(
+                infix(
                     InfixOperator::Call,
                     symbol("println", _pos(17, 7)),
                     tuple(vec![symbol("i", _pos(25, 1))], _pos(24, 3)),
                     _pos(17, 10)
-                )],
+                ),
                 _pos(0, 27)
             )))
         );

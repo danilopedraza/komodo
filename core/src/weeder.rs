@@ -32,7 +32,7 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeKind::Char(chr) => char(chr),
         CSTNodeKind::ExtensionList(list) => extension_list(list),
         CSTNodeKind::ExtensionSet(list) => extension_set(list),
-        CSTNodeKind::For(val, iter, proc) => _for(val, *iter, proc),
+        CSTNodeKind::For(expr, proc) => _for(*expr, *proc),
         CSTNodeKind::If(cond, positive, negative) => _if(*cond, *positive, *negative),
         CSTNodeKind::Infix(op, lhs, rhs) => infix(op, *lhs, *rhs),
         CSTNodeKind::Integer(dec, radix) => integer(dec, radix, node.position),
@@ -113,9 +113,15 @@ fn extension_set(list: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
     Ok(ASTNodeKind::Set { list })
 }
 
-fn _for(val: String, iter: CSTNode, proc: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
-    let iter = Box::new(rewrite(iter)?);
-    let proc = rewrite_vec(proc)?;
+fn _for(expr: CSTNode, proc: CSTNode) -> WeederResult<ASTNodeKind> {
+    let (val, iter) = match expr.kind {
+        CSTNodeKind::Infix(InfixOperator::In, val, iter) => {
+            (Box::new(rewrite(*val)?), Box::new(rewrite(*iter)?))
+        }
+        _ => todo!(),
+    };
+
+    let proc = Box::new(rewrite(proc)?);
     Ok(ASTNodeKind::For { val, iter, proc })
 }
 

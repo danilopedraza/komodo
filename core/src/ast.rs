@@ -135,9 +135,9 @@ pub enum ASTNodeKind {
         list: Vec<ASTNode>,
     },
     For {
-        val: String,
+        val: Box<ASTNode>,
         iter: Box<ASTNode>,
-        proc: Vec<ASTNode>,
+        proc: Box<ASTNode>,
     },
     Function {
         params: Vec<String>,
@@ -273,9 +273,15 @@ pub mod tests {
         ASTNode::new(ASTNodeKind::List { list }, position)
     }
 
-    pub fn _for(val: &str, iter: ASTNode, proc: Vec<ASTNode>, position: Position) -> ASTNode {
-        let val = val.to_string();
+    pub fn _for(val: ASTNode, iter: ASTNode, proc: Vec<ASTNode>, position: Position) -> ASTNode {
+        let val = Box::new(val);
         let iter = Box::new(iter);
+        let pos = proc
+            .first()
+            .unwrap()
+            .position
+            .join(proc.last().unwrap().position);
+        let proc = Box::new(block(proc, pos));
         ASTNode::new(ASTNodeKind::For { val, iter, proc }, position)
     }
 
