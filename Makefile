@@ -71,7 +71,7 @@ serve-book:
 
 repl:
 	cd core
-	cargo run --all-features --quiet
+	KOMODO_STD=$(CURRENT_DIR)/std/ cargo run --all-features --quiet
 
 env:
 	nix-shell
