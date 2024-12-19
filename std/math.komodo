@@ -7,3 +7,11 @@ let factorial(n : Integer) :=
     res
 
 let sign(n: Integer || Decimal || Fraction) := if n < 0 then -1 else 1
+
+let sqrt(x: Integer || Fraction) := sqrt(x + 0.0)
+let sqrt(x: Decimal) :=
+    var res := x
+    for _ in 0..3 do
+        res := 0.5 * (res + x / res)
+    
+    res
