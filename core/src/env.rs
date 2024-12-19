@@ -31,7 +31,7 @@ pub enum ValueKind {
     Mutable,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ScopeKind {
     Root,
     Function,
@@ -121,20 +121,28 @@ impl Environment {
         let mut mutable_reachable = true;
 
         for scope in self.scopes.iter_mut().rev().chain([&mut self.base]) {
-            if scope.kind == ScopeKind::Function {
+            let scope_kind = scope.kind;
+
+            let res = match scope.get(name) {
+                ScopeResponse::NotFound => None,
+                ScopeResponse::Inmutable(val) => Some(EnvResponse::Inmutable(val)),
+                ScopeResponse::Mutable(val) => {
+                    if mutable_reachable {
+                        Some(EnvResponse::Mutable(val))
+                    } else {
+                        Some(EnvResponse::MutableOriginally((val.0, val.1)))
+                    }
+                }
+            };
+
+            if scope_kind != ScopeKind::Loop {
                 mutable_reachable = false;
             }
 
-            match scope.get(name) {
-                ScopeResponse::NotFound => continue,
-                ScopeResponse::Inmutable(val) => return EnvResponse::Inmutable(val),
-                ScopeResponse::Mutable(val) => {
-                    if mutable_reachable {
-                        return EnvResponse::Mutable(val);
-                    } else {
-                        return EnvResponse::MutableOriginally((val.0, val.1));
-                    }
-                }
+            if let Some(res) = res {
+                return res;
+            } else {
+                continue;
             }
         }
 
