@@ -1,11 +1,8 @@
 let map(iter: Set, fn: Function) := {fn(val) for val in iter}
-let map(iter: List, fn: Function) := [fn(val) for val in iter]
-let map(iter: Range, fn: Function) := [fn(val) for val in iter]
+let map(iter: List || Range, fn: Function) := [fn(val) for val in iter]
 
-let reduce([], _, initial) := initial
-let reduce([first|most], fn: Function, initial) := reduce(most, fn, fn(initial, first))
-let reduce({}, _, initial) := initial
-let reduce({some|most}, fn: Function, initial) := reduce(most, fn, fn(initial, some)) 
+let reduce([] || {}, _, initial) := initial
+let reduce([some|most] || {some|most}, fn: Function, initial) := reduce(most, fn, fn(initial, some)) 
 
 let fold([first|most], fn: Function) := reduce(most, fn, first)
 let fold({some|most}, fn: Function) := reduce(most, fn, some)
