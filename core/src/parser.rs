@@ -2048,4 +2048,26 @@ mod tests {
             )))
         );
     }
+
+    #[test]
+    fn signature_conjunction_pattern() {
+        let input = "n: Integer || Decimal";
+
+        let lexer = lexer_from(input);
+
+        assert_eq!(
+            Parser::from(lexer).next(),
+            Some(Ok(infix(
+                InfixOperator::Constraint,
+                symbol("n", _pos(0, 1)),
+                infix(
+                    InfixOperator::Or,
+                    symbol("Integer", _pos(3, 7)),
+                    symbol("Decimal", _pos(14, 7)),
+                    _pos(3, 18)
+                ),
+                _pos(0, 21)
+            ))),
+        );
+    }
 }

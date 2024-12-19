@@ -361,11 +361,7 @@ fn cons(first: CSTNode, tail: CSTNode) -> WeederResult<ASTNodeKind> {
 
 fn pattern(exp: CSTNode, constraint: CSTNode) -> WeederResult<ASTNodeKind> {
     let exp = Box::new(rewrite(exp)?);
-    let constraint = match constraint.kind {
-        CSTNodeKind::Symbol(name) => Some(name),
-        _ => None,
-    };
-    // let constraint = constraint.map(rewrite).transpose()?.map(Box::new);
+    let constraint = Some(Box::new(rewrite(constraint)?));
     Ok(ASTNodeKind::Pattern { exp, constraint })
 }
 

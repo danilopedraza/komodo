@@ -61,22 +61,24 @@ fn match_sequence(patterns: &[ASTNode], vals: &[Object]) -> Option<Match> {
     }
 }
 
-fn satisfies(obj: &Object, constraint: &Option<String>) -> bool {
-    match constraint {
-        None => true,
-        Some(name) => obj.has_property(name),
+fn satisfies(obj: &Object, constraint: &ASTNode) -> bool {
+    match &constraint.kind {
+        ASTNodeKind::Symbol { name } => obj.has_property(name),
+        ASTNodeKind::Infix {
+            op: InfixOperator::Or,
+            lhs,
+            rhs,
+        } => satisfies(obj, lhs) || satisfies(obj, rhs),
+        _ => false,
     }
 }
 
 pub fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
     match &pattern.kind {
-        ASTNodeKind::Pattern { exp, constraint } => {
-            if satisfies(val, constraint) {
-                match_(exp, val)
-            } else {
-                None
-            }
-        }
+        ASTNodeKind::Pattern { exp, constraint } => match constraint {
+            Some(constraint) if satisfies(val, constraint) => match_(exp, val),
+            _ => None,
+        },
         ASTNodeKind::Wildcard => empty_match(),
         ASTNodeKind::Symbol { name } => single_match(name, val),
         ASTNodeKind::List { list } => match_extension_list(list, val),
@@ -274,7 +276,7 @@ mod tests {
     use crate::{
         ast::tests::{
             ad_infinitum, cons, dec_integer, dictionary, extension_list, extension_set, fraction,
-            pattern, range, set_cons, string, symbol, wildcard,
+            infix, pattern, range, set_cons, string, symbol, wildcard,
         },
         cst::tests::dummy_pos,
         env::Address,
@@ -519,7 +521,11 @@ mod tests {
 
     #[test]
     fn match_property() {
-        let pattern = pattern(wildcard(dummy_pos()), Some("String"), dummy_pos());
+        let pattern = pattern(
+            wildcard(dummy_pos()),
+            Some(symbol("String", dummy_pos())),
+            dummy_pos(),
+        );
 
         let value = Object::String("".into());
 
@@ -528,7 +534,11 @@ mod tests {
 
     #[test]
     fn unsatisfied_constraint() {
-        let pattern = pattern(wildcard(dummy_pos()), Some("String"), dummy_pos());
+        let pattern = pattern(
+            wildcard(dummy_pos()),
+            Some(symbol("String", dummy_pos())),
+            dummy_pos(),
+        );
 
         let value = Object::Integer(0.into());
 
@@ -537,7 +547,11 @@ mod tests {
 
     #[test]
     fn symbol_with_property() {
-        let pattern = pattern(symbol("a", dummy_pos()), Some("Real"), dummy_pos());
+        let pattern = pattern(
+            symbol("a", dummy_pos()),
+            Some(symbol("Real", dummy_pos())),
+            dummy_pos(),
+        );
 
         let value = Object::Symbol(Symbol::new("a".into(), "Real".into()));
 
@@ -564,5 +578,23 @@ mod tests {
                 single_match("tail", &Object::String("oo".into())),
             ),
         );
+    }
+
+    #[test]
+    fn signature_conjunction() {
+        let pattern = pattern(
+            symbol("n", dummy_pos()),
+            Some(infix(
+                InfixOperator::Or,
+                symbol("Decimal", dummy_pos()),
+                symbol("Integer", dummy_pos()),
+                dummy_pos(),
+            )),
+            dummy_pos(),
+        );
+
+        let value = Object::Integer(0.into());
+
+        assert_eq!(match_(&pattern, &value), single_match("n", &value),);
     }
 }
