@@ -33,3 +33,5 @@
 - Add the remainder operator to the Decimal type.
 
 - Now an argument can be matched against several signatures using the same pattern using the `||` operator.
+
+- Now an an argument can be matched against several patterns in the same pattern using the `||` operator.

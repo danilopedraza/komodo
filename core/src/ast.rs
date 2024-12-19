@@ -6,7 +6,7 @@ use crate::{
 };
 use std::hash::Hash;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum InfixOperator {
     BitwiseAnd,
     BitwiseXor,

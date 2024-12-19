@@ -86,15 +86,23 @@ pub fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
         ASTNodeKind::Set { list } => match_extension_set(list, val),
         ASTNodeKind::Cons { first, tail } => match_prefix_crop(first, tail, val),
         ASTNodeKind::Dictionary { pairs, complete } => match_dictionary(pairs, *complete, val),
-        ASTNodeKind::Infix {
-            op: InfixOperator::Range,
-            lhs,
-            rhs,
-        } => match_range(lhs, rhs, val),
+        ASTNodeKind::Infix { op, lhs, rhs } => match_infix(*op, lhs, rhs, val),
         ASTNodeKind::SetCons { some, most } => set_cons(some, most, val),
         ASTNodeKind::Fraction { numer, denom } => fraction(numer, denom, val),
         _ => match_constant(pattern, val),
     }
+}
+
+fn match_infix(op: InfixOperator, lhs: &ASTNode, rhs: &ASTNode, val: &Object) -> Option<Match> {
+    match op {
+        InfixOperator::Range => match_range(lhs, rhs, val),
+        InfixOperator::Or => match_or(lhs, rhs, val),
+        _ => None,
+    }
+}
+
+fn match_or(lhs: &ASTNode, rhs: &ASTNode, val: &Object) -> Option<Match> {
+    match_(lhs, val).or_else(|| match_(rhs, val))
 }
 
 fn single_match(name: &str, val: &Object) -> Option<Match> {
@@ -596,5 +604,22 @@ mod tests {
         let value = Object::Integer(0.into());
 
         assert_eq!(match_(&pattern, &value), single_match("n", &value),);
+    }
+
+    #[test]
+    fn pattern_conjunction() {
+        let pattern = infix(
+            InfixOperator::Or,
+            extension_list(vec![symbol("val", dummy_pos())], dummy_pos()),
+            extension_set(vec![symbol("val", dummy_pos())], dummy_pos()),
+            dummy_pos(),
+        );
+
+        let value = Object::Set(Set::from(vec![Object::Integer(5.into())]));
+
+        assert_eq!(
+            match_(&pattern, &value),
+            single_match("val", &Object::Integer(5.into())),
+        );
     }
 }

@@ -94,7 +94,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<(Object, Addres
         ASTNodeKind::Set { list } => extension_set(list, env),
         ASTNodeKind::Integer { literal, radix } => integer(literal, *radix),
         ASTNodeKind::Function { params, result } => function(params, result, env),
-        ASTNodeKind::Infix { op, lhs, rhs } => infix(op.clone(), lhs, rhs, node.position, env),
+        ASTNodeKind::Infix { op, lhs, rhs } => infix(*op, lhs, rhs, node.position, env),
         ASTNodeKind::Boolean(val) => boolean(*val),
         ASTNodeKind::Call { called, args } => call(called, args, env, node.position),
         ASTNodeKind::Char(chr) => char(*chr),
