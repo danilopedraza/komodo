@@ -169,6 +169,10 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn expression(&mut self, precedence: Precedence) -> NodeResult {
+        while let Ok(Some(TokenType::Newline)) = self.peek_token() {
+            self.next_token()?;
+        }
+
         let start = self.peek_pos().start;
 
         let mut expr = self.non_infix()?;
@@ -180,10 +184,6 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             } else {
                 break;
             }
-        }
-
-        while let Ok(Some(TokenType::Newline)) = self.peek_token() {
-            self.next_token()?;
         }
 
         Ok(expr)
@@ -388,6 +388,16 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
     }
 
+    fn skip_newlines(&mut self) {
+        while let Some(Ok(Token {
+            token: TokenType::Newline,
+            ..
+        })) = self.tokens.peek()
+        {
+            self.tokens.next();
+        }
+    }
+
     fn next_token(&mut self) -> Result<Option<TokenType>, Error> {
         if self.ignore_whitespace {
             self.skip_whitespace();
@@ -519,6 +529,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     }
 
     fn consume(&mut self, expected_tok: TokenType) -> Result<(), Error> {
+        self.skip_newlines();
         match self.next_token()? {
             Some(tok) if tok == expected_tok => Ok(()),
             Some(tok) => self.err_with_cur(ParserError::UnexpectedToken(vec![expected_tok], tok)),
@@ -2068,6 +2079,50 @@ mod tests {
                     _pos(3, 18)
                 ),
                 _pos(0, 21)
+            ))),
+        );
+    }
+
+    #[test]
+    fn rparen_after_block() {
+        let input = unindent(
+            "
+        for i in 0..1 do
+            println(i)
+        (a * 2)
+        ",
+        );
+
+        let lexer = lexer_from(&input);
+        let mut parser = Parser::from(lexer);
+
+        assert_eq!(
+            parser.next(),
+            Some(Ok(_for(
+                symbol("i", _pos(4, 1)),
+                infix(
+                    InfixOperator::Range,
+                    dec_integer("0", _pos(9, 1)),
+                    dec_integer("1", _pos(12, 1)),
+                    _pos(9, 4),
+                ),
+                vec![infix(
+                    InfixOperator::Call,
+                    symbol("println", _pos(21, 7)),
+                    tuple(vec![symbol("i", _pos(29, 1))], _pos(28, 3)),
+                    _pos(21, 10)
+                )],
+                _pos(0, 32)
+            ))),
+        );
+
+        assert_eq!(
+            parser.next(),
+            Some(Ok(infix(
+                InfixOperator::Product,
+                symbol("a", _pos(33, 1)),
+                dec_integer("2", _pos(37, 1)),
+                _pos(33, 5)
             ))),
         );
     }
