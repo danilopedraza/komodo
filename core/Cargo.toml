@@ -11,5 +11,6 @@ bigdecimal = "0.4.6"
 codespan-reporting = "0.11.1"
 num-bigint = "0.4.5"
 num-rational = "0.4.2"
+pretty_assertions = "1.4.1"
 rustyline = { version = "14.0.0", optional = true }
 unindent = "0.2.3"

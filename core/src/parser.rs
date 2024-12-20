@@ -699,6 +699,7 @@ mod tests {
         error::Position,
         lexer::{Lexer, Radix},
     };
+    use pretty_assertions::assert_eq;
     use std::iter;
     use unindent::unindent;
 
