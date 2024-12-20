@@ -238,12 +238,16 @@ impl<'a> Lexer<'a> {
                     match indent_res {
                         IndentLevel::Zero => {
                             self.push_dedents(self.indent_level);
+                            if self.input.peek().is_some() {
+                                self.push_newline(newline_pos);
+                            }
                             self.indent_level = 0;
                         }
                         IndentLevel::NonZero(new_indent_level, indent_token) => {
                             match new_indent_level.cmp(&self.indent_level) {
                                 std::cmp::Ordering::Less => {
                                     self.push_dedents(self.indent_level - new_indent_level);
+                                    self.push_newline(newline_pos);
                                 }
                                 std::cmp::Ordering::Equal => {
                                     self.push_newline(newline_pos);
@@ -474,6 +478,8 @@ mod tests {
     use unindent::unindent;
 
     use crate::cst::tests::_pos;
+
+    use pretty_assertions::assert_eq;
 
     use super::*;
 
@@ -955,6 +961,7 @@ mod tests {
                 TokenType::Indent,
                 TokenType::Ident("n".into()),
                 TokenType::Dedent,
+                TokenType::Newline,
                 TokenType::Ident("f".into()),
             ])
         );
@@ -1167,6 +1174,44 @@ mod tests {
                 TokenType::FatArrow,
                 TokenType::String("five".into()),
                 TokenType::Dedent,
+            ]),
+        );
+    }
+
+    #[test]
+    fn end_block_correctly() {
+        let code = unindent(
+            "
+        for i in 0..1 do
+            println(i)
+        (a * 2) / 3
+        ",
+        );
+
+        assert_eq!(
+            token_types_from(&code),
+            Ok(vec![
+                TokenType::For,
+                TokenType::Ident("i".into()),
+                TokenType::In,
+                TokenType::Integer("0".into(), Radix::Decimal),
+                TokenType::DotDot,
+                TokenType::Integer("1".into(), Radix::Decimal),
+                TokenType::Do,
+                TokenType::Indent,
+                TokenType::Ident("println".into()),
+                TokenType::Lparen,
+                TokenType::Ident("i".into()),
+                TokenType::Rparen,
+                TokenType::Dedent,
+                TokenType::Newline,
+                TokenType::Lparen,
+                TokenType::Ident("a".into()),
+                TokenType::Times,
+                TokenType::Integer("2".into(), Radix::Decimal),
+                TokenType::Rparen,
+                TokenType::Over,
+                TokenType::Integer("3".into(), Radix::Decimal),
             ]),
         );
     }
