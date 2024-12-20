@@ -11,7 +11,24 @@ let sign(n: Integer || Decimal || Fraction) := if n < 0 then -1 else 1
 let sqrt(x: Integer || Fraction) := sqrt(x + 0.0)
 let sqrt(x: Decimal) :=
     var res := x
-    for _ in 0..3 do
+    for _ in 0..5 do
         res := 0.5 * (res + x / res)
     
     res
+
+let pi() :=
+    var (a, b, s) := (
+        1.0,
+        1 / sqrt(2),
+        0.5,
+    )
+
+    for k in 1..6 do
+        (a, b) := (
+            (a + b) * 0.5,
+            sqrt(a * b),
+        )
+        
+        s := s - 2 ** k * (a*a - b*b)
+    
+    (2 * a * a) / s
