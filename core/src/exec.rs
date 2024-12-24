@@ -5,8 +5,9 @@ use std::rc::Rc;
 use crate::error::{Error, Position};
 use crate::lexer::Radix;
 use crate::matcher::{match_, Match};
+use crate::object::fraction::Fraction;
 use crate::object::{
-    self, AnonFunction, Decimal, Dictionary, FailedAssertion, Fraction, Function,
+    self, decimal::Decimal, AnonFunction, Dictionary, FailedAssertion, Function,
     FunctionPatternKind, Kind, List, PatternFunction, Range,
 };
 
@@ -15,7 +16,7 @@ type ExecResult<T> = Result<T, Error>;
 use crate::ast::{ASTNode, ASTNodeKind, Declaration, InfixOperator};
 use crate::cst::{ComprehensionKind, PrefixOperator};
 use crate::env::{Address, EnvResponse, Environment, ScopeKind, ValueKind};
-use crate::object::{Bool, Char, Integer, MyString, Object, Set, Symbol, Tuple};
+use crate::object::{integer::Integer, Bool, Char, MyString, Object, Set, Symbol, Tuple};
 use crate::run::{self, ModuleAddress};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1448,7 +1449,7 @@ mod tests {
         assert_eq!(
             exec(node, &mut Environment::default()).unwrap().0,
             Object::List(crate::object::List::from(vec![Object::Integer(
-                crate::object::Integer::from(1)
+                crate::object::integer::Integer::from(1)
             ),])),
         )
     }

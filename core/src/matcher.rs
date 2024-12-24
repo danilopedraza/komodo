@@ -258,8 +258,8 @@ fn set_cons(some: &ASTNode, most: &ASTNode, val: &Object) -> Option<Match> {
 fn fraction(numer: &ASTNode, denom: &ASTNode, val: &Object) -> Option<Match> {
     match val {
         Object::Fraction(frac) => {
-            let numer_val = Object::Integer(frac.val.numer().to_owned().into());
-            let denom_val = Object::Integer(frac.val.denom().to_owned().into());
+            let numer_val = Object::Integer(frac.numer());
+            let denom_val = Object::Integer(frac.denom());
 
             join(match_(numer, &numer_val), match_(denom, &denom_val))
         }
@@ -288,7 +288,7 @@ mod tests {
         },
         cst::tests::dummy_pos,
         env::Address,
-        object::{Dictionary, Fraction, Integer, Range, Set, Symbol},
+        object::{fraction::Fraction, integer::Integer, Dictionary, Range, Set, Symbol},
     };
 
     use super::*;
