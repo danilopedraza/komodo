@@ -1,50 +1,25 @@
 use std::{
     fmt,
+    hash::Hash,
     ops::{Add, Div, Mul, Rem, Sub},
 };
 
-use bigdecimal::{BigDecimal, One, Zero};
-use num_rational::BigRational;
+use rug::ops::{CompleteRound, Pow};
 
 use super::{integer::Integer, Bool, Fraction, InfixOperable, Object, PrefixOperable};
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct Decimal {
-    val: BigDecimal,
+#[derive(Clone, Debug)]
+pub struct Float {
+    val: rug::Float,
 }
 
-impl Decimal {
+pub static PREC: u32 = 53;
+impl Float {
     pub fn new(int: &str, dec: &str) -> Self {
-        let val: BigDecimal = format!("{int}.{dec}").parse().unwrap();
+        let str = format!("{int}.{dec}");
+        let val = rug::Float::parse(str).unwrap().complete(PREC);
+
         Self { val }
-    }
-
-    fn binary_pow(&self, exponent: &Integer) -> Self {
-        let zero = Integer::zero();
-        let one = Integer::one();
-        let two = Integer::from(2);
-
-        let mut base = self.val.to_owned();
-        let mut exp = exponent.magnitude();
-        let mut val = BigDecimal::one();
-
-        while exp != zero {
-            if &exp % &two == one {
-                val *= &base;
-                val = val.normalized();
-            }
-
-            base = base.square().normalized();
-
-            exp = &exp / &two;
-        }
-
-        let must_invert = exponent.is_negative();
-        if must_invert {
-            val = val.inverse().normalized();
-        }
-
-        Decimal { val }
     }
 
     pub fn is_zero(&self) -> bool {
@@ -53,100 +28,137 @@ impl Decimal {
 
     pub fn inv(&self) -> Self {
         Self {
-            val: self.val.inverse().normalized(),
+            val: self.val.to_owned().recip(),
         }
     }
 }
 
-impl Add for &Decimal {
-    type Output = Decimal;
+impl Ord for Float {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.val.as_ord().cmp(other.val.as_ord())
+    }
+}
+
+impl PartialOrd for Float {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Float {
+    fn eq(&self, other: &Self) -> bool {
+        self.val.as_ord().eq(other.val.as_ord())
+    }
+}
+
+impl Eq for Float {}
+
+impl Hash for Float {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.val.as_ord().hash(state)
+    }
+}
+
+impl Add for &Float {
+    type Output = Float;
 
     fn add(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: &self.val + &rhs.val,
+            val: (&self.val + &rhs.val).complete(PREC),
         }
     }
 }
 
-impl Sub for &Decimal {
-    type Output = Decimal;
+impl Sub for &Float {
+    type Output = Float;
 
     fn sub(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: &self.val - &rhs.val,
+            val: (&self.val - &rhs.val).complete(PREC),
         }
     }
 }
 
-impl Mul for &Decimal {
-    type Output = Decimal;
+impl Mul for &Float {
+    type Output = Float;
 
     fn mul(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: &self.val * &rhs.val,
+            val: (&self.val * &rhs.val).complete(PREC),
         }
     }
 }
 
-impl Div for &Decimal {
-    type Output = Decimal;
+impl Div for &Float {
+    type Output = Float;
 
     fn div(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: &self.val / &rhs.val,
+            val: (&self.val / &rhs.val).complete(PREC),
         }
     }
 }
 
-impl Rem for &Decimal {
-    type Output = Decimal;
+impl Div for Float {
+    type Output = Float;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        Self::Output {
+            val: self.val / rhs.val,
+        }
+    }
+}
+
+impl Rem for &Float {
+    type Output = Float;
 
     fn rem(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: &self.val % &rhs.val,
+            val: (&self.val % &rhs.val).complete(PREC),
         }
     }
 }
 
-impl PrefixOperable for Decimal {
+impl PrefixOperable for Float {
     fn inverse(&self) -> Option<Object> {
-        Some(Object::Decimal(Decimal::from(-&self.val)))
+        Some(Object::Float(Float::from((-&self.val).complete(PREC))))
     }
 }
 
-impl From<Decimal> for BigDecimal {
-    fn from(val: Decimal) -> Self {
+impl From<Float> for rug::Float {
+    fn from(val: Float) -> Self {
         val.val
     }
 }
 
-impl From<&Integer> for Decimal {
+impl From<&Integer> for Float {
     fn from(value: &Integer) -> Self {
         Self {
-            val: BigDecimal::from_bigint(value.to_owned().into(), 0),
+            val: rug::Integer::from(value.to_owned()) + rug::Float::new(super::decimal::PREC),
         }
     }
 }
 
-impl From<&Fraction> for Decimal {
+impl From<&Fraction> for Float {
     fn from(frac: &Fraction) -> Self {
-        let frac = BigRational::from(frac.to_owned());
-        let val = BigDecimal::new(frac.numer().to_owned(), 0)
-            / BigDecimal::new(frac.denom().to_owned(), 0);
+        let frac = rug::Rational::from(frac.to_owned());
+        let mut val = rug::Float::new(PREC);
+        val += frac.numer().to_owned();
+        val /= frac.denom().to_owned();
 
         Self { val }
     }
 }
 
-impl InfixOperable for Decimal {
+impl InfixOperable for Float {
     fn sum(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Decimal(Decimal { val }) => {
-                Some(Object::Decimal(Decimal::from(&self.val + val)))
+            Object::Float(Float { val }) => {
+                Some(Object::Float(Float::from((&self.val + val).complete(PREC))))
             }
-            Object::Integer(val) => Some(Object::Decimal(self + &Decimal::from(val))),
-            Object::Fraction(frac) => Some(Object::Decimal(Decimal::from(
-                &self.val + Decimal::from(frac).val,
+            Object::Integer(val) => Some(Object::Float(self + &Float::from(val))),
+            Object::Fraction(frac) => Some(Object::Float(Float::from(
+                &self.val + Float::from(frac).val,
             ))),
             _ => None,
         }
@@ -154,62 +166,67 @@ impl InfixOperable for Decimal {
 
     fn substraction(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Decimal(val) => Some(Object::Decimal(self - val)),
-            Object::Integer(val) => Some(Object::Decimal(self - &Decimal::from(val))),
-            Object::Fraction(frac) => Some(Object::Decimal(self - &Decimal::from(frac))),
+            Object::Float(val) => Some(Object::Float(self - val)),
+            Object::Integer(val) => Some(Object::Float(self - &Float::from(val))),
+            Object::Fraction(frac) => Some(Object::Float(self - &Float::from(frac))),
             _ => None,
         }
     }
 
     fn product(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Decimal(val) => Some(Object::Decimal(self * val)),
-            Object::Integer(val) => Some(Object::Decimal(self * &Decimal::from(val))),
-            Object::Fraction(val) => Some(Object::Fraction(&Fraction::from(self) * val)),
+            Object::Float(val) => Some(Object::Float(self * val)),
+            Object::Integer(val) => Some(Object::Float(self * &Float::from(val))),
+            Object::Fraction(val) => Some(Object::Float(self * &Float::from(val))),
             _ => None,
         }
     }
 
     fn over(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Decimal(val) => Some(Object::Decimal(self / val)),
-            Object::Integer(val) => Some(Object::Decimal(self / &Decimal::from(val))),
-            Object::Fraction(val) => Some(Object::Decimal(self / &Decimal::from(val))),
+            Object::Float(val) => Some(Object::Float(self / val)),
+            Object::Integer(val) => Some(Object::Float(self / &Float::from(val))),
+            Object::Fraction(val) => Some(Object::Float(self / &Float::from(val))),
             _ => None,
         }
     }
 
     fn pow(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(int) => Some(Object::Decimal(self.binary_pow(int))),
+            Object::Integer(int) => Some(Object::Float(
+                (&self.val)
+                    .pow(<&rug::Integer>::from(int))
+                    .complete(PREC)
+                    .into(),
+            )),
             _ => None,
         }
     }
 
     fn greater(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Decimal(val) => Some(Object::Boolean(Bool::from(self > val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(self > &Decimal::from(val)))),
-            Object::Fraction(val) => Some(Object::Boolean(Bool::from(self > &Decimal::from(val)))),
+            Object::Float(val) => Some(Object::Boolean(Bool::from(self > val))),
+            Object::Integer(val) => Some(Object::Boolean(Bool::from(self > &Float::from(val)))),
+            Object::Fraction(val) => Some(Object::Boolean(Bool::from(self > &Float::from(val)))),
             _ => None,
         }
     }
 
     fn less(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Decimal(val) => Some(Object::Boolean(Bool::from(self < val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(self < &Decimal::from(val)))),
-            Object::Fraction(val) => Some(Object::Boolean(Bool::from(self < &Decimal::from(val)))),
+            Object::Float(val) => Some(Object::Boolean(Bool::from(self < val))),
+            Object::Integer(val) => Some(Object::Boolean(Bool::from(self < &Float::from(val)))),
+            Object::Fraction(val) => Some(Object::Boolean(Bool::from(self < &Float::from(val)))),
             _ => None,
         }
     }
 
     fn greater_equal(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Decimal(val) => Some(Object::Boolean(Bool::from(self >= val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(self >= &Decimal::from(val)))),
+            Object::Float(val) => Some(Object::Boolean(Bool::from(self >= val))),
+            Object::Integer(val) => Some(Object::Boolean(Bool::from(self >= &Float::from(val)))),
             Object::Fraction(frac) => Some(Object::Boolean(Bool::from(
-                self.val >= Decimal::from(frac).val,
+                self.val >= Float::from(frac).val,
             ))),
             _ => None,
         }
@@ -217,28 +234,28 @@ impl InfixOperable for Decimal {
 
     fn less_equal(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Decimal(val) => Some(Object::Boolean(Bool::from(self <= val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(self <= &Decimal::from(val)))),
-            Object::Fraction(val) => Some(Object::Boolean(Bool::from(self <= &Decimal::from(val)))),
+            Object::Float(val) => Some(Object::Boolean(Bool::from(self <= val))),
+            Object::Integer(val) => Some(Object::Boolean(Bool::from(self <= &Float::from(val)))),
+            Object::Fraction(val) => Some(Object::Boolean(Bool::from(self <= &Float::from(val)))),
             _ => None,
         }
     }
 
     fn equality(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Decimal(val) => Some(Object::Boolean(Bool::from(self == val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(self == &Decimal::from(val)))),
-            Object::Fraction(val) => Some(Object::Boolean(Bool::from(self == &Decimal::from(val)))),
+            Object::Float(val) => Some(Object::Boolean(Bool::from(self == val))),
+            Object::Integer(val) => Some(Object::Boolean(Bool::from(self == &Float::from(val)))),
+            Object::Fraction(val) => Some(Object::Boolean(Bool::from(self == &Float::from(val)))),
             _ => Some(Object::Boolean(false.into())),
         }
     }
 
     fn neq(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Decimal(val) => Some(Object::Boolean(Bool::from(self != val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(self != &Decimal::from(val)))),
+            Object::Float(val) => Some(Object::Boolean(Bool::from(self != val))),
+            Object::Integer(val) => Some(Object::Boolean(Bool::from(self != &Float::from(val)))),
             Object::Fraction(frac) => Some(Object::Boolean(Bool::from(
-                self.val != Decimal::from(frac).val,
+                self.val != Float::from(frac).val,
             ))),
             _ => Some(Object::Boolean(true.into())),
         }
@@ -246,21 +263,21 @@ impl InfixOperable for Decimal {
 
     fn rem(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Decimal(val) => Some(Object::Decimal(self % val)),
-            Object::Integer(val) => Some(Object::Decimal(self % &Decimal::from(val))),
+            Object::Float(val) => Some(Object::Float(self % val)),
+            Object::Integer(val) => Some(Object::Float(self % &Float::from(val))),
             _ => None,
         }
     }
 }
 
-impl fmt::Display for Decimal {
+impl fmt::Display for Float {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.val.fmt(f)
     }
 }
 
-impl From<BigDecimal> for Decimal {
-    fn from(val: BigDecimal) -> Self {
+impl From<rug::Float> for Float {
+    fn from(val: rug::Float) -> Self {
         Self { val }
     }
 }

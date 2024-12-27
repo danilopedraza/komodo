@@ -16,7 +16,7 @@ use std::{
     vec,
 };
 
-use decimal::Decimal;
+use decimal::Float;
 use fraction::Fraction;
 use integer::Integer;
 
@@ -95,7 +95,7 @@ pub enum Object {
     Boolean(Bool),
     Char(Char),
     Integer(Integer),
-    Decimal(Decimal),
+    Float(Float),
     Fraction(Fraction),
     Symbol(Symbol),
     String(MyString),
@@ -120,7 +120,7 @@ impl Object {
     pub fn is_zero(&self) -> bool {
         match self {
             Object::Integer(val) => val.is_zero(),
-            Object::Decimal(val) => val.is_zero(),
+            Object::Float(val) => val.is_zero(),
             Object::Fraction(val) => val.is_zero(),
             _ => false,
         }
@@ -159,7 +159,7 @@ impl fmt::Display for Object {
         match self {
             Object::Boolean(boolean) => boolean.fmt(f),
             Object::Char(chr) => chr.fmt(f),
-            Object::Decimal(dec) => dec.fmt(f),
+            Object::Float(dec) => dec.fmt(f),
             Object::Dictionary(dict) => dict.fmt(f),
             Object::Error(err) => err.fmt(f),
             Object::List(list) => list.fmt(f),
@@ -184,7 +184,7 @@ impl Kind for Object {
         match self {
             Object::Boolean(_) => "Boolean",
             Object::Char(_) => "Character",
-            Object::Decimal(_) => "Decimal",
+            Object::Float(_) => "Decimal",
             Object::Dictionary(_) => "Dictionary",
             Object::Error(_) => "Error",
             Object::List(_) => "List",
@@ -207,7 +207,7 @@ macro_rules! derived_object_infix_trait {
             match self {
                 Self::Boolean(left) => left.$ident(other),
                 Self::Char(left) => left.$ident(other),
-                Self::Decimal(left) => left.$ident(other),
+                Self::Float(left) => left.$ident(other),
                 Self::Dictionary(left) => left.$ident(other),
                 Self::Error(left) => left.$ident(other),
                 Self::List(left) => left.$ident(other),
@@ -263,7 +263,7 @@ macro_rules! derived_object_prefix_trait {
             match self {
                 Self::Boolean(left) => left.$ident(),
                 Self::Char(left) => left.$ident(),
-                Self::Decimal(left) => left.$ident(),
+                Self::Float(left) => left.$ident(),
                 Self::Dictionary(left) => left.$ident(),
                 Self::Error(left) => left.$ident(),
                 Self::List(left) => left.$ident(),
@@ -1411,30 +1411,30 @@ mod tests {
         let a = Object::Integer(Integer::from(2));
         let b = Object::Integer(Integer::from(-3));
 
-        let expected = Object::Decimal(Decimal::new("0", "125"));
+        let expected = Object::Float(Float::new("0", "125"));
 
         assert_eq!(a.pow(&b), Some(expected),);
     }
 
     #[test]
     fn decimal_int_exponentiation() {
-        let a = Object::Decimal(Decimal::new("0", "5"));
+        let a = Object::Float(Float::new("0", "5"));
         let b = Object::Integer(Integer::from(2));
 
-        assert_eq!(a.pow(&b), Some(Object::Decimal(Decimal::new("0", "25"))),);
+        assert_eq!(a.pow(&b), Some(Object::Float(Float::new("0", "25"))),);
     }
 
     #[test]
     fn int_dec_comparison() {
         let a = Object::Integer(5.into());
-        let b = Object::Decimal(Decimal::new("1", "0"));
+        let b = Object::Float(Float::new("1", "0"));
 
         assert_eq!(a.greater(&b), Some(Object::Boolean(true.into())));
     }
 
     #[test]
     fn dec_frac_equality() {
-        let a = Object::Decimal(Decimal::new("5", "5"));
+        let a = Object::Float(Float::new("5", "5"));
         let b = Object::Fraction(Fraction::new(11.into(), 2.into()));
 
         assert_eq!(a.equality(&b), Some(Object::Boolean(true.into())));
@@ -1442,12 +1442,12 @@ mod tests {
 
     #[test]
     fn contain_zeros_pow() {
-        let a = Object::Decimal(Decimal::new("5", "0"));
+        let a = Object::Float(Float::new("5", "0"));
         let b = Object::Integer(Integer::new("2", Radix::Decimal));
 
         let c = a.pow(&b).unwrap().to_string();
 
-        assert_eq!(c, "25");
+        assert_eq!(c, "25.000000000000000");
     }
 
     #[test]
@@ -1457,14 +1457,14 @@ mod tests {
 
         let c = a.pow(&b).unwrap().to_string();
 
-        assert_eq!(c, "1E-10");
+        assert_eq!(c, "1.0000000000000000e-10");
     }
 
     #[test]
     fn decimal_remainder() {
-        let a = Object::Decimal(Decimal::new("2", "4"));
-        let b = Object::Decimal(Decimal::new("0", "5"));
+        let a = Object::Float(Float::new("3", "5"));
+        let b = Object::Float(Float::new("0", "5"));
 
-        assert_eq!(a.rem(&b), Some(Object::Decimal(Decimal::new("0", "4"))));
+        assert_eq!(a.rem(&b), Some(Object::Float(Float::new("0", "0"))));
     }
 }

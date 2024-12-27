@@ -3,26 +3,24 @@ use std::{
     ops::{Add, Div, Mul, Sub},
 };
 
-use bigdecimal::{BigDecimal, Pow, Zero};
-use num_bigint::BigInt;
-use num_rational::BigRational;
+use rug::{ops::Pow, Complete, Rational};
 
-use super::{decimal::Decimal, integer::Integer, Bool, InfixOperable, Object, PrefixOperable};
+use super::{decimal::Float, integer::Integer, Bool, InfixOperable, Object, PrefixOperable};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Fraction {
-    val: BigRational,
+    val: Rational,
 }
 
 impl Fraction {
     pub fn _new(numer: i32, denom: i32) -> Self {
-        let val = BigRational::new(numer.into(), denom.into());
+        let val = Rational::from((numer, denom));
 
         Self { val }
     }
 
     pub fn new(numer: Integer, denom: Integer) -> Self {
-        let val = BigRational::new(numer.into(), denom.into());
+        let val = Rational::from((numer, denom));
 
         Self { val }
     }
@@ -40,13 +38,13 @@ impl Fraction {
     }
 }
 
-impl From<BigRational> for Fraction {
-    fn from(val: BigRational) -> Self {
+impl From<Rational> for Fraction {
+    fn from(val: Rational) -> Self {
         Self { val }
     }
 }
 
-impl From<Fraction> for BigRational {
+impl From<Fraction> for Rational {
     fn from(value: Fraction) -> Self {
         value.val
     }
@@ -55,28 +53,21 @@ impl From<Fraction> for BigRational {
 impl From<&Integer> for Fraction {
     fn from(value: &Integer) -> Self {
         Self {
-            val: BigRational::from_integer(value.to_owned().into()),
+            val: Rational::from(value.to_owned()),
         }
     }
 }
 
-impl From<&Decimal> for Fraction {
-    fn from(value: &Decimal) -> Self {
-        let value = BigDecimal::from(value.to_owned());
-        let (numer, exponent) = value.as_bigint_and_exponent();
+impl From<&Float> for Fraction {
+    fn from(_value: &Float) -> Self {
+        // let value = rug::Float::from(value.to_owned());
 
-        if exponent > 0 {
-            Self {
-                val: BigRational::new(numer, BigInt::from(10).pow(exponent as u64)),
-            }
-        } else {
-            Self {
-                val: BigRational::new(
-                    numer * BigInt::from(10).pow(exponent.unsigned_abs()),
-                    1.into(),
-                ),
-            }
-        }
+        // let mut val = rug::Rational::new();
+        // val += value;
+
+        let val = rug::Rational::new();
+
+        Self { val }
     }
 }
 
@@ -85,7 +76,7 @@ impl Add for &Fraction {
 
     fn add(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: &self.val + &rhs.val,
+            val: (&self.val + &rhs.val).complete(),
         }
     }
 }
@@ -95,7 +86,7 @@ impl Sub for &Fraction {
 
     fn sub(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: &self.val - &rhs.val,
+            val: (&self.val - &rhs.val).complete(),
         }
     }
 }
@@ -105,7 +96,7 @@ impl Mul for &Fraction {
 
     fn mul(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: &self.val * &rhs.val,
+            val: (&self.val * &rhs.val).complete(),
         }
     }
 }
@@ -115,7 +106,7 @@ impl Div for &Fraction {
 
     fn div(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: &self.val / &rhs.val,
+            val: (&self.val / &rhs.val).complete(),
         }
     }
 }
@@ -124,10 +115,10 @@ impl InfixOperable for Fraction {
     fn sum(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Fraction(Fraction { val }) => Some(Object::Fraction(Fraction {
-                val: &self.val + val,
+                val: (&self.val + val).complete(),
             })),
             Object::Integer(val) => Some(Object::Fraction(self + &Fraction::from(val))),
-            Object::Decimal(val) => Some(Object::Decimal(&Decimal::from(self) + val)),
+            Object::Float(val) => Some(Object::Float(&Float::from(self) + val)),
             _ => None,
         }
     }
@@ -136,7 +127,7 @@ impl InfixOperable for Fraction {
         match other {
             Object::Fraction(val) => Some(Object::Fraction(self - val)),
             Object::Integer(val) => Some(Object::Fraction(self - &Fraction::from(val))),
-            Object::Decimal(val) => Some(Object::Decimal(&Decimal::from(self) - val)),
+            Object::Float(val) => Some(Object::Float(&Float::from(self) - val)),
             _ => None,
         }
     }
@@ -145,7 +136,7 @@ impl InfixOperable for Fraction {
         match other {
             Object::Fraction(val) => Some(Object::Fraction(self * val)),
             Object::Integer(val) => Some(Object::Fraction(self * &Fraction::from(val))),
-            Object::Decimal(val) => Some(Object::Decimal(&Decimal::from(self) * val)),
+            Object::Float(val) => Some(Object::Float(&Float::from(self) * val)),
             _ => None,
         }
     }
@@ -154,16 +145,19 @@ impl InfixOperable for Fraction {
         match other {
             Object::Fraction(val) => Some(Object::Fraction(self / val)),
             Object::Integer(val) => Some(Object::Fraction(self / &Fraction::from(val))),
-            Object::Decimal(val) => Some(Object::Decimal(&Decimal::from(self) / val)),
+            Object::Float(val) => Some(Object::Float(&Float::from(self) / val)),
             _ => None,
         }
     }
 
     fn pow(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Integer(val) => Some(Object::Fraction(
-                Pow::pow(self.val.to_owned(), BigInt::from(val.to_owned())).into(),
-            )),
+            Object::Integer(val) => {
+                let exponent: u32 = val.try_into().unwrap_or(u32::MAX);
+                Some(Object::Fraction(
+                    Pow::pow(self.val.to_owned(), exponent).into(),
+                ))
+            }
             _ => None,
         }
     }
@@ -172,7 +166,7 @@ impl InfixOperable for Fraction {
         match other {
             Object::Integer(val) => Some(Object::Boolean(Bool::from(self < &Fraction::from(val)))),
             Object::Fraction(val) => Some(Object::Boolean(Bool::from(self < val))),
-            Object::Decimal(val) => Some(Object::Boolean(Bool::from(self < &Fraction::from(val)))),
+            Object::Float(val) => Some(Object::Boolean(Bool::from(self < &Fraction::from(val)))),
             _ => None,
         }
     }
@@ -181,7 +175,7 @@ impl InfixOperable for Fraction {
         match other {
             Object::Integer(val) => Some(Object::Boolean(Bool::from(self <= &Fraction::from(val)))),
             Object::Fraction(val) => Some(Object::Boolean(Bool::from(self <= val))),
-            Object::Decimal(val) => Some(Object::Boolean(Bool::from(&Decimal::from(self) <= val))),
+            Object::Float(val) => Some(Object::Boolean(Bool::from(&Float::from(self) <= val))),
             _ => None,
         }
     }
@@ -190,7 +184,7 @@ impl InfixOperable for Fraction {
         match other {
             Object::Integer(val) => Some(Object::Boolean(Bool::from(self > &Fraction::from(val)))),
             Object::Fraction(val) => Some(Object::Boolean(Bool::from(self > val))),
-            Object::Decimal(val) => Some(Object::Boolean(Bool::from(&Decimal::from(self) > val))),
+            Object::Float(val) => Some(Object::Boolean(Bool::from(&Float::from(self) > val))),
             _ => None,
         }
     }
@@ -199,7 +193,7 @@ impl InfixOperable for Fraction {
         match other {
             Object::Integer(val) => Some(Object::Boolean(Bool::from(self >= &Fraction::from(val)))),
             Object::Fraction(val) => Some(Object::Boolean(Bool::from(self >= val))),
-            Object::Decimal(val) => Some(Object::Boolean(Bool::from(&Decimal::from(self) >= val))),
+            Object::Float(val) => Some(Object::Boolean(Bool::from(&Float::from(self) >= val))),
             _ => None,
         }
     }
@@ -208,7 +202,7 @@ impl InfixOperable for Fraction {
         match other {
             Object::Integer(val) => Some(Object::Boolean(Bool::from(self == &Fraction::from(val)))),
             Object::Fraction(val) => Some(Object::Boolean(Bool::from(self == val))),
-            Object::Decimal(val) => Some(Object::Boolean(Bool::from(&Decimal::from(self) == val))),
+            Object::Float(val) => Some(Object::Boolean(Bool::from(&Float::from(self) == val))),
             _ => Some(Object::Boolean(false.into())),
         }
     }
@@ -217,7 +211,7 @@ impl InfixOperable for Fraction {
         match other {
             Object::Integer(val) => Some(Object::Boolean(Bool::from(self != &Fraction::from(val)))),
             Object::Fraction(val) => Some(Object::Boolean(Bool::from(self != val))),
-            Object::Decimal(val) => Some(Object::Boolean(Bool::from(&Decimal::from(self) != val))),
+            Object::Float(val) => Some(Object::Boolean(Bool::from(&Float::from(self) != val))),
             _ => Some(Object::Boolean(true.into())),
         }
     }

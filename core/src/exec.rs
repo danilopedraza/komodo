@@ -7,8 +7,8 @@ use crate::lexer::Radix;
 use crate::matcher::{match_, Match};
 use crate::object::fraction::Fraction;
 use crate::object::{
-    self, decimal::Decimal, AnonFunction, Dictionary, FailedAssertion, Function,
-    FunctionPatternKind, Kind, List, PatternFunction, Range,
+    self, decimal::Float, AnonFunction, Dictionary, FailedAssertion, Function, FunctionPatternKind,
+    Kind, List, PatternFunction, Range,
 };
 
 type ExecResult<T> = Result<T, Error>;
@@ -405,7 +405,7 @@ fn dictionary(
 }
 
 fn decimal(int: &str, dec: &str) -> ExecResult<(Object, Address)> {
-    Ok((Object::Decimal(Decimal::new(int, dec)), Address::default()))
+    Ok((Object::Float(Float::new(int, dec)), Address::default()))
 }
 
 fn cons(
@@ -885,8 +885,6 @@ mod tests {
     use std::path::PathBuf;
     use std::sync::Mutex;
     use std::vec;
-
-    use bigdecimal::BigDecimal;
 
     use super::*;
     use crate::ast::tests::{
@@ -1562,11 +1560,11 @@ mod tests {
     #[test]
     fn decimal_number() {
         let node = decimal("1", "5", dummy_pos());
-        let expected = Decimal::from(BigDecimal::from(3) / BigDecimal::from(2));
+        let expected = Float::new("1", "5");
 
         assert_eq!(
             exec(&node, &mut Environment::default()).unwrap().0,
-            Object::Decimal(expected),
+            Object::Float(expected),
         );
     }
 
