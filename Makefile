@@ -3,7 +3,7 @@
 CURRENT_DIR = $(shell pwd)
 WEBSITE_DIR = $(CURRENT_DIR)/site
 
-build: build-site build-playground build-book build-installer
+build: build-site build-playground build-book build-installer build-report
 
 build-installer:
 	cp $(CURRENT_DIR)/installer/linux/install.sh $(WEBSITE_DIR)
@@ -23,6 +23,9 @@ build-core-linux-arm64:
 build-core-wasm:
 	cd $(CURRENT_DIR)/core
 	cargo build --target wasm32-unknown-unknown
+
+build-report:
+	typst compile $(CURRENT_DIR)/report/report.typ $(WEBSITE_DIR)/report.pdf
 
 build-site:
 	mkdir -p $(WEBSITE_DIR)
