@@ -402,7 +402,7 @@ fn unexpected_char(chr: char) -> String {
 }
 
 fn eof_expecting(expected_msgs: Vec<String>) -> String {
-    let expected_str = disjunction(expected_msgs);
+    let expected_str = disjunction(&expected_msgs);
     format!("The end of the program was reached while expecting {expected_str}")
 }
 
@@ -414,7 +414,7 @@ fn expected_expression(tok_msg: String) -> String {
     format!("Expected an expression, but found {tok_msg}")
 }
 
-fn disjunction(msgs: Vec<String>) -> String {
+fn disjunction(msgs: &[String]) -> String {
     let mut res = msgs[0].to_owned();
 
     for msg in msgs.iter().take(msgs.len() - 1).skip(1) {
@@ -431,7 +431,7 @@ fn disjunction(msgs: Vec<String>) -> String {
 }
 
 fn unexpected_token(expected_msgs: Vec<String>, actual_msg: String) -> String {
-    let expected_str = disjunction(expected_msgs);
+    let expected_str = disjunction(&expected_msgs);
     format!("Expected {expected_str}, but found {actual_msg}")
 }
 
@@ -444,7 +444,13 @@ fn import_error_msg(err: &ImportError) -> String {
 fn object_error_msg(err: &ObjectError) -> String {
     match err {
         ObjectError::FailedAssertion(opt_msg) => failed_assertion(opt_msg),
+        ObjectError::UnexpectedType(expected, actual) => unexpected_type(expected, actual),
     }
+}
+
+fn unexpected_type(expected: &[String], actual: &str) -> String {
+    let expected = disjunction(expected);
+    format!("Expected {expected}, found {actual}")
 }
 
 fn symbol_not_found(module: &str, symbol: &str) -> String {
