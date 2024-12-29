@@ -3,17 +3,10 @@ pub mod fraction;
 pub mod integer;
 
 use std::{
-    cell::RefCell,
-    cmp::min,
-    collections::{
+    cell::RefCell, cmp::min, collections::{
         btree_set::{IntoIter, Iter},
         BTreeMap, BTreeSet,
-    },
-    fmt,
-    hash::Hash,
-    iter::zip,
-    rc::Rc,
-    vec,
+    }, fmt, hash::Hash, iter::zip, rc::Rc, vec
 };
 
 use float::Float;
@@ -143,6 +136,22 @@ impl Object {
 
     pub fn from_fn(func: fn(&[Object]) -> Object, param_number: usize) -> Self {
         Self::Function(Function::Extern(ExternFunction { func, param_number }))
+    }
+
+    pub fn as_float(&self) -> Result<Float, ObjectError> {
+        match self {
+            Object::Float(num) => Ok(num.to_owned()),
+            Object::Integer(num) => Ok(num.into()),
+            Object::Fraction(num) => Ok(num.into()),
+            obj => Err(ObjectError::UnexpectedType(
+                vec![
+                    String::from("Float"),
+                    String::from("Integer"),
+                    String::from("Fraction"),
+                ],
+                obj.kind(),
+            )),
+        }
     }
 }
 
