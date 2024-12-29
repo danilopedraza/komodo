@@ -450,7 +450,7 @@ fn object_error_msg(err: &ObjectError) -> String {
 
 fn unexpected_type(expected: &[String], actual: &str) -> String {
     let expected = disjunction(expected);
-    format!("Expected {expected}, found {actual}")
+    format!("Expected a value of type {expected}, got a value of type {actual}")
 }
 
 fn symbol_not_found(module: &str, symbol: &str) -> String {
