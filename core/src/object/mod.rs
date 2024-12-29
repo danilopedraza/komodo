@@ -140,6 +140,10 @@ impl Object {
     pub fn false_obj() -> Self {
         Self::Boolean(Bool::from(false))
     }
+
+    pub fn from_fn(func: fn(&[Object]) -> Object, param_number: usize) -> Self {
+        Self::Function(Function::Extern(ExternFunction { func, param_number }))
+    }
 }
 
 impl From<bool> for Object {

@@ -31,6 +31,12 @@ impl Float {
             val: self.val.to_owned().recip(),
         }
     }
+
+    pub fn sin(&self) -> Self {
+        Self {
+            val: self.val.to_owned().sin(),
+        }
+    }
 }
 
 impl Ord for Float {

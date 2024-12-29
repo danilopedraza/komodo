@@ -1,5 +1,5 @@
 use crate::{
-    env::{Address, Environment, ExecContext},
+    env::{env_with, Environment, ExecContext},
     exec::truthy,
     object::{ExternFunction, FailedAssertion, Function, MyString, Object},
 };
@@ -34,16 +34,6 @@ pub fn komodo_assert(args: &[Object]) -> Object {
         }
         Some(_) | None => Object::empty_tuple(),
     }
-}
-
-fn env_with(assets: Vec<(&str, Object)>, ctx: ExecContext) -> Environment {
-    let mut env = Environment::new(ctx);
-
-    for (name, value) in assets {
-        env.set_inmutable(name, (value, Address::default()));
-    }
-
-    env
 }
 
 pub fn standard_env(ctx: ExecContext) -> Environment {

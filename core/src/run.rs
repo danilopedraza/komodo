@@ -15,6 +15,7 @@ use crate::{
     lexer::{Lexer, Token},
     object::Object,
     parser::Parser,
+    std::komodo_math,
     weeder::{rewrite, WeederError},
 };
 
@@ -99,28 +100,33 @@ fn get_std_path(env_var: Result<String, VarError>) -> PathBuf {
     }
 }
 
-fn get_module_path(module: &ModuleAddress, reference_path: &Path) -> PathBuf {
-    match module {
-        ModuleAddress::StandardLibrary { name } => {
-            get_std_path(env::var(STDLIB_PATH_VAR)).join(Path::new(&format!("{name}.komodo")))
-        }
-        ModuleAddress::LocalPath { path } => reference_path.join(Path::new(&path)),
-    }
-}
-
 fn get_module_code(path: &Path) -> Result<String, Error> {
     let source = fs::read_to_string(path)?;
     Ok(source)
 }
 
-fn get_module_env(module: &ModuleAddress, env: &mut Environment) -> Result<Environment, Error> {
+fn module_env(path: &PathBuf, env: &Environment) -> Result<Environment, Error> {
     let reference_path = env.ctx().reference_path;
-    let path = get_module_path(module, &reference_path);
-    let source = get_module_code(&path)?;
-    let mut temp_env = standard_env(ExecContext::new(path, reference_path));
+    let abs_path = reference_path.join(Path::new(path));
+    let source = get_module_code(&abs_path)?;
+    let mut temp_env = standard_env(ExecContext::new(abs_path, reference_path));
     run(&source, &mut temp_env)?;
 
     Ok(temp_env)
+}
+
+fn get_module_env(module: &ModuleAddress, env: &Environment) -> Result<Environment, Error> {
+    match module {
+        ModuleAddress::LocalPath { path } => module_env(path, env),
+        ModuleAddress::StandardLibrary { name } => match name.as_str() {
+            "math" => Ok(komodo_math(env.ctx())),
+            name => {
+                let path = get_std_path(env::var(STDLIB_PATH_VAR))
+                    .join(Path::new(&format!("{name}.komodo")));
+                module_env(&path, env)
+            }
+        },
+    }
 }
 
 pub fn import_from(
