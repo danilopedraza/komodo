@@ -7,7 +7,7 @@ use rug::{ops::Pow, Complete};
 
 use crate::lexer::Radix;
 
-use super::{decimal::Float, Bool, Fraction, InfixOperable, Object, PrefixOperable};
+use super::{float::Float, Bool, Fraction, InfixOperable, Object, PrefixOperable};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Integer {

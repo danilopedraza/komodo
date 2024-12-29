@@ -151,7 +151,7 @@ impl From<Float> for rug::Float {
 impl From<&Integer> for Float {
     fn from(value: &Integer) -> Self {
         Self {
-            val: rug::Integer::from(value.to_owned()) + rug::Float::new(super::decimal::PREC),
+            val: rug::Integer::from(value.to_owned()) + rug::Float::new(super::float::PREC),
         }
     }
 }

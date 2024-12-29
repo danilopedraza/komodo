@@ -1,4 +1,4 @@
-pub mod decimal;
+pub mod float;
 pub mod fraction;
 pub mod integer;
 
@@ -16,7 +16,7 @@ use std::{
     vec,
 };
 
-use decimal::Float;
+use float::Float;
 use fraction::Fraction;
 use integer::Integer;
 

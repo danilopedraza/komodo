@@ -1,6 +1,6 @@
 use crate::{
     env::{env_with, Environment, ExecContext},
-    object::{decimal::Float, Kind, Object, ObjectError},
+    object::{float::Float, Kind, Object, ObjectError},
 };
 
 macro_rules! float_fn {

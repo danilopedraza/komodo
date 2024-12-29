@@ -5,7 +5,7 @@ use std::{
 
 use rug::{ops::Pow, Complete, Rational};
 
-use super::{decimal::Float, integer::Integer, Bool, InfixOperable, Object, PrefixOperable};
+use super::{float::Float, integer::Integer, Bool, InfixOperable, Object, PrefixOperable};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Fraction {

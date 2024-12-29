@@ -7,7 +7,7 @@ use crate::lexer::Radix;
 use crate::matcher::{match_, Match};
 use crate::object::fraction::Fraction;
 use crate::object::{
-    self, decimal::Float, AnonFunction, Dictionary, Function, FunctionPatternKind, Kind, List,
+    self, float::Float, AnonFunction, Dictionary, Function, FunctionPatternKind, Kind, List,
     PatternFunction, Range,
 };
 
