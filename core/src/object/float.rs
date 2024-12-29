@@ -10,9 +10,9 @@ use super::{integer::Integer, Bool, Fraction, InfixOperable, Object, PrefixOpera
 
 macro_rules! wrapper_fn {
     ($name:ident) => {
-        pub fn $name(&self) -> Self {
+        pub fn $name(self) -> Self {
             Self {
-                val: self.val.to_owned().$name(),
+                val: self.val.$name(),
             }
         }
     };
