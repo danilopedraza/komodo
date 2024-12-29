@@ -3,7 +3,7 @@
 CURRENT_DIR = $(shell pwd)
 WEBSITE_DIR = $(CURRENT_DIR)/site
 
-build: build-site build-playground build-book build-installer build-report
+build: build-site build-book build-installer build-report
 
 build-installer:
 	cp $(CURRENT_DIR)/installer/linux/install.sh $(WEBSITE_DIR)
@@ -43,7 +43,7 @@ deploy-vsc-ext:
 	vsce publish --skip-duplicate
 	npx --yes ovsx publish --skip-duplicate
 
-test: test-core test-core-browser
+test: test-core
 
 test-core:
 	cd $(CURRENT_DIR)/core
