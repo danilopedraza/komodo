@@ -113,16 +113,22 @@ fn get_module_code(path: &Path) -> Result<String, Error> {
     Ok(source)
 }
 
-pub fn import_from(
-    module: &ModuleAddress,
-    values: &[(String, Position)],
-    env: &mut Environment,
-) -> Result<(), Error> {
+fn get_module_env(module: &ModuleAddress, env: &mut Environment) -> Result<Environment, Error> {
     let reference_path = env.ctx().reference_path;
     let path = get_module_path(module, &reference_path);
     let source = get_module_code(&path)?;
     let mut temp_env = standard_env(ExecContext::new(path, reference_path));
     run(&source, &mut temp_env)?;
+
+    Ok(temp_env)
+}
+
+pub fn import_from(
+    module: &ModuleAddress,
+    values: &[(String, Position)],
+    env: &mut Environment,
+) -> Result<(), Error> {
+    let mut temp_env = get_module_env(module, env)?;
 
     for (value, position) in values {
         match temp_env.get(value) {
