@@ -35,9 +35,7 @@ con el propósito de que pueda ser aprendido con facilidad.
 
 Komodo está diseñado con la intención de convertirse en una herramienta útil para generar estructuras discretas que puedan depender
 de muchas restricciones, para así estudiarlas. Esta es una tarea común en el estudio de areas de las matemáticas como la combinatoria, la teoría de la computación,
-la teoría de grafos o la teoría de códigos. Usar el computador como una herramienta de exploración matemática es una práctica conocida como matemática experimental.
-
-// ref de matemática experimental
+la teoría de grafos o la teoría de códigos. Usar el computador como una herramienta de exploración matemática es una práctica conocida como matemática experimental. @experimental[p.~2]
 
 Este documento describe el lenguaje de programación Komodo. No es una guía de uso del lenguaje. También se exploran detalles del
 intérprete de Komodo creado por el autor. Sin embargo, no se describe todo el comportamiento esperado de una implementación del lenguaje,
@@ -49,9 +47,28 @@ El propósito de Komodo tiene consecuencias en su estructura. Puesto que Komodo 
 pueda procesarse a si mismo, o que la representación de los datos sea similar a la representación de los programas. Asimismo, el nivel de abstracción de Komodo
 y las limitaciones de recursos humanos hacen preferible implementar un intérprete en lugar de un compilador.
 
-El estado actual de Komodo (la versión 0.3.0), no fue alcanzado a través de un diseño deliberado, sino con una construcción iterativa.
+El diseño de Komodo no es deliberado, sino que se ha llegado a él con una construcción iterativa.
 
-// == Komodo no es su propia plataforma
+En esta sección se explican brevemente algunas características de Komodo, que son descritas con mayor detalle en secciones posteriores.
+
+== Sistema de tipos
+
+Komodo es un lenguaje con tipado débil y dinámico. Lo primero significa que las reglas de tipos son relativamente laxas y se realizan conversiones implicitas de tipos, y lo segundo significa que estas reglas y conversiones son verificadas y realizadas en tiempo de ejecución. La razón de esto es que Komodo no fuerza la identificación explícita de tipos, y por lo tanto, en general, no se puede obtener el tipo de un símbolo cualquiera en tiempo de compilación.
+
+Komodo también es de tipado latente, lo que significa que los tipos están asociados a valores y no a variables o símbolos. Esto hace que un símbolo pueda tener valores tipos distintos en momentos distintos. @piercelanguages[p.~2].
+
+== Paradigmas
+
+Komodo emplea dos paradigmas de programación: procedural y funcional.
+
+Por un lado, Komodo es un lenguaje procedural por que las formas y el orden importan: la instancia más importante de esto es que las sentencias de un programa son evaluadas en el
+orden en que aparecen en el programa. Esto establece una semántica clara para cambiar el valor de un símbolo, por ejemplo.
+
+Además, Komodo es un lenguaje funcional porque las funciones tienen un papel protagónico: pueden declararse de forma nombrada o anónima, y pueden rastrear patrones.
+La búsqueda de patrones de Komodo y su inclusión en las funciones permite describir procedimientos en términos de lo que deben hacer, en lugar de como.
+
+Esto permite que dependiendo del problema, un programa de Komodo pueda ser más imperativo o más declarativo a conveniencia.
+La forma en que se restringe la combinación de los dos paradigmas es limitando la mutabilidad de valores.
 
 == La estructura del intérprete
 
@@ -82,7 +99,7 @@ Como suele suceder con múltiples compiladores e intérpretes, el intérprete de
 
   El resultado es un árbol de sintaxis abstracto o AST (del inglés _Abstract Syntax Tree_), que no contiene detalles como la precedencia de operadores, espacios o indentación. También convierte ciertos operadores infijos en nodos más restringidos, para facilitar la evaluación y eliminar estados indeseables. El tipo de errores que el _weeder_ captura son de naturaleza sintáctica y dependientes del contexto.
 
-= Evaluación de código
+= Ejecución de programas
 
 + *Evaluador*
 
@@ -174,8 +191,6 @@ Toda expresión que represente un valor de Komodo también es un patrón. Toda e
 es un patrón. Las listas y conjuntos son compatibles con un patrón especial que permite iterar sobre ellos, conocido popularmente como notación `cons`.
 
 La verificación de patrones está implementada comparando el árbol de sintaxis del patrón en cuestión con el valor que se quiere comparar.
-
-= Ejecución de programas
 
 == El intérprete
 
