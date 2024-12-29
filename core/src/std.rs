@@ -25,7 +25,22 @@ macro_rules! float_fn {
 }
 
 float_fn!(sin);
+float_fn!(cos);
+float_fn!(tan);
+float_fn!(asin);
+float_fn!(acos);
+float_fn!(atan);
 
 pub fn komodo_math(ctx: ExecContext) -> Environment {
-    env_with(vec![("sin", Object::from_fn(sin, 1))], ctx)
+    env_with(
+        vec![
+            ("sin", Object::from_fn(sin, 1)),
+            ("cos", Object::from_fn(cos, 1)),
+            ("tan", Object::from_fn(tan, 1)),
+            ("asin", Object::from_fn(asin, 1)),
+            ("acos", Object::from_fn(acos, 1)),
+            ("atan", Object::from_fn(atan, 1)),
+        ],
+        ctx,
+    )
 }

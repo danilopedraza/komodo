@@ -8,6 +8,16 @@ use rug::ops::{CompleteRound, Pow};
 
 use super::{integer::Integer, Bool, Fraction, InfixOperable, Object, PrefixOperable};
 
+macro_rules! wrapper_fn {
+    ($name:ident) => {
+        pub fn $name(&self) -> Self {
+            Self {
+                val: self.val.to_owned().$name(),
+            }
+        }
+    };
+}
+
 #[derive(Clone, Debug)]
 pub struct Float {
     val: rug::Float,
@@ -32,11 +42,12 @@ impl Float {
         }
     }
 
-    pub fn sin(&self) -> Self {
-        Self {
-            val: self.val.to_owned().sin(),
-        }
-    }
+    wrapper_fn!(sin);
+    wrapper_fn!(cos);
+    wrapper_fn!(tan);
+    wrapper_fn!(asin);
+    wrapper_fn!(acos);
+    wrapper_fn!(atan);
 }
 
 impl Ord for Float {
