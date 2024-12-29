@@ -50,6 +50,7 @@ impl Float {
     wrapper_fn!(atan);
     wrapper_fn!(exp);
     wrapper_fn!(ln);
+    wrapper_fn!(cbrt);
 }
 
 impl Ord for Float {

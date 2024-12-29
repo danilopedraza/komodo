@@ -22,6 +22,7 @@ float_fn!(acos);
 float_fn!(atan);
 float_fn!(exp);
 float_fn!(ln);
+float_fn!(cbrt);
 
 pub fn komodo_math(ctx: ExecContext) -> Environment {
     env_with(
@@ -34,6 +35,7 @@ pub fn komodo_math(ctx: ExecContext) -> Environment {
             ("atan", Object::from_fn(atan, 1)),
             ("exp", Object::from_fn(exp, 1)),
             ("ln", Object::from_fn(ln, 1)),
+            ("cbrt", Object::from_fn(cbrt, 1)),
         ],
         ctx,
     )
