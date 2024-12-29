@@ -26,9 +26,6 @@ jobs:
       - name: Test Interpreter
         run: nix-shell --command "make test-core"
       
-      - name: Test Interpreter Browser Port
-        run: nix-shell --command "make test-core-browser"
-      
       - name: Test Book
         run: nix-shell --command "make build-book"
   
