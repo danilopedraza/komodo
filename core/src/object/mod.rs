@@ -1272,16 +1272,12 @@ impl fmt::Display for Range {
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ObjectError {
     FailedAssertion(Option<String>),
+    UnexpectedType(Vec<String>, String),
 }
 
 impl fmt::Display for ObjectError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self {
-            Self::FailedAssertion(msg) => match msg {
-                None => write!(f, "Failed assertion"),
-                Some(msg) => write!(f, "Failed assertion: {msg}"),
-            },
-        }
+        write!(f, "Runtime error")
     }
 }
 
