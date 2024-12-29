@@ -1,7 +1,7 @@
 use crate::{
     env::{env_with, Environment, ExecContext},
     exec::truthy,
-    object::{ExternFunction, FailedAssertion, Function, MyString, Object},
+    object::{ExternFunction, Function, MyString, Object, ObjectError},
 };
 
 use std::io::{stdin, BufRead};
@@ -29,9 +29,9 @@ fn komodo_getln(_args: &[Object]) -> Object {
 
 pub fn komodo_assert(args: &[Object]) -> Object {
     match args.first() {
-        Some(obj) if !truthy(obj) => {
-            Object::Error(FailedAssertion(args.get(1).map(|obj| obj.to_string())))
-        }
+        Some(obj) if !truthy(obj) => Object::Error(ObjectError::FailedAssertion(
+            args.get(1).map(|obj| obj.to_string()),
+        )),
         Some(_) | None => Object::empty_tuple(),
     }
 }

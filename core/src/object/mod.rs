@@ -105,7 +105,7 @@ pub enum Object {
     Dictionary(Dictionary),
     Function(Function),
     Range(Range),
-    Error(FailedAssertion),
+    Error(ObjectError),
 }
 
 impl Object {
@@ -1270,19 +1270,23 @@ impl fmt::Display for Range {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct FailedAssertion(pub Option<String>);
+pub enum ObjectError {
+    FailedAssertion(Option<String>),
+}
 
-impl fmt::Display for FailedAssertion {
+impl fmt::Display for ObjectError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.0 {
-            None => write!(f, "Failed assertion"),
-            Some(msg) => write!(f, "Failed assertion: {msg}"),
+        match &self {
+            Self::FailedAssertion(msg) => match msg {
+                None => write!(f, "Failed assertion"),
+                Some(msg) => write!(f, "Failed assertion: {msg}"),
+            },
         }
     }
 }
 
-impl PrefixOperable for FailedAssertion {}
-impl InfixOperable for FailedAssertion {
+impl PrefixOperable for ObjectError {}
+impl InfixOperable for ObjectError {
     fn equality(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Error(err) => Some(Object::Boolean(Bool::from(self == err))),

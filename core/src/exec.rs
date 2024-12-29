@@ -7,8 +7,8 @@ use crate::lexer::Radix;
 use crate::matcher::{match_, Match};
 use crate::object::fraction::Fraction;
 use crate::object::{
-    self, decimal::Float, AnonFunction, Dictionary, FailedAssertion, Function, FunctionPatternKind,
-    Kind, List, PatternFunction, Range,
+    self, decimal::Float, AnonFunction, Dictionary, Function, FunctionPatternKind, Kind, List,
+    PatternFunction, Range,
 };
 
 type ExecResult<T> = Result<T, Error>;
@@ -27,7 +27,6 @@ pub enum ExecError {
     },
     BadMatch,
     DenominatorZero,
-    FailedAssertion(Option<String>),
     IndexingNonContainer {
         kind: String,
     },
@@ -159,9 +158,9 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<(Object, Addres
         ASTNodeKind::DotNotation { lhs, rhs } => object_attr(lhs, rhs, env),
     };
 
-    if let Ok((Object::Error(FailedAssertion(msg)), _)) = res {
+    if let Ok((Object::Error(err), _)) = res {
         Err(Error::with_position(
-            ExecError::FailedAssertion(msg).into(),
+            err.into(),
             node.position,
             env.file_path(),
         ))

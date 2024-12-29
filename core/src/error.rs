@@ -14,6 +14,7 @@ use unindent::unindent;
 use crate::{
     exec::ExecError,
     lexer::{LexerError, TokenType},
+    object::ObjectError,
     parser::ParserError,
     run::ImportError,
     weeder::WeederError,
@@ -95,6 +96,7 @@ pub enum ErrorKind {
     Weeder(WeederError),
     Exec(ExecError),
     Import(ImportError),
+    Object(ObjectError),
 }
 
 impl From<LexerError> for ErrorKind {
@@ -127,6 +129,12 @@ impl From<ImportError> for ErrorKind {
     }
 }
 
+impl From<ObjectError> for ErrorKind {
+    fn from(err: ObjectError) -> Self {
+        Self::Object(err)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Position {
     pub start: usize,
@@ -153,6 +161,7 @@ pub fn error_msg(err: &ErrorKind) -> String {
         ErrorKind::Weeder(err) => weeder_error_msg(err),
         ErrorKind::Exec(err) => exec_error_msg(err),
         ErrorKind::Import(err) => import_error_msg(err),
+        ErrorKind::Object(err) => object_error_msg(err),
     }
 }
 
@@ -307,7 +316,6 @@ fn exec_error_msg(err: &ExecError) -> String {
         } => bad_fraction(numer_kind, denom_kind),
         ExecError::BadMatch => "The pattern did not match its assigned value".into(),
         ExecError::DenominatorZero => "Division by zero".into(),
-        ExecError::FailedAssertion(msg) => failed_assertion(msg),
         ExecError::MissingFunctionArguments { expected, actual } => {
             missing_func_arguments(*expected, *actual)
         }
@@ -430,6 +438,12 @@ fn unexpected_token(expected_msgs: Vec<String>, actual_msg: String) -> String {
 fn import_error_msg(err: &ImportError) -> String {
     match err {
         ImportError::SymbolNotFound { module, symbol } => symbol_not_found(module, symbol),
+    }
+}
+
+fn object_error_msg(err: &ObjectError) -> String {
+    match err {
+        ObjectError::FailedAssertion(opt_msg) => failed_assertion(opt_msg),
     }
 }
 
