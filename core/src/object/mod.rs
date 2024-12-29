@@ -158,6 +158,12 @@ impl From<Set> for Object {
     }
 }
 
+impl From<ObjectError> for Object {
+    fn from(err: ObjectError) -> Self {
+        Self::Error(err)
+    }
+}
+
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

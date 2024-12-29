@@ -1,16 +1,24 @@
 use crate::{
     env::{env_with, Environment, ExecContext},
-    object::{decimal::Float, Object},
+    object::{decimal::Float, Kind, Object, ObjectError},
 };
 
 macro_rules! float_fn {
     ($name:ident) => {
         fn $name(args: &[Object]) -> Object {
-            match args.first() {
-                Some(Object::Float(num)) => Object::Float(num.$name()),
-                Some(Object::Integer(num)) => Object::Float(Float::from(num).$name()),
-                Some(Object::Fraction(num)) => Object::Float(Float::from(num).$name()),
-                _ => todo!(),
+            match &args[0] {
+                Object::Float(num) => Object::Float(num.$name()),
+                Object::Integer(num) => Object::Float(Float::from(num).$name()),
+                Object::Fraction(num) => Object::Float(Float::from(num).$name()),
+                val => ObjectError::UnexpectedType(
+                    vec![
+                        String::from("Float"),
+                        String::from("Integer"),
+                        String::from("Fraction"),
+                    ],
+                    val.kind(),
+                )
+                .into(),
             }
         }
     };
