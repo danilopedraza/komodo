@@ -48,6 +48,8 @@ impl Float {
     wrapper_fn!(asin);
     wrapper_fn!(acos);
     wrapper_fn!(atan);
+    wrapper_fn!(exp);
+    wrapper_fn!(ln);
 }
 
 impl Ord for Float {
