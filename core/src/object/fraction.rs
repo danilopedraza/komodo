@@ -36,6 +36,10 @@ impl Fraction {
     pub fn is_zero(&self) -> bool {
         self.val.is_zero()
     }
+
+    pub fn abs(&self) -> Self {
+        self.val.to_owned().abs().into()
+    }
 }
 
 impl From<Rational> for Fraction {

@@ -1,7 +1,23 @@
 use crate::{
     env::{env_with, Environment, ExecContext},
-    object::Object,
+    object::{Kind, Object, ObjectError},
 };
+
+fn abs(args: &[Object]) -> Object {
+    match &args[0] {
+        Object::Float(num) => Object::Float(num.abs()),
+        Object::Integer(num) => Object::Integer(num.abs()),
+        Object::Fraction(num) => Object::Fraction(num.abs()),
+        obj => Object::Error(ObjectError::UnexpectedType(
+            vec![
+                String::from("Float"),
+                String::from("Integer"),
+                String::from("Fraction"),
+            ],
+            obj.kind(),
+        ))
+    }
+}
 
 macro_rules! float_fn {
     ($name:ident) => {
@@ -36,6 +52,7 @@ pub fn komodo_math(ctx: ExecContext) -> Environment {
             ("exp", Object::from_fn(exp, 1)),
             ("ln", Object::from_fn(ln, 1)),
             ("cbrt", Object::from_fn(cbrt, 1)),
+            ("abs", Object::from_fn(abs, 1)),
         ],
         ctx,
     )

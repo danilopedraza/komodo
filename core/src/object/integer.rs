@@ -56,6 +56,10 @@ impl Integer {
             val: rug::Integer::ZERO,
         }
     }
+
+    pub fn abs(&self) -> Self {
+        self.val.to_owned().abs().into()
+    }
 }
 
 impl Add for &Integer {

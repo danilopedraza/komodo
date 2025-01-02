@@ -11,9 +11,7 @@ use super::{integer::Integer, Bool, Fraction, InfixOperable, Object, PrefixOpera
 macro_rules! wrapper_fn {
     ($name:ident) => {
         pub fn $name(self) -> Self {
-            Self {
-                val: self.val.$name(),
-            }
+            self.val.$name().into()
         }
     };
 }
@@ -40,6 +38,10 @@ impl Float {
         Self {
             val: self.val.to_owned().recip(),
         }
+    }
+
+    pub fn abs(&self) -> Self {
+        self.val.to_owned().abs().into()
     }
 
     wrapper_fn!(sin);
