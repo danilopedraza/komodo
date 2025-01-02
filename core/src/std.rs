@@ -15,7 +15,7 @@ fn abs(args: &[Object]) -> Object {
                 String::from("Fraction"),
             ],
             obj.kind(),
-        ))
+        )),
     }
 }
 
@@ -38,6 +38,7 @@ float_fn!(acos);
 float_fn!(atan);
 float_fn!(exp);
 float_fn!(ln);
+float_fn!(sqrt);
 float_fn!(cbrt);
 
 pub fn komodo_math(ctx: ExecContext) -> Environment {
@@ -52,6 +53,7 @@ pub fn komodo_math(ctx: ExecContext) -> Environment {
             ("exp", Object::from_fn(exp, 1)),
             ("ln", Object::from_fn(ln, 1)),
             ("cbrt", Object::from_fn(cbrt, 1)),
+            ("sqrt", Object::from_fn(sqrt, 1)),
             ("abs", Object::from_fn(abs, 1)),
         ],
         ctx,

@@ -53,6 +53,7 @@ impl Float {
     wrapper_fn!(exp);
     wrapper_fn!(ln);
     wrapper_fn!(cbrt);
+    wrapper_fn!(sqrt);
 }
 
 impl Ord for Float {
