@@ -15,7 +15,7 @@ use crate::{
     lexer::{Lexer, Token},
     object::Object,
     parser::Parser,
-    std::komodo_math,
+    std::math::komodo_math,
     weeder::{rewrite, WeederError},
 };
 
