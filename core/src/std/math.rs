@@ -19,6 +19,14 @@ fn abs(args: &[Object]) -> Object {
     }
 }
 
+fn hypot(args: &[Object]) -> Object {
+    match (args[0].as_float(), args[1].as_float()) {
+        (Ok(x), Ok(y)) => Object::Float(x.hypot(y)),
+        (Err(err), _) => err.into(),
+        (_, Err(err)) => err.into(),
+    }
+}
+
 fn log(args: &[Object]) -> Object {
     match args.get(1) {
         None => ln(args),
@@ -70,6 +78,7 @@ pub fn komodo_math(ctx: ExecContext) -> Environment {
             ("cbrt", Object::from_fn(cbrt, 1)),
             ("sqrt", Object::from_fn(sqrt, 1)),
             ("abs", Object::from_fn(abs, 1)),
+            ("hypot", Object::from_fn(hypot, 2)),
         ],
         ctx,
     )

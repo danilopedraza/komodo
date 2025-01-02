@@ -44,6 +44,10 @@ impl Float {
         self.val.to_owned().abs().into()
     }
 
+    pub fn hypot(self, other: Self) -> Self {
+        self.val.hypot(&other.into()).into()
+    }
+
     wrapper_fn!(sin);
     wrapper_fn!(cos);
     wrapper_fn!(tan);
