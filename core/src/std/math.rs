@@ -1,6 +1,6 @@
 use crate::{
     env::{env_with, Environment, ExecContext},
-    object::{Kind, Object, ObjectError},
+    object::{float::Float, Kind, Object, ObjectError},
 };
 
 fn abs(args: &[Object]) -> Object {
@@ -14,6 +14,20 @@ fn abs(args: &[Object]) -> Object {
                 String::from("Integer"),
                 String::from("Fraction"),
             ],
+            obj.kind(),
+        )),
+    }
+}
+
+fn log(args: &[Object]) -> Object {
+    match args.get(1) {
+        None => ln(args),
+        Some(Object::Integer(base)) => match args[0].as_float() {
+            Ok(f) => Object::Float(f.ln() / Float::from(base).ln()),
+            Err(err) => err.into(),
+        },
+        Some(obj) => Object::Error(ObjectError::UnexpectedType(
+            vec![String::from("Integer")],
             obj.kind(),
         )),
     }
@@ -52,6 +66,7 @@ pub fn komodo_math(ctx: ExecContext) -> Environment {
             ("atan", Object::from_fn(atan, 1)),
             ("exp", Object::from_fn(exp, 1)),
             ("ln", Object::from_fn(ln, 1)),
+            ("log", Object::from_fn(log, 1)),
             ("cbrt", Object::from_fn(cbrt, 1)),
             ("sqrt", Object::from_fn(sqrt, 1)),
             ("abs", Object::from_fn(abs, 1)),
