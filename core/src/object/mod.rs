@@ -385,6 +385,12 @@ pub struct Char {
     val: char,
 }
 
+impl From<&Char> for String {
+    fn from(value: &Char) -> Self {
+        value.val.to_string()
+    }
+}
+
 impl Char {
     fn multiply(&self, num: &Integer) -> Object {
         let times = num.to_machine_magnitude();
@@ -703,6 +709,12 @@ pub struct MyString {
 impl From<String> for MyString {
     fn from(val: String) -> Self {
         Self { val }
+    }
+}
+
+impl From<MyString> for String {
+    fn from(value: MyString) -> Self {
+        value.val
     }
 }
 
@@ -1293,6 +1305,7 @@ impl fmt::Display for Range {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ObjectError {
+    BadJSONParse(String),
     FailedAssertion(Option<String>),
     UnexpectedType(Vec<String>, String),
 }

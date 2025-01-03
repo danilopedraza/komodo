@@ -445,7 +445,12 @@ fn object_error_msg(err: &ObjectError) -> String {
     match err {
         ObjectError::FailedAssertion(opt_msg) => failed_assertion(opt_msg),
         ObjectError::UnexpectedType(expected, actual) => unexpected_type(expected, actual),
+        ObjectError::BadJSONParse(msg) => bad_json_parse(msg),
     }
+}
+
+fn bad_json_parse(msg: &str) -> String {
+    format!("Error parsing JSON: {msg}")
 }
 
 fn unexpected_type(expected: &[String], actual: &str) -> String {
