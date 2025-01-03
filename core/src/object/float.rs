@@ -24,10 +24,11 @@ pub struct Float {
 pub static PREC: u32 = 53;
 impl Float {
     pub fn new(int: &str, dec: &str) -> Self {
-        let str = format!("{int}.{dec}");
-        let val = rug::Float::parse(str).unwrap().complete(PREC);
+        Self::from_num_str(&format!("{int}.{dec}"))
+    }
 
-        Self { val }
+    pub fn from_num_str(str: &str) -> Self {
+        rug::Float::parse(str).unwrap().complete(PREC).into()
     }
 
     pub fn is_zero(&self) -> bool {

@@ -1,10 +1,16 @@
+use std::collections::BTreeMap;
+
 use hifijson::{
-    num::Parts, token::Lex, value::{parse_unbounded, Value}, IterLexer
+    num::Parts,
+    token::Lex,
+    value::{parse_unbounded, Value},
+    IterLexer,
 };
 
 use crate::{
     env::{env_with, Environment, ExecContext},
-    object::{Kind, Object, ObjectError},
+    lexer::Radix,
+    object::{float::Float, integer::Integer, Kind, Object, ObjectError},
 };
 
 fn parse_value(value: Value<String, String>) -> Result<Object, ObjectError> {
@@ -12,19 +18,27 @@ fn parse_value(value: Value<String, String>) -> Result<Object, ObjectError> {
         Value::Null => Ok(Object::empty_tuple()),
         Value::Bool(bool) => Ok(bool.into()),
         Value::Number((num_str, Parts { dot, exp })) => match (dot, exp) {
-            (Some(dot), Some(exp)) => todo!(),
-            (Some(dot), None) => todo!(),
-            (None, Some(exp)) => todo!(),
-            (None, None) => todo!(),
+            (None, None) => Ok(Object::Integer(Integer::new(&num_str, Radix::Decimal))),
+            _ => Ok(Object::Float(Float::from_num_str(&num_str))),
         },
         Value::String(str) => Ok(Object::String(str.into())),
-        Value::Array(vec) => todo!(),
-        Value::Object(vec) => todo!(),
+        Value::Array(vec) => {
+            let list: Result<Vec<Object>, ObjectError> = vec.into_iter().map(parse_value).collect();
+            Ok(Object::List(list?.into()))
+        }
+        Value::Object(pairs) => {
+            let mut map = BTreeMap::new();
+            for (key, value) in pairs {
+                map.insert(Object::String(key.into()), parse_value(value)?);
+            }
+
+            Ok(Object::Dictionary(map.into()))
+        }
     }
 }
 
 fn parse_json(input: String) -> Object {
-    let mut lexer = IterLexer::new(input.into_bytes().into_iter().map(|b| Ok::<u8, ()>(b)));
+    let mut lexer = IterLexer::new(input.into_bytes().into_iter().map(Ok::<u8, ()>));
     let token = if let Some(token) = lexer.ws_token() {
         token
     } else {
@@ -53,4 +67,22 @@ fn parse(args: &[Object]) -> Object {
 
 pub fn komodo_json(ctx: ExecContext) -> Environment {
     env_with(vec![("parse", Object::from_fn(parse, 1))], ctx)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        object::{float::Float, Object},
+        std::json::parse_json,
+    };
+
+    #[test]
+    fn parse_number_with_point() {
+        let input = "1.0";
+
+        assert_eq!(
+            parse_json(input.into()),
+            Object::Float(Float::new("1", "0"))
+        );
+    }
 }

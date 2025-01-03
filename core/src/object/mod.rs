@@ -633,6 +633,12 @@ pub struct Dictionary {
     pub dict: BTreeMap<Object, Object>,
 }
 
+impl From<BTreeMap<Object, Object>> for Dictionary {
+    fn from(dict: BTreeMap<Object, Object>) -> Self {
+        Self { dict }
+    }
+}
+
 impl From<Vec<(Object, Object)>> for Dictionary {
     fn from(pairs: Vec<(Object, Object)>) -> Self {
         let mut dict = BTreeMap::new();
