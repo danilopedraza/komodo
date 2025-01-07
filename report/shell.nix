@@ -1,6 +1,6 @@
 { pkgs ? import (builtins.fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/archive/24.05.tar.gz";
-    sha256 = "1lr1h35prqkd1mkmzriwlpvxcb34kmhc9dnr48gkm8hh089hifmx";
+    url = "https://github.com/NixOS/nixpkgs/archive/branch-off-24.11.tar.gz";
+    sha256 = "1gx0hihb7kcddv5h0k7dysp2xhf1ny0aalxhjbpj2lmvj7h9g80a";
   }) {} }:
 
 pkgs.mkShell {
