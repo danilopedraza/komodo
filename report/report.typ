@@ -1,3 +1,5 @@
+#import "@preview/chronos:0.2.0"
+
 #set par(justify: true)
 #set text(lang: "es")
 
@@ -74,11 +76,40 @@ La forma en que se restringe la combinación de los dos paradigmas es limitando 
 
 Como suele suceder con múltiples compiladores e intérpretes, el intérprete de Komodo funciona como una cadena de procesamiento. Se comienza procesando texto, y tras cada paso se obtiene una representación del programa más preparada para ser ejecutada. En el caso de Komodo, se tienen las siguientes etapas:
 
-+ Analizador léxico
-+ Analizador sintáctico
-+ Post-analizador sintáctico o _weeder_
-+ Evaluador
-+ Entorno de tiempo de ejecución
++ Analizador léxico,
++ Analizador sintáctico,
++ Post-analizador sintáctico o _weeder_,
++ Evaluador,
++ Entorno de tiempo de ejecución o _runtime environment_.
+
+Este es un diagrama de secuencia de los componentes del intérprete. Las columnas son los componentes, y las flechas son interfaces. En algunos casos las interfaces son estructuras de datos, y en otros son eventos invocados por el usuario.
+
+#figure(
+  chronos.diagram({
+    import chronos: *
+    _par("Sistema operativo")
+    _par("Lexer")
+    _par("Parser")
+    _par("Weeder")
+    _par("Evaluador")
+    _par("Runtime")
+
+    _seq("Sistema operativo", "Lexer", comment: "REPL")
+    _seq("Sistema operativo", "Lexer", comment: "Archivos con código")
+    _seq("Lexer", "Parser", comment: "Token")
+    _seq("Parser", "Weeder", comment: "CST")
+    _seq("Weeder", "Evaluador", comment: "AST")
+    _seq("Evaluador", "Runtime", comment: "Declaraciones")
+    _seq("Evaluador", "Runtime", comment: "Referencias")
+    _seq("Evaluador", "Runtime", comment: "Objetos")
+
+    _seq("Runtime", "Sistema operativo", comment: "Entrada/salida estándar")
+    
+  }),
+  caption: "Componentes del intérprete y sus relaciones más importantes."
+)
+
+En este documento se hace una descripción del funcionamiento de cada componente, al mismo tiempo que se describe el comportamiento del lenguaje que está relacionado.
 
 = Análisis léxico y sintáctico
 
