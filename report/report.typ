@@ -203,7 +203,7 @@ Hay algunas particularidades a mencionar:
 
 + Como muestra su expresión regular, los identificadores no incluyen barras bajas en ningún punto. Están exlusivamente compuestos de caracteres alfanuméricos.
 
-+ Los ceros a la izquierda en enteros decimales no están permitidos. Un cero sólo va al principio de un _token_ entero cuando consiste en un solo cero, o cuando se va a escribir un prefijo para una base numérica no decimal (`0b`, `0o` o `0x`).
++ Los ceros a la izquierda en enteros decimales no están permitidos. Un cero sólo va al principio de un _token_ `Integer` cuando consiste en un solo cero, o cuando se va a escribir un prefijo para una base numérica no decimal (`0b`, `0o` o `0x`).
 
 === Rastreo de indentación y el alcance del analizador léxico
 
