@@ -195,6 +195,8 @@ En este documento se hace una descripción del funcionamiento de cada componente
 
 Hay algunas particularidades a mencionar:
 
++ El _lexer_ ignora los segmentos que comienzan con un númeral `#` y terminan con un salto de línea. Estos son los comentarios de Komodo.
+
 + Los identificadores reciben toda la clase `Alphabetic` de Unicode en su primer caracter, y luego reciben caracteres de la clase `Alphabetic` o `Number`. @unicodepropslist
   
   Estos nombres son propiedades de caracteres Unicode. @unicodeprops
