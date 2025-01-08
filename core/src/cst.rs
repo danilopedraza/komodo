@@ -64,7 +64,7 @@ impl InfixOperator {
         match tok {
             TokenType::Assign => Some(Self::Assignment),
             TokenType::Ampersand => Some(Self::BitwiseAnd),
-            TokenType::BitwiseXor => Some(Self::BitwiseXor),
+            TokenType::Circumflex => Some(Self::BitwiseXor),
             TokenType::Colon => Some(Self::Constraint),
             TokenType::Dot => Some(Self::Dot),
             TokenType::DotDot => Some(Self::Range),

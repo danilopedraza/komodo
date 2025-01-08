@@ -173,7 +173,7 @@ fn found_a(tok: &TokenType) -> String {
         TokenType::Bang => "a bang: `!`".into(),
         TokenType::Ampersand => "an ampersand: `&`".into(),
         TokenType::VerticalBar => "a pipe symbol: `|`".into(),
-        TokenType::BitwiseXor => "a caret: `^`".into(),
+        TokenType::Circumflex => "a caret: `^`".into(),
         TokenType::Case => "the `case` keyword".into(),
         TokenType::Char(chr) => format!("a character: `{chr}`"),
         TokenType::Colon => "a colon: `:`".into(),

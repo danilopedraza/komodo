@@ -49,15 +49,14 @@ impl From<Radix> for u32 {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TokenType {
+    Ampersand,
     Arrow,
     As,
     Assign,
     Bang,
-    Ampersand,
-    VerticalBar,
-    BitwiseXor,
     Case,
     Char(char),
+    Circumflex,
     Colon,
     Comma,
     Dedent,
@@ -107,6 +106,7 @@ pub enum TokenType {
     True,
     Unknown,
     Var,
+    VerticalBar,
     Wildcard,
 }
 
@@ -290,7 +290,7 @@ impl<'a> Lexer<'a> {
             Some(chr) if chr.is_ascii_digit() => Some(self.integer(chr)),
             Some(chr) => Some(Ok(match chr {
                 '!' => TokenType::Bang,
-                '^' => TokenType::BitwiseXor,
+                '^' => TokenType::Circumflex,
                 ',' => TokenType::Comma,
                 '.' => self.fork(TokenType::Dot, vec![('.', TokenType::DotDot)]),
                 '=' => self.fork(TokenType::Equals, vec![('>', TokenType::FatArrow)]),
