@@ -53,7 +53,7 @@ pub enum TokenType {
     As,
     Assign,
     Bang,
-    BitwiseAnd,
+    Ampersand,
     VerticalBar,
     BitwiseXor,
     Case,
@@ -294,7 +294,7 @@ impl<'a> Lexer<'a> {
                 ',' => TokenType::Comma,
                 '.' => self.fork(TokenType::Dot, vec![('.', TokenType::DotDot)]),
                 '=' => self.fork(TokenType::Equals, vec![('>', TokenType::FatArrow)]),
-                '&' => self.fork(TokenType::BitwiseAnd, vec![('&', TokenType::LogicAnd)]),
+                '&' => self.fork(TokenType::Ampersand, vec![('&', TokenType::LogicAnd)]),
                 '|' => self.fork(TokenType::VerticalBar, vec![('|', TokenType::LogicOr)]),
                 ':' => self.fork(TokenType::Colon, vec![('=', TokenType::Assign)]),
                 '>' => self.fork(

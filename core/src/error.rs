@@ -171,7 +171,7 @@ fn found_a(tok: &TokenType) -> String {
         TokenType::Arrow => "an arrow: `->`".into(),
         TokenType::Assign => "an assignment symbol: `:=`".into(),
         TokenType::Bang => "a bang: `!`".into(),
-        TokenType::BitwiseAnd => "an ampersand: `&`".into(),
+        TokenType::Ampersand => "an ampersand: `&`".into(),
         TokenType::VerticalBar => "a pipe symbol: `|`".into(),
         TokenType::BitwiseXor => "a caret: `^`".into(),
         TokenType::Case => "the `case` keyword".into(),

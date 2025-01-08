@@ -63,7 +63,7 @@ impl InfixOperator {
     pub fn from(tok: TokenType) -> Option<Self> {
         match tok {
             TokenType::Assign => Some(Self::Assignment),
-            TokenType::BitwiseAnd => Some(Self::BitwiseAnd),
+            TokenType::Ampersand => Some(Self::BitwiseAnd),
             TokenType::BitwiseXor => Some(Self::BitwiseXor),
             TokenType::Colon => Some(Self::Constraint),
             TokenType::Dot => Some(Self::Dot),
