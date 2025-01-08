@@ -65,8 +65,65 @@ fn parse(args: &[Object]) -> Object {
     }
 }
 
+fn to_json(obj: &Object) -> String {
+    match obj {
+        Object::Boolean(bool) => bool.to_string(),
+        Object::Char(char) => format!("\"{char}\""),
+        Object::Integer(integer) => integer.to_string(),
+        Object::Float(float) => float.to_string(),
+        Object::Fraction(_fraction) => "null".into(),
+        Object::Symbol(_symbol) => "null".into(),
+        Object::String(my_string) => format!("\"{my_string}\""),
+        Object::Tuple(tuple) => {
+            if tuple.is_empty() {
+                "null".into()
+            } else {
+                let values = tuple
+                    .list
+                    .iter()
+                    .map(|(obj, _)| to_json(obj))
+                    .collect::<Vec<_>>()
+                    .join(",");
+                format!("[{values}]")
+            }
+        }
+        Object::List(list) => {
+            let values = list
+                .list
+                .iter()
+                .map(|(obj, _)| to_json(obj))
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("[{values}]")
+        }
+        Object::Set(_set) => "{}".into(),
+        Object::Dictionary(dictionary) => {
+            let values = dictionary
+                .dict
+                .iter()
+                .map(|(key, val)| format!("{}: {}", to_json(key), to_json(val)))
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("{{{values}}}")
+        }
+        Object::Function(_function) => "null".into(),
+        Object::Range(_range) => "null".into(),
+        Object::Error(_object_error) => "null".into(),
+    }
+}
+
+fn stringify(args: &[Object]) -> Object {
+    Object::String(to_json(&args[0]).into())
+}
+
 pub fn komodo_json(ctx: ExecContext) -> Environment {
-    env_with(vec![("parse", Object::from_fn(parse, 1))], ctx)
+    env_with(
+        vec![
+            ("parse", Object::from_fn(parse, 1)),
+            ("stringify", Object::from_fn(stringify, 1)),
+        ],
+        ctx,
+    )
 }
 
 #[cfg(test)]

@@ -841,6 +841,10 @@ impl Tuple {
     pub fn empty_tuple() -> Self {
         Self { list: Vec::new() }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.list.is_empty()
+    }
 }
 
 impl InfixOperable for Tuple {
