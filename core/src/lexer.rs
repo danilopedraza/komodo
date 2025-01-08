@@ -13,10 +13,10 @@ pub enum LexerError {
 
 enum IndentLevel {
     Zero,
-    NonZero(usize, Token),
+    NonZero(usize, Vec<Token>),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Token {
     pub token: TokenType,
     pub position: Position,
@@ -178,6 +178,7 @@ impl<'a> Lexer<'a> {
     fn emit_indents(&mut self) -> IndentLevel {
         let mut spaces = 0;
         let mut new_indent_level = 0;
+        let mut indents = vec![];
 
         while let Some(chr) = self.input.peek() {
             match chr {
@@ -197,6 +198,10 @@ impl<'a> Lexer<'a> {
             }
 
             if spaces == 4 {
+                indents.push(Token::new(
+                    TokenType::Indent,
+                    Position::new(self.cur_pos - 4, 4),
+                ));
                 new_indent_level += 1;
                 spaces = 0;
             }
@@ -205,10 +210,7 @@ impl<'a> Lexer<'a> {
         if new_indent_level == 0 {
             IndentLevel::Zero
         } else {
-            IndentLevel::NonZero(
-                new_indent_level,
-                Token::new(TokenType::Indent, Position::new(self.cur_pos - 4, 4)),
-            )
+            IndentLevel::NonZero(new_indent_level, indents)
         }
     }
 
@@ -243,7 +245,7 @@ impl<'a> Lexer<'a> {
                             }
                             self.indent_level = 0;
                         }
-                        IndentLevel::NonZero(new_indent_level, indent_token) => {
+                        IndentLevel::NonZero(new_indent_level, indents) => {
                             match new_indent_level.cmp(&self.indent_level) {
                                 std::cmp::Ordering::Less => {
                                     self.push_dedents(self.indent_level - new_indent_level);
@@ -253,7 +255,10 @@ impl<'a> Lexer<'a> {
                                     self.push_newline(newline_pos);
                                 }
                                 std::cmp::Ordering::Greater => {
-                                    self.token_queue.push_back(Ok(indent_token));
+                                    for indent_token in indents.into_iter().skip(self.indent_level)
+                                    {
+                                        self.token_queue.push_back(Ok(indent_token.to_owned()));
+                                    }
                                 }
                             }
 
@@ -1214,6 +1219,30 @@ mod tests {
                 TokenType::Rparen,
                 TokenType::Slash,
                 TokenType::Integer("3".into(), Radix::Decimal),
+            ]),
+        );
+    }
+
+    #[test]
+    fn double_indent_block() {
+        let code = unindent(
+            "
+        let x :=
+                1
+        ",
+        );
+
+        assert_eq!(
+            token_types_from(&code),
+            Ok(vec![
+                TokenType::Let,
+                TokenType::Ident("x".into()),
+                TokenType::Assign,
+                TokenType::Indent,
+                TokenType::Indent,
+                TokenType::Integer("1".into(), Radix::Decimal),
+                TokenType::Dedent,
+                TokenType::Dedent,
             ]),
         );
     }
