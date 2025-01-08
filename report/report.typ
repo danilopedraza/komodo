@@ -269,7 +269,7 @@ Esta es una descripción de como el _lexer_ decide emitir estos _tokens_:
 
   - Si son iguales, no se emiten _tokens_ de más: el resto de la línea es consumida.
 
-  - Si el nivel de la línea es mayor, se emite un `Indent` y se consume el resto de la línea.
+  - Si el nivel de la línea es mayor, se emite tantos `Indennt` como la diferencia entre el nivel de la línea y el nivel guardado en el _lexer_, y se consume el resto de la línea.
 
   - Si el nivel de la línea es menor, se emiten tantos `Dedent` como la diferencia entre el nivel guardado en el _lexer_ y el nivel de la línea. Luego se consume el resto de la línea.
 
