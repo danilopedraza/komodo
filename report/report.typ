@@ -123,7 +123,7 @@ En este documento se hace una descripción del funcionamiento de cada componente
   
   Esta es una lista de los _tokens_ que el analizador léxico emite, y las reglas que hacen que sean emitidos. Se muestran expresiones regulares para algunos _tokens_ con el propósito de ilustrar las reglas rápidamente, pero la implementación del _lexer_ no usa expresiones regulares. Los tokens que están relacionados a los bloques de indentación indentados son casos especiales, cuyo funcionamiento se describe con más detalle en la siguiente sección.
 
-  Las expresiones regulares están escritas con el estilo de Perl.
+  Las expresiones regulares están escritas con el estilo de Perl. @perlregex
 
   #{
     show figure: set block(breakable: true)
