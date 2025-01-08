@@ -207,6 +207,74 @@ Hay algunas particularidades a mencionar:
 
 === Rastreo de indentación y el alcance del analizador léxico
 
+Los _tokens_ `Indent` y `Dedent` indican el inicio y el final de un bloque de código indentado, respectivamente. Por ejemplo, en el siguiente fragmento de código
+
+```
+let f(x) := x + 2
+```
+
+el cuerpo de la función `f` está compuesto exactamente por la expresión `x + 2`. Si se requiere que el cuerpo de la función tenga más líneas de código, se puede iniciar un bloque en una nueva línea. Las líneas que pertenecen al bloque están espaciadas a la derecha por 4 espacios:
+
+```
+let f(x) :=
+    let y := 2
+    x + y
+```
+
+En este caso, la función `f` esta compuesta por un bloque de código de dos líneas.
+
+Para indicar el inicio de este bloque, el _lexer_ emite un token `Indent` antes de emitir los correspondientes al mismo. Tras haber emitido todos los _tokens_ del bloque, se emite un `Dedent` para indicar el fin de este.
+
+Este comportamiento también ocurre cuando hay bloques dentro de bloques, como en el siguiente programa:
+
+```
+for i in 0..10 do
+    # se emite el primer Indent
+    for j in 0..10 do
+        # se emite el segundo Indent
+        mat[i][j] = i + j
+# Se emiten dos Dedent seguidos
+```
+
+En este caso, el cuerpo del primer ciclo `for` es un un bloque de código, cuya única parte es otro ciclo `for`, cuyo cuerpo es otro bloque de una sola línea. Después del primer `do` se emite un `Indent`. Después del segundo `do` se emite otro `Indent`. Cuando se llega al final del texto, se emiten dos `Dedent` seguidos para "cerrar" los dos bloques de código que estaban "abiertos".
+
+La razón para hacer esto es que al emitir estos _tokens_ se pueden entender los bloques de código de la misma forma que se hace con lenguajes donde los bloques están delimitados con caracteres como corchetes. Por ejemplo en JavaScript, este es un programa similar:
+
+```
+for (let i = 0; i < 10; i++) {
+    for (let j = 0; j < 10; j++) {
+        mat[i][j] = i + j;
+    }
+}
+```
+
+Los corchetes aquí cumplen la misma función que los `Indent` y `Dedent` en Komodo, solo que en este caso tienen una correspondencia directa con caracteres del texto. En el caso de Komodo son un artificio obtenido de contar espacios en blanco.
+
+Esta es una descripción de como el _lexer_ decide emitir estos _tokens_:
+
++ El _lexer_ cuenta el nivel de indentación en el que se encuentra el programa en el punto en donde el texto está siendo leído. Cuando se está al principio del programa, este nivel es cero.
+
++ Cuando se llega a una nueva línea, se quiere contar su nivel de indentación. Esto se hace contando el número de espacios al principio de la línea. Cada 4 espacios son un nivel de indentación. Si quedan espacios sobrantes (es decir, el número de espacios no es múltiplo de 4), se ignora el residuo.
+  
+  Por ejemplo, la línea de código
+  ```
+          println(x)
+  ```
+
+  tiene 8 espacios al principio, por lo que su nivel de indentación es 2.
+
+  Las líneas que estan exclusivamente de espacios o espacios con comentarios son ignoradas.
+
++ Una vez que se consumen y cuentan los espacios, y que se llega a un caracter que va a componer un _token_, se compara el nivel de indentación de la línea con el nivel de indentación que el _lexer_ guarda.
+
+  - Si son iguales, no se emiten _tokens_ de más: el resto de la línea es consumida.
+
+  - Si el nivel de la línea es mayor, se emite un `Indent` y se consume el resto de la línea.
+
+  - Si el nivel de la línea es menor, se emiten tantos `Dedent` como la diferencia entre el nivel guardado en el _lexer_ y el nivel de la línea. Luego se consume el resto de la línea.
+
+Cabe destacar que la razón por la que hay que almacenar el nivel de indentación es por que las reglas con las que estos _tokens_ son emitidos son dependientes del contexto: no basta con conocer el caracter actual o una cantidad fija hacia adelante, sino, en general, es necesario poder recorrer todos los caracteres recorridos antes. Una solución más sensible es almacenar un estado útil (el nivel de indentación) para poder decidir cuando emitir los _tokens_.
+
 == Analizador sintáctico
 
   El analizador sintáctico convierte sucesiones de tokens en un árbol que describe la estructura sintáctica del programa, conocido como CST (del inglés _Concrete Syntax Tree_). Este árbol contiene todos los detalles del programa, y es generado casi en su totalidad de forma independiente del contexto. La mayoría de la estructura del programa se obtiene de este paso.
