@@ -1153,12 +1153,6 @@ impl List {
     }
 }
 
-impl Kind for List {
-    fn kind(&self) -> String {
-        "extension list".into()
-    }
-}
-
 impl From<Vec<Object>> for List {
     fn from(list: Vec<Object>) -> Self {
         let list = list
