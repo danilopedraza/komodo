@@ -10,6 +10,7 @@ pkgs.mkShell {
     pkgs.nodejs_20
     pkgs.rustup
     pkgs.typst
+    pkgs.typst-lsp
     pkgs.wasm-bindgen-cli
     pkgs.wasm-pack
     pkgs.vsce
