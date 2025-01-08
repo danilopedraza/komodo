@@ -827,12 +827,12 @@ mod tests {
                 TokenType::Integer(String::from("1"), Radix::Decimal),
                 _pos(0, 1),
             ),
-            Token::new(TokenType::Times, _pos(1, 1)),
+            Token::new(TokenType::Star, _pos(1, 1)),
             Token::new(
                 TokenType::Integer(String::from("2"), Radix::Decimal),
                 _pos(2, 1),
             ),
-            Token::new(TokenType::ToThe, _pos(4, 2)),
+            Token::new(TokenType::StarStar, _pos(4, 2)),
             Token::new(
                 TokenType::Integer(String::from("2"), Radix::Decimal),
                 _pos(7, 1),
@@ -861,7 +861,7 @@ mod tests {
                 TokenType::Integer(String::from("1"), Radix::Decimal),
                 _pos(0, 1),
             ),
-            Token::new(TokenType::Over, _pos(1, 1)),
+            Token::new(TokenType::Slash, _pos(1, 1)),
             Token::new(
                 TokenType::Integer(String::from("1"), Radix::Decimal),
                 _pos(2, 1),
