@@ -430,7 +430,9 @@ impl<'a> Lexer<'a> {
         match radix {
             Radix::Binary => matches!(chr, '0' | '1'),
             Radix::Decimal => chr.is_ascii_digit(),
-            Radix::Hex => chr.is_ascii_digit() || matches!(chr, 'a'..='f'),
+            Radix::Hex => {
+                chr.is_ascii_digit() || matches!(chr, 'a'..='f') || matches!(chr, 'A'..='F')
+            }
             Radix::Octal => matches!(chr, '0'..='7'),
         }
     }
@@ -918,12 +920,12 @@ mod tests {
 
     #[test]
     fn hex() {
-        let code = "0x123456789abcdef0";
+        let code = "0x123456789abcdEf0";
 
         assert_eq!(
             token_types_from(code),
             Ok(vec![TokenType::Integer(
-                String::from("123456789abcdef0"),
+                String::from("123456789abcdEf0"),
                 Radix::Hex
             )])
         );
