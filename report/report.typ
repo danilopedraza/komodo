@@ -109,19 +109,107 @@ Este es un diagrama de secuencia de los componentes del intérprete. Las columna
   caption: "Componentes del intérprete y sus relaciones más importantes."
 )
 
-En este documento se hace una descripción del funcionamiento de cada componente, al mismo tiempo que se describe el comportamiento del lenguaje que está relacionado.
+En este documento se hace una descripción del funcionamiento de cada componente y cada relación entre componentes, al mismo tiempo que se especifica a Komodo.
 
 = Análisis léxico y sintáctico
 
-+ *Analizador léxico*
+== Analizador léxico o _lexer_
 
-  El analizador léxico convierte un programa en una sucesión de _tokens_. Estos _tokens_ representan palabras y símbolos del lenguaje. Puesto que Komodo usa bloques de código basados en indentación, su analizador léxico usa información del contexto de un token para generarlo. En particular, se guarda información sobre el nivel de indentación actual para emitir los _tokens_ correctos. Esto difiere de muchos lenguajes de programación que dependen de paréntesis para determinar los bloques de código, en cuyo caso el lenguaje de todos los tokens suele ser regular. Cabe aclarar que este no es el caso de los _tokens_ de Komodo.
+  El analizador léxico convierte un programa en una sucesión de _tokens_, que son unidades más complicadas como palabras, números y símbolos. Uno de los propósitos de esta fase es que las demás fases no tengan que lidiar con detalles relacionados al texto que representa el programa: Las fases posteriores no deberían lidiar con aspectos como espacios en blanco, indentación o comentarios en el código. Toda la información necesaria debería estar incluída en los _tokens_ que el analizador emite.
 
-+ *Analizador sintáctico*
+  La entrada del analizador es un _stream_ de caracteres Unicode. Sin embargo, la mayoría de palabras clave y símbolos se componen de caracteres ASCII.
+
+=== Lista de _tokens_
+  
+  Esta es una lista de los _tokens_ que el analizador léxico emite, y las reglas que hacen que sean emitidos. Se muestran expresiones regulares para algunos _tokens_ con el propósito de ilustrar las reglas rápidamente, pero la implementación del _lexer_ no usa expresiones regulares. Los tokens que están relacionados a los bloques de indentación indentados son casos especiales, cuyo funcionamiento se describe con más detalle en la siguiente sección.
+
+  Las expresiones regulares están escritas con el estilo de Perl.
+
+  #{
+    show figure: set block(breakable: true)
+    figure(
+      table(
+        columns: 3,
+        [Nombre], [Descripción], [Expresión regular],
+        [`Ampersand`], [Sígno et: `&`], [`&`],
+        [`Arrow`], [Flecha simple: `->`], [`->`],
+        [`As`], [Palabra clave: `as`], [`as`],
+        [`Assign`], [Símbolo de asignación: `:=`], [`:=`],
+        [`Bang`], [Símbolo de exclamación: `!`], [`!`],
+        [`Case`], [Palabra clave: `case`], [`case`],
+        [`Colon`], [Dos puntos: `:`], [`:`],
+        [`Comma`], [Coma: `,`], [`,`],
+        [`Dedent`], [El final de un bloque indentado.], [],
+        [`Do`], [Palabra clave: `do`], [`do`],
+        [`Dot`], [Punto: `.`], [`\.`],
+        [`DotDot`], [Punto tras punto: `..`], [`\.\.`],
+        [`Else`], [Palabra clave: `else`], [`else`],
+        [`Equals`], [Símbolo de igualdad: `=`], [`=`],
+        [`False`], [Palabra clave: `false`], [`false`],
+        [`FatArrow`], [Flecha gruesa: `=>`], [`=>`],
+        [`For`], [Palabra clave: `for`], [`for`],
+        [`From`], [Palabra clave: `from`], [`from`],
+        [`Greater`], [Símbolo de _mayor que_: `>`], [`>`],
+        [`GreaterEqual`], [Símbolo de _mayor o igual que_: `>=`], [`>=`],
+        [`Ident`], [Un identificador.], [`\p{Alphabetic}[\p{Alphabetic}\p{GC=Number}]`],
+        [`If`], [Palabra clave: `if`], [`if`],
+        [`Import`], [Palabra clave: `import`], [`import`],
+        [`In`], [Palabra clave: `in`], [`in`],
+        [`Indent`], [El inicio de un bloque indentado.], [],
+        [`Integer`], [Un entero en base 2, 8, 10 o 16.], [`(0)|(0(b|B)[0-1]+)|(0(o|O)[0-7]+)|([1-9][0-9]*)|(0(x|X)[0-9a-fA-F]+)`],
+        [`Lbrace`], [Corchete izquierdo: `{`], [`{`],
+        [`Lbrack`], [Paréntesis cuadrado izquierdo: `[`], [`\[`],
+        [`LeftShift`], [Dos _menor que_ juntos: `<<`], [`<<`],
+        [`Less`], [Símbolo de _menor que_: `<`], [`<`],
+        [`LessEqual`], [Símbolo de _menor o igual que_: `<=`], [`<=`],
+        [`Let`], [Palabra clave: `let`], [`let`],
+        [`LogicAnd`], [Dos sígnos et juntos: `&&`], [`&&`],
+        [`LogicOr`], [Dos barras verticales juntas: `||`], [`\|\|`],
+        [`Lparen`], [Paréntesis izquierdo: `(`], [`\(`],
+        [`Memoize`], [Palabra clave: `memoize`], [`memoize`],
+        [`Minus`], [Guión: `-`], [`-`],
+        [`Newline`], [Salto de línea.], [],
+        [`NotEqual`], [Un _slash_ y un símbolo de igualdad: `/=`], [`\/=`],
+        [`Percent`], [Símbolo de porcentaje: `%`], [`%`],
+        [`Plus`], [Símbolo de suma: `+`], [`\+`],
+        [`Rbrace`], [Corchete derecho: `}`], [`}`],
+        [`Rbrack`], [Paréntesis cuadrado derecho: `]`], [`]`],
+        [`RightShift`], [Dos _mayor que_ juntos: `>>`], [`>>`],
+        [`Rparen`], [Paréntesis derecho: `)`], [`)`],
+        [`Slash`], [Una barra inclinada: `/`], [`\/`],
+        [`SlashSlash`], [Dos barras inclinadas: `//`], [`\/\/`],
+        [`Star`], [Un asterisco: `*`], [`\*`],
+        [`StarStar`], [Dos asteriscos: `**`], [`\*\*`],
+        [`String`], [Una cadena de caracteres.], [`"[.\w]*"`],
+        [`Then`], [Palabra clave: `then`], [`then`],
+        [`Tilde`], [Una virgulilla: `~`], [`~`],
+        [`True`], [Palabra clave: `true`], [`true`],
+        [`Unknown`], [Un caracter no reconocido.], [],
+        [`Var`], [Palabra clave: `var`], [`var`],
+        [`VerticalBar`], [Barra vertical: `|`], [`\|`],
+        [`Wildcard`], [Barra baja: `_`], [`_`],
+      ),
+      caption: [Tokens del _lexer_ de Komodo y sus reglas.]
+    )
+  }
+
+Hay algunas particularidades a mencionar:
+
++ Los identificadores reciben toda la clase `Alphabetic` de Unicode en su primer caracter, y luego reciben caracteres de la clase `Alphabetic` o `Number`. @unicodepropslist
+  
+  Estos nombres son propiedades de caracteres Unicode. @unicodeprops
+
++ Como muestra su expresión regular, los identificadores no incluyen barras bajas en ningún punto. Están exlusivamente compuestos de caracteres alfanuméricos.
+
++ Los ceros a la izquierda en enteros decimales no están permitidos. Un cero sólo va al principio de un _token_ entero cuando consiste en un solo cero, o cuando se va a escribir un prefijo para una base numérica no decimal (`0b`, `0o` o `0x`).
+
+=== Rastreo de indentación y el alcance del analizador léxico
+
+== Analizador sintáctico
 
   El analizador sintáctico convierte sucesiones de tokens en un árbol que describe la estructura sintáctica del programa, conocido como CST (del inglés _Concrete Syntax Tree_). Este árbol contiene todos los detalles del programa, y es generado casi en su totalidad de forma independiente del contexto. La mayoría de la estructura del programa se obtiene de este paso.
 
-+ *Post-analizador sintáctico o _weeder_*
+== Post-analizador sintáctico o _weeder_
 
   El _weeder_ toma un CST y realiza dos tareas:
 
@@ -132,12 +220,12 @@ En este documento se hace una descripción del funcionamiento de cada componente
 
 = Ejecución de programas
 
-+ *Evaluador*
+== Evaluador
 
   El evaluador toma nodos del AST y los convierte en valores o acciones. Komodo es un lenguaje orientado a expresiones,
   por lo que las evaluaciones siempre retornan un valor. Las acciones se dan en un entorno que es modificado cuando los nodos del AST son evaluados.
 
-+ *Entorno de tiempo de ejecución*
+== Entorno de tiempo de ejecución
 
   El entorno de tiempo de ejecución es la representación de los tipos de Komodo y un modelo de memoria donde se almacenan estas representaciones. Conforme los nodos son evaluados, el entorno es modificado. El modelo de memoria es una pila de _scopes_, donde se añaden _scopes_ nuevos si se entra a un bloque de código nuevo.
   Todas las llamadas a funciones tienen un _scope_ propio. Todas los bloques indentados tienen un scope propio.
