@@ -117,7 +117,36 @@ En este documento se hace una descripción del funcionamiento de cada componente
 
   El analizador léxico convierte un programa en una sucesión de _tokens_, que son unidades más complicadas como palabras, números y símbolos. Uno de los propósitos de esta fase es que las demás fases no tengan que lidiar con detalles relacionados al texto que representa el programa: Las fases posteriores no deberían lidiar con aspectos como espacios en blanco, indentación o comentarios en el código. Toda la información necesaria debería estar incluída en los _tokens_ que el analizador emite.
 
-  La entrada del analizador es un _stream_ de caracteres Unicode. Sin embargo, la mayoría de palabras clave y símbolos se componen de caracteres ASCII.
+  La entrada del analizador es un _stream_ de caracteres Unicode. Sin embargo, la mayoría de palabras clave y símbolos se componen de caracteres ASCII. La salida es un _stream_ de _tokens_. El _lexer_ pasa una sola vez por el texto de entrada para emitir todos los _tokens_ correspondientes, y el texto es recorrido conforme los _tokens_ son emitidos.
+
+  #figure(
+    grid(
+      columns: 1,
+      gutter: 4mm,
+      {
+        show regex("let"): set text(fill: red)
+        show regex("x"): set text(fill: blue)
+        show regex(":="): set text(fill: purple)
+        show regex("2"): set text(fill: maroon)
+
+        ```
+        let x := 2
+        ```
+      },
+      sym.arrow.b,
+      {
+        show regex("Let"): set text(fill: red)
+        show regex("Ident\(x\)"): set text(fill: blue)
+        show regex("Assign"): set text(fill: purple)
+        show regex("Integer\(2\)"): set text(fill: maroon)
+
+        ```
+        Let, Ident(x), Assign, Integer(2)
+        ```
+      },
+    ),
+    caption: [Ejemplo de paso de un texto a una sucesión de _tokens_]
+  )
 
 === Lista de _tokens_
   
@@ -269,7 +298,7 @@ Esta es una descripción de como el _lexer_ decide emitir estos _tokens_:
 
   - Si son iguales, no se emiten _tokens_ de más: el resto de la línea es consumida.
 
-  - Si el nivel de la línea es mayor, se emite tantos `Indennt` como la diferencia entre el nivel de la línea y el nivel guardado en el _lexer_, y se consume el resto de la línea.
+  - Si el nivel de la línea es mayor, se emite tantos `Indent` como la diferencia entre el nivel de la línea y el nivel guardado en el _lexer_, y se consume el resto de la línea.
 
   - Si el nivel de la línea es menor, se emiten tantos `Dedent` como la diferencia entre el nivel guardado en el _lexer_ y el nivel de la línea. Luego se consume el resto de la línea.
 
