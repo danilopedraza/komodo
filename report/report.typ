@@ -269,7 +269,7 @@ for i in 0..10 do
 
 En este caso, el cuerpo del primer ciclo `for` es un un bloque de código, cuya única parte es otro ciclo `for`, cuyo cuerpo es otro bloque de una sola línea. Después del primer `do` se emite un `Indent`. Después del segundo `do` se emite otro `Indent`. Cuando se llega al final del texto, se emiten dos `Dedent` seguidos para "cerrar" los dos bloques de código que estaban "abiertos".
 
-La razón para hacer esto es que al emitir estos _tokens_ se pueden entender los bloques de código de la misma forma que se hace con lenguajes donde los bloques están delimitados con caracteres como corchetes. Por ejemplo en JavaScript, este es un programa similar:
+La razón para hacer esto es que al emitir estos _tokens_ se pueden entender los bloques de código de la misma forma que se hace con lenguajes donde los bloques están delimitados con caracteres como corchetes. Por ejemplo en JavaScript @ecmascript, este es un programa similar:
 
 ```
 for (let i = 0; i < 10; i++) {
@@ -306,6 +306,8 @@ Esta es una descripción de como el _lexer_ decide emitir estos _tokens_:
 
 Cabe destacar que la razón por la que hay que almacenar el nivel de indentación es por que las reglas con las que estos _tokens_ son emitidos son dependientes del contexto: no basta con conocer el caracter actual o una cantidad fija hacia adelante, sino, en general, es necesario poder recorrer todos los caracteres recorridos antes. Una solución más sensible es almacenar un estado útil (el nivel de indentación) para poder decidir cuando emitir los _tokens_.
 
+Esta estrategia es la misma que usa el intérprete principal de Python, CPython.
+
 == Analizador sintáctico o _parser_
 
 El analizador sintáctico convierte sucesiones de _tokens_ en nodos de un árbol que describe la estructura sintáctica del programa, conocido como CST (del inglés _Concrete Syntax Tree_). Este árbol contiene todos los detalles del programa, y es generado casi en su totalidad de forma independiente del contexto. La mayoría de la estructura del programa se obtiene de este paso.
@@ -338,13 +340,13 @@ De forma similar a como ocurre con el analizador léxico, el analizador sintáct
     },
     sym.arrow.b,
     {
-      show regex("let"): set text(fill: red)
+      show regex("Let"): set text(fill: red)
       show regex("Ident\(x\)"): set text(fill: blue)
       show regex("Assign"): set text(fill: purple)
       show regex("Integer\(2\)"): set text(fill: maroon)
 
       ```
-      let Ident(x), Assign, Integer(2)
+      Let Ident(x), Assign, Integer(2)
       ```
     },
     sym.arrow.b,
@@ -364,7 +366,7 @@ De forma similar a como ocurre con el analizador léxico, el analizador sintáct
   caption: [Ejemplo de paso de una sucesión de _tokens_ a un nodo de CST]
 )
 
-Para el análisis de expresiones infijas, el _parser_ usa el algoritmo de escalada de precedencia (_precedence climbing_ en Inglés). Este es un algoritmo iterativo, con una interpretación más natural que la de las alternativas, como el algoritmo _Shunting Yard_.
+Para el análisis de expresiones infijas, el _parser_ usa el algoritmo de escalada de precedencia (_precedence climbing_ en Inglés). Este es un algoritmo iterativo, siendo más simple que algunas de las alternativas, como el algoritmo _Shunting Yard_. @precedenceclimbing
 
 == Post-analizador sintáctico o _weeder_
 
@@ -381,7 +383,7 @@ La tarea del _weeder_ es reescribir los nodos del CST para convertirlos en nodos
 
 Otra de las razones para añadir el _weeder_ como una fase independiente en lugar de integrar sus funciones al _parser_, es controlar la complejidad del _parser_, que puede empezar a abarcar muchas reglas rápidamente. Al costo de aumentar el número de componentes y hacer al intérprete potencialmente más lento, se conserva la facilidad para entender y modificar el _parser_. Por esta razón, hay transformaciones que se realizan en el _weeder_ a pesar de que podrían realizarse en el _parser_ sin tanta dificultad.
 
-El cambio de nodos del CST a nodos del AST también deja atrás información que ya no es relevante, como la precedencia de operadores. Esto crea barreras más rigidas entre las fases del intérprete, evitando que se acoplen demasiado.
+El cambio de nodos del CST a nodos del AST también deja atrás información que ya no es relevante, como la precedencia de operadores. Esto crea barreras más rigidas entre las fases del intérprete, evitando que se acoplen @softwarevocab2010[p.~83] demasiado.
 
 #figure(
   grid(
