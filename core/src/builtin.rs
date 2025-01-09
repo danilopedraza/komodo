@@ -27,6 +27,20 @@ fn komodo_getln(_args: &[Object]) -> Object {
     Object::String(MyString::from(line.as_str()))
 }
 
+fn to_int(args: &[Object]) -> Object {
+    match args[0].as_int() {
+        Ok(int) => Object::Integer(int),
+        Err(err) => err.into(),
+    }
+}
+
+fn to_float(args: &[Object]) -> Object {
+    match args[0].as_float() {
+        Ok(f) => Object::Float(f),
+        Err(err) => err.into(),
+    }
+}
+
 pub fn komodo_assert(args: &[Object]) -> Object {
     match args.first() {
         Some(obj) if !truthy(obj) => Object::Error(ObjectError::FailedAssertion(
@@ -43,6 +57,8 @@ pub fn standard_env(ctx: ExecContext) -> Environment {
             ("print", Object::from_fn(komodo_print, 1)),
             ("getln", Object::from_fn(komodo_getln, 0)),
             ("assert", Object::from_fn(komodo_assert, 1)),
+            ("Integer", Object::from_fn(to_int, 1)),
+            ("Float", Object::from_fn(to_float, 1)),
         ],
         ctx,
     )

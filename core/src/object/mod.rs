@@ -160,6 +160,22 @@ impl Object {
             )),
         }
     }
+
+    pub fn as_int(&self) -> Result<Integer, ObjectError> {
+        match self {
+            Object::Integer(num) => Ok(num.to_owned()),
+            Object::Float(num) => num.floor(),
+            Object::Fraction(num) => Ok(num.floor()),
+            obj => Err(ObjectError::UnexpectedType(
+                vec![
+                    String::from("Float"),
+                    String::from("Integer"),
+                    String::from("Fraction"),
+                ],
+                obj.kind(),
+            )),
+        }
+    }
 }
 
 impl From<bool> for Object {
@@ -1310,6 +1326,7 @@ impl fmt::Display for Range {
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ObjectError {
     BadJSONParse(String),
+    CastInfinityToInt,
     FailedAssertion(Option<String>),
     UnexpectedType(Vec<String>, String),
 }

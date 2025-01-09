@@ -6,7 +6,7 @@ use std::{
 
 use rug::ops::{CompleteRound, Pow};
 
-use super::{integer::Integer, Bool, Fraction, InfixOperable, Object, PrefixOperable};
+use super::{integer::Integer, Bool, Fraction, InfixOperable, Object, ObjectError, PrefixOperable};
 
 macro_rules! wrapper_fn {
     ($name:ident) => {
@@ -47,6 +47,13 @@ impl Float {
 
     pub fn hypot(self, other: Self) -> Self {
         self.val.hypot(&other.into()).into()
+    }
+
+    pub fn floor(&self) -> Result<Integer, ObjectError> {
+        match self.val.to_integer_round(rug::float::Round::Down) {
+            Some(int) => Ok(int.0.into()),
+            None => Err(ObjectError::CastInfinityToInt),
+        }
     }
 
     wrapper_fn!(sin);

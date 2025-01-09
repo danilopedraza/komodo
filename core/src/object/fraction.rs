@@ -40,6 +40,10 @@ impl Fraction {
     pub fn abs(&self) -> Self {
         self.val.to_owned().abs().into()
     }
+
+    pub fn floor(&self) -> Integer {
+        (self.val.numer() / self.val.denom()).complete().into()
+    }
 }
 
 impl From<Rational> for Fraction {
