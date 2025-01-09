@@ -1,4 +1,6 @@
 #import "@preview/chronos:0.2.0"
+#import "@preview/syntree:0.2.0": syntree
+
 
 #set par(justify: true)
 #set text(lang: "es")
@@ -304,9 +306,62 @@ Esta es una descripción de como el _lexer_ decide emitir estos _tokens_:
 
 Cabe destacar que la razón por la que hay que almacenar el nivel de indentación es por que las reglas con las que estos _tokens_ son emitidos son dependientes del contexto: no basta con conocer el caracter actual o una cantidad fija hacia adelante, sino, en general, es necesario poder recorrer todos los caracteres recorridos antes. Una solución más sensible es almacenar un estado útil (el nivel de indentación) para poder decidir cuando emitir los _tokens_.
 
-== Analizador sintáctico
+== Analizador sintáctico o _parser_
 
-  El analizador sintáctico convierte sucesiones de tokens en un árbol que describe la estructura sintáctica del programa, conocido como CST (del inglés _Concrete Syntax Tree_). Este árbol contiene todos los detalles del programa, y es generado casi en su totalidad de forma independiente del contexto. La mayoría de la estructura del programa se obtiene de este paso.
+El analizador sintáctico convierte sucesiones de _tokens_ en nodos de un árbol que describe la estructura sintáctica del programa, conocido como CST (del inglés _Concrete Syntax Tree_). Este árbol contiene todos los detalles del programa, y es generado casi en su totalidad de forma independiente del contexto. La mayoría de la estructura del programa se obtiene de este paso.
+
+El _parser_ recibe un _stream_ de _tokens_, y retorna un _stream_ de nodos del CST. En este punto, un programa es una sucesión de nodos del CST.
+
+Komodo es un lenguaje orientado a expresiones, lo que significa que hay una preferencia explicita a que las sentencias del lenguaje retornen un valor.
+
+Komodo tiene algunas sentencias cuya interpretación más natural son como declaraciones, pero aún así retornan un valor, que usualmente es la tupla vacía `()`.
+
+Esto hace que en el análisis sintáctico todo sea considerado una expresión. No se define una distinción entre declaraciones y expresiones.
+
+El análizador sintáctico de Komodo es de descenso recursivo. Esto significa que está compuesto de funciones que se llaman mutuamente, donde (casi siempre) una función se encarga de procesar exclusivamente una de las expresiones del lenguaje.
+
+De forma similar a como ocurre con el analizador léxico, el analizador sintáctico solo pasa por el _stream_ de _tokens_ una vez para analizar todo el programa. No es necesario hacer regresos a partes del _stream_ previamente recorridas.
+
+#figure(
+  grid(
+    columns: 1,
+    gutter: 4mm,
+    {
+      show regex("x"): set text(fill: blue)
+      show regex(":="): set text(fill: purple)
+      show regex("2"): set text(fill: maroon)
+
+      ```
+      x := 2
+      ```
+    },
+    sym.arrow.b,
+    {
+      show regex("Ident\(x\)"): set text(fill: blue)
+      show regex("Assign"): set text(fill: purple)
+      show regex("Integer\(2\)"): set text(fill: maroon)
+
+      ```
+      Ident(x), Assign, Integer(2)
+      ```
+    },
+    sym.arrow.b,
+    {
+      show regex("Symbol\(x\)"): set text(fill: blue)
+      show regex("Infix\(Assign\)"): set text(fill: purple)
+      show regex("Integer\(2\)"): set text(fill: maroon)
+
+      syntree(
+        child-spacing: 2em, // default 1em
+        layer-spacing: 3em, // default 2.3em
+        "[`Infix(Assign)` `Symbol(x)` `Integer(2)`]"
+      )
+    },
+  ),
+  caption: [Ejemplo de paso de una sucesión de _tokens_ a un nodo de CST]
+)
+
+Para el análisis de expresiones infijas, el _parser_ usa el algoritmo de escalada de precedencia (_precedence climbing_ en Inglés). Este es un algoritmo iterativo, con una interpretación más natural que la de las alternativas, como el algoritmo _Shunting Yard_.
 
 == Post-analizador sintáctico o _weeder_
 
