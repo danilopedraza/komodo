@@ -327,26 +327,29 @@ De forma similar a como ocurre con el analizador léxico, el analizador sintáct
     columns: 1,
     gutter: 4mm,
     {
+      show regex("let"): set text(fill: red)
       show regex("x"): set text(fill: blue)
       show regex(":="): set text(fill: purple)
       show regex("2"): set text(fill: maroon)
 
       ```
-      x := 2
+      let x := 2
       ```
     },
     sym.arrow.b,
     {
+      show regex("let"): set text(fill: red)
       show regex("Ident\(x\)"): set text(fill: blue)
       show regex("Assign"): set text(fill: purple)
       show regex("Integer\(2\)"): set text(fill: maroon)
 
       ```
-      Ident(x), Assign, Integer(2)
+      let Ident(x), Assign, Integer(2)
       ```
     },
     sym.arrow.b,
     {
+      show regex("Let"): set text(fill: red)
       show regex("Symbol\(x\)"): set text(fill: blue)
       show regex("Infix\(Assign\)"): set text(fill: purple)
       show regex("Integer\(2\)"): set text(fill: maroon)
@@ -354,7 +357,7 @@ De forma similar a como ocurre con el analizador léxico, el analizador sintáct
       syntree(
         child-spacing: 2em, // default 1em
         layer-spacing: 3em, // default 2.3em
-        "[`Infix(Assign)` `Symbol(x)` `Integer(2)`]"
+        "[`Let` [`Infix(Assign)` `Symbol(x)` `Integer(2)`]]"
       )
     },
   ),
@@ -365,12 +368,76 @@ Para el análisis de expresiones infijas, el _parser_ usa el algoritmo de escala
 
 == Post-analizador sintáctico o _weeder_
 
-  El _weeder_ toma un CST y realiza dos tareas:
+El _weeder_ toma un nodo del CST y realiza dos tareas:
 
-  - Eliminar detalles innecesarios para la evaluación del código,
-  - Verificar condiciones del programa que serían más dificiles de verificar en etapas anteriores.
+- Eliminar detalles innecesarios para la evaluación del código,
+- Verificar condiciones del programa que serían más dificiles de verificar en etapas anteriores.
 
-  El resultado es un árbol de sintaxis abstracto o AST (del inglés _Abstract Syntax Tree_), que no contiene detalles como la precedencia de operadores, espacios o indentación. También convierte ciertos operadores infijos en nodos más restringidos, para facilitar la evaluación y eliminar estados indeseables. El tipo de errores que el _weeder_ captura son de naturaleza sintáctica y dependientes del contexto.
+El resultado es un nodo de un árbol de sintaxis abstracto o AST (del inglés _Abstract Syntax Tree_), que no contiene detalles como la precedencia de operadores, espacios o indentación. También convierte ciertos operadores infijos en nodos más restringidos, para facilitar la evaluación y eliminar estados indeseables. El tipo de errores que el _weeder_ captura son de naturaleza sintáctica y en muchas ocasiones, dependientes del contexto.
+
+A diferencia del _lexer_ y del _parser_, cuyas entradas son _streams_, la entrada del _weeder_ es un nodo individual del CST. Cuando un programa es analizado, el _weeder_ pasa por cada uno de los nodos retornados por el _parser_ de forma independiente.
+
+La tarea del _weeder_ es reescribir los nodos del CST para convertirlos en nodos del AST. Este proceso puede fallar cuando el nodo de entrada no cumple características que el _weeder_ verifica. Por lo tanto, el _weeder_ puede retornar un nodo del AST o un error reportando la restricción que la entrada no cumple.
+
+Otra de las razones para añadir el _weeder_ como una fase independiente en lugar de integrar sus funciones al _parser_, es controlar la complejidad del _parser_, que puede empezar a abarcar muchas reglas rápidamente. Al costo de aumentar el número de componentes y hacer al intérprete potencialmente más lento, se conserva la facilidad para entender y modificar el _parser_. Por esta razón, hay transformaciones que se realizan en el _weeder_ a pesar de que podrían realizarse en el _parser_ sin tanta dificultad.
+
+El cambio de nodos del CST a nodos del AST también deja atrás información que ya no es relevante, como la precedencia de operadores. Esto crea barreras más rigidas entre las fases del intérprete, evitando que se acoplen demasiado.
+
+#figure(
+  grid(
+    columns: 1,
+    gutter: 4mm,
+    {
+      show regex("let"): set text(fill: red)
+      show regex("x"): set text(fill: blue)
+      show regex(":="): set text(fill: purple)
+      show regex("2"): set text(fill: maroon)
+
+      ```
+      let x := 2
+      ```
+    },
+    sym.arrow.b,
+    {
+      show regex("let"): set text(fill: red)
+      show regex("Ident\(x\)"): set text(fill: blue)
+      show regex("Assign"): set text(fill: purple)
+      show regex("Integer\(2\)"): set text(fill: maroon)
+
+      ```
+      let Ident(x), Assign, Integer(2)
+      ```
+    },
+    sym.arrow.b,
+    {
+      show regex("Let"): set text(fill: red)
+      show regex("Symbol\(x\)"): set text(fill: blue)
+      show regex("Infix\(Assign\)"): set text(fill: purple)
+      show regex("Integer\(2\)"): set text(fill: maroon)
+
+      syntree(
+        child-spacing: 2em, // default 1em
+        layer-spacing: 3em, // default 2.3em
+        "[`Let` [`Infix(Assign)` `Symbol(x)` `Integer(2)`]]"
+      )
+    },
+
+    sym.arrow.b,
+    {
+      show regex("Inmutable"): set text(fill: red)
+      show regex("Symbol\(x\)"): set text(fill: blue)
+      show regex("Declaration"): set text(fill: purple)
+      show regex("Integer\(2\)"): set text(fill: maroon)
+
+      syntree(
+        child-spacing: 2em, // default 1em
+        layer-spacing: 3em, // default 2.3em
+        "[`Declaration(Inmutable)` `Symbol(x)` `Integer(2)`]"
+      )
+    },
+  ),
+  caption: [Ejemplo de paso de un nodo de CST a uno de AST]
+)
 
 = Ejecución de programas
 
