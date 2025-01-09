@@ -226,7 +226,7 @@ impl Kind for Object {
         match self {
             Object::Boolean(_) => "Boolean",
             Object::Char(_) => "Character",
-            Object::Float(_) => "Decimal",
+            Object::Float(_) => "Float",
             Object::Dictionary(_) => "Dictionary",
             Object::Error(_) => "Error",
             Object::List(_) => "List",

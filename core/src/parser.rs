@@ -2063,7 +2063,7 @@ mod tests {
 
     #[test]
     fn signature_conjunction_pattern() {
-        let input = "n: Integer || Decimal";
+        let input = "n: Integer || Float";
 
         let lexer = lexer_from(input);
 
@@ -2075,10 +2075,10 @@ mod tests {
                 infix(
                     InfixOperator::Or,
                     symbol("Integer", _pos(3, 7)),
-                    symbol("Decimal", _pos(14, 7)),
-                    _pos(3, 18)
+                    symbol("Float", _pos(14, 5)),
+                    _pos(3, 16)
                 ),
-                _pos(0, 21)
+                _pos(0, 19)
             ))),
         );
     }

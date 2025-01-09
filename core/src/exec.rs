@@ -1726,7 +1726,7 @@ mod tests {
             exec(&node, &mut Environment::default()),
             Err(Error::with_position(
                 ExecError::InvalidIndex {
-                    kind: String::from("Decimal")
+                    kind: String::from("Float")
                 }
                 .into(),
                 dummy_pos(),

@@ -30,7 +30,7 @@
 
 - Enable value destructuring of loop variables. Now you can use any pattern as a loop variable.
 
-- Add the remainder operator to the Decimal type.
+- Add the remainder operator to the Float type.
 
 - Now an argument can be matched against several signatures using the same pattern using the `||` operator.
 

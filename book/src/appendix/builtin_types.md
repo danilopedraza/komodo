@@ -4,7 +4,7 @@ Komodo has a few built-in types:
 
 - Integers: Signed, arbitrary precision integers. You can write them in decimal form, or the usual prefixed binary (`0x`), octal (`0o`) or hex (`0x`) form.
 
-- Decimals: Signed, arbitrary precision decimal numbers. You can write them in decimal form with a dot.
+- Floats: Signed, arbitrary precision decimal numbers. You can write them in decimal form with a dot.
 
 - Fractions: Signed, arbitrary precision fractions, made with Integers. You can write them like this: `1 // 2`.
 

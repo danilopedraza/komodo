@@ -594,7 +594,7 @@ mod tests {
             symbol("n", dummy_pos()),
             Some(infix(
                 InfixOperator::Or,
-                symbol("Decimal", dummy_pos()),
+                symbol("Float", dummy_pos()),
                 symbol("Integer", dummy_pos()),
                 dummy_pos(),
             )),
