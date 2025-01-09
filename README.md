@@ -20,6 +20,8 @@ This is a monorepo with all the code related to Komodo. Here is a quick summary:
 
 - `website`: The Komodo landing page.
 
+- `report`: A document, in spanish, explaining the language and the interpreter. I am writing it with Typst.
+
 ## Hacking
 
 I use a very simple Nix setup to develop and deploy everything. The `shell.nix` file contains all the requirements (I think) to build everything.
