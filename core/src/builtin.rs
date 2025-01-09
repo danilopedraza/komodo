@@ -1,7 +1,7 @@
 use crate::{
     env::{env_with, Environment, ExecContext},
     exec::truthy,
-    object::{ExternFunction, Function, MyString, Object, ObjectError},
+    object::{MyString, Object, ObjectError},
 };
 
 use std::io::{stdin, BufRead};
@@ -39,22 +39,10 @@ pub fn komodo_assert(args: &[Object]) -> Object {
 pub fn standard_env(ctx: ExecContext) -> Environment {
     env_with(
         vec![
-            (
-                "println",
-                Object::Function(Function::Extern(ExternFunction::new(komodo_println, 1))),
-            ),
-            (
-                "print",
-                Object::Function(Function::Extern(ExternFunction::new(komodo_print, 1))),
-            ),
-            (
-                "getln",
-                Object::Function(Function::Extern(ExternFunction::new(komodo_getln, 0))),
-            ),
-            (
-                "assert",
-                Object::Function(Function::Extern(ExternFunction::new(komodo_assert, 1))),
-            ),
+            ("println", Object::from_fn(komodo_println, 1)),
+            ("print", Object::from_fn(komodo_print, 1)),
+            ("getln", Object::from_fn(komodo_getln, 0)),
+            ("assert", Object::from_fn(komodo_assert, 1)),
         ],
         ctx,
     )
