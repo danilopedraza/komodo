@@ -52,6 +52,10 @@ cast_fn!(to_float, Float);
 cast_fn!(to_list, List);
 cast_fn!(to_set, Set);
 
+fn to_string(args: &[Object]) -> Object {
+    Object::String(args[0].to_string().into())
+}
+
 pub fn standard_env(ctx: ExecContext) -> Environment {
     env_with(
         vec![
@@ -63,6 +67,7 @@ pub fn standard_env(ctx: ExecContext) -> Environment {
             ("Float", Object::from_fn(to_float, 1)),
             ("List", Object::from_fn(to_list, 1)),
             ("Set", Object::from_fn(to_set, 1)),
+            ("String", Object::from_fn(to_string, 1)),
         ],
         ctx,
     )
