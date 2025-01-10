@@ -176,6 +176,28 @@ impl Object {
             )),
         }
     }
+
+    pub fn to_list(&self) -> Result<List, ObjectError> {
+        match self {
+            Object::List(list) => Ok(list.to_owned()),
+            Object::Set(set) => {
+                let list: Vec<_> = set.iter().map(|obj| obj.to_owned()).collect();
+                Ok(list.into())
+            }
+            Object::Range(rng) => {
+                let list: Vec<_> = rng.to_owned().collect();
+                Ok(list.into())
+            }
+            obj => Err(ObjectError::UnexpectedType(
+                vec![
+                    String::from("List"),
+                    String::from("Set"),
+                    String::from("Range"),
+                ],
+                obj.kind(),
+            )),
+        }
+    }
 }
 
 impl From<bool> for Object {

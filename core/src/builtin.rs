@@ -27,20 +27,6 @@ fn komodo_getln(_args: &[Object]) -> Object {
     Object::String(MyString::from(line.as_str()))
 }
 
-fn to_int(args: &[Object]) -> Object {
-    match args[0].to_int() {
-        Ok(int) => Object::Integer(int),
-        Err(err) => err.into(),
-    }
-}
-
-fn to_float(args: &[Object]) -> Object {
-    match args[0].to_float() {
-        Ok(f) => Object::Float(f),
-        Err(err) => err.into(),
-    }
-}
-
 pub fn komodo_assert(args: &[Object]) -> Object {
     match args.first() {
         Some(obj) if !truthy(obj) => Object::Error(ObjectError::FailedAssertion(
@@ -49,6 +35,21 @@ pub fn komodo_assert(args: &[Object]) -> Object {
         Some(_) | None => Object::empty_tuple(),
     }
 }
+
+macro_rules! cast_fn {
+    ($name:ident, $kind:ident) => {
+        fn $name(args: &[Object]) -> Object {
+            match args[0].$name() {
+                Ok(int) => Object::$kind(int),
+                Err(err) => err.into(),
+            }
+        }
+    };
+}
+
+cast_fn!(to_int, Integer);
+cast_fn!(to_float, Float);
+cast_fn!(to_list, List);
 
 pub fn standard_env(ctx: ExecContext) -> Environment {
     env_with(
@@ -59,6 +60,7 @@ pub fn standard_env(ctx: ExecContext) -> Environment {
             ("assert", Object::from_fn(komodo_assert, 1)),
             ("Integer", Object::from_fn(to_int, 1)),
             ("Float", Object::from_fn(to_float, 1)),
+            ("List", Object::from_fn(to_list, 1)),
         ],
         ctx,
     )
