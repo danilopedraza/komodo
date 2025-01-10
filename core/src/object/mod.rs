@@ -145,7 +145,7 @@ impl Object {
         Self::Function(Function::Extern(ExternFunction { func, param_number }))
     }
 
-    pub fn as_float(&self) -> Result<Float, ObjectError> {
+    pub fn to_float(&self) -> Result<Float, ObjectError> {
         match self {
             Object::Float(num) => Ok(num.to_owned()),
             Object::Integer(num) => Ok(num.into()),
@@ -161,7 +161,7 @@ impl Object {
         }
     }
 
-    pub fn as_int(&self) -> Result<Integer, ObjectError> {
+    pub fn to_int(&self) -> Result<Integer, ObjectError> {
         match self {
             Object::Integer(num) => Ok(num.to_owned()),
             Object::Float(num) => num.floor(),

@@ -20,7 +20,7 @@ fn abs(args: &[Object]) -> Object {
 }
 
 fn hypot(args: &[Object]) -> Object {
-    match (args[0].as_float(), args[1].as_float()) {
+    match (args[0].to_float(), args[1].to_float()) {
         (Ok(x), Ok(y)) => Object::Float(x.hypot(y)),
         (Err(err), _) => err.into(),
         (_, Err(err)) => err.into(),
@@ -30,7 +30,7 @@ fn hypot(args: &[Object]) -> Object {
 fn log(args: &[Object]) -> Object {
     match args.get(1) {
         None => ln(args),
-        Some(Object::Integer(base)) => match args[0].as_float() {
+        Some(Object::Integer(base)) => match args[0].to_float() {
             Ok(f) => Object::Float(f.ln() / Float::from(base).ln()),
             Err(err) => err.into(),
         },
@@ -44,7 +44,7 @@ fn log(args: &[Object]) -> Object {
 macro_rules! float_fn {
     ($name:ident) => {
         fn $name(args: &[Object]) -> Object {
-            match args[0].as_float() {
+            match args[0].to_float() {
                 Ok(f) => Object::Float(f.$name()),
                 Err(err) => err.into(),
             }

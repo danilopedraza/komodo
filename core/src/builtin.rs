@@ -28,14 +28,14 @@ fn komodo_getln(_args: &[Object]) -> Object {
 }
 
 fn to_int(args: &[Object]) -> Object {
-    match args[0].as_int() {
+    match args[0].to_int() {
         Ok(int) => Object::Integer(int),
         Err(err) => err.into(),
     }
 }
 
 fn to_float(args: &[Object]) -> Object {
-    match args[0].as_float() {
+    match args[0].to_float() {
         Ok(f) => Object::Float(f),
         Err(err) => err.into(),
     }
