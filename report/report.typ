@@ -346,7 +346,7 @@ De forma similar a como ocurre con el analizador léxico, el analizador sintáct
       show regex("Integer\(2\)"): set text(fill: maroon)
 
       ```
-      Let Ident(x), Assign, Integer(2)
+      Let, Ident(x), Assign, Integer(2)
       ```
     },
     sym.arrow.b,
@@ -407,7 +407,7 @@ El cambio de nodos del CST a nodos del AST también deja atrás información que
       show regex("Integer\(2\)"): set text(fill: maroon)
 
       ```
-      let Ident(x), Assign, Integer(2)
+      let, Ident(x), Assign, Integer(2)
       ```
     },
     sym.arrow.b,
