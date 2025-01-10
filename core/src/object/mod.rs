@@ -565,6 +565,14 @@ impl Set {
     pub fn remove(&mut self, val: &Object) -> bool {
         self.set.remove(val)
     }
+
+    pub fn len(&self) -> usize {
+        self.set.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.set.is_empty()
+    }
 }
 
 impl InfixOperable for Set {
@@ -1211,6 +1219,14 @@ impl List {
             }
             obj => Err(ExecError::InvalidIndex { kind: obj.kind() }),
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.list.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.list.is_empty()
     }
 }
 

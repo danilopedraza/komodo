@@ -1,7 +1,7 @@
 use crate::{
     env::{env_with, Environment, ExecContext},
     exec::truthy,
-    object::{MyString, Object, ObjectError},
+    object::{Kind, MyString, Object, ObjectError},
 };
 
 use std::io::{stdin, BufRead};
@@ -56,6 +56,17 @@ fn to_string(args: &[Object]) -> Object {
     Object::String(args[0].to_string().into())
 }
 
+fn len(args: &[Object]) -> Object {
+    match &args[0] {
+        Object::List(list) => Object::Integer(list.len().into()),
+        Object::Set(set) => Object::Integer(set.len().into()),
+        obj => Object::Error(ObjectError::UnexpectedType(
+            vec![String::from("List"), String::from("Set")],
+            obj.kind(),
+        )),
+    }
+}
+
 pub fn standard_env(ctx: ExecContext) -> Environment {
     env_with(
         vec![
@@ -68,6 +79,7 @@ pub fn standard_env(ctx: ExecContext) -> Environment {
             ("List", Object::from_fn(to_list, 1)),
             ("Set", Object::from_fn(to_set, 1)),
             ("String", Object::from_fn(to_string, 1)),
+            ("len", Object::from_fn(len, 1)),
         ],
         ctx,
     )
