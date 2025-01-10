@@ -52,6 +52,29 @@ macro_rules! float_fn {
     };
 }
 
+macro_rules! round_fn {
+    ($name:ident) => {
+        fn $name(args: &[Object]) -> Object {
+            match &args[0] {
+                Object::Integer(int) => Object::Integer(int.to_owned()),
+                Object::Float(f) => match f.$name() {
+                    Ok(int) => Object::Integer(int),
+                    Err(err) => err.into(),
+                },
+                Object::Fraction(f) => Object::Integer(f.$name()),
+                obj => Object::Error(ObjectError::UnexpectedType(
+                    vec![
+                        String::from("Float"),
+                        String::from("Integer"),
+                        String::from("Fraction"),
+                    ],
+                    obj.kind(),
+                )),
+            }
+        }
+    };
+}
+
 float_fn!(sin);
 float_fn!(cos);
 float_fn!(tan);
@@ -62,6 +85,10 @@ float_fn!(exp);
 float_fn!(ln);
 float_fn!(sqrt);
 float_fn!(cbrt);
+
+round_fn!(round);
+round_fn!(floor);
+round_fn!(ceil);
 
 pub fn komodo_math(ctx: ExecContext) -> Environment {
     env_with(
@@ -79,6 +106,9 @@ pub fn komodo_math(ctx: ExecContext) -> Environment {
             ("sqrt", Object::from_fn(sqrt, 1)),
             ("abs", Object::from_fn(abs, 1)),
             ("hypot", Object::from_fn(hypot, 2)),
+            ("round", Object::from_fn(round, 1)),
+            ("floor", Object::from_fn(floor, 1)),
+            ("ceil", Object::from_fn(ceil, 1)),
         ],
         ctx,
     )

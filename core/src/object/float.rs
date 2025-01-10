@@ -56,6 +56,20 @@ impl Float {
         }
     }
 
+    pub fn ceil(&self) -> Result<Integer, ObjectError> {
+        match self.val.to_integer_round(rug::float::Round::Up) {
+            Some(int) => Ok(int.0.into()),
+            None => Err(ObjectError::CastInfinityToInt),
+        }
+    }
+
+    pub fn round(&self) -> Result<Integer, ObjectError> {
+        match self.val.to_integer_round(rug::float::Round::Nearest) {
+            Some(int) => Ok(int.0.into()),
+            None => Err(ObjectError::CastInfinityToInt),
+        }
+    }
+
     wrapper_fn!(sin);
     wrapper_fn!(cos);
     wrapper_fn!(tan);

@@ -42,7 +42,15 @@ impl Fraction {
     }
 
     pub fn floor(&self) -> Integer {
-        (self.val.numer() / self.val.denom()).complete().into()
+        self.val.clone().floor().numer().to_owned().into()
+    }
+
+    pub fn ceil(&self) -> Integer {
+        self.val.clone().ceil().numer().to_owned().into()
+    }
+
+    pub fn round(&self) -> Integer {
+        self.val.clone().round().numer().to_owned().into()
     }
 }
 
