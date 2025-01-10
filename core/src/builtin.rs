@@ -50,6 +50,7 @@ macro_rules! cast_fn {
 cast_fn!(to_int, Integer);
 cast_fn!(to_float, Float);
 cast_fn!(to_list, List);
+cast_fn!(to_set, Set);
 
 pub fn standard_env(ctx: ExecContext) -> Environment {
     env_with(
@@ -61,6 +62,7 @@ pub fn standard_env(ctx: ExecContext) -> Environment {
             ("Integer", Object::from_fn(to_int, 1)),
             ("Float", Object::from_fn(to_float, 1)),
             ("List", Object::from_fn(to_list, 1)),
+            ("Set", Object::from_fn(to_set, 1)),
         ],
         ctx,
     )

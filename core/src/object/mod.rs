@@ -198,6 +198,28 @@ impl Object {
             )),
         }
     }
+
+    pub fn to_set(&self) -> Result<Set, ObjectError> {
+        match self {
+            Object::Set(set) => Ok(set.to_owned()),
+            Object::List(list) => {
+                let set: BTreeSet<_> = list.list.iter().map(|obj| obj.to_owned()).collect();
+                Ok(set.into())
+            }
+            Object::Range(rng) => {
+                let set: BTreeSet<_> = rng.to_owned().collect();
+                Ok(set.into())
+            }
+            obj => Err(ObjectError::UnexpectedType(
+                vec![
+                    String::from("List"),
+                    String::from("Set"),
+                    String::from("Range"),
+                ],
+                obj.kind(),
+            )),
+        }
+    }
 }
 
 impl From<bool> for Object {
