@@ -734,6 +734,7 @@ impl Dictionary {
 fn quote_mystring(obj: &Object) -> String {
     match obj {
         Object::String(str) => format!("\"{str}\""),
+        Object::Char(chr) => format!("'{chr}'"),
         obj => obj.to_string(),
     }
 }
