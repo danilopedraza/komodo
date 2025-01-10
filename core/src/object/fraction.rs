@@ -66,19 +66,6 @@ impl From<&Integer> for Fraction {
     }
 }
 
-impl From<&Float> for Fraction {
-    fn from(_value: &Float) -> Self {
-        // let value = rug::Float::from(value.to_owned());
-
-        // let mut val = rug::Rational::new();
-        // val += value;
-
-        let val = rug::Rational::new();
-
-        Self { val }
-    }
-}
-
 impl Add for &Fraction {
     type Output = Fraction;
 
@@ -174,7 +161,7 @@ impl InfixOperable for Fraction {
         match other {
             Object::Integer(val) => Some(Object::Boolean(Bool::from(self < &Fraction::from(val)))),
             Object::Fraction(val) => Some(Object::Boolean(Bool::from(self < val))),
-            Object::Float(val) => Some(Object::Boolean(Bool::from(self < &Fraction::from(val)))),
+            Object::Float(val) => Some(Object::Boolean(Bool::from(&Float::from(self) < val))),
             _ => None,
         }
     }
