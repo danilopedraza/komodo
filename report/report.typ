@@ -240,17 +240,27 @@ Hay algunas particularidades a mencionar:
 
 Los _tokens_ `Indent` y `Dedent` indican el inicio y el final de un bloque de código indentado, respectivamente. Por ejemplo, en el siguiente fragmento de código
 
-```
-let f(x) := x + 2
-```
+#figure(
+  ```
+  let f(x) := x + 2
+
+
+  ```,
+  caption: "Ejemplo de declaración de una función",
+)
 
 el cuerpo de la función `f` está compuesto exactamente por la expresión `x + 2`. Si se requiere que el cuerpo de la función tenga más líneas de código, se puede iniciar un bloque en una nueva línea. Las líneas que pertenecen al bloque están espaciadas a la derecha por 4 espacios:
 
-```
-let f(x) :=
-    let y := 2
-    x + y
-```
+#figure(
+  ```
+  let f(x) :=
+      let y := 2
+      x + y
+
+
+  ```,
+  caption: "Ejemplo de declaración de una función con un bloque de código.",
+)
 
 En este caso, la función `f` esta compuesta por un bloque de código de dos líneas.
 
@@ -258,26 +268,36 @@ Para indicar el inicio de este bloque, el _lexer_ emite un token `Indent` antes 
 
 Este comportamiento también ocurre cuando hay bloques dentro de bloques, como en el siguiente programa:
 
-```
-for i in 0..10 do
-    # se emite el primer Indent
-    for j in 0..10 do
-        # se emite el segundo Indent
-        mat[i][j] = i + j
-# Se emiten dos Dedent seguidos
-```
+#figure(
+  ```
+  for i in 0..10 do
+      # se emite el primer Indent
+      for j in 0..10 do
+          # se emite el segundo Indent
+          mat[i][j] = i + j
+  # Se emiten dos Dedent seguidos
+
+
+  ```,
+  caption: "Ejemplo de bloques anidados."
+)
 
 En este caso, el cuerpo del primer ciclo `for` es un un bloque de código, cuya única parte es otro ciclo `for`, cuyo cuerpo es otro bloque de una sola línea. Después del primer `do` se emite un `Indent`. Después del segundo `do` se emite otro `Indent`. Cuando se llega al final del texto, se emiten dos `Dedent` seguidos para "cerrar" los dos bloques de código que estaban "abiertos".
 
 La razón para hacer esto es que al emitir estos _tokens_ se pueden entender los bloques de código de la misma forma que se hace con lenguajes donde los bloques están delimitados con caracteres como corchetes. Por ejemplo en JavaScript @ecmascript, este es un programa similar:
 
-```
-for (let i = 0; i < 10; i++) {
-    for (let j = 0; j < 10; j++) {
-        mat[i][j] = i + j;
-    }
-}
-```
+#figure(
+  ```
+  for (let i = 0; i < 10; i++) {
+      for (let j = 0; j < 10; j++) {
+          mat[i][j] = i + j;
+      }
+  }
+
+
+  ```,
+  caption: "Bloques anidados en JavaScript."
+)
 
 Los corchetes aquí cumplen la misma función que los `Indent` y `Dedent` en Komodo, solo que en este caso tienen una correspondencia directa con caracteres del texto. En el caso de Komodo son un artificio obtenido de contar espacios en blanco.
 
@@ -443,21 +463,226 @@ El cambio de nodos del CST a nodos del AST también deja atrás información que
 
 = Ejecución de programas
 
-== Evaluador
+== El modelo de ejecución
 
-  El evaluador toma nodos del AST y los convierte en valores o acciones. Komodo es un lenguaje orientado a expresiones,
-  por lo que las evaluaciones siempre retornan un valor. Las acciones se dan en un entorno que es modificado cuando los nodos del AST son evaluados.
+Un programa de Komodo está hecho de módulos de código. Un modulo de código es creado cada vez que:
+
+- se ejecuta un archivo con código,
+- se inicia una sesión del REPL.
+
+Un archivo con código es ejecutado cuando el usuario lo solicita usando la interfaz de línea de comandos, o cuando es importado desde otro módulo.
+
+Toda ejecución de un módulo de código tiene su propio entorno.
+
+#figure(
+  grid(
+    columns: 1,
+    gutter: 4mm,
+    grid(
+      columns: 2,
+      gutter: 25mm,
+      {
+        ```
+        # foo.komodo
+        let foo(x) := x * x
+
+
+        ```
+      },
+      {
+        ```
+        # bar.komodo
+        let bar() := 5
+
+
+        ```
+      },
+    ),
+    sym.arrow.b,
+    {
+      ```
+      from "./foo.komodo" import foo
+      from "./bar.komodo" import bar
+      let x := bar()
+      println(foo(x))
+
+
+      ```
+    },
+  ),
+  caption: "Ejemplo de un programa de Komodo. Hay 3 módulos y 3 entornos.",
+)
+
+El que haya una correspondencia exacta entre entornos y módulos de código es conveniente para razonar fácilmente sobre los módulos: son unidades aisladas que se comunican entre si mediante la importación de variables.
+
+=== Entornos
+
+Un entorno está compuesto de una pila de _scopes_. Un _scope_ es una tabla que hace corresponder nombres con objetos.
+
+El estado inicial de todo entorno tiene un _scope_, y siempre va a tener al menos un _scope_.
+
+Se añade un nuevo _scope_ al entorno cada que:
+
+- Se ejecuta una función,
+- Se ejecuta un ciclo, 
+- Se ejecuta un bloque de código indentado.
+
+Después de ejecutar el código en cada uno de estos casos, el _scope_ es eliminado del entorno.
+
+Cuando se ejecutan archivos con código, los entornos también guardan la ruta del archivo en el sistema de archivos local, y la ruta de la terminal donde fue ejecutado el intérprete.
+
+=== Evaluador
+
+Todos los módulos de código son ejecutados por separado. Para ejecutar un módulo de código, se ejecuta cada uno de los nodos del AST que lo componen, en orden, con el mismo entorno que va siendo potencialmente modificado tras cada ejecución. El estado inicial del entorno es el descrito previamente.
+
+Esto hace que un entorno sea el único medio con el que se conserva el estado de ejecución de un módulo.
 
 == Variables
 
+Komodo permite la declaración de variables inmutables usando la palabra clave `let`. También se permite la creación de variables mutables con la palabra clave `var`.
+
+#figure(
+  ```
+  var x := 5
+  let y := a -> a + a * 2
+  
+  
+  ```,
+  caption: "Ejemplos de declaraciones en Komodo."
+)
+
+=== Resolución de nombres
+
+Cuando un nombre es referenciado en el código, se busca en el entorno de la siguiente forma:
+
+- Si se referencia para ser mutado (por ejemplo, al escribir `x := 5`), se comienza buscando desde el _scope_ al tope de la pila hasta el de más abajo. Se retorna la primera coincidencia encontrada. Si la variable no se encuentra en el _scope_ al tope, se interrumpe la búsqueda cuando se pasa por el scope generado por la ejecución de una función. Si la variable no es encontrada, también se interrumpe la ejecución con un error.
+
+  Por ejemplo, en el siguiente ejemplo de código, la variable `x` es encontrada y modificada:
+
+  #figure(
+    ```
+    var res := 0
+    for i in 0..3 do
+        res := res + i
+    
+    assert(res = 3)
+
+
+    ```,
+    caption: "Ejemplo de uso ordinario de una variable mutable."
+  )
+
+  Sin embargo, en este ejemplo el intérprete retorna un error:
+
+  #figure(
+    ```
+    var res := 0
+    let f() :=
+        for i in 0..3 do
+            res := res + i
+    
+    f()
+    assert(res = 3)
+
+
+    ```,
+    caption: "Ejemplo de uso no permitido de una variable mutable."
+  )
+
+  En la implementación actual, el intérprete de Komodo comunica que la variable existe, pero que no puede ser mutada.
+
+- Si se referencia una variable para obtener su valor (por ejemplo, al escribir `cur + 10`), se comienza buscando desde el _scope_ al tope de la pila hasta el de más abajo. Se retorna la primera coincidencia encontrada. Si la variable no es encontrada, se interrumpe la ejecución con un error.
+
+=== Copiado de valores
+
+Komodo no tiene una noción de referencia. En el contexto de la dicotomía valor-referencia, en Komodo solo se manipulan valores. Esto hace que los detalles internos sobre referencias a valores y el copiado de valores sean invisibles al usuario.
+
+El intérprete usa referencias siempre que es posible. Cuando una variable inmutable es asignada como el valor de otra variable inmutable, lo que se obtiene es una referencia a la variable original.
+
+Sin embargo, siempre que esta variable haga parte de un cálculo o un procedimiento, se va a hacer una copia.
+
+Cuando el valor de una variable es asignado a otra variable mutable, siempre se hace una copia.
+
+Salvo por los tipos `Char` y `Bool`, la inicialización de todos los tipos de Komodo requieren memoria en el _heap_. Por esta razón, se prefiere la creación de referencias en lugar de crear copias. No se ha implementado la creación de copias (en lugar del paso de referencias) para los valores `Char` y `Bool`.
+
+=== Variables y tipos
+
+En Komodo, los tipos están asociados a valores, y no a variables. Esto permite que una variable pueda ser declarada con un valor con cierto tipo, y luego se le pueda asignar otro valor, con otro tipo. Esto es conocido como tipado latente.
+
+#figure(
+  ```
+  var x := 2
+  x := "2"
+
+  
+  ```,
+  caption: "Ejemplo de una variable mutada con distintos tipos."
+)
+
+=== Ocultamiento o _shadowing_
+
+Una variable puede ser declarada varias veces con el mismo nombre, incluso en el mismo _scope_. Esto se conoce como _shadowing_. Es una característica conveniente dada la tendencia del intérprete a funcionar con referencias, y es un medio para reciclar nombres en rutinas donde esto es útil.
+
+Cabe destacar que el ocultar una variable con un nuevo valor no afecta los usos previos al ocultamiento. Un ejemplo de esto se muestra en el siguiente programa:
+
+#figure(
+  ```
+  let f() := 1
+  let g() := f()
+
+  let f() := 2
+  let h() := f()
+  let f() := 3
+
+  assert(g() = 1)
+  assert(h() = 2)
+
+
+  ```,
+  caption: [Ejemplo de _shadowing_.],
+)
+
+Aquí, la función `g` retorna 1, que es el valor de la función `f` cuando `g` fue definida. Lo mismo sucede con la función `h`, que retorna 2. El hecho de que luego `f` retorne 3 no afecta a ningún uso previo.
+
+Esta es una de las características que resulta de combinar un estilo procedural con uno funcional, al combinar la relevancia del orden de las instrucciones con la inmutabilidad de las variables.
+
+=== Mutabilidad restringida
+
+La mutabilidad de variables está restringida por dos reglas:
+
+- Las entradas de las funciones son siempre inmutables. Por ejemplo, la asignación dentro de esta función no está permitida, pues hay una asignación a uno de los argumentos:
+
+  #figure(
+    ```
+    let f(x) :=
+        println(x)
+        x := x - 1
+    
+    
+    ```,
+    caption: "Ejemplo de asignación ilegal a un argumento (siempre son inmutables)."
+  )
+
+- Dentro de una función, no se puede modificar el valor de una variable definida fuera de la función. Este es un ejemplo mínimo:
+
+  #figure(
+    ```
+    var x := 0
+    let f() :=
+        x := 1
+    
+
+    ```,
+    caption: "Ejemplo de asignación ilegal a una variable.",
+  )
+
+El propósito de estas reglas es restringir los casos de uso de un estado mutable.
+
+== Importación de código
+
 == _Pattern matching_
 
-== Entorno de tiempo de ejecución
-
-  El entorno de tiempo de ejecución es la representación de los tipos de Komodo y un modelo de memoria donde se almacenan estas representaciones. Conforme los nodos son evaluados, el entorno es modificado. El modelo de memoria es una pila de _scopes_, donde se añaden _scopes_ nuevos si se entra a un bloque de código nuevo.
-  Todas las llamadas a funciones tienen un _scope_ propio. Todas los bloques indentados tienen un scope propio.
-
-== Tipos
+== Tipos y objetos
 
 === Números
 
@@ -528,15 +753,7 @@ Se puede acceder a sus elementos de dos formas:
 
 Están representados como árboles binarios de búsqueda.
 
-== Patrones
 
-El mecanismo principal para representar lógica en Komodo es la búsqueda de patrones o _pattern matching_.
-Esto consiste en contrastar valores con patrones. Si un valor es compatible con un patrón, se ejecuta el código asociado a ese patrón.
-
-Toda expresión que represente un valor de Komodo también es un patrón. Toda expresión que contenga un comodín (representado en Komodo con la barra baja "`_`")
-es un patrón. Las listas y conjuntos son compatibles con un patrón especial que permite iterar sobre ellos, conocido popularmente como notación `cons`.
-
-La verificación de patrones está implementada comparando el árbol de sintaxis del patrón en cuestión con el valor que se quiere comparar.
 
 == El intérprete
 
@@ -544,21 +761,20 @@ El intérprete de Komodo es un binario compilado estáticamente. Además de la i
 
 El intérprete está escrito en el lenguaje de programación Rust. El ecosistema de Rust, de manera similar a lenguajes como OCaml, es favorable para construir herramientas para lenguajes de programación. El modelo de memoria de Rust no incluye manejo de memoria automático, sino un sistema que permite verificar reglas que garantizan seguridad de memoria en tiempo de compilación.
 
-== Módulos de código
+== Librería estándar
 
 Komodo permite importar otros archivos con código, ya sea de fuentes externas o de la librería estándar.
 
-=== Librería estándar
+=== Módulos escritos en Komodo
 
-Komodo tiene una pequeña librería estándar que se incluye con la instalación del intérprete.
-
-=== Importación de código externo
-
-Se pueden importar archivos arbitrarios que serán interpretados como programas de Komodo, y de los que se extraerán nombres. Se pueden usar rutas relativas del sistema operativo, y se usará la ubicación del archivo ejecutado actualmente como referencia.
+=== Módulos externos
 
 == Gestión de memoria
 
 El intérprete gestiona la memoria automáticamente con un algoritmo de _mark-and-sweep_ sin adiciones. El espacio de memoria crece a demanda en tiempo de ejecución.
+
+
+
 
 == Interacción con el sistema
 
