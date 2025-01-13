@@ -47,9 +47,8 @@ ni se proveen detalles del intérprete más allá de lo estructural.
 
 = Visión general
 
-El propósito de Komodo tiene consecuencias en su estructura. Puesto que Komodo es un lenguaje para _scripting_, no es una prioridad que el lenguaje
-pueda procesarse a si mismo, o que la representación de los datos sea similar a la representación de los programas. Asimismo, el nivel de abstracción de Komodo
-y las limitaciones de recursos humanos hacen preferible implementar un intérprete en lugar de un compilador.
+El propósito de Komodo tiene consecuencias en su diseño. Puesto que Komodo es un lenguaje para _scripting_, no es una prioridad que el lenguaje
+pueda procesarse a si mismo, o que la representación de los datos sea similar a la representación de los programas. Asimismo, el nivel de abstracción de Komodo y la etapa en que se encuentra el proyecto hacen preferible implementar un intérprete en lugar de un compilador.
 
 El diseño de Komodo no es deliberado, sino que se ha llegado a él con una construcción iterativa.
 
@@ -61,6 +60,8 @@ Komodo es un lenguaje con tipado débil y dinámico. Lo primero significa que la
 
 Komodo también es de tipado latente, lo que significa que los tipos están asociados a valores y no a variables o símbolos. Esto hace que un símbolo pueda tener valores tipos distintos en momentos distintos. @piercelanguages[p.~2].
 
+Además, Komodo tiene tipado gradual. Se realiza chequeo de tipos en tiempo de ejecución cuando el usuario provee restricciones de tipos en las firmas de funciones y variables.
+
 == Paradigmas
 
 Komodo emplea dos paradigmas de programación: procedural y funcional.
@@ -68,8 +69,7 @@ Komodo emplea dos paradigmas de programación: procedural y funcional.
 Por un lado, Komodo es un lenguaje procedural por que las formas y el orden importan: la instancia más importante de esto es que las sentencias de un programa son evaluadas en el
 orden en que aparecen en el programa. Esto establece una semántica clara para cambiar el valor de un símbolo, por ejemplo.
 
-Además, Komodo es un lenguaje funcional porque las funciones tienen un papel protagónico: pueden declararse de forma nombrada o anónima, y pueden rastrear patrones.
-La búsqueda de patrones de Komodo y su inclusión en las funciones permite describir procedimientos en términos de lo que deben hacer, en lugar de como.
+Además, en Komodo las funciones tienen un papel protagónico: pueden declararse de forma nombrada o anónima, pueden rastrear patrones y pueden pasarse como argumentos a otras funciones. La búsqueda de patrones de Komodo y su inclusión en las funciones permite describir procedimientos en términos de lo que deben hacer, en lugar de como.
 
 Esto permite que dependiendo del problema, un programa de Komodo pueda ser más imperativo o más declarativo a conveniencia.
 La forma en que se restringe la combinación de los dos paradigmas es limitando la mutabilidad de valores.
@@ -102,8 +102,7 @@ Este es un diagrama de secuencia de los componentes del intérprete. Las columna
     _seq("Parser", "Weeder", comment: "CST")
     _seq("Weeder", "Evaluador", comment: "AST")
     _seq("Evaluador", "Runtime", comment: "Declaraciones")
-    _seq("Evaluador", "Runtime", comment: "Referencias")
-    _seq("Evaluador", "Runtime", comment: "Objetos")
+    _seq("Evaluador", "Runtime", comment: "Valores")
 
     _seq("Runtime", "Sistema operativo", comment: "Entrada/salida estándar")
     
@@ -111,7 +110,7 @@ Este es un diagrama de secuencia de los componentes del intérprete. Las columna
   caption: "Componentes del intérprete y sus relaciones más importantes."
 )
 
-En este documento se hace una descripción del funcionamiento de cada componente y cada relación entre componentes, al mismo tiempo que se especifica a Komodo.
+En este documento se hace una descripción del funcionamiento de cada componente y cada relación entre componentes, al mismo tiempo que se especifican aspectos de Komodo.
 
 = Análisis léxico y sintáctico
 
@@ -535,7 +534,7 @@ Cuando se ejecutan archivos con código, los entornos también guardan la ruta d
 
 Todos los módulos de código son ejecutados por separado. Para ejecutar un módulo de código, se ejecuta cada uno de los nodos del AST que lo componen, en orden, con el mismo entorno que va siendo potencialmente modificado tras cada ejecución. El estado inicial del entorno es el descrito previamente.
 
-Esto hace que un entorno sea el único medio con el que se conserva el estado de ejecución de un módulo.
+Esto hace que un entorno sea el único lugar donde se conserva el estado de ejecución de un módulo.
 
 == Variables
 
@@ -591,7 +590,7 @@ Cuando un nombre es referenciado en el código, se busca en el entorno de la sig
 
   En la implementación actual, el intérprete de Komodo comunica que la variable existe, pero que no puede ser mutada.
 
-- Si se referencia una variable para obtener su valor (por ejemplo, al escribir `cur + 10`), se comienza buscando desde el _scope_ al tope de la pila hasta el de más abajo. Se retorna la primera coincidencia encontrada. Si la variable no es encontrada, se interrumpe la ejecución con un error.
+- Si se referencia una variable para obtener su valor (por ejemplo, al escribir `cur + 10`), se comienza buscando desde el _scope_ al tope de la pila hasta el de más abajo. Se retorna la primera coincidencia encontrada. Si la variable no es encontrada, se interrumpe la ejecución del programa con un error.
 
 === Copiado de valores
 
@@ -603,7 +602,7 @@ Sin embargo, siempre que esta variable haga parte de un cálculo o un procedimie
 
 Cuando el valor de una variable es asignado a otra variable mutable, siempre se hace una copia.
 
-Salvo por los tipos `Char` y `Bool`, la inicialización de todos los tipos de Komodo requieren memoria en el _heap_. Por esta razón, se prefiere la creación de referencias en lugar de crear copias. No se ha implementado la creación de copias (en lugar del paso de referencias) para los valores `Char` y `Bool`.
+Salvo por los tipos `Char` y `Bool`, la inicialización de todos los tipos de Komodo requieren la solicitud de memoria en tiempo de ejecución. Por esta razón, se prefiere la creación de referencias en lugar de crear copias.
 
 === Variables y tipos
 
@@ -644,8 +643,6 @@ Cabe destacar que el ocultar una variable con un nuevo valor no afecta los usos 
 
 Aquí, la función `g` retorna 1, que es el valor de la función `f` cuando `g` fue definida. Lo mismo sucede con la función `h`, que retorna 2. El hecho de que luego `f` retorne 3 no afecta a ningún uso previo.
 
-Esta es una de las características que resulta de combinar un estilo procedural con uno funcional, al combinar la relevancia del orden de las instrucciones con la inmutabilidad de las variables.
-
 === Mutabilidad restringida
 
 La mutabilidad de variables está restringida por dos reglas:
@@ -680,27 +677,234 @@ El propósito de estas reglas es restringir los casos de uso de un estado mutabl
 
 == Importación de código
 
-== _Pattern matching_
+Komodo tiene sintaxis para importar módulos de código externos, ya sea de la librería estándar o de archivos con código del sistema de archivos local.
 
-== Tipos y objetos
+Por ejemplo, para importar funciones del módulo `utils` de la librería estándar, basta escribir
 
-=== Números
+#figure(
+  ```
+  from utils import (map, reduce)
+  (0..5)
+      .map(a -> a*a)
+      .reduce((acc, cur) -> acc + cur, 0)
+
+
+  ```,
+  caption: "Ejemplo de uso de la librería estándar."
+)
+
+Por otro lado, para importar código de un archivo local, hay que pasar una cadena con la ruta correspondiente, en lugar del nombre del módulo. Este es un ejemplo:
+
+#figure(
+  ```
+  from "/tmp/foo.komodo" import VALUE
+  println(VALUE)
+
+
+  ```,
+  caption: "Ejemplo de importación de código externo."
+)
+
+Komodo permite la importación de cualquier valor, no sólo funciones.
+
+=== Comportamiento de las sentencias `import`
+
+Las sentencias `from <module> import <values>` pueden ponerse en cualquier parte de un programa. Siempre retornan la tupla vacía `()`.
+
+Este es el procedimiento que realizan:
+
+- Se obtiene un entorno derivado del módulo solicitado.
+  - Si el módulo solicitado corresponde a código de Komodo, todo este código es ejecutado, obteniendo un entorno.
+  - Si el módulo solicitado no corresponde a código de Komodo, entonces debe ser un módulo de la librería estándar para el que se creó un entorno correspondiente previamente, que es retornado.
+
+- Ya con el entorno, los nombres solicitados son obtenidos del mismo e introducidos en el scope al tope del entorno del módulo que se está ejecutando actualmente (en el que fue escrita la sentencia).
+
+Nótese que una sentencia `import` puede ponerse en cualquier punto de un programa, por lo que puede afectar un _scope_ específico. En el siguiente ejemplo, se realiza una importación y solo se añaden los nombres importados al _scope_ donde se realizó la importación:
+
+#figure(
+  ```
+  let f(x) :=
+      from math import sqrt
+      x + sqrt(x)
+  
+  sqrt(5) # error!
+
+
+  ```,
+  caption: [Importación en un _scope_ específico.]
+)
+
+En este caso se importó la función `sqrt` dentro del _scope_ de la función `f`, por lo que no afecta a los _scopes_ anteriores, y la función no será encontrada en estos.
+
+Otra característica a destacar de la importación de módulos es que al importar elementos de un archivo con código, todo el archivo es ejecutado; independientemente de cuantos nombres se soliciten.
+
+== Búsqueda de patrones o _Pattern matching_
+
+La búsqueda de patrones es una forma de verificar propiedades en valores de Komodo. Por ejemplo, el siguiente programa busca patrones en una lista:
+
+#figure(
+  ```
+  let len(list: List) :=
+      case list do
+        [] => 0
+        [_|tail] => 1 + len(tail)
+  
+
+  ```,
+  caption: "Ejemplo de búsqueda de patrones en Komodo.",
+)
+
+En este ejemplo hay una lista de parejas, que hacen corresponder patrones y resultados.
+
+El primer patrón expresa que si la lista referenciada por `list` esta vacía, su longitud es 0.
+
+El segundo dice que si la lista está compuesta de un elemento al principio y otra lista con los demás, referenciada con `tail`, su longitud es de 1 más la longitud de `tail`.
+
+La búsqueda de patrones permite describir procedimientos como listas de reglas. También permite usar la estructura de un valor para obtener otros valores de su interior. Vamos a describir estos casos de uso.
+
+=== Descripción de procedimientos
+
+Como se mostró en el ejemplo anterior, se pueden describir procedimientos con patrones. Komodo tiene dos mecanismos para hacer esto.
+
+==== Patrones en funciones
+
+Las funciones en Komodo pueden definirse en varias declaraciones separadas, donde se pueden poner patrones diferentes. Por ejemplo, esta es una forma de definir la función de Fibonacci:
+
+#figure(
+  ```
+  let fib(0) := 0
+  let fib(1) := 1
+  let fib(n) := fib(n - 1) + fib(n - 2)
+
+
+  ```,
+  caption: "Función de Fibonacci en Komodo."
+)
+
+Los parámetros de la función pueden escribirse como patrones, que cuando la función sea llamada, serán comparados con los argumentos en orden. El resultado asociado a la primera lista de patrones que sea compatible con los argumentos será el resultado de la llamada. Sin ningún patrón es compatible, el programa se detiene con un error.
+
+==== Expresiones `case`
+
+No es necesario usar funciones para escribir procedimientos con patrones. Se puede usar una expresión `case`:
+
+#figure(
+  ```
+  case x % 2 do
+      0 => "x es par"
+      1 => "x es impar"
+
+
+  ```,
+  caption: [Ejemplo de uso de una expresión `case`.],
+)
+
+El comportamiento es el mismo: los patrones son comparados con la expresión en orden, y el primer patrón compatible determina el resultado. Si ningún patrón es compatible, el programa se detiene con un error.
+
+=== Desestructuración
+
+Se pueden usar patrones en definiciones para extraer valores del interior de otros valores:
+
+#figure(
+  ```
+  let coordinates(n) := (n + 1, n * 2)
+  let (x, y) := coordinates(0)
+  assert(x = 1)
+  assert(y = 0)
+
+
+  ```,
+  caption: "Ejemplo de desestructuración en Komodo.",
+)
+
+En este ejemplo, se compara el patrón a la izquierda de la asignación con el valor de `coordinates(0)`. En este caso el patrón es compatible: el valor es `(1, 0)`. Así, se asigna a `x` el valor `1` y a `y` el valor `0`.
+
+Cuando el patrón no es compatible, el programa se detiene con un error.
+
+También se pueden desestructurar valores en ciclos `for`:
+
+#figure(
+  ```
+  from utils import map
+  let coordinates(n) := (n + 1, n * 2)
+  for (x, y) in (0..5).map(coordinates) do println(x + y)
+
+
+  ```,
+  caption: [Ejemplo de desestructuración en un ciclo `for`.],
+)
+
+El comportamiento es el mismo que se da cuando se hace una declaración, solo que se repite al principio de cada iteración.
+
+== Tipos
+
+Komodo es un lenguaje con tipado latente, gradual y dinámico. Esto hace considerar fácilmente a Komodo como un lenguaje de tipado débil. Describamos estas características.
+
+=== Latente
+
+Los tipos de Komodo no están asociados a símbolos, sino a valores. La principal consecuencia de esto es que un símbolo puede tener valores de distintos tipos en momentos diferentes. En general, esto impide realizar chequeos de tipos en tiempo de compilación.
+
+=== Gradual
+
+Se pueden añadir chequeos de tipos a un programa de Komodo de manera opcional, y a conveniencia. Estos chequeos se realizan en tiempo de compilación. Por ejemplo, en este programa hay un chequeo de tipos:
+
+#figure(
+  ```
+  let first(list: List) := list[0]
+
+
+  ```,
+  caption: "Chequeo de tipos en Komodo."
+)
+
+Nótese que hay patrones que realizan chequeos de tipos implicitos:
+
+#figure(
+  ```
+  let first([res|_]: List) := res
+
+
+  ```,
+  caption: "Chequeo de tipos redundante."
+)
+
+En este ejemplo, verificar que la entrada es de tipo `List` es redundante, pues el patrón `[res|_]` solo es compatible con valores de tipo `List`. Bastaría con escribir la función así:
+
+#figure(
+  ```
+  let first([res|_]) := res
+
+
+  ```,
+  caption: "Chequeo de tipos implícito."
+)
+
+=== Dinámico
+
+Todos los chequeos de tipos en programas de Komodo se realizan en tiempo de ejecución. Esto hace que sea opcional firmar todos los valores y hace posible el tipado latente, con la consecuencia de realizar cálculos adicionales cuando el programa se ejecuta.
+
+=== Los tipos incorporados
+
+==== El tipo unitario
+
+Representado por `()`, puede también entenderse como una tupla vacía. Es el tipo nulo de Komodo.
+
+==== Números
 
 Komodo tiene tres representaciones para números: Enteros, decimales y fracciones. Todos tienen tamaño arbitrario, que crece bajo demanda.
 
-==== Enteros
+===== Enteros
 
 Los enteros tienen signo y tienen las operaciones de suma, multiplicación, división, residuo, exponenciación y corrimiento de bits, tanto a la izquierda como a la derecha. Los bits más significativos están a la izquierda. Son representados en tiempo de ejecución como arreglos dinámicos de enteros de longitud de la palabra de máquina.
 
-==== Decimales
+===== Decimales
 
 Los decimales tienen signo y tienen las operaciones de suma, multiplicación y división. Son representados como enteros de longitud arbitraria y un entero de longitud de máquina, que representa la ubicación del punto en el número entero.
 
-==== Fracciones
+===== Fracciones
 
 Las fracciones tienen signo y tienen las operaciones de suma, multiplicación, división y exponenciación. Son representados como un par de enteros de longitud arbitraria.
 
-=== Funciones
+==== Funciones
 
 Las funciones de Komodo pueden escribirse de dos formas:
 
@@ -711,38 +915,51 @@ Las funciones de Komodo pueden ser pasadas como argumentos de otras funciones.
 
 Los _scopes_ de Komodo son creados de forma léxica, lo que significa que los nombres referenciados en la función son los que se obtienen en el contexto de la definición de la función, y no en el contexto de sus ejecuciones.
 
-=== Caracteres y cadenas
+==== Caracteres y cadenas
 
-==== Caracteres
+===== Caracteres
 
-Los caracteres de Komodo son valores escalares de Unicode, por lo que pueden representar exactamente los valores descritos por el estándar UTF-8. Tienen una longitud fija 32 bits.
+Los caracteres de Komodo son valores escalares de Unicode, por lo que pueden representar cualquier símbolo Unicode. Tienen una longitud fija de 32 bits.
 
-==== Cadenas
+===== Cadenas
 
 Las cadenas de Komodo están representadas como arreglos inmutables de bytes, que están codificados con UTF-8.
 
 Se puede iterar de izquierda a derecha sobre las cadenas de Komodo de la misma forma que se hace con las listas.
 
-=== Contenedores
+==== Contenedores
 
 Los contenedores almacenan otros valores, incluyendo los de su mismo tipo. Todos los contenedores de Komodo permiten almacenar valores de diferente tipo en el mismo contenedor simultáneamente.
 
-==== Listas
+===== Tuplas
+
+Las tuplas son colecciones ordenadas de valores, que no crecen. Su propósito es juntar valores. Pueden escribirse como valores separados por comas, rodeados por paréntesis.
+
+#figure(
+  ```
+  (5, "cinco", (a) -> a + 5)
+
+
+  ```,
+  caption: "Tuplas de Komodo.",
+)
+
+===== Listas
 
 Las listas de Komodo son de longitud arbitraria y puede accederse a sus elementos de dos formas:
 
-- con índices enteros indexados desde cero,
-- iterando sobre la lista de izquierda a derecha.
+- con índices enteros indexados desde cero, usando la notación `list[index]`,
+- iterando sobre la lista de izquierda a derecha, con la notación `[first|tail]`.
 
 Están representadas como arreglos dinámicos.
 
-==== Conjuntos
+===== Conjuntos
 
 Los conjuntos de Komodo son de longitud arbitraria. Se puede iterar sobre ellos y verificar la pertenencia de elementos.
 
 Están representados como árboles binarios de búsqueda.
 
-==== Diccionarios - Objetos
+===== Diccionarios - Objetos
 
 Los diccionarios de Komodo son de longitud arbitraria. Son colecciones de parejas clave-valor, donde el tipo de ambos es arbitrario.
 
@@ -753,28 +970,15 @@ Se puede acceder a sus elementos de dos formas:
 
 Están representados como árboles binarios de búsqueda.
 
-
-
 == El intérprete
 
 El intérprete de Komodo es un binario compilado estáticamente. Además de la interfaz del sistema operativo, el intérprete no tiene dependencias en tiempo de ejecución.
 
-El intérprete está escrito en el lenguaje de programación Rust. El ecosistema de Rust, de manera similar a lenguajes como OCaml, es favorable para construir herramientas para lenguajes de programación. El modelo de memoria de Rust no incluye manejo de memoria automático, sino un sistema que permite verificar reglas que garantizan seguridad de memoria en tiempo de compilación.
-
-== Librería estándar
-
-Komodo permite importar otros archivos con código, ya sea de fuentes externas o de la librería estándar.
-
-=== Módulos escritos en Komodo
-
-=== Módulos externos
+El intérprete está escrito en el lenguaje de programación Rust. @rust El ecosistema de Rust, de manera similar a lenguajes como OCaml, @ocaml es favorable para construir herramientas para lenguajes de programación. El modelo de memoria de Rust no incluye manejo de memoria automático, sino un sistema que permite verificar reglas que garantizan seguridad de memoria en tiempo de compilación.
 
 == Gestión de memoria
 
 El intérprete gestiona la memoria automáticamente con un algoritmo de _mark-and-sweep_ sin adiciones. El espacio de memoria crece a demanda en tiempo de ejecución.
-
-
-
 
 == Interacción con el sistema
 
@@ -786,11 +990,10 @@ Hay software adicional al intérprete que lo asiste o extiende su alcance.
 
 == Editor web
 
-Una compilación del interprete a _Web Assembly_ es usada para interactuar poder usar el intérprete en navegadores de Internet. Es una versión sin
-la librería estándar y con una interfaz simulada de la entrada y salida estándar.
+Una compilación del interprete a _WebAssembly_ @wasm es usada para interactuar poder usar el intérprete en navegadores de Internet. Es una versión sin la librería estándar y con una interfaz simulada de la entrada y salida estándar.
 
 == Resaltado de sintaxis
 
-Se escribió una gramática de _TextMate_ para los _tokens_ de Komodo, y así obtener resaltado de sintaxis en los editores de texto compatibles.
+Se escribió una gramática de _TextMate_ @textmate para los _tokens_ de Komodo, y así obtener resaltado de sintaxis en los editores de texto compatibles.
 
 #bibliography("ref.bib", title: "Referencias")
