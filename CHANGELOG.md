@@ -37,3 +37,15 @@
 - Now an an argument can be matched against several patterns in the same pattern using the `||` operator.
 
 - Hexadecimal numbers now can be written with uppercase digits.
+
+- The `math` module was added to the standard library. It has:
+    - The main trigonometric functions
+    - Round functions
+    - Square and cube root
+    - Natural logarithm and arbitrary base logarithm
+    - Exponential function
+    - Absolute value
+
+- The `utils` module has some new members: `some`, `every`, and `indexOf`.
+
+- The `json` module was added, with the `parse` and `stringify` functions.
