@@ -2,7 +2,12 @@ let map(iter: Set, fn: Function) := {fn(val) for val in iter}
 let map(iter: List || Range, fn: Function) := [fn(val) for val in iter]
 
 let reduce([] || {}, _, initial) := initial
-let reduce([some|most] || {some|most}, fn: Function, initial) := reduce(most, fn, fn(initial, some)) 
+let reduce([some|most] || {some|most}, fn: Function, initial) := reduce(most, fn, fn(initial, some))
+let reduce(range: Range, fn: Function, initial) :=
+    var res := initial
+    for val in range do
+        res := fn(res, val)
+    res
 
 let fold([first|most], fn: Function) := reduce(most, fn, first)
 let fold({some|most}, fn: Function) := reduce(most, fn, some)
@@ -42,3 +47,18 @@ let isPrefix("", _: String) := true
 let isPrefix(chr: Char, [chr|_]: String) := true
 let isPrefix([chr|prefixTail]: String, [chr|strTail]: String) := isPrefix(prefixTail, strTail)
 let isPrefix(_, _) := false
+
+let some(values: List || Set || Range, fn: Function) :=
+    reduce(values, (a, b) -> a || fn(b), false)
+let every(values: List || Set || Range, fn: Function) :=
+    reduce(values, (a, b) -> a && fn(b), true)
+
+let indexOf(values: List, value) :=
+    var res := ()
+    for i in 0..len(values) do
+        if values[i] = value then
+            res := i
+        else
+            ()
+    
+    res
