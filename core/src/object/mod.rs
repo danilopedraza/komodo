@@ -1228,6 +1228,13 @@ impl List {
     pub fn is_empty(&self) -> bool {
         self.list.is_empty()
     }
+
+    pub fn sorted(&self) -> Self {
+        let mut list = self.list.to_owned();
+        list.sort();
+
+        Self { list }
+    }
 }
 
 impl From<Vec<Object>> for List {

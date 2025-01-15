@@ -67,6 +67,16 @@ fn len(args: &[Object]) -> Object {
     }
 }
 
+fn sorted(args: &[Object]) -> Object {
+    match &args[0] {
+        Object::List(list) => Object::List(list.sorted()),
+        obj => Object::Error(ObjectError::UnexpectedType(
+            vec![String::from("List")],
+            obj.kind(),
+        )),
+    }
+}
+
 pub fn standard_env(ctx: ExecContext) -> Environment {
     env_with(
         vec![
@@ -80,6 +90,7 @@ pub fn standard_env(ctx: ExecContext) -> Environment {
             ("Set", Object::from_fn(to_set, 1)),
             ("String", Object::from_fn(to_string, 1)),
             ("len", Object::from_fn(len, 1)),
+            ("sorted", Object::from_fn(sorted, 1)),
         ],
         ctx,
     )
