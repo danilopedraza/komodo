@@ -189,6 +189,15 @@ impl From<&Integer> for Float {
     }
 }
 
+impl From<f64> for Float {
+    fn from(value: f64) -> Self {
+        let mut val = rug::Float::new(PREC);
+        val += value;
+
+        Self { val }
+    }
+}
+
 impl From<&Float> for Duration {
     fn from(value: &Float) -> Self {
         Duration::from_secs_f64(value.val.to_f64())

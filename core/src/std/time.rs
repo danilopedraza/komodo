@@ -1,6 +1,6 @@
 use std::{
     thread::{self},
-    time::Duration,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use crate::{
@@ -35,6 +35,19 @@ fn sleep(args: &[Object]) -> Object {
     }
 }
 
+fn time(_args: &[Object]) -> Object {
+    let start = SystemTime::now();
+    let since_epoch = start.duration_since(UNIX_EPOCH).unwrap();
+
+    Object::Float(since_epoch.as_secs_f64().into())
+}
+
 pub fn komodo_time(ctx: ExecContext) -> Environment {
-    env_with(vec![("sleep", Object::from_fn(sleep, 1))], ctx)
+    env_with(
+        vec![
+            ("sleep", Object::from_fn(sleep, 1)),
+            ("time", Object::from_fn(time, 0)),
+        ],
+        ctx,
+    )
 }
