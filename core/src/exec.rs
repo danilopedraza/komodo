@@ -218,10 +218,23 @@ fn declaration(decl: &Declaration, env: &mut Environment) -> ExecResult<(Object,
     }
 }
 
-fn get_named_container_element(node: &ASTNode) -> Option<(&str, &ASTNode, Position)> {
+fn get_named_container_element(node: &ASTNode) -> Option<(&str, ASTNode, Position)> {
     match &node.kind {
         ASTNodeKind::IndexNotation { container, index } => match &container.kind {
-            ASTNodeKind::Symbol { name } => Some((name, index, container.position)),
+            ASTNodeKind::Symbol { name } => Some((name, *index.to_owned(), container.position)),
+            _ => None,
+        },
+        ASTNodeKind::DotNotation { lhs, rhs } => match (&lhs.kind, &rhs.kind) {
+            (ASTNodeKind::Symbol { name: container }, ASTNodeKind::Symbol { name: attr }) => {
+                let attr = ASTNode::new(
+                    ASTNodeKind::String {
+                        str: attr.to_string(),
+                    },
+                    rhs.position,
+                );
+
+                Some((container, attr, lhs.position))
+            }
             _ => None,
         },
         _ => None,
@@ -236,7 +249,7 @@ fn assignment(
     let value = exec(right, env)?.0;
 
     if let Some((name, index, name_position)) = get_named_container_element(left) {
-        let index_obj = exec(index, env)?.0;
+        let index_obj = exec(&index, env)?.0;
         let container = get_mutable_value(name, env, name_position)?;
 
         let element_ref = match container {
@@ -2097,6 +2110,34 @@ mod tests {
                 ),
                 Address::default()
             ),),
+        );
+    }
+
+    #[test]
+    fn object_attr_mutation() {
+        let dict = dictionary(
+            vec![(string("val", dummy_pos()), dec_integer("10", dummy_pos()))],
+            true,
+            dummy_pos(),
+        );
+
+        let mut env = Environment::default();
+        let dict = exec(&dict, &mut env).unwrap();
+        env.set_mutable("dict", dict);
+
+        let value = dot_notation(
+            symbol("dict", dummy_pos()),
+            symbol("val", dummy_pos()),
+            dummy_pos(),
+        );
+
+        let assignment = assignment(value.clone(), dec_integer("5", dummy_pos()), dummy_pos());
+
+        assert!(exec(&assignment, &mut env).is_ok());
+
+        assert_eq!(
+            exec(&value, &mut env),
+            Ok((Object::Integer(5.into()), Address::default()))
         );
     }
 }
