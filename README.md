@@ -20,7 +20,7 @@ This is a monorepo with all the code related to Komodo. Here is a quick summary:
 
 - `website`: The Komodo landing page.
 
-- `report`: A document, in spanish, explaining the language and the interpreter. I am writing it with Typst.
+- `report`: A document, in spanish, explaining the language and the interpreter. I am writing it with Typst. You can read it [here](https://komodo-lang.org/report.pdf).
 
 ## Hacking
 
