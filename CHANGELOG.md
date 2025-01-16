@@ -49,3 +49,5 @@
 - The `utils` module has some new members: `some`, `every`, and `indexOf`.
 
 - The `json` module was added, with the `parse` and `stringify` functions.
+
+- The `time` module was added, with the `time` and `sleep` functions.
