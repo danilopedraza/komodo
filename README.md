@@ -22,6 +22,8 @@ This is a monorepo with all the code related to Komodo. Here is a quick summary:
 
 - `report`: A document, in spanish, explaining the language and the interpreter. I am writing it with Typst. You can read it [here](https://komodo-lang.org/report.pdf).
 
+- `installer`: a directory with install scripts for the interpreter and the standard library.
+
 ## Hacking
 
 I use a very simple Nix setup to develop and deploy everything. The `shell.nix` file contains all the requirements (I think) to build everything.
