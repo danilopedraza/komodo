@@ -2,6 +2,7 @@ use std::{
     fmt,
     hash::Hash,
     ops::{Add, Div, Mul, Rem, Sub},
+    time::Duration,
 };
 
 use rug::ops::{CompleteRound, Pow};
@@ -185,6 +186,12 @@ impl From<&Integer> for Float {
         Self {
             val: rug::Integer::from(value.to_owned()) + rug::Float::new(super::float::PREC),
         }
+    }
+}
+
+impl From<&Float> for Duration {
+    fn from(value: &Float) -> Self {
+        Duration::from_secs_f64(value.val.to_f64())
     }
 }
 

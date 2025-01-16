@@ -15,7 +15,7 @@ use crate::{
     lexer::{Lexer, Token},
     object::Object,
     parser::Parser,
-    std::{json::komodo_json, math::komodo_math},
+    std::{json::komodo_json, math::komodo_math, time::komodo_time},
     weeder::{rewrite, WeederError},
 };
 
@@ -119,8 +119,9 @@ fn get_module_env(module: &ModuleAddress, env: &Environment) -> Result<Environme
     match module {
         ModuleAddress::LocalPath { path } => module_env(path, env),
         ModuleAddress::StandardLibrary { name } => match name.as_str() {
-            "math" => Ok(komodo_math(env.ctx())),
             "json" => Ok(komodo_json(env.ctx())),
+            "math" => Ok(komodo_math(env.ctx())),
+            "time" => Ok(komodo_time(env.ctx())),
             name => {
                 let path = get_std_path(env::var(STDLIB_PATH_VAR))
                     .join(Path::new(&format!("{name}.komodo")));
