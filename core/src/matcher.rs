@@ -483,16 +483,22 @@ mod tests {
     #[test]
     fn set_cons_() {
         let pattern = set_cons(
-            symbol("val", dummy_pos()),
-            wildcard(dummy_pos()),
+            symbol("some", dummy_pos()),
+            symbol("most", dummy_pos()),
             dummy_pos(),
         );
 
-        let value = Object::Set(vec![Object::Integer(0.into())].into());
+        let value = Object::Set(vec![Object::Integer(0.into()), Object::Integer(1.into())].into());
 
         assert_eq!(
             match_(&pattern, &value),
-            single_match("val", &Object::Integer(0.into())),
+            join(
+                single_match("some", &Object::Integer(0.into())),
+                single_match(
+                    "most",
+                    &Object::Set(vec![Object::Integer(1.into()),].into())
+                ),
+            ),
         );
     }
 
