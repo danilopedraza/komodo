@@ -362,7 +362,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             return Ok(tuple(vec![], self.start_to_cur(start)));
         }
 
-        self.ignoring_whitespace(|parser: &mut Parser<T>| {
+        self.ignoring_whitespace(|parser| {
             let res = parser.expression(Precedence::Lowest)?;
 
             match parser.next_token()? {
