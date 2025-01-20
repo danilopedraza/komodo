@@ -1,0 +1,4 @@
+let sum({} || []) := 0
+let sum({some|most} || [some|most]) := some + sum(most)
+
+assert(sum({1, 2, 3}) = 6)
