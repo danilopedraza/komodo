@@ -135,7 +135,7 @@ fn match_tuple(pattern: &[ASTNode], val: &Object) -> Option<Match> {
 
 fn match_extension_set(patterns: &[ASTNode], val: &Object) -> Option<Match> {
     match val {
-        Object::Set(set) => {
+        Object::Set(set) if patterns.len() == set.len() => {
             let mut res = empty_match();
 
             for (pattern, val) in zip(patterns, set.iter()) {
@@ -627,5 +627,14 @@ mod tests {
             match_(&pattern, &value),
             single_match("val", &Object::Integer(5.into())),
         );
+    }
+
+    #[test]
+    fn unmatch_set_cons() {
+        let pattern = extension_set(vec![], dummy_pos());
+
+        let value = Object::Set(Set::from(vec![Object::Integer(0.into())]));
+
+        assert_eq!(match_(&pattern, &value), None,);
     }
 }
