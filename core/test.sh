@@ -10,10 +10,13 @@ cargo test --all-features
 
 set +e
 examples_dir=$1
+echo "Building the interpreter in release mode..."
+cargo build --release
+
 echo "Running examples..."
 someone_failed=false
 for file in $(find "$examples_dir" -type f -name "*.komodo"); do
-    output=$(eval "cargo run --quiet $file" 2>&1)
+    output=$(eval "cargo run --release --quiet $file" 2>&1)
 
     if [ $? -ne 0 ]; then
         echo "❌ Error: $file failed its execution" >&2
@@ -28,3 +31,4 @@ if [ "$someone_failed" = true ] ; then
 fi
 
 echo "✅ All the example files were executed successfully!"
+echo "All the tests passed!"
