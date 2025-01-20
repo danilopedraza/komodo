@@ -86,8 +86,8 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     fn case(&mut self) -> NodeResult {
         let start = self.cur_pos.start;
         let expr = self.expression(Precedence::Lowest)?;
-        self.consume(TokenType::Do)?;
-        self.consume(TokenType::Indent)?;
+        self.expect(TokenType::Do)?;
+        self.expect(TokenType::Indent)?;
 
         let mut pairs = vec![];
         loop {
@@ -98,7 +98,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 }
                 Some(_) => {
                     let left = self.expression(Precedence::Lowest)?;
-                    self.consume(TokenType::FatArrow)?;
+                    self.expect(TokenType::FatArrow)?;
                     let right = self.expression(Precedence::Lowest)?;
 
                     pairs.push((left, right));
@@ -321,7 +321,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             InfixOperator::Element => {
                 let rhs = self.expression(Precedence::Lowest)?;
 
-                self.consume(TokenType::Rbrack)?;
+                self.expect(TokenType::Rbrack)?;
 
                 Ok(infix(op, lhs, rhs, self.start_to_cur(start)))
             }
@@ -465,9 +465,9 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         start: usize,
     ) -> NodeResult {
         let variable = self.consume_symbol()?;
-        self.consume(TokenType::In)?;
+        self.expect(TokenType::In)?;
         let iterator = self.expression(Precedence::Lowest)?;
-        self.consume(match kind {
+        self.expect(match kind {
             ComprehensionKind::List => TokenType::Rbrack,
             ComprehensionKind::Set => TokenType::Rbrace,
         })?;
@@ -495,7 +495,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     fn prepend_(&mut self, first: CSTNode, start: usize) -> NodeResult {
         let last = self.expression(Precedence::Lowest)?;
 
-        self.consume(TokenType::Rbrack)?;
+        self.expect(TokenType::Rbrack)?;
 
         Ok(cons(first, last, self.start_to_cur(start)))
     }
@@ -505,7 +505,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
         let expr = self.expression(Precedence::Lowest)?;
 
-        self.consume(TokenType::Do)?;
+        self.expect(TokenType::Do)?;
 
         let proc = self.expression(Precedence::Lowest)?;
 
@@ -519,7 +519,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         let start = self.cur_pos.start;
 
         let source = Box::new(self.non_infix()?);
-        self.consume(TokenType::Import)?;
+        self.expect(TokenType::Import)?;
         let values = Box::new(self.non_infix()?);
 
         Ok(CSTNode::new(
@@ -528,7 +528,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         ))
     }
 
-    fn consume(&mut self, expected_tok: TokenType) -> Result<(), Error> {
+    fn expect(&mut self, expected_tok: TokenType) -> Result<(), Error> {
         self.skip_newlines();
         match self.next_token()? {
             Some(tok) if tok == expected_tok => Ok(()),
@@ -542,11 +542,11 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
         let cond = self.expression(Precedence::Lowest)?;
 
-        self.consume(TokenType::Then)?;
+        self.expect(TokenType::Then)?;
 
         let first_res = self.expression(Precedence::Lowest)?;
 
-        self.consume(TokenType::Else)?;
+        self.expect(TokenType::Else)?;
 
         let second_res = self.expression(Precedence::Lowest)?;
 
@@ -630,7 +630,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     fn set_cons(&mut self, first: CSTNode, start: usize) -> NodeResult {
         let some = Box::new(first);
         let most = Box::new(self.expression(Precedence::Lowest)?);
-        self.consume(TokenType::Rbrace)?;
+        self.expect(TokenType::Rbrace)?;
 
         Ok(CSTNode::new(
             CSTNodeKind::SetCons { some, most },
@@ -654,11 +654,11 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
                 Some(_) => {
                     let left = self.expression(Precedence::Lowest)?;
                     if left.kind == CSTNodeKind::AdInfinitum {
-                        self.consume(TokenType::Rbrace)?;
+                        self.expect(TokenType::Rbrace)?;
                         return Ok(dictionary(pairs, false, self.start_to_cur(start)));
                     }
 
-                    self.consume(TokenType::FatArrow)?;
+                    self.expect(TokenType::FatArrow)?;
                     let right = self.expression(Precedence::Lowest)?;
                     pairs.push((left, right));
                 }
