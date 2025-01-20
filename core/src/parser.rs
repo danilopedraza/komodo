@@ -363,12 +363,12 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
 
         self.ignoring_whitespace(|parser| {
-            let res = parser.expression(Precedence::Lowest)?;
+            let first_exp = parser.expression(Precedence::Lowest)?;
 
             match parser.next_token()? {
-                Some(TokenType::Rparen) => Ok(res),
+                Some(TokenType::Rparen) => Ok(first_exp),
                 Some(TokenType::Comma) => parser
-                    .sequence(TokenType::Rparen, Some(res))
+                    .sequence(TokenType::Rparen, Some(first_exp))
                     .map(|lst| tuple(lst, parser.start_to_cur(start))),
                 Some(tok) => {
                     parser.err_with_cur(ParserError::UnexpectedToken(vec![TokenType::Rparen], tok))
@@ -2124,6 +2124,27 @@ mod tests {
                 dec_integer("2", _pos(37, 1)),
                 _pos(33, 5)
             ))),
+        );
+    }
+
+    #[test]
+    #[ignore = "not yet implemented"]
+    fn block_within_list() {
+        let code = unindent(
+            "
+        [
+            a ->
+                2
+                a
+        ]
+        ",
+        );
+
+        let lexer = lexer_from(&code);
+
+        assert_eq!(
+            Parser::from(lexer).next(),
+            Some(Ok(extension_list(vec![], pos(0, 22)))),
         );
     }
 }
