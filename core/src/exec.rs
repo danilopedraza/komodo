@@ -442,7 +442,7 @@ fn cons(
                 res.push(obj.to_owned());
             }
 
-            Ok((Object::List(res.into()), Address::default()))
+            Ok((Object::Set(res.into()), Address::default()))
         }
         obj => Err(Error::WithPosition(
             ExecError::NonPrependableObject(obj.kind()).into(),
