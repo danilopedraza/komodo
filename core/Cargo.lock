@@ -114,6 +114,7 @@ name = "komodo"
 version = "0.3.0"
 dependencies = [
  "codespan-reporting",
+ "gmp-mpfr-sys",
  "hifijson",
  "pretty_assertions",
  "rug",

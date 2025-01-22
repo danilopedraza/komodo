@@ -27,7 +27,7 @@ jobs:
           - aarch64-unknown-linux-gnu
           - aarch64-unknown-linux-musl
           - x86_64-apple-darwin
-          - x86_64-pc-windows-gnu
+          - x86_64-pc-windows-msvc
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
@@ -55,7 +55,7 @@ jobs:
             binary: arm64
             cargo-tool: cargo
           - os: windows-latest
-            target: x86_64-pc-windows-gnu
+            target: x86_64-pc-windows-msvc
             binary: x86-64
             cargo-tool: cargo
     steps:
