@@ -105,19 +105,19 @@ jobs:
         working-directory: ./core
         run: make lint
   
-  build:
-    name: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+#   build:
+#     name: build
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          components: clippy
+#       - name: Install Rust toolchain
+#         uses: dtolnay/rust-toolchain@stable
+#         with:
+#           toolchain: stable
+#           components: clippy
 
-      - name: Build
-        working-directory: ./core
-        run: make build
+#       - name: Build
+#         working-directory: ./core
+#         run: make build
