@@ -25,7 +25,6 @@ jobs:
           - x86_64-unknown-linux-gnu
           - x86_64-apple-darwin
           - aarch64-apple-darwin
-          - x86_64-pc-windows-gnu
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
@@ -35,9 +34,6 @@ jobs:
             cargo-tool: cargo
           - os: macos-latest # aarch64
             target: aarch64-apple-darwin
-            cargo-tool: cargo
-          - os: windows-latest
-            target: x86_64-pc-windows-gnu
             cargo-tool: cargo
     steps:
       - name: Checkout repository
@@ -50,12 +46,30 @@ jobs:
           target: ${{ matrix.target }}
 
       - name: Run tests
-        uses: clechasseur/rs-cargo@v3
+        run: cd core && make test
+  
+  test-windows:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          working-directory: ./core
-          command: test
-          args: "--target ${{ matrix.target }}"
-          tool: ${{ matrix.cargo-tool }}
+          toolchain: stable
+          target: x86_64-pc-windows-gnu
+      
+      - name: Run tests
+        uses: msys2/setup-msys2@v2
+      - shell: msys2 {0}
+        run: |
+          pacman --noconfirm -S pacman-mirrors
+          pacman --noconfirm diffutils m4 make mingw-w64-x86_64-gcc
+          cd core && make test
 
   format:
     name: format
