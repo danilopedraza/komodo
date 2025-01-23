@@ -67,7 +67,6 @@ jobs:
         uses: msys2/setup-msys2@v2
       - shell: msys2 {0}
         run: |
-          pacman --noconfirm -S pacman-mirrors
           pacman --noconfirm diffutils m4 make mingw-w64-x86_64-gcc
           cd core && make test
 
