@@ -16,7 +16,7 @@ cargo build --release
 echo "Running examples..."
 someone_failed=false
 for file in $(find "$examples_dir" -type f -name "*.komodo"); do
-    output=$(eval "cargo run --release --quiet $file" 2>&1)
+    output=$(eval "cargo run --quiet $file" 2>&1)
 
     if [ $? -ne 0 ]; then
         echo "❌ Error: $file failed its execution" >&2
