@@ -75,7 +75,7 @@ fn satisfies(obj: &Object, constraint: &ASTNode) -> bool {
 
 pub fn match_(pattern: &ASTNode, val: &Object) -> Option<Match> {
     match &pattern.kind {
-        ASTNodeKind::Pattern { exp, constraint } => match constraint {
+        ASTNodeKind::TaggedExpression { exp, constraint } => match constraint {
             Some(constraint) if satisfies(val, constraint) => match_(exp, val),
             _ => None,
         },

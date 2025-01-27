@@ -150,7 +150,7 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<(Object, Addres
             iterator,
             kind,
         } => comprehension(element, variable, iterator, *kind, env),
-        ASTNodeKind::Pattern { .. } => unimplemented!(),
+        ASTNodeKind::TaggedExpression { .. } => unimplemented!(),
         ASTNodeKind::Block(exprs) => block(exprs, env),
         ASTNodeKind::Assignment { left, right } => assignment(left, right, env),
         ASTNodeKind::Declaration(decl) => declaration(decl, env),

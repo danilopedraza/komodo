@@ -362,7 +362,7 @@ fn cons(first: CSTNode, tail: CSTNode) -> WeederResult<ASTNodeKind> {
 fn pattern(exp: CSTNode, constraint: CSTNode) -> WeederResult<ASTNodeKind> {
     let exp = Box::new(rewrite(exp)?);
     let constraint = Some(Box::new(rewrite(constraint)?));
-    Ok(ASTNodeKind::Pattern { exp, constraint })
+    Ok(ASTNodeKind::TaggedExpression { exp, constraint })
 }
 
 fn block(exprs: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {

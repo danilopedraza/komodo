@@ -166,7 +166,7 @@ pub enum ASTNodeKind {
         radix: Radix,
     },
     Declaration(Declaration),
-    Pattern {
+    TaggedExpression {
         exp: Box<ASTNode>,
         constraint: Option<Box<ASTNode>>,
     },
@@ -218,6 +218,11 @@ pub enum Declaration {
         params: Vec<ASTNode>,
         result: Box<ASTNode>,
     },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum Pattern {
+
 }
 
 #[cfg(test)]
@@ -396,7 +401,7 @@ pub mod tests {
         let val = Box::new(val);
         let constraint = constraint.map(Box::new);
         ASTNode::new(
-            ASTNodeKind::Pattern {
+            ASTNodeKind::TaggedExpression {
                 exp: val,
                 constraint,
             },
