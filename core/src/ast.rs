@@ -165,11 +165,6 @@ pub enum ASTNodeKind {
         literal: String,
         radix: Radix,
     },
-    // Declaration {
-    //     left: Box<ASTNode>,
-    //     right: Box<ASTNode>,
-    //     kind: DeclarationKind,
-    // },
     Declaration(Declaration),
     Pattern {
         exp: Box<ASTNode>,
