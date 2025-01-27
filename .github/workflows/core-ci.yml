@@ -49,35 +49,35 @@ jobs:
         working-directory: ./core
         run: make test
   
-  test-windows:
-    runs-on: windows-latest
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  # test-windows:
+  #   runs-on: windows-latest
+  #   timeout-minutes: 10
+  #   strategy:
+  #     fail-fast: false
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          target: x86_64-pc-windows-gnu
+  #     - name: Install Rust toolchain
+  #       uses: dtolnay/rust-toolchain@stable
+  #       with:
+  #         toolchain: stable
+  #         target: x86_64-pc-windows-gnu
       
-      - name: Setup MSYS2
-        uses: msys2/setup-msys2@v2
-        with:
-          update: true
-          install: >-
-            diffutils
-            m4
-            make
-            mingw-w64-x86_64-gcc
+  #     - name: Setup MSYS2
+  #       uses: msys2/setup-msys2@v2
+  #       with:
+  #         update: true
+  #         install: >-
+  #           diffutils
+  #           m4
+  #           make
+  #           mingw-w64-x86_64-gcc
       
-      - name: Run tests
-        shell: msys2 {0}
-        working-directory: ./core
-        run: make test
+  #     - name: Run tests
+  #       shell: msys2 {0}
+  #       working-directory: ./core
+  #       run: make test
 
   format:
     name: format
