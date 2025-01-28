@@ -10,8 +10,8 @@ cargo test --all-features
 
 set +e
 examples_dir=$1
-echo "Building the interpreter in release mode..."
-cargo build --release
+echo "Building the interpreter..."
+cargo build
 
 echo "Running examples..."
 someone_failed=false
