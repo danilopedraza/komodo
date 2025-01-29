@@ -300,6 +300,12 @@ fn weeder_error_msg(err: &WeederError) -> String {
         WeederError::BadPattern => {
             "The code here must be a pattern, and this is not a pattern".into()
         }
+        WeederError::BadSignature => unindent(
+            "
+            The code here must be a signature.
+            A signature is a type name or type names separated by `||`.
+            Replace this with an expression like that",
+        ),
         WeederError::BadSymbolicDeclaration => {
             "Only names can be declared without a value. Replace this with a name".into()
         }

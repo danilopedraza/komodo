@@ -18,6 +18,7 @@ pub enum WeederError {
     BadImportSymbol,
     BadInfixPattern,
     BadPattern,
+    BadSignature,
     BadSymbolicDeclaration,
     BadSymbolInImportTuple,
     BadAnonFunctionLHS,
@@ -151,9 +152,31 @@ fn dictionary_pattern(pairs: Vec<(CSTNode, CSTNode)>, complete: bool) -> WeederR
 
 fn tagged_expression_pattern(exp: CSTNode, constraint: CSTNode) -> WeederResult<ASTNodeKind> {
     let exp = Box::new(rewrite_pattern(exp)?);
-    let constraint = Some(Box::new(rewrite_pattern(constraint)?));
+    let constraint = Some(Box::new(rewrite_signature(constraint)?));
 
     Ok(ASTNodeKind::TaggedExpression { exp, constraint })
+}
+
+fn rewrite_signature(signature: CSTNode) -> WeederResult<ASTNode> {
+    let kind = match signature.kind {
+        CSTNodeKind::Symbol(name) => symbol(name),
+        CSTNodeKind::Infix(InfixOperator::Or, lhs, rhs) => {
+            let lhs = Box::new(rewrite_signature(*lhs)?);
+            let rhs = Box::new(rewrite_signature(*rhs)?);
+
+            Ok(ASTNodeKind::Infix {
+                op: ast::InfixOperator::Or,
+                lhs,
+                rhs,
+            })
+        }
+        _ => Err((WeederError::BadSignature, signature.position)),
+    }?;
+
+    Ok(ASTNode {
+        kind,
+        position: signature.position,
+    })
 }
 
 fn fraction_pattern(numer: CSTNode, denom: CSTNode) -> WeederResult<ASTNodeKind> {
