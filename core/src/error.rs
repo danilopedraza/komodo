@@ -263,6 +263,12 @@ fn parser_error_msg(err: &ParserError) -> String {
 
 fn weeder_error_msg(err: &WeederError) -> String {
     match err {
+        WeederError::AdInfinitumAsExpression => unindent(
+            "
+            The `..` operator cannot be used as an expression alone. 
+            It can be used as an operator and inside patterns
+            ",
+        ),
         WeederError::BadDeclaration => unindent(
             "
             Expressions inside a declaration must be symbols with properties or assignments.
@@ -273,6 +279,11 @@ fn weeder_error_msg(err: &WeederError) -> String {
             The dot is allowed for decimal numbers and calls only.
             At the right of the dot there should be a function call or a decimal number",
         ),
+        WeederError::BadForLoop => unindent(
+            "
+            For loops must be of the form `for <value> in <iterable>.
+            Replace this with an expression with that form",
+        ),
         WeederError::BadImportOrigin => {
             "The module from where you want to import can only be represented with a name".into()
         }
@@ -281,6 +292,14 @@ fn weeder_error_msg(err: &WeederError) -> String {
             The thing you want to import must be represented with a name or a tuple of names.
             Replace this with a name or a tuple of names",
         ),
+        WeederError::BadInfixPattern => unindent(
+            "
+            You are using using an operator not allowed inside patterns.
+            You can only use the range operator `..` and the or operator `||`",
+        ),
+        WeederError::BadPattern => {
+            "The code here must be a pattern, and this is not a pattern".into()
+        }
         WeederError::BadSymbolicDeclaration => {
             "Only names can be declared without a value. Replace this with a name".into()
         }
@@ -304,6 +323,9 @@ fn weeder_error_msg(err: &WeederError) -> String {
         }
         WeederError::MemoizedNonFunctionDeclaration => {
             "You can only memoize functions. Remove the `memoize` from the declaration".into()
+        }
+        WeederError::WildcardAsExpression => {
+            "The wildcard `_` generates patterns, which are only allowed in certain places".into()
         }
     }
 }

@@ -10,10 +10,14 @@ use crate::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WeederError {
+    AdInfinitumAsExpression,
     BadDeclaration,
     BadDot,
+    BadForLoop,
     BadImportOrigin,
     BadImportSymbol,
+    BadInfixPattern,
+    BadPattern,
     BadSymbolicDeclaration,
     BadSymbolInImportTuple,
     BadAnonFunctionLHS,
@@ -22,6 +26,7 @@ pub enum WeederError {
     MemoizedNonFunctionDeclaration,
     MutableFunctionDeclaration,
     PlainImportNotImplemented,
+    WildcardAsExpression,
 }
 
 type WeederResult<T> = Result<T, (WeederError, Position)>;
@@ -41,9 +46,9 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
         CSTNodeKind::String(str) => string(str),
         CSTNodeKind::Symbol(name) => symbol(name),
         CSTNodeKind::Tuple(values) => tuple(values),
-        CSTNodeKind::Wildcard => wildcard(),
+        CSTNodeKind::Wildcard => Err((WeederError::WildcardAsExpression, node.position)),
         CSTNodeKind::Dictionary { pairs, complete } => dictionary(pairs, complete),
-        CSTNodeKind::AdInfinitum => ad_infinitum(),
+        CSTNodeKind::AdInfinitum => Err((WeederError::AdInfinitumAsExpression, node.position)),
         CSTNodeKind::SetCons { some, most } => set_cons(*some, *most),
         CSTNodeKind::Import { name: _, alias: _ } => {
             Err((WeederError::PlainImportNotImplemented, node.position))
@@ -63,6 +68,126 @@ pub fn rewrite(node: CSTNode) -> WeederResult<ASTNode> {
     Ok(ASTNode::new(tp, node.position))
 }
 
+fn rewrite_pattern(node: CSTNode) -> WeederResult<ASTNode> {
+    let tp = match node.kind {
+        CSTNodeKind::Wildcard => wildcard(),
+        CSTNodeKind::Boolean(bool) => boolean(bool),
+        CSTNodeKind::Char(chr) => char(chr),
+        CSTNodeKind::Integer(dec, radix) => integer(dec, radix, node.position),
+        CSTNodeKind::String(str) => string(str),
+        CSTNodeKind::Symbol(name) => symbol(name),
+        CSTNodeKind::Tuple(values) => tuple_pattern(values),
+        CSTNodeKind::ExtensionList(list) => list_pattern(list),
+        CSTNodeKind::ExtensionSet(values) => set_pattern(values),
+        CSTNodeKind::Cons(first, tail) => cons_pattern(*first, *tail),
+        CSTNodeKind::Dictionary { pairs, complete } => dictionary_pattern(pairs, complete),
+        CSTNodeKind::Infix(InfixOperator::Constraint, exp, constraint) => {
+            tagged_expression_pattern(*exp, *constraint)
+        }
+        CSTNodeKind::Infix(InfixOperator::Fraction, numer, denom) => {
+            fraction_pattern(*numer, *denom)
+        }
+        CSTNodeKind::Infix(op, lhs, rhs) => infix_pattern(op, *lhs, *rhs),
+        CSTNodeKind::SetCons { some, most } => set_cons_pattern(*some, *most),
+        _ => Err((WeederError::BadPattern, node.position)),
+    }?;
+
+    Ok(ASTNode::new(tp, node.position))
+}
+
+fn rewrite_patterns(patterns: Vec<CSTNode>) -> WeederResult<Vec<ASTNode>> {
+    patterns.into_iter().map(rewrite_pattern).collect()
+}
+
+fn tuple_pattern(values: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
+    let list = rewrite_patterns(values)?;
+    Ok(ASTNodeKind::Tuple { list })
+}
+
+fn list_pattern(values: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
+    let list: WeederResult<Vec<ASTNode>> = values
+        .into_iter()
+        .map(|node| match node {
+            CSTNode {
+                kind: CSTNodeKind::AdInfinitum,
+                position,
+            } => Ok(ASTNode::new(ASTNodeKind::AdInfinitum, position)),
+            node => rewrite(node),
+        })
+        .collect();
+
+    Ok(ASTNodeKind::List { list: list? })
+}
+
+fn set_pattern(values: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
+    let list: WeederResult<Vec<ASTNode>> = values
+        .into_iter()
+        .map(|node| match node {
+            CSTNode {
+                kind: CSTNodeKind::AdInfinitum,
+                position,
+            } => Ok(ASTNode::new(ASTNodeKind::AdInfinitum, position)),
+            node => rewrite(node),
+        })
+        .collect();
+
+    Ok(ASTNodeKind::Set { list: list? })
+}
+
+fn cons_pattern(first: CSTNode, tail: CSTNode) -> WeederResult<ASTNodeKind> {
+    let first = Box::new(rewrite_pattern(first)?);
+    let tail = Box::new(rewrite_pattern(tail)?);
+    Ok(ASTNodeKind::Cons { first, tail })
+}
+
+fn dictionary_pattern(pairs: Vec<(CSTNode, CSTNode)>, complete: bool) -> WeederResult<ASTNodeKind> {
+    let pairs: WeederResult<Vec<(ASTNode, ASTNode)>> =
+        pairs.into_iter().map(rewrite_pattern_pair).collect();
+    Ok(ASTNodeKind::Dictionary {
+        pairs: pairs?,
+        complete,
+    })
+}
+
+fn tagged_expression_pattern(exp: CSTNode, constraint: CSTNode) -> WeederResult<ASTNodeKind> {
+    let exp = Box::new(rewrite_pattern(exp)?);
+    let constraint = Some(Box::new(rewrite_pattern(constraint)?));
+
+    Ok(ASTNodeKind::TaggedExpression { exp, constraint })
+}
+
+fn fraction_pattern(numer: CSTNode, denom: CSTNode) -> WeederResult<ASTNodeKind> {
+    let numer = Box::new(rewrite_pattern(numer)?);
+    let denom = Box::new(rewrite_pattern(denom)?);
+
+    Ok(ASTNodeKind::Fraction { numer, denom })
+}
+
+fn infix_pattern(op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTNodeKind> {
+    let lhs = Box::new(rewrite_pattern(lhs)?);
+    let rhs = Box::new(rewrite_pattern(rhs)?);
+
+    let op = match op {
+        InfixOperator::Or => ast::InfixOperator::Or,
+        InfixOperator::Range => ast::InfixOperator::Range,
+        _ => {
+            return Err((
+                WeederError::BadInfixPattern,
+                lhs.position.join(rhs.position),
+            ))
+        }
+    };
+
+    Ok(ASTNodeKind::Infix { op, lhs, rhs })
+}
+
+fn set_cons_pattern(some: CSTNode, most: CSTNode) -> WeederResult<ASTNodeKind> {
+    let some = Box::new(rewrite_pattern(some)?);
+    let most = Box::new(rewrite_pattern(most)?);
+
+    Ok(ASTNodeKind::SetCons { some, most })
+}
+
 fn rewrite_vec(vec: Vec<CSTNode>) -> WeederResult<Vec<ASTNode>> {
     vec.into_iter().map(rewrite).collect()
 }
@@ -70,6 +195,13 @@ fn rewrite_vec(vec: Vec<CSTNode>) -> WeederResult<Vec<ASTNode>> {
 fn rewrite_pair((left, right): (CSTNode, CSTNode)) -> WeederResult<(ASTNode, ASTNode)> {
     let left = rewrite(left)?;
     let right = rewrite(right)?;
+
+    Ok((left, right))
+}
+
+fn rewrite_pattern_pair((left, right): (CSTNode, CSTNode)) -> WeederResult<(ASTNode, ASTNode)> {
+    let left = rewrite_pattern(left)?;
+    let right = rewrite_pattern(right)?;
 
     Ok((left, right))
 }
@@ -114,15 +246,15 @@ fn extension_set(list: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
 }
 
 fn _for(expr: CSTNode, proc: CSTNode) -> WeederResult<ASTNodeKind> {
-    let (val, iter) = match expr.kind {
+    match expr.kind {
         CSTNodeKind::Infix(InfixOperator::In, val, iter) => {
-            (Box::new(rewrite(*val)?), Box::new(rewrite(*iter)?))
+            let val = Box::new(rewrite_pattern(*val)?);
+            let iter = Box::new(rewrite(*iter)?);
+            let proc = Box::new(rewrite(proc)?);
+            Ok(ASTNodeKind::For { val, iter, proc })
         }
-        _ => todo!(),
-    };
-
-    let proc = Box::new(rewrite(proc)?);
-    Ok(ASTNodeKind::For { val, iter, proc })
+        _ => Err((WeederError::BadForLoop, expr.position)),
+    }
 }
 
 fn function(params: Vec<String>, result: CSTNode) -> WeederResult<ASTNodeKind> {
@@ -215,12 +347,12 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
         InfixOperator::Sum => infix_node(ast::InfixOperator::Sum, lhs, rhs),
         InfixOperator::Element => container_element(lhs, rhs),
         InfixOperator::Assignment => assignment(lhs, rhs),
-        InfixOperator::Constraint => pattern(lhs, rhs),
+        InfixOperator::Constraint => tagged_expression(lhs, rhs),
     }
 }
 
 fn assignment(left: CSTNode, right: CSTNode) -> WeederResult<ASTNodeKind> {
-    let left = Box::new(rewrite(left)?);
+    let left = Box::new(rewrite_pattern(left)?);
     let right = Box::new(rewrite(right)?);
 
     Ok(ASTNodeKind::Assignment { left, right })
@@ -263,9 +395,9 @@ fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind
         CSTNode {
             kind: CSTNodeKind::Infix(InfixOperator::Assignment, left, right),
             ..
-        } => match (destructure_call(&left), kind) {
+        } => match (destructure_signature(&left), kind) {
             (Some((name, params)), DeclarationKind::Inmutable) => {
-                let params = rewrite_vec(params)?;
+                let params = rewrite_patterns(params)?;
                 let result = Box::new(rewrite(*right)?);
                 Ok(ASTNodeKind::Declaration(Declaration::Function {
                     name,
@@ -274,7 +406,7 @@ fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind
                 }))
             }
             (Some((name, params)), DeclarationKind::InmutableMemoized) => {
-                let params = rewrite_vec(params)?;
+                let params = rewrite_patterns(params)?;
                 let result = Box::new(rewrite(*right)?);
                 Ok(ASTNodeKind::Declaration(Declaration::MemoizedFunction {
                     name,
@@ -286,7 +418,7 @@ fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind
                 Err((WeederError::MutableFunctionDeclaration, left.position))
             }
             (None, kind) => {
-                let left = Box::new(rewrite(*left)?);
+                let left = Box::new(rewrite_pattern(*left)?);
                 let right = Box::new(rewrite(*right)?);
                 match kind {
                     DeclarationKind::Inmutable => {
@@ -325,15 +457,17 @@ fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind
 
 fn case(expr: CSTNode, pairs: Vec<(CSTNode, CSTNode)>) -> WeederResult<ASTNodeKind> {
     let expr = Box::new(rewrite(expr)?);
-    let pairs: WeederResult<Vec<(ASTNode, ASTNode)>> =
-        pairs.into_iter().map(rewrite_pair).collect();
+    let pairs: WeederResult<Vec<(ASTNode, ASTNode)>> = pairs
+        .into_iter()
+        .map(|(lhs, rhs)| Ok((rewrite_pattern(lhs)?, rewrite(rhs)?)))
+        .collect();
     Ok(ASTNodeKind::Case {
         expr,
         pairs: pairs?,
     })
 }
 
-fn destructure_call(node: &CSTNode) -> Option<(String, Vec<CSTNode>)> {
+fn destructure_signature(node: &CSTNode) -> Option<(String, Vec<CSTNode>)> {
     match node {
         CSTNode {
             kind: CSTNodeKind::Infix(InfixOperator::Call, left, right),
@@ -359,7 +493,7 @@ fn cons(first: CSTNode, tail: CSTNode) -> WeederResult<ASTNodeKind> {
     Ok(ASTNodeKind::Cons { first, tail })
 }
 
-fn pattern(exp: CSTNode, constraint: CSTNode) -> WeederResult<ASTNodeKind> {
+fn tagged_expression(exp: CSTNode, constraint: CSTNode) -> WeederResult<ASTNodeKind> {
     let exp = Box::new(rewrite(exp)?);
     let constraint = Some(Box::new(rewrite(constraint)?));
     Ok(ASTNodeKind::TaggedExpression { exp, constraint })
@@ -401,10 +535,6 @@ fn dictionary(pairs: Vec<(CSTNode, CSTNode)>, complete: bool) -> WeederResult<AS
         pairs: pairs?,
         complete,
     })
-}
-
-fn ad_infinitum() -> WeederResult<ASTNodeKind> {
-    Ok(ASTNodeKind::AdInfinitum)
 }
 
 fn set_cons(some: CSTNode, most: CSTNode) -> WeederResult<ASTNodeKind> {
@@ -641,6 +771,16 @@ mod tests {
                 ast::tests::symbol("foo", dummy_pos()),
                 dummy_pos(),
             ))
+        );
+    }
+
+    #[test]
+    fn wildcard_as_exp() {
+        let node = cst::tests::wildcard(dummy_pos());
+
+        assert_eq!(
+            rewrite(node),
+            Err((WeederError::WildcardAsExpression, dummy_pos())),
         );
     }
 }

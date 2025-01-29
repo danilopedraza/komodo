@@ -220,11 +220,6 @@ pub enum Declaration {
     },
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum Pattern {
-
-}
-
 #[cfg(test)]
 pub mod tests {
     use cst::{DeclarationKind, PrefixOperator};
