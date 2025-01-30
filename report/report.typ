@@ -56,7 +56,13 @@ En esta sección se explican brevemente algunas características de Komodo, que 
 
 == Sistema de tipos
 
-Komodo es un lenguaje con tipado débil y dinámico. Lo primero significa que las reglas de tipos son relativamente laxas y se realizan conversiones implicitas de tipos, y lo segundo significa que estas reglas y conversiones son verificadas y realizadas en tiempo de ejecución. La razón de esto es que Komodo no fuerza la identificación explícita de tipos, y por lo tanto, en general, no se puede obtener el tipo de un símbolo cualquiera en tiempo de compilación.
+Komodo es un lenguaje con tipado débil y dinámico. Lo primero significa que las reglas de tipos son relativamente laxas y se realizan conversiones implicitas de tipos, y lo segundo significa que estas reglas y conversiones son verificadas y realizadas en tiempo de ejecución. Esto es así por varias razones:
+
+- Komodo está pensado para que las anotaciones de tipos sean totalmente opcionales, por lo que en general no es posible inferir los tipos de todas las variables en tiempo de compilación.
+
+- Hace posible la implementación de un intérprete sin añadir análisis semántico, lo que fue útil para llegar rápido a un prototipo funcional.
+
+- Komodo está pensado para realizar algunas conversiones de tipos implicitamente, lo que necesariamente implica que las restricciones de tipos son más ligeras.
 
 Komodo también es de tipado latente, lo que significa que los tipos están asociados a valores y no a variables o símbolos. Esto hace que un símbolo pueda tener valores tipos distintos en momentos distintos. @piercelanguages[p.~2].
 
@@ -66,8 +72,8 @@ Además, Komodo tiene tipado gradual. Se realiza chequeo de tipos en tiempo de e
 
 Komodo emplea dos paradigmas de programación: procedural y funcional.
 
-Por un lado, Komodo es un lenguaje procedural por que las formas y el orden importan: la instancia más importante de esto es que las sentencias de un programa son evaluadas en el
-orden en que aparecen en el programa. Esto establece una semántica clara para cambiar el valor de un símbolo, por ejemplo.
+Por un lado, Komodo es un lenguaje procedural porque las formas y el orden importan: las sentencias de un programa son evaluadas en el
+orden en que aparecen en el mismo. Esto establece una semántica clara para cambiar el valor de una variable sin que esta sea mutable, por ejemplo. (veáse @shadowing)
 
 Además, en Komodo las funciones tienen un papel protagónico: pueden declararse de forma nombrada o anónima, pueden rastrear patrones y pueden pasarse como argumentos a otras funciones. La búsqueda de patrones de Komodo y su inclusión en las funciones permite describir procedimientos en términos de lo que deben hacer, en lugar de como.
 
@@ -618,7 +624,7 @@ En Komodo, los tipos están asociados a valores, y no a variables. Esto permite 
   caption: "Ejemplo de una variable mutada con distintos tipos."
 )
 
-=== Ocultamiento o _shadowing_
+=== Ocultamiento o _shadowing_ <shadowing>
 
 Una variable puede ser declarada varias veces con el mismo nombre, incluso en el mismo _scope_. Esto se conoce como _shadowing_. Es una característica conveniente dada la tendencia del intérprete a funcionar con referencias, y es un medio para reciclar nombres en rutinas donde esto es útil.
 
@@ -841,7 +847,7 @@ Komodo es un lenguaje con tipado latente, gradual y dinámico. Esto hace conside
 
 === Latente
 
-Los tipos de Komodo no están asociados a símbolos, sino a valores. La principal consecuencia de esto es que un símbolo puede tener valores de distintos tipos en momentos diferentes. En general, esto impide realizar chequeos de tipos en tiempo de compilación.
+Los tipos de Komodo no están asociados a símbolos, sino a valores. La principal consecuencia de esto es que un símbolo puede tener valores de distintos tipos en momentos diferentes. Esto es útil para la reutilización de nombres, por ejemplo.
 
 === Gradual
 
@@ -880,25 +886,72 @@ En este ejemplo, verificar que la entrada es de tipo `List` es redundante, pues 
 
 === Dinámico
 
-Todos los chequeos de tipos en programas de Komodo se realizan en tiempo de ejecución. Esto hace que sea opcional firmar todos los valores y hace posible el tipado latente, con la consecuencia de realizar cálculos adicionales cuando el programa se ejecuta.
+Todos los chequeos de tipos en programas de Komodo se realizan en tiempo de ejecución. Esto hace que la implementación de reglas de tipado débil sea más sencilla, con la consecuencia de que deben realizarse más chequeos en tiempo de ejecución.
 
 === Los tipos incorporados
 
 ==== El tipo unitario
 
-Representado por `()`, puede también entenderse como una tupla vacía. Es el tipo nulo de Komodo.
+Representado por `()`, puede también entenderse como una tupla vacía. Es en la práctica el tipo nulo de Komodo. La elección de la representación con los paréntesis juntos es una preferencia del autor, aprendida de lenguajes como Haskell o Rust.
+
+El tipo unitario es un patrón que se puede rastrear:
+
+#figure(
+  ```
+  let isNull(()) := true
+  let isNull(_) := false
+  
+
+  ```,
+  caption: [_Pattern matching_ con el tipo unitario.]
+)
+
+También puede usarse el operador de igualdad:
+
+#figure(
+  ```
+  let isNull(val) := val = ()
+
+
+  ```,
+  caption: [Comparación con el tipo unitario.]
+)
 
 ==== Números
 
-Komodo tiene tres representaciones para números: Enteros, decimales y fracciones. Todos tienen tamaño arbitrario, que crece bajo demanda.
+Komodo tiene tres representaciones para números: Enteros, flotantes y fracciones. Todos tienen tamaño arbitrario, que crece bajo demanda. El intérprete usa las librerías GMP, MPFR y MPC, que hacen parte del proyecto GNU y están diseñadas para funcionar juntas.
 
 ===== Enteros
 
-Los enteros tienen signo y tienen las operaciones de suma, multiplicación, división, residuo, exponenciación y corrimiento de bits, tanto a la izquierda como a la derecha. Los bits más significativos están a la izquierda. Son representados en tiempo de ejecución como arreglos dinámicos de enteros de longitud de la palabra de máquina.
+Los enteros tienen signo y tienen las operaciones de suma, multiplicación, división, residuo, exponenciación y desplazamiento de bits, tanto a la izquierda como a la derecha. Los bits más significativos están a la izquierda. Son representados en tiempo de ejecución como arreglos dinámicos de enteros de longitud de la palabra de máquina de ejecución.
 
-===== Decimales
+La generación de enteros de Komodo requiere, en general, de solicitar memoria en tiempo de ejecución. Este es un proceso costoso en términos de tiempo.
 
-Los decimales tienen signo y tienen las operaciones de suma, multiplicación y división. Son representados como enteros de longitud arbitraria y un entero de longitud de máquina, que representa la ubicación del punto en el número entero.
+Se pueden escribir constantes en base 2, 8, 10 y 16. No hay diferencia entre dos enteros que representan la misma magnitud, independientemente de la base en que fueron escritos.
+
+#figure(
+  ```
+  let eights := {
+      0b1000,
+      0o10,
+      8,
+      0x8,
+  }
+
+  assert(eights = {8})
+
+
+  ```,
+  caption: "Enteros de Komodo."
+)
+
+===== Números de punto flotante
+
+Los números de punto flotante de Komodo son una extensión de los descritos por el estándar IEEE 754, con las siguientes diferencias:
+
+- El tamaño de la mantisa puede ser mayor que 53 bits.
+- El tamaño de la mantisa puede variar entre diferentes instancias de los números.
+- El tamaño de la mantisa se decide en el momento que un número es instanciado.
 
 ===== Fracciones
 
