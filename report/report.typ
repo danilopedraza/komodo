@@ -890,11 +890,13 @@ Todos los chequeos de tipos en programas de Komodo se realizan en tiempo de ejec
 
 === Los tipos incorporados
 
-==== El tipo unitario
+==== La tupla vacía
 
-Representado por `()`, puede también entenderse como una tupla vacía. Es en la práctica el tipo nulo de Komodo. La elección de la representación con los paréntesis juntos es una preferencia del autor, aprendida de lenguajes como Haskell o Rust.
+Está representada por `()`. Es en la práctica el tipo nulo de Komodo.
 
-El tipo unitario es un patrón que se puede rastrear:
+Es importante recalcar que el tipo unitario no es un tipo separado (como sucede en lenguajes como Haskell o Rust), sino que realmente el intérprete lo considera una tupla sin valores. Este es simplemente un atajo para que `()` no tenga un tipo exclusivo. Esta característica hace a `()` más cercano a un tipo nulo, típico de los lenguajes de programación imperativos; que a un tipo unitario, típico de los lenguajes de programación funcionales.
+
+La tupla vacía es un patrón que se puede rastrear:
 
 #figure(
   ```
@@ -903,7 +905,7 @@ El tipo unitario es un patrón que se puede rastrear:
   
 
   ```,
-  caption: [_Pattern matching_ con el tipo unitario.]
+  caption: [_Pattern matching_ con la tupla vacía.]
 )
 
 También puede usarse el operador de igualdad:
@@ -914,16 +916,30 @@ También puede usarse el operador de igualdad:
 
 
   ```,
-  caption: [Comparación con el tipo unitario.]
+  caption: [Comparación con la tupla vacía.]
+)
+
+Este ejemplo muestra como realmente `()` es representado como una tupla:
+
+#figure(
+  ```
+  let isTuple(_: Tuple) := true
+  let isTuple(_) := false
+
+  assert(().isTuple())
+
+
+  ```,
+  caption: [Tipo de la tupla vacía.]
 )
 
 ==== Números
 
-Komodo tiene tres representaciones para números: Enteros, flotantes y fracciones. Todos tienen tamaño arbitrario, que crece bajo demanda. El intérprete usa las librerías GMP, MPFR y MPC, que hacen parte del proyecto GNU y están diseñadas para funcionar juntas.
+Komodo tiene tres representaciones para números: Enteros, flotantes y fracciones. Todos tienen tamaño arbitrario, que crece bajo demanda. El intérprete usa las librerías GMP y MPFR, que hacen parte del proyecto GNU y están diseñadas para funcionar juntas.
 
 ===== Enteros
 
-Los enteros tienen signo y tienen las operaciones de suma, multiplicación, división, residuo, exponenciación y desplazamiento de bits, tanto a la izquierda como a la derecha. Los bits más significativos están a la izquierda. Son representados en tiempo de ejecución como arreglos dinámicos de enteros de longitud de la palabra de máquina de ejecución.
+Los enteros tienen signo y tienen las operaciones de suma, resta, multiplicación, división, residuo, exponenciación y desplazamiento de bits, tanto a la izquierda como a la derecha. Los bits más significativos están a la izquierda. Son representados en tiempo de ejecución como arreglos dinámicos de enteros de longitud de la palabra de máquina de ejecución. El signo va por separado.
 
 La generación de enteros de Komodo requiere, en general, de solicitar memoria en tiempo de ejecución. Este es un proceso costoso en términos de tiempo.
 
@@ -945,6 +961,8 @@ Se pueden escribir constantes en base 2, 8, 10 y 16. No hay diferencia entre dos
   caption: "Enteros de Komodo."
 )
 
+La implementación de los enteros es traída de la librería GMP. @gmp
+
 ===== Números de punto flotante
 
 Los números de punto flotante de Komodo son una extensión de los descritos por el estándar IEEE 754, con las siguientes diferencias:
@@ -953,9 +971,44 @@ Los números de punto flotante de Komodo son una extensión de los descritos por
 - El tamaño de la mantisa puede variar entre diferentes instancias de los números.
 - El tamaño de la mantisa se decide en el momento que un número es instanciado.
 
+Puesto que la representación de estos números es binaria, viene con las características típicas de los números de punto flotante de máquina. En particular, no todos los números decimales son representables por estos números. Este es un ejemplo común:
+
+#figure(
+  ```
+  let x := 0.1
+
+
+  ```,
+  caption: "Números de punto flotante en Komodo."
+)
+
+En este caso, `x` tiene un redondeo muy cercano a 0.1, pero no es exactamente 0.1, por el hecho de que 0.1 no puede ser representado con un mantisa y un exponente binarios.
+
+La generación de flotantes requiere de la solicitud de memoria en tiempo de ejecución.
+
+La implementación de los números de punto flotante es traída de la librería MPFR @mpfr, que es una extensión de la librería GMP.
+
 ===== Fracciones
 
-Las fracciones tienen signo y tienen las operaciones de suma, multiplicación, división y exponenciación. Son representados como un par de enteros de longitud arbitraria.
+Las fracciones tienen signo y tienen las operaciones de suma, multiplicación, división y exponenciación. Son representados como un par de enteros de longitud arbitraria, por lo que se pueden realizar operaciones con números arbitrariamente grandes o pequeños.
+
+La utilidad de las fracciones viene cuando es necesario hacer operaciones sin redondeos, con el costo de menor velocidad. Las fracciones pueden representar todos los números que los enteros y los flotantes pueden representar, y más.
+
+Se escriben con dos barras inclinadas:
+
+#figure(
+  ```
+  let a := 5
+  let b := 1 // 5
+
+  assert(a * b = 1)
+  ```,
+  caption: "Fracciones de Komodo."
+)
+
+La generación de fracciones también requiere de la solicitud de memoria en tiempo de ejecución.
+
+La implementación de las fracciones es traída de la librería GMP.
 
 ==== Funciones
 
