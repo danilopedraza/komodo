@@ -1126,7 +1126,33 @@ Los caracteres pueden ser sumados entre si para sumar cadenas, y pueden ser suma
 
 Las cadenas de Komodo están representadas como arreglos inmutables de bytes, que están codificados con UTF-8.
 
-Se puede iterar de izquierda a derecha sobre las cadenas de Komodo de la misma forma que se hace con las listas.
+Se puede iterar de izquierda a derecha sobre las cadenas de Komodo de la misma forma que se hace con las listas. Este es un detalle importante y que puede ser confuso. El patrón `[first|tail]` (o patrón _cons_) es compatible con listas y cadenas. Veamos un ejemplo:
+
+#figure(
+  ```
+  let length([] || "") := 0
+  let length([_|tail]) := 1 + len(tail)
+
+  assert(length([1, 2]) = length("ab"))
+
+  ```,
+  caption: [Patrón _cons_ para listas y cadenas.]
+)
+
+En este ejemplo, se muestra que para que la función `length` funcione para listas y cadenas, el patrón `[] || ""` debe usarse, y así tener en cuenta ambos casos. Sin embargo, el patrón `[_|tail]` funciona para cadenas y listas por igual. Esto hace que la compatibilidad con el patrón _cons_ no garantice que el argumento pasado sea una lista. En efecto, podría ser una lista o una cadena de caracteres.
+
+Además, nótese que una lista de caracteres es diferente a una cadena:
+
+#figure(
+  ```
+  assert(['a', 'b'] /= "ab")
+
+
+  ```,
+  caption: "Diferencia entre cadenas y listas de caracteres."
+)
+
+La diferencia entre cadenas y listas de caracteres es una característica traída de otros lenguajes como un detalle de implementación, pero conflictúa con la preferencia de Komodo de entender a los datos con la menor cantidad de detalles de implementación posible.
 
 ==== Contenedores
 
