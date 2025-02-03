@@ -122,7 +122,7 @@ En este documento se hace una descripción del funcionamiento de cada componente
 
 == Analizador léxico o _lexer_
 
-  El analizador léxico convierte un programa en una sucesión de _tokens_, que son unidades más complicadas como palabras, números y símbolos. Uno de los propósitos de esta fase es que las demás fases no tengan que lidiar con detalles relacionados al texto que representa el programa: Las fases posteriores no deberían lidiar con aspectos como espacios en blanco, indentación o comentarios en el código. Toda la información necesaria debería estar incluída en los _tokens_ que el analizador emite.
+  El analizador léxico convierte un programa, una sucesión de caracteres, en una sucesión de _tokens_, que son unidades más complicadas como palabras, números y símbolos. Uno de los propósitos de esta fase es que las demás fases no tengan que lidiar con detalles relacionados al texto que representa el programa: Las fases posteriores no deberían lidiar con aspectos como espacios en blanco, indentación o comentarios en el código. Toda la información necesaria debería estar incluída en los _tokens_ que el analizador emite.
 
   La entrada del analizador es un _stream_ de caracteres Unicode. Sin embargo, la mayoría de palabras clave y símbolos se componen de caracteres ASCII. La salida es un _stream_ de _tokens_. El _lexer_ pasa una sola vez por el texto de entrada para emitir todos los _tokens_ correspondientes, y el texto es recorrido conforme los _tokens_ son emitidos.
 
@@ -319,13 +319,13 @@ Esta es una descripción de como el _lexer_ decide emitir estos _tokens_:
 
   tiene 8 espacios al principio, por lo que su nivel de indentación es 2.
 
-  Las líneas que estan exclusivamente de espacios o espacios con comentarios son ignoradas.
+  Las líneas que estan compuestas exclusivamente de espacios o comentarios son ignoradas.
 
 + Una vez que se consumen y cuentan los espacios, y que se llega a un caracter que va a componer un _token_, se compara el nivel de indentación de la línea con el nivel de indentación que el _lexer_ guarda.
 
   - Si son iguales, no se emiten _tokens_ de más: el resto de la línea es consumida.
 
-  - Si el nivel de la línea es mayor, se emite tantos `Indent` como la diferencia entre el nivel de la línea y el nivel guardado en el _lexer_, y se consume el resto de la línea.
+  - Si el nivel de la línea es mayor, se emiten tantos `Indent` como la diferencia entre el nivel de la línea y el nivel guardado en el _lexer_, y se consume el resto de la línea.
 
   - Si el nivel de la línea es menor, se emiten tantos `Dedent` como la diferencia entre el nivel guardado en el _lexer_ y el nivel de la línea. Luego se consume el resto de la línea.
 
@@ -391,7 +391,7 @@ De forma similar a como ocurre con el analizador léxico, el analizador sintáct
   caption: [Ejemplo de paso de una sucesión de _tokens_ a un nodo de CST]
 )
 
-Para el análisis de expresiones infijas, el _parser_ usa el algoritmo de escalada de precedencia (_precedence climbing_ en Inglés). Este es un algoritmo iterativo, siendo más simple que algunas de las alternativas, como el algoritmo _Shunting Yard_. @precedenceclimbing
+Para el análisis de expresiones infijas, el _parser_ usa el algoritmo de escalada de precedencia (_precedence climbing_ en Inglés). Este es un algoritmo iterativo que funciona bien dentro de un analizador de descenso recursivo, siendo más simple que algunas de las alternativas, como el algoritmo _Shunting Yard_. @precedenceclimbing
 
 == Post-analizador sintáctico o _weeder_
 
@@ -866,18 +866,18 @@ Nótese que hay patrones que realizan chequeos de tipos implicitos:
 
 #figure(
   ```
-  let first([res|_]: List) := res
+  let some({res|_}: Set) := res
 
 
   ```,
   caption: "Chequeo de tipos redundante."
 )
 
-En este ejemplo, verificar que la entrada es de tipo `List` es redundante, pues el patrón `[res|_]` solo es compatible con valores de tipo `List`. Bastaría con escribir la función así:
+En este ejemplo, verificar que la entrada es de tipo `Set` es redundante, pues el patrón `{res|_}` solo es compatible con valores de tipo `Set`. Bastaría con escribir la función así:
 
 #figure(
   ```
-  let first([res|_]) := res
+  let some({res|_}) := res
 
 
   ```,
@@ -890,11 +890,13 @@ Todos los chequeos de tipos en programas de Komodo se realizan en tiempo de ejec
 
 === Los tipos incorporados
 
+Komodo viene con tipos incorporados que facilitan la creación de procedimientos básicos, y son herramientas que se esperan en cualquier lenguaje de programación de propósito general. Sin embargo, la elección de los tipos incorporados de Komodo refleja sus preferencias de uso.
+
 ==== La tupla vacía
 
 Está representada por `()`. Es en la práctica el tipo nulo de Komodo.
 
-Es importante recalcar que el tipo unitario no es un tipo separado (como sucede en lenguajes como Haskell o Rust), sino que realmente el intérprete lo considera una tupla sin valores. Este es simplemente un atajo para que `()` no tenga un tipo exclusivo. Esta característica hace a `()` más cercano a un tipo nulo, típico de los lenguajes de programación imperativos; que a un tipo unitario, típico de los lenguajes de programación funcionales.
+Es importante recalcar que la tupla vacía no es un tipo separado (como sucede con el tipo unitario en lenguajes como Haskell o Rust), sino que realmente el intérprete lo considera una tupla sin valores. Este es simplemente un atajo para que `()` no tenga un tipo exclusivo. Esta característica hace a `()` más cercano a un tipo nulo, típico de los lenguajes de programación imperativos; que a un tipo unitario, típico de los lenguajes de programación funcionales.
 
 La tupla vacía es un patrón que se puede rastrear:
 
