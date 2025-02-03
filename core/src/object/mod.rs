@@ -268,8 +268,8 @@ pub trait Kind {
 impl Kind for Object {
     fn kind(&self) -> String {
         match self {
-            Object::Boolean(_) => "Boolean",
-            Object::Char(_) => "Character",
+            Object::Boolean(_) => "Bool",
+            Object::Char(_) => "Char",
             Object::Float(_) => "Float",
             Object::Dictionary(_) => "Dictionary",
             Object::Error(_) => "Error",
