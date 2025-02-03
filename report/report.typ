@@ -1016,18 +1016,111 @@ La implementación de las fracciones es traída de la librería GMP.
 
 Las funciones de Komodo pueden escribirse de dos formas:
 
-- De forma anónima, como una lista de parámetros y un bloque de código,
-- con nombre, como una lista de patrones y una lista de bloques de código correspondiente.
+- De forma anónima, como una lista de parámetros y un bloque de código:
+  
+  #figure(
+    ```
+    (a, b) -> a + b - 5
+    
+    
+    ```,
+    caption: "Función anónima de Komodo."
+  )
 
-Las funciones de Komodo pueden ser pasadas como argumentos de otras funciones.
+  Estas funciones son expresiones, así que pueden ser puestas dentro de contenedores o ser guardadas como variables.
 
-Los _scopes_ de Komodo son creados de forma léxica, lo que significa que los nombres referenciados en la función son los que se obtienen en el contexto de la definición de la función, y no en el contexto de sus ejecuciones.
+- con nombre, como una lista de parejas patrón-código:
+
+  #figure(
+    ```
+    let f(0, _) := 0
+    let f(_, 0) := 0
+    let f(a, b) := a + b - 5
+
+
+    ```,
+    caption: "Función nombrada de Komodo."
+  )
+
+  Las funciones nombradas son siempre inmutables, así que no pueden crearse con la palabra clave `var`. Ejecutar esta pieza de código retorna un error:
+
+  #figure(
+    ```
+    var f(x) := 2*x
+    
+    
+    ```,
+    caption: "Declaración ilegal de una función."
+  )
+
+Todas las funciones de Komodo pueden ser pasadas como argumentos de otras funciones.
+
+Los _scopes_ de Komodo son creados de forma léxica, lo que significa que los nombres referenciados en la función son los que se obtienen en el contexto de la definición de la función, y no en el contexto de sus ejecuciones. Usemos como ejemplo el siguiente fragmento de código:
+
+#figure(
+  ```
+  let a := 2
+  let func := () -> a
+
+  for i in 0..5 do
+      let a := i
+      assert(func() = 2)
+  
+
+  ```,
+  caption: [_Scope_ léxico en Komodo.],
+)
+
+En este caso, a pesar de que la `func` es ejecutada en un _scope_ donde el valor de `a` varía, siempre usa el valor que `a` tenía cuando fue definida. Esta regla limita la forma en que se puede interpretar una llamada a una función, lo que puede ser conveniente al analizarla.
 
 ==== Caracteres y cadenas
+
+Komodo, a diferencia de muchos lenguajes de _scripting_, tiene tipos separados para representar caracteres y cadenas. Esto puede ser útil a la hora de iterar sobre cadenas y de hacer tratamiento minucioso de cadenas. Los dos tipos operan juntos, y se realizan conversiones implícitas entre ellos cuando es conveniente.
 
 ===== Caracteres
 
 Los caracteres de Komodo son valores escalares de Unicode, por lo que pueden representar cualquier símbolo Unicode. Tienen una longitud fija de 32 bits.
+
+Su sintaxis es muy similar a la de las cadenas, sólo que usa comillas simples:
+
+#figure(
+  ```
+  let a := 'a'
+
+  ```,
+  caption: "Declaración de un caracter en Komodo."
+)
+
+Todos los caracteres son patrones que pueden ser rastreados, y también se puede restringir la entrada de una función por su tipo:
+
+#figure(
+  ```
+  let isAnA('a' || 'A') := true
+  let isAnA(_) := false
+
+  let isChar(_: Char) := true
+  let isChar(_) := false
+
+  assert(isAnA('a'))
+  assert(isChar('b'))
+
+
+  ```,
+  caption: [_Patttern mathing_ de caracteres.]
+)
+
+Los caracteres pueden ser sumados entre si para sumar cadenas, y pueden ser sumados con cadenas para producir otras cadenas. También pueden ser multiplicados por un entero para concatenarse a si mismas varias veces:
+
+#figure(
+  ```
+  assert('a'+'b'="ab") # Char + Char
+  assert('a'+"abc"="abc") # Char + String
+  assert('z'*3="zzz") # Char "multiplicado"
+
+
+  ```,
+  caption: "Operaciones con caracteres en Komodo."
+)
 
 ===== Cadenas
 
