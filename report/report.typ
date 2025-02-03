@@ -892,7 +892,7 @@ Todos los chequeos de tipos en programas de Komodo se realizan en tiempo de ejec
 
 Komodo viene con tipos incorporados que facilitan la creación de procedimientos básicos, y son herramientas que se esperan en cualquier lenguaje de programación de propósito general. Sin embargo, la elección de los tipos incorporados de Komodo refleja sus preferencias de uso.
 
-==== La tupla vacía
+==== La tupla vacía <empty_tuple>
 
 Está representada por `()`. Es en la práctica el tipo nulo de Komodo.
 
@@ -1170,6 +1170,16 @@ Las tuplas son colecciones ordenadas de valores, que no crecen. Su propósito es
   ```,
   caption: "Tuplas de Komodo.",
 )
+
+Sin las tuplas, quedarían dos soluciones para tener valores compuestos:
+
+- Usar un diccionario: Esta solución está bien, pero puede ser demasiado complicada para algunos problemas. Además, puede operarse con otros diccionarios, lo cual puede ser indeseable.
+
+- Usar una lista: Es una solución muy similar, pero sigue estando el problema de que pueden ser operadas con otras listas, lo cual puede ser indeseable.
+
+Estas dos soluciones usan tipos con un propósito muy claro, y estarían siendo usadas de manera ligeramente distinta. La mayor utilidad de las tuplas es declarar la intención de que los datos en ellas deberían estar juntos.
+
+La tupla vacía, mencionada al principio de esta sección, es una tupla y no un tipo por separado. (véase @empty_tuple)
 
 ===== Listas
 
