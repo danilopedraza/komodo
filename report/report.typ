@@ -1223,6 +1223,100 @@ Los conjuntos de Komodo son de longitud arbitraria. Se puede iterar sobre ellos 
 
 Están representados como árboles binarios de búsqueda.
 
+Los conjuntos tienen su propia sintaxis, y pueden ser escritos por extensión o por comprensión:
+
+#figure(
+  ```
+  let A := {1, 2, 4, 8, 16} # por extensión
+  let B := {2**k for k in 0..5} # por comprensión
+
+  assert(A = B)
+
+
+  ```,
+  caption: "Conjuntos de Komodo.",
+)
+
+Se puede iterar sobre sus elementos de varias maneras:
+
+- Usando la notación _cons_ para conjuntos:
+
+  #figure(
+    ```
+    let prod({}) := 1
+    let prod({some|rest}) := some * prod(rest)
+
+
+    ```,
+    caption: [Notación _cons_ para conjuntos.]
+  )
+
+  Esta notación funciona de la misma forma que la notación _cons_ de listas.
+
+  La implementación actual garantiza que los elementos son recorridos en orden, pero esta característica podría cambiar.
+
+- Usándolo como iterador en contenedores por comprensión y ciclos:
+
+  #figure(
+    ```
+    let set := {1, 2, 2}
+
+    var list := []
+    for val in set do
+        list := [val|list]
+    assert(list = [1, 2] || list = [2, 1])
+
+    let list := [val + 1 for val in set]
+    assert(list = [2, 3] || list = [3, 2])
+
+
+    ```,
+    caption: "Iteración sobre conjuntos.",
+  )
+
+Para verificar que un elemento pertenece a un conjunto, puede usarse el operador `in`:
+
+#figure(
+  ```
+  let A := {1, 2}
+  assert(1 in A)
+
+
+  ```,
+  caption: "Pertenencia de conjuntos.",
+)
+
+Los conjuntos también pueden verificar contenencia e igualdad entre ellos, y se tienen las operaciones de unión y diferencia:
+
+#figure(
+  ```
+  let A := {1, 2}
+  let B := {2, 3}
+
+  assert(A + B = {1, 2, 3})
+  assert(A - B = {1})
+  assert(A - B < A) # contenencia estricta
+  assert(A <= A) # contenencia o igualdad
+
+
+  ```,
+  caption: "Operaciones entre conjuntos.",
+)
+
+Los conjuntos pueden ser desestructurados:
+
+#figure(
+  ```
+  let {a, b} := {1, 2}
+  assert(a + b = 3)
+
+
+  ```,
+  caption: "Desestructuración de conjuntos.",
+)
+
+La razón de que los conjuntos sean estructuras de primera clase es evitar que el usuario los implemente incidentalmente como parte de la implementación de ciertas rutinas. Esta situación es muy común en el tipo de problemas a los que Komodo apela.
+
 ===== Diccionarios - Objetos
 
 Los diccionarios de Komodo son de longitud arbitraria. Son colecciones de parejas clave-valor, donde el tipo de ambos es arbitrario.
