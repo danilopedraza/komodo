@@ -1183,12 +1183,39 @@ La tupla vacía, mencionada al principio de esta sección, es una tupla y no un 
 
 ===== Listas
 
-Las listas de Komodo son de longitud arbitraria y puede accederse a sus elementos de dos formas:
+Las listas de Komodo son de longitud arbitraria y se puede acceder a sus elementos de dos formas:
 
-- con índices enteros indexados desde cero, usando la notación `list[index]`,
-- iterando sobre la lista de izquierda a derecha, con la notación `[first|tail]`.
+- con índices enteros indexados desde cero, usando la notación `list[index]`. Esto es útil para escribir procedimientos iterativos que involucran el orden en que se encuentran los elementos, y se accede a múltiples partes de la lista en un mismo paso:
 
-Están representadas como arreglos dinámicos.
+  #figure(
+    ```
+    let reverse(l: List) :=
+        var res := l
+        for i in 0..(len(l)/2) do
+            res[i] := l[len(l)-i-1]
+            res[len(l)-i-1] := l[i]
+        
+        res
+
+    ```,
+    caption: "Reverso de una lista en Komodo."
+  )
+
+  El acceso por índice a un índice ilegal (negativo o, mayor o igual que la longitud de la lista) hace que el programa sea interrumpido con un error.
+
+
+- iterando sobre la lista de izquierda a derecha, con la notación `[first|tail]`. Esto funciona bien para la mayoría de casos de uso, y permite la escritura sencilla de procedimientos recursivos:
+
+  #figure(
+    ```
+    let max(a, b) := if a > b then a else b
+    let max([val]) := val
+    let max([first|tail]: List) := max(first, max(tail))
+    ```,
+    caption: "Máximo de una lista en Komodo"
+  )
+
+El intérprete las almacena como arreglos dinámicos. Esta es una representación conveniente para la solicitud de memoria y el acceso por índice, pero no tanto para la iteración de izquierda a derecha, especialmente si se usan sublistas obtenidas de la lista donde se itera.
 
 ===== Conjuntos
 
