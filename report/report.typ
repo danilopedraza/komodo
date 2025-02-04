@@ -1214,7 +1214,7 @@ Se puede acceder a sus elementos de tres formas:
     let max([val]) := val
     let max([first|tail]: List) := max(first, max(tail))
 
-    
+
     ```,
     caption: "Máximo de una lista en Komodo"
   )
@@ -1326,7 +1326,7 @@ Los conjuntos también pueden verificar contenencia e igualdad entre ellos, y se
   caption: "Operaciones entre conjuntos.",
 )
 
-Los conjuntos pueden ser desestructurados:
+Los conjuntos pueden ser desestructurados y rastreados con patrones:
 
 #figure(
   ```
