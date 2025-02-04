@@ -3,14 +3,18 @@
 
 
 #set par(justify: true)
-#set text(lang: "es")
+#set text(lang: "es", size: 11pt)
 
-#set page(numbering: "1")
-#set page(header: [
-  _El lenguaje de programación Komodo_
-  #h(1fr)
-  // _Universidad Nacional de Colombia_
-])
+
+#set page(
+  paper: "a4",
+  numbering: "1",
+  header: [
+    _El lenguaje de programación Komodo_
+    #h(1fr)
+    // _Universidad Nacional de Colombia_
+  ],
+)
 
 #set heading(numbering: "1.1.1.")
 
@@ -18,17 +22,27 @@
   align(
     center + horizon,
     [
+      #v(5%)
+      #image("unal.png") \
+      #v(1fr)
       #text(17pt)[*El lenguaje de programación Komodo*] \
       \
       \
       César Danilo Pedraza Montoya \
-      #link("mailto:cpedraza@unal.edu.co")
+      #link("mailto:cpedraza@unal.edu.co") \
+      #v(1fr) \
+
+      Universidad Nacional de Colombia \
+      Facultad de Ciencias \
+      Departamento de matemáticas \
+      Bogotá, Colombia \
+      2025
     ]
   ),
   numbering: none,
 )
 
-#page(outline())
+#page(outline(), numbering: none)
 
 = Introducción
 
