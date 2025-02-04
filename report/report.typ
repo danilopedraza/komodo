@@ -40,9 +40,10 @@
     ]
   ),
   numbering: none,
+  header: none,
 )
 
-#page(outline(), numbering: none)
+#page(outline(), numbering: none, header: none)
 
 = Introducción
 
