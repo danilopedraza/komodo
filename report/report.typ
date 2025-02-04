@@ -6,11 +6,11 @@
 #set text(lang: "es")
 
 #set page(numbering: "1")
-// #set page(header: [
-//   _El lenguaje de programación Komodo_
-//   #h(1fr)
-//   // Universidad Nacional de Colombia
-// ])
+#set page(header: [
+  _El lenguaje de programación Komodo_
+  #h(1fr)
+  // _Universidad Nacional de Colombia_
+])
 
 #set heading(numbering: "1.1.1.")
 
