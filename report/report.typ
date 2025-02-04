@@ -1344,12 +1344,84 @@ La razón de que los conjuntos sean estructuras de primera clase es evitar que e
 
 Los diccionarios de Komodo son de longitud arbitraria. Son colecciones de parejas clave-valor, donde el tipo de ambos es arbitrario.
 
+Los diccionarios deben ser inicializados con al menos un elemento, pues la expresión `{}` genera un conjunto:
+
+#figure(
+  ```
+  let set := {} # conjunto
+  let dict := { () => () } # diccionario
+
+
+  ```,
+  caption: "Construcción de diccionarios.",
+)
+
 Se puede acceder a sus elementos de dos formas:
 
 - Notación de objeto: `objeto.clave`, donde `objeto` es un diccionario y `clave` es interpretado como una cadena, que es buscada en el diccionario.
-- Notación usual: `dic[clave]` donde `dic` es un diccionario y `clave` es un valor arbitrario. 
 
-Están representados como árboles binarios de búsqueda.
+  Esto es equivalente a escribir `objeto["clave"]`. Aunque confusa, esta notación es una facilidad para usar los diccionarios de una forma muy particular cuando la situación lo amerita.
+
+  Este es un ejemplo:
+
+  #figure(
+    ```
+    var data := {
+        "values" => [1, 2, 3],
+        "length" => 3,
+    }
+
+    assert(data.length = 3)
+    assert(data.values = [1, 2, 3])
+
+    data.values := [val + 1 for val in data.values]
+    assert(data.values = [2, 3, 4])
+
+
+    ```,
+    caption: "Diccionarios como estructuras.",
+  )
+
+
+- Notación usual: `dic[clave]` donde `dic` es un diccionario y `clave` es un valor arbitrario.
+
+  Esta notación permite usar cualquier valor de Komodo como una clave. Por ejemplo, aquí usamos listas y conjuntos como claves:
+
+  #figure(
+    ```
+    let dict := {
+      [[1], [2]] => 3,
+      {2, 3, 4} => 9,
+    }
+
+    assert(dict[[[1], [2]]] = 3)
+    assert(dict[{2, 3, 4}] = 9)
+
+
+    ```,
+    caption: "Diccionarios con claves arbitrarias.",
+  )
+
+La búsqueda de una clave que no se encuentra en un diccionario interrumpe el programa con un error.
+
+En la implementación actual, no se puede iterar sobre diccionarios. Sin embargo, si pueden ser buscados con patrones:
+
+#figure(
+  ```
+  let dict := {
+      [[1], [2]] => 3,
+      {2, 3, 4} => 9,
+  }
+
+  let f({{2, 3, 4} => x, ..}) := x
+  assert(f(dict) = 9)
+  
+
+  ```,
+  caption: "Patrones con diccionarios.",
+)
+
+Los diccionarios están representados como árboles binarios de búsqueda, igual que los conjuntos. Esto podría cambiar en el futuro.
 
 == El intérprete
 
