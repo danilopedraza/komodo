@@ -1486,16 +1486,20 @@ Una compilación del interprete a _WebAssembly_ @wasm es usada para poder usar e
 
 === Resaltado de sintaxis
 
-Se escribió una gramática de _TextMate_ @textmate para los _tokens_ de Komodo, y así obtener resaltado de sintaxis en los editores de texto compatibles.
+Se escribió una gramática de _TextMate_ @textmate para los _tokens_ de Komodo, y así obtener resaltado de sintaxis en los editores de texto compatibles. Se distribuye una extensión para los editores VSCode y VSCodium, que añaden resaltado de sintaxis para Komodo a los archivos con extensión `.komodo`.
 
 === Instaladores
 
-== Prácticas de desarrollo
+Se distribuye un script para instalar Komodo en distribuciones GNU/Linux, con máquinas con arquitectura AMD64. El instalador añade al sistema un binario enlazado estáticamente y los archivos de la librería estándar. Puede usarse ejecutando el siguiente comando:
 
-=== Integración y despliegue continuo
+```
+curl --proto '=https' --tlsv1.2 -sSf https://komodo-lang.org/install.sh | sh
+```
 
-=== Versionado
+Se piensa distribuir binarios e instaladores para MacOS y Windows, así como para más arquitecturas, en particular ARM64.
 
 == Guía de uso
+
+Se está creando una guía de uso de Komodo en `https://komodo-lang.org/book`. El propósito del material es asistir a cualquier persona interesada en Komodo en el aprendizaje del lenguaje y en el uso del ecosistema. 
 
 #bibliography("ref.bib", title: "Referencias")
