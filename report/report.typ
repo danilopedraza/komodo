@@ -1442,9 +1442,11 @@ Los diccionarios están representados como árboles binarios de búsqueda, igual
 
 == El intérprete
 
-El intérprete de Komodo es un binario compilado estáticamente. Además de la interfaz del sistema operativo, el intérprete no tiene dependencias en tiempo de ejecución.
-
 El intérprete está escrito en el lenguaje de programación Rust. @rust El ecosistema de Rust, de manera similar a lenguajes como OCaml, @ocaml es favorable para construir herramientas para lenguajes de programación. El modelo de memoria de Rust no incluye manejo de memoria automático, sino un sistema que permite verificar reglas que garantizan seguridad de memoria en tiempo de compilación.
+
+El intérprete de Komodo es distribuido como un binario enlazado estáticamente cuando es posible, y está organizado como un monolito.
+
+Para la comunicación con el sistema operativo, se usa la librería estándar de Rust: Hasta ahora, no ha sido necesario interactuar con una interfaz más cercana.
 
 == Gestión de memoria
 
@@ -1456,14 +1458,28 @@ Hasta ahora, Komodo sólo interactúa directamente con la entrada y salida está
 
 = Aspectos periféricos
 
+Komodo, como proyecto, incluye piezas adicionales al intérprete, así como procesos de trabajo para crearlas. Esta sección enumera estos elementos y los explica brevemente.
+
+== Software adicional
+
 Hay software adicional al intérprete que lo asiste o extiende su alcance.
 
-== Editor web
+=== Editor web
 
-Una compilación del interprete a _WebAssembly_ @wasm es usada para interactuar poder usar el intérprete en navegadores de Internet. Es una versión sin la librería estándar y con una interfaz simulada de la entrada y salida estándar.
+Una compilación del interprete a _WebAssembly_ @wasm es usada para poder usar el intérprete en navegadores de Internet. Es una versión sin la librería estándar y con una interfaz simulada de la entrada y salida estándar.
 
-== Resaltado de sintaxis
+=== Resaltado de sintaxis
 
 Se escribió una gramática de _TextMate_ @textmate para los _tokens_ de Komodo, y así obtener resaltado de sintaxis en los editores de texto compatibles.
+
+=== Instaladores
+
+== Prácticas de desarrollo
+
+=== Integración y despliegue continuo
+
+=== Versionado
+
+== Guía de uso
 
 #bibliography("ref.bib", title: "Referencias")
