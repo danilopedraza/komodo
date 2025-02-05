@@ -613,7 +613,7 @@ Cuando un nombre es referenciado en el código, se busca en el entorno de la sig
 
 - Si se referencia una variable para obtener su valor (por ejemplo, al escribir `cur + 10`), se comienza buscando desde el _scope_ al tope de la pila hasta el de más abajo. Se retorna la primera coincidencia encontrada. Si la variable no es encontrada, se interrumpe la ejecución del programa con un error.
 
-=== Copiado de valores
+=== Copiado de valores <copiado>
 
 Komodo no tiene una noción de referencia. En el contexto de la dicotomía valor-referencia, en Komodo solo se manipulan valores. Esto hace que los detalles internos sobre referencias a valores y el copiado de valores sean invisibles al usuario.
 
@@ -664,7 +664,7 @@ Cabe destacar que el ocultar una variable con un nuevo valor no afecta los usos 
 
 Aquí, la función `g` retorna 1, que es el valor de la función `f` cuando `g` fue definida. Lo mismo sucede con la función `h`, que retorna 2. El hecho de que luego `f` retorne 3 no afecta a ningún uso previo.
 
-=== Mutabilidad restringida
+=== Mutabilidad restringida <mutability>
 
 La mutabilidad de variables está restringida por dos reglas:
 
@@ -1450,11 +1450,27 @@ Para la comunicación con el sistema operativo, se usa la librería estándar de
 
 == Gestión de memoria
 
-El intérprete gestiona la memoria automáticamente con un algoritmo de _mark-and-sweep_ sin adiciones. El espacio de memoria crece a demanda en tiempo de ejecución.
+La memoria de un programa de Komodo es gestionada automáticamente. Además, no hay una noción de referencia (véase @copiado). Todo valor declarado con `let` debe ser constante, y todo valor declarado con `var` puede cambiar de acuerdo a las restricciones de mutabilidad (véase @mutability). Estas son las invariantes que el usuario de Komodo puede asumir.
 
-== Interacción con el sistema
+La implementación de estas reglas es arbitraria, y en el caso del intérprete de Komodo, está en desarrollo.
 
-Hasta ahora, Komodo sólo interactúa directamente con la entrada y salida estándar, e indirectamente con la importación de código.
+Para gestionar el uso interno de referencias y copias, el intérprete usa las siguientes reglas:
+
+- Si un valor inmutable es asignado a otro valor inmutable, se asigna internamente una referencia en lugar de copiar.
+
+- Si un valor inmutable es asignado a un valor mutable, se asigna una copia.
+
+- Si un valor mutable es asignado a un valor cualquiera, se asigna una copia.
+
+- Si un valor cualquiera es pasado como argumento a una función, se pasa una referencia inmutable, siguiendo la semántica de las funciones (véase @mutability).
+
+- En cualquier otro caso, se pasa una copia.
+
+Las reglas actuales no tienen en cuenta que debería suceder en situaciones que involucran contenedores, donde pueden aparecer referencias cíclicas, por ejemplo. El comportamiento actual en estos casos es crear copias.
+
+El intérprete usa conteo de referencias para hacer recolección de basura automáticamente.
+
+Se planea implementar una estrategia de _mark-and-sweep_, donde de manera periódica se recorre un grafo de referencias del programa. Las referencias alcanzadas durante el recorrido son conservadas, y las no alcanzadas son eliminadas. Luego las secciones de memoria que no tuvieron referencias alcanzadas son liberadas. 
 
 = Aspectos periféricos
 
