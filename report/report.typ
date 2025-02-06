@@ -1500,6 +1500,6 @@ Se piensa distribuir binarios e instaladores para MacOS y Windows, así como par
 
 == Guía de uso
 
-Se está creando una guía de uso de Komodo en `https://komodo-lang.org/book`. El propósito del material es asistir a cualquier persona interesada en Komodo en el aprendizaje del lenguaje y en el uso del ecosistema. 
+Está publicada una guía de uso de Komodo en `https://komodo-lang.org/book`. El propósito del material es asistir a cualquier persona interesada en Komodo en el aprendizaje del lenguaje y en el uso del ecosistema. La guía está en constante cambio de acuerdo a como el lenguaje cambia. Se desea que la guía sea el recurso por defecto para aprender a usar Komodo.
 
 #bibliography("ref.bib", title: "Referencias")
