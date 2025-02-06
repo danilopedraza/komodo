@@ -916,7 +916,7 @@ Komodo viene con tipos incorporados que facilitan la creación de procedimientos
 
 Está representada por `()`. Es en la práctica el tipo nulo de Komodo.
 
-Es importante recalcar que la tupla vacía no es un tipo separado (como sucede con el tipo unitario en lenguajes como Haskell o Rust), sino que realmente el intérprete lo considera una tupla sin valores. Este es simplemente un atajo para que `()` no tenga un tipo exclusivo. Esta característica hace a `()` más cercano a un tipo nulo, típico de los lenguajes de programación imperativos; que a un tipo unitario, típico de los lenguajes de programación funcionales.
+Es importante recalcar que la tupla vacía no es un tipo separado (como sucede con el tipo unitario en lenguajes como Haskell o Rust), sino que realmente el intérprete lo considera una tupla sin valores. Esta característica hace a `()` más cercano a un tipo nulo, típico de los lenguajes de programación imperativos; que a un tipo unitario, típico de los lenguajes de programación funcionales.
 
 La tupla vacía es un patrón que se puede rastrear:
 
