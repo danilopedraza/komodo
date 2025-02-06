@@ -1044,7 +1044,7 @@ Las funciones de Komodo pueden escribirse de dos formas:
 
   Estas funciones son expresiones, así que pueden ser puestas dentro de contenedores o ser guardadas como variables.
 
-- con nombre, como una lista de parejas patrón-código:
+- con nombre, como una lista de parejas patrón-resultado:
 
   #figure(
     ```
@@ -1482,7 +1482,103 @@ Hay software adicional al intérprete que lo asiste o extiende su alcance.
 
 === Editor web
 
-Una compilación del interprete a _WebAssembly_ @wasm es usada para poder usar el intérprete en navegadores de Internet. Es una versión sin la librería estándar y con una interfaz simulada de la entrada y salida estándar.
+Una compilación del interprete a _WebAssembly_ o WASM @wasm es usada para poder usar el intérprete en navegadores de Internet. Es una versión sin la librería estándar y con una interfaz simulada de la entrada y salida estándar.
+
+La compilación del intérprete a _WebAssembly_ se logra con el control de las dependencias de Komodo. En particular, se genera una versión del intérprete donde todas las dependencias pueden ser compiladas a WASM. Esto hace que la versión para el navegador sea ligeramente distinta a la versión nativa. Estas son las principales diferencias:
+
+- La importación de modulos no está implementada. Ni los módulos de la librería estándar, ni la importación de archivos con código hacen parte de la versión para navegadores.
+
+- Las funciones incorporadas que usan la entrada y salida estándar usan una interfaz simulada, que en realidad interactúa con la interfaz de usuario en el navegador.
+
+- No hay un REPL, a diferencia de la versión nativa.
+
+Esta gráfica explica el paso desde el intérprete original a la versión para navegadores:
+
+#{
+  show figure: set block(breakable: true)
+  figure(
+    grid(
+      columns: 1,
+      gutter: 3mm,
+      box(
+        grid(
+          columns: 1,
+          gutter: 3mm,
+          "Código original",
+          image("rust.svg", height: 50pt)
+        ),
+        stroke: black,
+        inset: 5pt,
+        radius: 3pt,
+      ),
+      sym.arrow.b,
+      [
+        Eliminación de dependencias \
+        Desacoplado del sistema operativo
+      ],
+      sym.arrow.b,
+      box(
+        grid(
+          columns: 1,
+          gutter: 3mm,
+          "Código compilable a WASM",
+          image("rust.svg", height: 50pt)
+        ),
+        stroke: black,
+        inset: 5pt,
+        radius: 3pt,
+      ),
+      sym.arrow.b,
+      [Compilación a WASM],
+      sym.arrow.b,
+      box(
+        grid(
+          columns: 1,
+          gutter: 3mm,
+          "Binario de WASM",
+          image("wasm.svg", height: 50pt)
+        ),
+        stroke: black,
+        inset: 5pt,
+        radius: 3pt,
+      ),
+      sym.arrow.b,
+      [Optimización y empaquetado],
+      sym.arrow.b,
+      box(
+        grid(
+          columns: 1,
+          gutter: 3mm,
+          "Paquete con interfaz en JS",
+          grid(
+            columns: 2,
+            gutter: 2mm,
+            image("wasm.svg", height: 50pt),
+            image("js.svg", height: 50pt),
+          ),
+        ),
+        stroke: black,
+        inset: 5pt,
+        radius: 3pt,
+      ),
+      sym.arrow.b,
+      [Despliegue a la web],
+      sym.arrow.b,
+      box(
+        grid(
+          columns: 1,
+          gutter: 3mm,
+          "Editor web de Komodo",
+          image("playground.png", height: 130pt),
+        ),
+        stroke: black,
+        inset: 5pt,
+        radius: 3pt,
+      ),
+    ),
+    // caption: "Generación de Komodo para navegadores.",
+  )
+}
 
 === Resaltado de sintaxis
 
