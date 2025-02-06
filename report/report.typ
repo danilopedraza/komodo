@@ -1590,7 +1590,7 @@ Se escribió una gramática de _TextMate_ @textmate para los _tokens_ de Komodo,
 
 === Instaladores
 
-Se distribuye un script para instalar Komodo en distribuciones GNU/Linux, con máquinas con arquitectura AMD64. El instalador añade al sistema un binario enlazado estáticamente y los archivos de la librería estándar. Puede usarse ejecutando el siguiente comando:
+Se distribuye un script para instalar Komodo en distribuciones GNU/Linux, con máquinas con arquitectura AMD64. El instalador añade al sistema un binario enlazado estáticamente y los archivos de la librería estándar. Puede usarse ejecutando el siguiente comando, que instala la versión de Komodo más reciente:
 
 ```
 curl --proto '=https' --tlsv1.2 -sSf https://komodo-lang.org/install.sh | sh
