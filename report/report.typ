@@ -1482,7 +1482,9 @@ Hay software adicional al intérprete que lo asiste o extiende su alcance.
 
 === Editor web
 
-Una compilación del interprete a _WebAssembly_ o WASM @wasm es usada para poder usar el intérprete en navegadores de Internet. Es una versión sin la librería estándar y con una interfaz simulada de la entrada y salida estándar.
+Una compilación del interprete a _WebAssembly_ o WASM @wasm es usada para poder usar el intérprete en navegadores de Internet. Es una versión sin la librería estándar y con una interfaz simulada del sistema operativo.
+
+WASM es un objetivo de compilación sin una máquina de destino específica. Su enfoque es la ejecución de código en ambientes aislados e independientes de la máquina de ejecución.
 
 La compilación del intérprete a _WebAssembly_ se logra con el control de las dependencias de Komodo. En particular, se genera una versión del intérprete donde todas las dependencias pueden ser compiladas a WASM. Esto hace que la versión para el navegador sea ligeramente distinta a la versión nativa. Estas son las principales diferencias:
 
@@ -1491,6 +1493,8 @@ La compilación del intérprete a _WebAssembly_ se logra con el control de las d
 - Las funciones incorporadas que usan la entrada y salida estándar usan una interfaz simulada, que en realidad interactúa con la interfaz de usuario en el navegador.
 
 - No hay un REPL, a diferencia de la versión nativa.
+
+Esta versión modificada del intérprete es compilada a WASM. El binario obtenido es optimizado y luego empaquetado con una interfaz hecha en _JavaScript_, con la que el editor web de Komodo interactúa para ejecutar código escrito por el usuario. Así, se evita tener que enviar el código a un servidor, ejecutarlo allí, y devolver los resultados. La ejecución de los programas en el editor web ocurre del todo en la máquina del usuario.
 
 Esta gráfica explica el paso desde el intérprete original a la versión para navegadores:
 
