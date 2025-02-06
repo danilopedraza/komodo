@@ -1601,7 +1601,7 @@ Se distribuye un script para instalar Komodo en distribuciones GNU/Linux, con m�
 curl --proto '=https' --tlsv1.2 -sSf https://komodo-lang.org/install.sh | sh
 ```
 
-Se piensa distribuir binarios e instaladores para MacOS y Windows, así como para más arquitecturas, en particular ARM64.
+Se planea distribuir binarios e instaladores para MacOS y Windows, así como para más arquitecturas, en particular ARM64.
 
 == Guía de uso
 
