@@ -12,11 +12,15 @@
   header: [
     _El lenguaje de programación Komodo_
     #h(1fr)
-    // _Universidad Nacional de Colombia_
   ],
 )
 
-#set heading(numbering: "1.1.1.")
+#let capped(..args) = if args.pos().len() <= 3 {
+  args.pos().map(str).join(".")+"."
+} else {
+  "-"
+}
+#set heading(numbering: capped)
 
 #page(
   align(
@@ -44,6 +48,7 @@
 )
 
 #page(outline(), numbering: none, header: none)
+#counter(page).update(1)
 
 = Introducción
 
