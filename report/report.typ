@@ -141,7 +141,7 @@ En este documento se hace una descripción del funcionamiento de cada componente
 
 = Análisis léxico y sintáctico
 
-== Analizador léxico o _lexer_
+== Analizador léxico o _lexer_ <lexer>
 
   El analizador léxico convierte un programa, una sucesión de caracteres, en una sucesión de _tokens_, que son unidades más complicadas como palabras, números y símbolos. Uno de los propósitos de esta fase es que las demás fases no tengan que lidiar con detalles relacionados al texto que representa el programa: Las fases posteriores no deberían lidiar con aspectos como espacios en blanco, indentación o comentarios en el código. Toda la información necesaria debería estar incluída en los _tokens_ que el analizador emite.
 
@@ -1531,7 +1531,7 @@ Está publicada una guía de uso de Komodo en `https://komodo-lang.org/book`. El
 
 == Lista de _tokens_
   
-Esta es una lista de los _tokens_ que el analizador léxico emite, y las reglas que hacen que sean emitidos. Se muestran expresiones regulares para algunos _tokens_ con el propósito de ilustrar las reglas rápidamente, pero la implementación del _lexer_ no usa expresiones regulares. Los tokens que están relacionados a los bloques de indentación indentados son casos especiales, cuyo funcionamiento se describe con más detalle en la siguiente sección.
+Esta es una lista de los _tokens_ que el analizador léxico emite, y las reglas que hacen que sean emitidos. Se muestran expresiones regulares para algunos _tokens_ con el propósito de ilustrar las reglas rápidamente, pero la implementación del _lexer_ no usa expresiones regulares. Los tokens que están relacionados a los bloques de indentación indentados son casos especiales, cuyo funcionamiento se describe con más detalle en la sección sobre análisis léxico (véase @lexer).
 
 Las expresiones regulares están escritas con el estilo de Perl. @perlregex
 
@@ -1657,20 +1657,7 @@ Esta gramática no incluye información sobre precedencias de operadores, pero e
         Or[\<Case\>][]
         Or[\<If\>][]
         Or[\<For\>][]
-      },
-    ),
-    Prod(
-      [\<Pattern\>],
-      {
-        Or[][]
-      },
-    ),
-    Prod(
-      [\<Sequence\>],
-      {
-        Or[$lambda$][]
-        Or[\<Expression\>][]
-        Or[\<Expression\> "," \<Sequence\>][]
+        Or[\<Parenthesized\>][]
       },
     ),
     Prod(
@@ -1684,10 +1671,125 @@ Esta gramática no incluye información sobre precedencias de operadores, pero e
       [\<List\>],
       {
         Or["\[" \<Expression\> "for" \<Pattern\> "in" \<Expression\> "\]"][]
+        Or["\[" \<Expression\> "|" \<Expression\> "\]"][]
         Or["\[" \<Sequence\> "\]"][]
       },
     ),
-
+    Prod(
+      [\<Pattern\>],
+      {
+        Or["\_"][]
+        Or[\<Bool\>][]
+        Or[\<Char\>][]
+        Or[\<Ident\>][]
+        Or[\<String\>][]
+        Or[\<Integer\>][]
+        Or[\<ListPattern\>][]
+        Or[\<TuplePattern\>][]
+        Or[\<SetPattern\>][]
+        Or[\<DictPattern\>][]
+        Or[\<InfixPattern\>][]
+      },
+    ),
+    Prod(
+      [\<ListPattern\>],
+      {
+        Or["\[" \<Pattern\> "|" \<Pattern\> "\]"][]
+        Or["\[" \<SequencePattern\> "\]"][]
+      },
+    ),
+    Prod(
+      [\<SequencePattern\>],
+      {
+        Or[$lambda$][]
+        Or[\<Pattern\>][]
+        Or[\<Pattern\> "," \<SequencePattern\>][]
+      },
+    ),
+    Prod(
+      [\<TuplePattern\>],
+      {
+        Or["\(" \<SequencePattern\> "\)"][]
+      },
+    ),
+    Prod(
+      [\<SetPattern\>],
+      {
+        Or["{" \<Pattern\> "|" \<Pattern\> "}"][]
+        Or["\{" \<SequencePattern\> "\}"][]
+      },
+    ),
+    Prod(
+      [\<DictPattern\>],
+      {
+        Or["\{" \<DictSequencePattern\> "\}"][]
+      },
+    ),
+    Prod(
+      [\<DictSequencePattern\>],
+      {
+        Or[\<Pattern\> "=>" \<Pattern\>][]
+        Or[\<Pattern\> "=>" \<Pattern\> ","][]
+        Or[\<Pattern\> "=>" \<Pattern\> "," \<DictSequencePattern\>][]
+      },
+    ),
+    Prod(
+      [\<InfixPattern\>],
+      {
+        Or[\<Pattern\> "||" \<Pattern\>][]
+        Or[\<Pattern\> ":" \<Signature\>][]
+      },
+    ),
+    Prod(
+      [\<Signature\>],
+      {
+        Or[\<Ident\>][]
+        Or[\<Ident\> "||" \<Signature\>][]
+      },
+    ),
+    Prod(
+      [\<Sequence\>],
+      {
+        Or[$lambda$][]
+        Or[\<Expression\>][]
+        Or[\<Expression\> "," \<Sequence\>][]
+      },
+    ),
+    Prod(
+      [\<Tuple\>],
+      {
+        Or["(" \<TupleSequence\> ")"][]
+      },
+    ),
+    Prod(
+      [\<TupleSequence\>],
+      {
+        Or[$lambda$][]
+        Or[\<Expression\> "," \<Sequence\>][]
+      },
+    ),
+    Prod(
+      [\<Set\>],
+      {
+        Or["\{" \<Expression\> "for" \<Pattern\> "in" \<Expression\> "\}"][]
+        Or["\{" \<Expression\> "|" \<Expression\> "\}"][]
+        Or["\{" \<Sequence\> "\}"][]
+      },
+    ),
+    Prod(
+      [\<Dict\>],
+      {
+        Or["\{" \<DictSequence\> "\}"][]
+      },
+    ),
+    Prod(
+      [\<DictSequence\>],
+      {
+        Or[\<Expression\> "=>" \<Expression\>][]
+        Or[\<Expression\> "=>" \<Expression\> ","][]
+        Or[\<Expression\> "=>" \<Expression\> "," \<DictSequence\>][]
+      },
+    ),
   )
 }
 
