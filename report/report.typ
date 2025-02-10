@@ -1,4 +1,5 @@
 #import "@preview/chronos:0.2.0"
+#import "@preview/simplebnf:0.1.1": *
 #import "@preview/syntree:0.2.0": syntree
 
 
@@ -174,92 +175,6 @@ En este documento se hace una descripción del funcionamiento de cada componente
     ),
     caption: [Ejemplo de paso de un texto a una sucesión de _tokens_]
   )
-
-=== Lista de _tokens_
-  
-  Esta es una lista de los _tokens_ que el analizador léxico emite, y las reglas que hacen que sean emitidos. Se muestran expresiones regulares para algunos _tokens_ con el propósito de ilustrar las reglas rápidamente, pero la implementación del _lexer_ no usa expresiones regulares. Los tokens que están relacionados a los bloques de indentación indentados son casos especiales, cuyo funcionamiento se describe con más detalle en la siguiente sección.
-
-  Las expresiones regulares están escritas con el estilo de Perl. @perlregex
-
-  #{
-    show figure: set block(breakable: true)
-    figure(
-      table(
-        columns: 3,
-        [Nombre], [Descripción], [Expresión regular],
-        [`Ampersand`], [Sígno et: `&`], [`&`],
-        [`Arrow`], [Flecha simple: `->`], [`->`],
-        [`As`], [Palabra clave: `as`], [`as`],
-        [`Assign`], [Símbolo de asignación: `:=`], [`:=`],
-        [`Bang`], [Símbolo de exclamación: `!`], [`!`],
-        [`Case`], [Palabra clave: `case`], [`case`],
-        [`Colon`], [Dos puntos: `:`], [`:`],
-        [`Comma`], [Coma: `,`], [`,`],
-        [`Dedent`], [El final de un bloque indentado.], [],
-        [`Do`], [Palabra clave: `do`], [`do`],
-        [`Dot`], [Punto: `.`], [`\.`],
-        [`DotDot`], [Punto tras punto: `..`], [`\.\.`],
-        [`Else`], [Palabra clave: `else`], [`else`],
-        [`Equals`], [Símbolo de igualdad: `=`], [`=`],
-        [`False`], [Palabra clave: `false`], [`false`],
-        [`FatArrow`], [Flecha gruesa: `=>`], [`=>`],
-        [`For`], [Palabra clave: `for`], [`for`],
-        [`From`], [Palabra clave: `from`], [`from`],
-        [`Greater`], [Símbolo de _mayor que_: `>`], [`>`],
-        [`GreaterEqual`], [Símbolo de _mayor o igual que_: `>=`], [`>=`],
-        [`Ident`], [Un identificador.], [`\p{Alphabetic}[\p{Alphabetic}\p{GC=Number}]`],
-        [`If`], [Palabra clave: `if`], [`if`],
-        [`Import`], [Palabra clave: `import`], [`import`],
-        [`In`], [Palabra clave: `in`], [`in`],
-        [`Indent`], [El inicio de un bloque indentado.], [],
-        [`Integer`], [Un entero en base 2, 8, 10 o 16.], [`(0)|(0(b|B)[0-1]+)|(0(o|O)[0-7]+)|([1-9][0-9]*)|(0(x|X)[0-9a-fA-F]+)`],
-        [`Lbrace`], [Corchete izquierdo: `{`], [`{`],
-        [`Lbrack`], [Paréntesis cuadrado izquierdo: `[`], [`\[`],
-        [`LeftShift`], [Dos _menor que_ juntos: `<<`], [`<<`],
-        [`Less`], [Símbolo de _menor que_: `<`], [`<`],
-        [`LessEqual`], [Símbolo de _menor o igual que_: `<=`], [`<=`],
-        [`Let`], [Palabra clave: `let`], [`let`],
-        [`LogicAnd`], [Dos sígnos et juntos: `&&`], [`&&`],
-        [`LogicOr`], [Dos barras verticales juntas: `||`], [`\|\|`],
-        [`Lparen`], [Paréntesis izquierdo: `(`], [`\(`],
-        [`Memoize`], [Palabra clave: `memoize`], [`memoize`],
-        [`Minus`], [Guión: `-`], [`-`],
-        [`Newline`], [Salto de línea.], [],
-        [`NotEqual`], [Un _slash_ y un símbolo de igualdad: `/=`], [`\/=`],
-        [`Percent`], [Símbolo de porcentaje: `%`], [`%`],
-        [`Plus`], [Símbolo de suma: `+`], [`\+`],
-        [`Rbrace`], [Corchete derecho: `}`], [`}`],
-        [`Rbrack`], [Paréntesis cuadrado derecho: `]`], [`]`],
-        [`RightShift`], [Dos _mayor que_ juntos: `>>`], [`>>`],
-        [`Rparen`], [Paréntesis derecho: `)`], [`)`],
-        [`Slash`], [Una barra inclinada: `/`], [`\/`],
-        [`SlashSlash`], [Dos barras inclinadas: `//`], [`\/\/`],
-        [`Star`], [Un asterisco: `*`], [`\*`],
-        [`StarStar`], [Dos asteriscos: `**`], [`\*\*`],
-        [`String`], [Una cadena de caracteres.], [`"[.\w]*"`],
-        [`Then`], [Palabra clave: `then`], [`then`],
-        [`Tilde`], [Una virgulilla: `~`], [`~`],
-        [`True`], [Palabra clave: `true`], [`true`],
-        [`Unknown`], [Un caracter no reconocido.], [],
-        [`Var`], [Palabra clave: `var`], [`var`],
-        [`VerticalBar`], [Barra vertical: `|`], [`\|`],
-        [`Wildcard`], [Barra baja: `_`], [`_`],
-      ),
-      caption: [Tokens del _lexer_ de Komodo y sus reglas.]
-    )
-  }
-
-Hay algunas particularidades a mencionar:
-
-+ El _lexer_ ignora los segmentos que comienzan con un númeral `#` y terminan con un salto de línea. Estos son los comentarios de Komodo.
-
-+ Los identificadores reciben toda la clase `Alphabetic` de Unicode en su primer caracter, y luego reciben caracteres de la clase `Alphabetic` o `Number`. @unicodepropslist
-  
-  Estos nombres son propiedades de caracteres Unicode. @unicodeprops
-
-+ Como muestra su expresión regular, los identificadores no incluyen barras bajas en ningún punto. Están exlusivamente compuestos de caracteres alfanuméricos.
-
-+ Los ceros a la izquierda en enteros decimales no están permitidos. Un cero sólo va al principio de un _token_ `Integer` cuando consiste en un solo cero, o cuando se va a escribir un prefijo para una base numérica no decimal (`0b`, `0o` o `0x`).
 
 === Rastreo de indentación y el alcance del analizador léxico
 
@@ -1475,7 +1390,12 @@ Las reglas actuales no tienen en cuenta que debería suceder en situaciones que 
 
 El intérprete usa conteo de referencias para hacer recolección de basura automáticamente.
 
-Se planea implementar una estrategia de _mark-and-sweep_, donde de manera periódica se recorre un grafo de referencias del programa. Las referencias alcanzadas durante el recorrido son conservadas, y las no alcanzadas son eliminadas. Luego las secciones de memoria que no tuvieron referencias alcanzadas son liberadas. 
+Se planea implementar una estrategia de _mark-and-sweep_, donde de manera periódica se recorre un grafo de referencias del programa. Las referencias alcanzadas durante el recorrido son conservadas, y las no alcanzadas son eliminadas. Luego las secciones de memoria que no tuvieron referencias alcanzadas son liberadas.
+
+== Precedencia de operadores infijos
+
+== Conversiones implícitas de valores
+
 
 = Aspectos periféricos
 
@@ -1606,5 +1526,171 @@ Se planea distribuir binarios e instaladores para MacOS y Windows, así como par
 == Guía de uso
 
 Está publicada una guía de uso de Komodo en `https://komodo-lang.org/book`. El propósito del material es asistir a cualquier persona interesada en Komodo en el aprendizaje del lenguaje y en el uso del ecosistema. La guía está en constante cambio de acuerdo a como el lenguaje cambia. Se desea que la guía sea el recurso por defecto para aprender a usar Komodo.
+
+= Gramática de Komodo
+
+== Lista de _tokens_
+  
+Esta es una lista de los _tokens_ que el analizador léxico emite, y las reglas que hacen que sean emitidos. Se muestran expresiones regulares para algunos _tokens_ con el propósito de ilustrar las reglas rápidamente, pero la implementación del _lexer_ no usa expresiones regulares. Los tokens que están relacionados a los bloques de indentación indentados son casos especiales, cuyo funcionamiento se describe con más detalle en la siguiente sección.
+
+Las expresiones regulares están escritas con el estilo de Perl. @perlregex
+
+#{
+  show figure: set block(breakable: true)
+  figure(
+    table(
+      columns: 3,
+      [Nombre], [Descripción], [Expresión regular],
+      [`Ampersand`], [Sígno et: `&`], [`&`],
+      [`Arrow`], [Flecha simple: `->`], [`->`],
+      [`As`], [Palabra clave: `as`], [`as`],
+      [`Assign`], [Símbolo de asignación: `:=`], [`:=`],
+      [`Bang`], [Símbolo de exclamación: `!`], [`!`],
+      [`Case`], [Palabra clave: `case`], [`case`],
+      [`Char`], [Caracter Unicode], [`'.'|'\\.'`],
+      [`Colon`], [Dos puntos: `:`], [`:`],
+      [`Comma`], [Coma: `,`], [`,`],
+      [`Dedent`], [El final de un bloque indentado.], [],
+      [`Do`], [Palabra clave: `do`], [`do`],
+      [`Dot`], [Punto: `.`], [`\.`],
+      [`DotDot`], [Punto tras punto: `..`], [`\.\.`],
+      [`Else`], [Palabra clave: `else`], [`else`],
+      [`Equals`], [Símbolo de igualdad: `=`], [`=`],
+      [`False`], [Palabra clave: `false`], [`false`],
+      [`FatArrow`], [Flecha gruesa: `=>`], [`=>`],
+      [`For`], [Palabra clave: `for`], [`for`],
+      [`From`], [Palabra clave: `from`], [`from`],
+      [`Greater`], [Símbolo de _mayor que_: `>`], [`>`],
+      [`GreaterEqual`], [Símbolo de _mayor o igual que_: `>=`], [`>=`],
+      [`Ident`], [Un identificador.], [`\p{Alphabetic}[\p{Alphabetic}\p{GC=Number}]`],
+      [`If`], [Palabra clave: `if`], [`if`],
+      [`Import`], [Palabra clave: `import`], [`import`],
+      [`In`], [Palabra clave: `in`], [`in`],
+      [`Indent`], [El inicio de un bloque indentado.], [],
+      [`Integer`], [Un entero en base 2, 8, 10 o 16.], [`(0)|(0(b|B)[0-1]+)|(0(o|O)[0-7]+)|([1-9][0-9]*)|(0(x|X)[0-9a-fA-F]+)`],
+      [`Lbrace`], [Corchete izquierdo: `{`], [`{`],
+      [`Lbrack`], [Paréntesis cuadrado izquierdo: `[`], [`\[`],
+      [`LeftShift`], [Dos _menor que_ juntos: `<<`], [`<<`],
+      [`Less`], [Símbolo de _menor que_: `<`], [`<`],
+      [`LessEqual`], [Símbolo de _menor o igual que_: `<=`], [`<=`],
+      [`Let`], [Palabra clave: `let`], [`let`],
+      [`LogicAnd`], [Dos sígnos et juntos: `&&`], [`&&`],
+      [`LogicOr`], [Dos barras verticales juntas: `||`], [`\|\|`],
+      [`Lparen`], [Paréntesis izquierdo: `(`], [`\(`],
+      [`Memoize`], [Palabra clave: `memoize`], [`memoize`],
+      [`Minus`], [Guión: `-`], [`-`],
+      [`Newline`], [Salto de línea.], [],
+      [`NotEqual`], [Un _slash_ y un símbolo de igualdad: `/=`], [`\/=`],
+      [`Percent`], [Símbolo de porcentaje: `%`], [`%`],
+      [`Plus`], [Símbolo de suma: `+`], [`\+`],
+      [`Rbrace`], [Corchete derecho: `}`], [`}`],
+      [`Rbrack`], [Paréntesis cuadrado derecho: `]`], [`]`],
+      [`RightShift`], [Dos _mayor que_ juntos: `>>`], [`>>`],
+      [`Rparen`], [Paréntesis derecho: `)`], [`)`],
+      [`Slash`], [Una barra inclinada: `/`], [`\/`],
+      [`SlashSlash`], [Dos barras inclinadas: `//`], [`\/\/`],
+      [`Star`], [Un asterisco: `*`], [`\*`],
+      [`StarStar`], [Dos asteriscos: `**`], [`\*\*`],
+      [`String`], [Una cadena de caracteres.], [`"[.\s]*"`],
+      [`Then`], [Palabra clave: `then`], [`then`],
+      [`Tilde`], [Una virgulilla: `~`], [`~`],
+      [`True`], [Palabra clave: `true`], [`true`],
+      [`Unknown`], [Un caracter no reconocido.], [],
+      [`Var`], [Palabra clave: `var`], [`var`],
+      [`VerticalBar`], [Barra vertical: `|`], [`\|`],
+      [`Wildcard`], [Barra baja: `_`], [`_`],
+    ),
+    caption: [Tokens del _lexer_ de Komodo y sus reglas.]
+  )
+}
+
+Hay algunas particularidades a mencionar:
+
++ El _lexer_ ignora los segmentos que comienzan con un númeral `#` y terminan con un salto de línea. Estos son los comentarios de Komodo.
+
++ Los identificadores reciben toda la clase `Alphabetic` de Unicode en su primer caracter, y luego reciben caracteres de la clase `Alphabetic` o `Number`. @unicodepropslist
+  
+  Estos nombres son propiedades de caracteres Unicode. @unicodeprops
+
++ Como muestra su expresión regular, los identificadores no incluyen barras bajas en ningún punto. Están exlusivamente compuestos de caracteres alfanuméricos.
+
++ Los ceros a la izquierda en enteros decimales no están permitidos. Un cero sólo va al principio de un _token_ `Integer` cuando consiste en un solo cero, o cuando se va a escribir un prefijo para una base numérica no decimal (`0b`, `0o` o `0x`).
+
+== Reglas sintácticas
+
+A continuación, se muestran las reglas sintácticas de Komodo. Se usan nombres en inglés para reutilizar los nombres usados en la lista de _tokens_, que se van a referenciar en esta gramática. Esto significa que si hay una regla no terminal mencionada en la gramática pero no está definida en la misma, entonces su nombre está en la lista de _tokens_ y sus reglas son las mismas que las del _token_ con el mismo nombre.
+
+La gramática ignora detalles como los espacios en blanco, cuyo procesamiento es responsabilidad del analizador léxico.
+
+Esta gramática no incluye información sobre precedencias de operadores, pero esto está en la tabla de precedencias (véase @precedences).
+
+*Nota*: $lambda$ denota la cadena vacía.
+
+#{
+  set text(font: "Noto Mono", size: 9pt)
+
+  bnf(
+    Prod(
+      [\<Program\>],
+      {
+        Or[$lambda$][]
+        Or[\<Expression\> \<Program\>][]
+      },
+    ),
+    Prod(
+      [\<Expression\>],
+      {
+        Or[\<Bool\>][]
+        Or[\<Char\>][]
+        Or[\<Ident\>][]
+        Or[\<String\>][]
+        Or[\<Integer\>][]
+        Or[\<List\>][]
+        Or[\<Tuple\>][]
+        Or[\<Set\>][]
+        Or[\<Dict\>][]
+        Or[\<Prefix\>][]
+        Or[\<Infix\>][]
+        Or[\<Declaration\>][]
+        Or[\<Block\>][]
+        Or[\<Import\>][]
+        Or[\<Case\>][]
+        Or[\<If\>][]
+        Or[\<For\>][]
+      },
+    ),
+    Prod(
+      [\<Pattern\>],
+      {
+        Or[][]
+      },
+    ),
+    Prod(
+      [\<Sequence\>],
+      {
+        Or[$lambda$][]
+        Or[\<Expression\>][]
+        Or[\<Expression\> "," \<Sequence\>][]
+      },
+    ),
+    Prod(
+      [\<Bool\>],
+      {
+        Or["true"][]
+        Or["false"][]        
+      },
+    ),
+    Prod(
+      [\<List\>],
+      {
+        Or["\[" \<Expression\> "for" \<Pattern\> "in" \<Expression\> "\]"][]
+        Or["\[" \<Sequence\> "\]"][]
+      },
+    ),
+
+  )
+}
+
+=== Tabla de precedencias <precedences>
 
 #bibliography("ref.bib", title: "Referencias")
