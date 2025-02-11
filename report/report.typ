@@ -1928,4 +1928,35 @@ Esta gramática no incluye información sobre precedencias de operadores, pero e
 
 === Tabla de precedencias <precedences>
 
+Esta lista tiene todos los operadores infijos de Komodo, con su respectiva precedencia. Un operador con cierta precedencia va a ser agrupado antes que otro operador con menor precedencia.
+
+#figure(
+  table(
+    columns: 2,
+    [Operador], [Precedencia],
+    [`:=`], [1],
+    [`in`], [2],
+    [`..`], [3],
+    [`||`], [4],
+    [`&&`], [5],
+    [`>`], [6],
+    [`>=`], [6],
+    [`<`], [6],
+    [`<=`], [6],
+    [`/=`], [6],
+    [`=`], [6],
+    [`^`], [7],
+    [`&`], [8],
+    [`<<`], [9],
+    [`>>`], [9],
+    [`-`], [10],
+    [`+`], [10],
+    [`/`], [11],
+    [`%`], [11],
+    [`*`], [11],
+    [`**`], [12],
+  ),
+  caption: "Tabla de precedencias de Komodo.",
+)
+
 #bibliography("ref.bib", title: "Referencias")
