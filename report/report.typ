@@ -1649,6 +1649,8 @@ Esta gramática no incluye información sobre precedencias de operadores, pero e
         Or[\<Tuple\>][]
         Or[\<Set\>][]
         Or[\<Dict\>][]
+        Or[\<Call\>][]
+        Or[\<Lambda\>][]
         Or[\<Prefix\>][]
         Or[\<Infix\>][]
         Or[\<Declaration\>][]
@@ -1790,6 +1792,36 @@ Esta gramática no incluye información sobre precedencias de operadores, pero e
       },
     ),
     Prod(
+      [\<Call\>],
+      {
+        Or[\<Expression\> \<Tuple\>][]
+      }
+    ),
+    Prod(
+      [\<Lambda\>],
+      {
+        Or[\<Tuple\> "->" \<Block\>][]
+        Or[\<Ident\> "->" \<Block\>][]
+      },
+    ),
+    Prod(
+      [\<Block\>],
+      {
+        Or[\<Expression\>][]
+        Or[\<Indent\> \<BlockSequence\> \<Dedent\>][]
+      },
+    ),
+    Prod(
+      [\<BlockSequence\>],
+      {
+        Or[\<Block\>][]
+        Or[\<Block\> \<BlockSequence\>][]
+        Or[\<Expression\>][]
+        Or[\<Expression\> \<Newline\>][]
+        Or[\<Expression\> \<Newline\> \<BlockSequence\>][]
+      }
+    ),
+    Prod(
       [\<Prefix\>],
       {
         Or[\<PrefixOperator\> \<Expression\>][]
@@ -1844,23 +1876,6 @@ Esta gramática no incluye información sobre precedencias de operadores, pero e
         Or["let" \<Pattern\> ":" \<Ident\>][]
         Or["var" \<Pattern\> ":= \<Block\>"][]
       },
-    ),
-    Prod(
-      [\<Block\>],
-      {
-        Or[\<Expression\>][]
-        Or[\<Indent\> \<BlockSequence\> \<Dedent\>][]
-      },
-    ),
-    Prod(
-      [\<BlockSequence\>],
-      {
-        Or[\<Block\>][]
-        Or[\<Block\> \<BlockSequence\>][]
-        Or[\<Expression\>][]
-        Or[\<Expression\> \<Newline\>][]
-        Or[\<Expression\> \<Newline\> \<BlockSequence\>][]
-      }
     ),
     Prod(
       [\<Import\>],
