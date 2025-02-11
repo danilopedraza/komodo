@@ -1620,9 +1620,13 @@ Hay algunas particularidades a mencionar:
 
 A continuación, se muestran las reglas sintácticas de Komodo. Se usan nombres en inglés para reutilizar los nombres usados en la lista de _tokens_, que se van a referenciar en esta gramática. Esto significa que si hay una regla no terminal mencionada en la gramática pero no está definida en la misma, entonces su nombre está en la lista de _tokens_ y sus reglas son las mismas que las del _token_ con el mismo nombre.
 
+Los símbolos terminales se muestran entre comillas (como "`+`", por ejemplo) y los no terminales entre corchetes angulares (como `<Dict>`, por ejemplo).
+
 La gramática ignora detalles como los espacios en blanco, cuyo procesamiento es responsabilidad del analizador léxico.
 
 Esta gramática no incluye información sobre precedencias de operadores, pero esto está en la tabla de precedencias (véase @precedences).
+
+La gramática mostrada es una referencia para describir la sintaxis de Komodo, pero el análizador sintáctico del intérprete no fue construido con una gramática en mente. Esto significa que el analizador sintáctico puede procesar programas válidos de manera distinta a como la gramática sugiere.
 
 *Nota*: $lambda$ denota la cadena vacía.
 
