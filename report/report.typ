@@ -1790,6 +1790,113 @@ Esta gramática no incluye información sobre precedencias de operadores, pero e
         Or[\<Expression\> "=>" \<Expression\> "," \<DictSequence\>][]
       },
     ),
+    Prod(
+      [\<Prefix\>],
+      {
+        Or[\<PrefixOperator\> \<Expression\>][]
+      },
+    ),
+    Prod(
+      [\<PrefixOperator\>],
+      {
+        Or["~"][]
+        Or["!"][]
+        Or["-"][]
+      }
+    ),
+    Prod(
+      [\<Infix\>],
+      {
+        Or[\<Expression\> \<InfixOperator\> \<Expression\>][]
+      }
+    ),
+    Prod(
+      [\<InfixOperator\>],
+      {
+        Or["in"][]
+        Or[".."][]
+        Or["||"][]
+        Or["&&"][]
+        Or[">"][]
+        Or[">="][]
+        Or["<"][]
+        Or["<="][]
+        Or["/="][]
+        Or["="][]
+        Or["^"][]
+        Or["&"][]
+        Or["<<"][]
+        Or[">>"][]
+        Or["-"][]
+        Or["+"][]
+        Or["/"][]
+        Or["%"][]
+        Or["\*"][]
+        Or["\*\*"][]
+        Or[":="][]
+      },
+    ),
+    Prod(
+      [\<Declaration\>],
+      {
+        Or["let" \<Pattern\> ":=" \<Block\>][]
+        Or["let" \<CallPattern\> ":=" \<Block\>][]
+        Or["let" "memoize" \<CallPattern\> ":=" \<Block\>][]
+        Or["let" \<Pattern\> ":" \<Ident\>][]
+        Or["var" \<Pattern\> ":= \<Block\>"][]
+      },
+    ),
+    Prod(
+      [\<Block\>],
+      {
+        Or[\<Expression\>][]
+        Or[\<Indent\> \<Block\> \<Dedent\>][]
+        Or[\<Indent\> \<BlockSequence\> \<Dedent\>][]
+      },
+    ),
+    Prod(
+      [\<BlockSequence\>],
+      {
+        Or[\<Expression\>][]
+        Or[\<Expression\> \<Newline\>][]
+        Or[\<Expression\> \<Newline\> \<BlockSequence\>][]
+      }
+    ),
+    Prod(
+      [\<Import\>],
+      {
+        Or["import" \<ImportSource\>][]
+        Or["import" \<ImportSource\> "as" \<Ident\>][]
+        Or["from" \<ImportSource\> "import" \<ImportTarget\>][]
+        Or["from" \<ImportSource\> "import" \<ImportTargetTuple\>][]
+      },
+    ),
+    Prod(
+      [\<ImportTarget\>],
+      {
+        Or[\<Ident\>][]
+        Or[\<String\>][]
+      }
+    ),
+    Prod(
+      [\<ImportTargetTuple\>],
+      {
+        Or["(" \<ImportTargetSequence\> ")"][]
+      },
+    ),
+    Prod(
+      [\<ImportTargetSequence\>],
+      {
+        Or[\<ImportTarget\>][]
+        Or[\<ImportTarget\> "," \<ImportTargetSequence\>][]
+      },
+    ),
+    Prod(
+      [\<Parenthesized\>],
+      {
+        Or["(" \<Expression\> ")"][]
+      },
+    ),
   )
 }
 
