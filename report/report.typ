@@ -1394,6 +1394,49 @@ Se planea implementar una estrategia de _mark-and-sweep_, donde de manera perió
 
 == Conversiones implícitas de valores
 
+Komodo realiza conversiones de valores sin intervención del usuario, pero con reglas simples. Estas conversiones en dos grupos de tipos.
+
+=== Números
+
+Cuando dos números de diferente tipo son las entradas de una operación aritmética, una de las entradas es convertida al tipo de la otra.
+
+Los tipos numéricos son `Integer`, `Fraction` y `Float`. Cuando se realiza una operación permitida entre cualesquiera dos valores con estos tipos, y los tipos son diferentes, se realiza una conversión de acuerdo a las siguientes reglas, verificadas en orden:
+
+- Si uno de los valores es de tipo `Float`, el otro es convertido a `Float`.
+
+- Si uno de los valores es de tipo `Fraction`, el otro es convertido a `Fraction`.
+
+Estas reglas abarcan todos los casos donde los operandos son de un tipo numérico distinto. Las reglas implícitamente implementan la noción de una torre numérica @schemereport[p.~19] @pep3141, donde los tipos numéricos respetan la siguiente jerarquía (en orden descendente):
+
+- `Float`
+- `Fraction`
+- `Integer`
+
+Aunque realmente el tipo `Fraction` es el que puede expresar más números de todos los tipos numéricos, operar con números de punto flotante es usualmente más esperado y menos sorprendente que con fracciones. En efecto, así lo hacen las jerarquías en @schemereport y @pep3141. Esta es la razón de que `Float` esté al tope de la jerarquía.
+
+=== Caracteres y cadenas
+
+Cualquier concatenación que involucre un caracter tendrá como resultado una cadena. Es decir:
+
+#figure(
+  ```
+  assert({"ab"} = {'a' + 'b', 'a' + "b", "a" + 'b'})
+
+
+  ```,
+  caption: "Conversión de caracteres."
+)
+
+Esta regla también aplica para la concatenación de un caracter consigo mismo, usando el operador `*`:
+
+#figure(
+  ```
+  assert({"aaa"} = {'a'*3, 3*'a'})
+
+
+  ```,
+  caption: "Conversión de caracteres."
+)
 
 = Aspectos periféricos
 
@@ -1947,33 +1990,36 @@ La gramática mostrada es una referencia para describir la sintaxis de Komodo, p
 
 Esta lista tiene todos los operadores infijos de Komodo, con su respectiva precedencia. Un operador con cierta precedencia va a ser agrupado antes que otro operador con menor precedencia.
 
-#figure(
-  table(
-    columns: 2,
-    [Operador], [Precedencia],
-    [`:=`], [1],
-    [`in`], [2],
-    [`..`], [3],
-    [`||`], [4],
-    [`&&`], [5],
-    [`>`], [6],
-    [`>=`], [6],
-    [`<`], [6],
-    [`<=`], [6],
-    [`/=`], [6],
-    [`=`], [6],
-    [`^`], [7],
-    [`&`], [8],
-    [`<<`], [9],
-    [`>>`], [9],
-    [`-`], [10],
-    [`+`], [10],
-    [`/`], [11],
-    [`%`], [11],
-    [`*`], [11],
-    [`**`], [12],
-  ),
-  caption: "Tabla de precedencias de Komodo.",
-)
+#{
+  show figure: set block(breakable: true)
+  figure(
+    table(
+      columns: 2,
+      [Operador], [Precedencia],
+      [`:=`], [1],
+      [`in`], [2],
+      [`..`], [3],
+      [`||`], [4],
+      [`&&`], [5],
+      [`>`], [6],
+      [`>=`], [6],
+      [`<`], [6],
+      [`<=`], [6],
+      [`/=`], [6],
+      [`=`], [6],
+      [`^`], [7],
+      [`&`], [8],
+      [`<<`], [9],
+      [`>>`], [9],
+      [`-`], [10],
+      [`+`], [10],
+      [`/`], [11],
+      [`%`], [11],
+      [`*`], [11],
+      [`**`], [12],
+    ),
+    caption: "Tabla de precedencias de Komodo.",
+  )
+}
 
 #bibliography("ref.bib", title: "Referencias")
