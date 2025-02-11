@@ -1652,7 +1652,6 @@ Esta gramática no incluye información sobre precedencias de operadores, pero e
         Or[\<Prefix\>][]
         Or[\<Infix\>][]
         Or[\<Declaration\>][]
-        Or[\<Block\>][]
         Or[\<Import\>][]
         Or[\<Case\>][]
         Or[\<If\>][]
@@ -1890,6 +1889,32 @@ Esta gramática no incluye información sobre precedencias de operadores, pero e
       {
         Or[\<ImportTarget\>][]
         Or[\<ImportTarget\> "," \<ImportTargetSequence\>][]
+      },
+    ),
+    Prod(
+      [\<Case\>],
+      {
+        Or["case" \<Expression\> "do" \<Indent\> \<CaseBlock\> \<Dedent\>][]
+      }
+    ),
+    Prod(
+      [\<CaseBlock\>],
+      {
+        Or[\<Pattern\> "=>" \<Expression\>][]
+        Or[\<Pattern\> "=>" \<Expression\> \<Newline\>][]
+        Or[\<Pattern\> "=>" \<Expression\> \<Newline\> \<CaseBlock\>][]
+      },
+    ),
+    Prod(
+      [\<If\>],
+      {
+        Or["if" \<Expression\> "then" \<Block\> "else" \<Block\>][]
+      },
+    ),
+    Prod(
+      [\<For\>],
+      {
+        Or["for" \<Pattern\> "in" \<Expression\> "do" \<Block\>][]
       },
     ),
     Prod(
