@@ -1392,8 +1392,6 @@ El intérprete usa conteo de referencias para hacer recolección de basura autom
 
 Se planea implementar una estrategia de _mark-and-sweep_, donde de manera periódica se recorre un grafo de referencias del programa. Las referencias alcanzadas durante el recorrido son conservadas, y las no alcanzadas son eliminadas. Luego las secciones de memoria que no tuvieron referencias alcanzadas son liberadas.
 
-== Precedencia de operadores infijos
-
 == Conversiones implícitas de valores
 
 
