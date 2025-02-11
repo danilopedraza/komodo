@@ -1850,13 +1850,14 @@ Esta gramática no incluye información sobre precedencias de operadores, pero e
       [\<Block\>],
       {
         Or[\<Expression\>][]
-        Or[\<Indent\> \<Block\> \<Dedent\>][]
         Or[\<Indent\> \<BlockSequence\> \<Dedent\>][]
       },
     ),
     Prod(
       [\<BlockSequence\>],
       {
+        Or[\<Block\>][]
+        Or[\<Block\> \<BlockSequence\>][]
         Or[\<Expression\>][]
         Or[\<Expression\> \<Newline\>][]
         Or[\<Expression\> \<Newline\> \<BlockSequence\>][]
