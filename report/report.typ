@@ -588,7 +588,7 @@ Aquí, la función `g` retorna 1, que es el valor de la función `f` cuando `g` 
 
 La mutabilidad de variables está restringida por dos reglas:
 
-- Las entradas de las funciones son siempre inmutables. Por ejemplo, la asignación dentro de esta función no está permitida, pues hay una asignación a uno de los argumentos:
+- Las únicas variables mutables son las que han sido inicializadas usando `var`. Por ejemplo, la asignación dentro de esta función no está permitida, pues hay una asignación a uno de los argumentos:
 
   #figure(
     ```
