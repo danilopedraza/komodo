@@ -40,8 +40,11 @@ let filter({first|tail}, fn: Function) :=
 
 let deleteOnce(container, element) := filterFirst(container, val -> val /= element)
 
-let sum(container) := reduce(container, (a, b) -> a + b, 0)
-let prod(container) := reduce(container, (a, b) -> a * b, 1)
+let sum(container) :=
+    reduce(container, (a, b) -> a + b, 0)
+
+let prod(container) :=
+    reduce(container, (a, b) -> a * b, 1)
 
 let isPrefix("", _: String) := true
 let isPrefix(chr: Char, [chr|_]: String) := true
