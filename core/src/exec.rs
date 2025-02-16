@@ -557,6 +557,8 @@ fn comprehension(
                 new_list.push(exec(element, env)?);
             }
 
+            env.pop_scope();
+
             Ok((Object::List(List::from(new_list)), Address::default()))
         }
         ComprehensionKind::Set => {
@@ -567,6 +569,8 @@ fn comprehension(
                 env.set_inmutable(variable, val);
                 new_set.insert(exec(element, env)?.0);
             }
+
+            env.pop_scope();
 
             Ok((Object::Set(Set::from(new_set)), Address::default()))
         }
