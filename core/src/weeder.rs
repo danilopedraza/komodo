@@ -187,19 +187,18 @@ fn fraction_pattern(numer: CSTNode, denom: CSTNode) -> WeederResult<ASTNodeKind>
 }
 
 fn infix_pattern(op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTNodeKind> {
+    let op = match op {
+        InfixOperator::Or => Ok(ast::InfixOperator::Or),
+        InfixOperator::Range => Ok(ast::InfixOperator::Range),
+        InfixOperator::Dot => return dot_notation(lhs, rhs),
+        _ => Err((
+            WeederError::BadInfixPattern,
+            lhs.position.join(rhs.position),
+        )),
+    }?;
+
     let lhs = Box::new(rewrite_pattern(lhs)?);
     let rhs = Box::new(rewrite_pattern(rhs)?);
-
-    let op = match op {
-        InfixOperator::Or => ast::InfixOperator::Or,
-        InfixOperator::Range => ast::InfixOperator::Range,
-        _ => {
-            return Err((
-                WeederError::BadInfixPattern,
-                lhs.position.join(rhs.position),
-            ))
-        }
-    };
 
     Ok(ASTNodeKind::Infix { op, lhs, rhs })
 }
