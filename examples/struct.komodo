@@ -5,3 +5,14 @@ let someBeing := {
 
 assert(someBeing.eyes = 3)
 assert(someBeing.ears() = 5)
+
+var data := {
+    "values" => [1, 2, 3],
+    "length" => 3,
+}
+
+data.values := [val + 1 for val in data.values]
+
+assert(data.values = [2, 3, 4])
+assert(data.values = data["values"])
+assert(data.length = data["length"])
