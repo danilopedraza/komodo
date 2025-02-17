@@ -24,7 +24,7 @@
 
 - Add object-like notation for dictionaries. Add criteria for selecting between object function calls and pseudo-OOP calls.
 
-# Upstream
+# 0.4.0
 
 - Enable mutability inside loops.
 
@@ -53,3 +53,5 @@
 - The `time` module was added, with the `time` and `sleep` functions.
 
 - Fix bug where non-empty sets were being matched to the `{}` expression.
+
+# Upstream
