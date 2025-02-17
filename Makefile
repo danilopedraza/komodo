@@ -38,11 +38,6 @@ build-playground:
 build-book:
 	mdbook build $(CURRENT_DIR)/book --dest-dir $(WEBSITE_DIR)/book
 
-deploy-vsc-ext:
-	cd $(CURRENT_DIR)/vsc-extension
-	vsce publish --skip-duplicate
-	npx --yes ovsx publish --skip-duplicate
-
 test: test-core
 
 test-core:

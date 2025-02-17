@@ -49,7 +49,7 @@ jobs:
           nix_path: nixpkgs=channel:nixos-24.05
       
       - name: Deploy VSC extension
-        run: nix-shell --command "make deploy-vsc-ext"
+        run: cd vsc-extension && nix-shell --command "make deploy"
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
