@@ -1350,8 +1350,8 @@ En la implementación actual, no se puede iterar sobre diccionarios. Sin embargo
       {2, 3, 4} => 9,
   }
 
-  let f({{2, 3, 4} => x, ..}) := x
-  assert(f(dict) = 9)
+  let f({x => 9, ..}) := x
+  assert(f(dict) = {2, 3, 4})
   
 
   ```,
