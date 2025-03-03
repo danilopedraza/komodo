@@ -42,7 +42,9 @@ fn parse_json(input: String) -> Object {
     let token = if let Some(token) = lexer.ws_token() {
         token
     } else {
-        todo!()
+        return Object::Error(ObjectError::BadJSONParse(
+            "Cannot parse an empty string as JSON!".into(),
+        ));
     };
 
     match parse_unbounded(token, &mut lexer) {
