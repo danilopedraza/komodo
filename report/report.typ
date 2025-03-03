@@ -1049,7 +1049,7 @@ Los caracteres pueden ser sumados entre si para sumar cadenas, y pueden ser suma
 #figure(
   ```
   assert('a'+'b'="ab") # Char + Char
-  assert('a'+"abc"="abc") # Char + String
+  assert('a'+"bc"="abc") # Char + String
   assert('z'*3="zzz") # Char "multiplicado"
 
 
