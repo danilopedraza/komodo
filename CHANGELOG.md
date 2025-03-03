@@ -55,3 +55,5 @@
 - Fix bug where non-empty sets were being matched to the `{}` expression.
 
 # Upstream
+
+- Improve error handling and fix a bug in `json.stringify`

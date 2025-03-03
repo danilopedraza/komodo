@@ -103,7 +103,13 @@ fn to_json(obj: &Object) -> String {
             let values = dictionary
                 .dict
                 .iter()
-                .map(|(key, val)| format!("{}: {}", to_json(key), to_json(val)))
+                .map(|(key, val)| {
+                    if matches!(key, Object::String(_) | Object::Char(_)) {
+                        format!("{}: {}", to_json(key), to_json(val))
+                    } else {
+                        format!("\"{}\": {}", to_json(key), to_json(val))
+                    }
+                })
                 .collect::<Vec<_>>()
                 .join(",");
             format!("{{{values}}}")
