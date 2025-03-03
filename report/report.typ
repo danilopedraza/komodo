@@ -1875,7 +1875,7 @@ La gramática mostrada es una referencia para describir la sintaxis de Komodo, p
     Prod(
       [\<PrefixOperator\>],
       {
-        Or["~"][]
+        Or["\~"][]
         Or["!"][]
         Or["-"][]
       }
