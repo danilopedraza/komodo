@@ -1667,7 +1667,7 @@ La gramática ignora detalles como los espacios en blanco, cuyo procesamiento es
 
 Esta gramática no incluye información sobre precedencias de operadores, pero esto está en la tabla de precedencias (véase @precedences).
 
-La gramática mostrada es una referencia para describir la sintaxis de Komodo, pero el análizador sintáctico del intérprete no fue construido con una gramática en mente. Esto significa que el analizador sintáctico puede procesar programas válidos de manera distinta a como la gramática sugiere.
+La gramática mostrada es una referencia para describir la sintaxis de Komodo, pero el análizador sintáctico del intérprete no fue construido con una gramática en mente.
 
 *Nota*: $lambda$ denota la cadena vacía.
 
