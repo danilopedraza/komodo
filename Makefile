@@ -8,18 +8,6 @@ build: build-site build-book build-installer build-report
 build-installer:
 	cp $(CURRENT_DIR)/installer/linux/install.sh $(WEBSITE_DIR)
 
-build-core-windows-amd64:
-	cd $(CURRENT_DIR)/core
-	nix build '.#cross-x86_64-windows'
-
-build-core-linux-amd64:
-	cd $(CURRENT_DIR)/core
-	nix build '.#cross-x86_64-linux'
-
-build-core-linux-arm64:
-	cd $(CURRENT_DIR)/core
-	nix build '.#cross-aarch64-linux'
-
 build-core-wasm:
 	cd $(CURRENT_DIR)/core
 	cargo build --target wasm32-unknown-unknown
