@@ -87,3 +87,28 @@ You can make operations between characters and strings:
   >>> "F" + "U"*10
   "FUUUUUUUUUU"
   ```
+
+## Lists
+
+The `List` type represents a sequence of Komodo values. You can write lists with square brackets: `[]`, `[1, 2]`, `["foo", 'z', 5.5, []]`,...
+
+- You can concatenate lists:
+  ```
+  >>> [1, 2] + [3]
+  [1,2,3]
+  ```
+- You can prepend elements to a list:
+  ```
+  >>> [1|[2, 3]]
+  [1,2,3]
+  ```
+
+  This is known as the `cons` notation. The name comes from a [basic function in Lisp](https://en.wikipedia.org/wiki/Cons).
+
+- You can write lists by comprehension:
+  ```
+  >>> [x*2 for x in 0..3]
+  [0,2,4]
+  ```
+
+Lists are the most basic container in Komodo. They will be very useful.
