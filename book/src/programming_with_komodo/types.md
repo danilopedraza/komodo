@@ -10,7 +10,7 @@ Let's see how to generate, manipulate, and do operations with numbers.
 
 ### Integers
 
-The `Integer` type represents a signed, arbitrary size whole number. You can write them in the following ways:
+The `Integer` type represents a signed, arbitrary size whole number. You can write integers in the following ways:
 
 - In binary form, starting the number with `0b` or `0B`: `0b10`, `0b001`, `0B1011`,...
   
@@ -26,7 +26,7 @@ The `Integer` type represents a signed, arbitrary size whole number. You can wri
 
   Basically, all leading zeros are illegal when you are writing decimal numbers.
 
-- In hexadecimal form, starting the numbers with `0x` or `0X`:
+- In hexadecimal form, starting the numbers with `0x` or `0X`: `0xff`, `0x1e`, `0x01`,...
 
   As you may have guessed, writing `0x` alone is illegal.
 
@@ -46,9 +46,9 @@ You get the following result:
 
 That makes sense: 1011 in binary is just 11 in decimal.
 
-### Characters
+## Characters
 
-The `Char` type represents any [Unicode](https://home.unicode.org/) symbol. You can write it with single quotes, like this: `'a'`, `'\''`, `'\\'`,...
+The `Char` type represents any [Unicode](https://home.unicode.org/) symbol. You can write chars with single quotes, like this: `'a'`, `'\''`, `'\\'`,...
 
 You can "multiply" chars and get a string:
 
@@ -64,9 +64,9 @@ You can concatenate chars and get a string:
 "az"
 ```
 
-### Strings
+## Strings
 
-The `String` type represents a sequence of Unicode symbols. You can write it with double quotes: `"foo"`, `"\"bar\""`, `"hello world"`,...
+The `String` type represents a sequence of Unicode symbols. You can write strings with double quotes: `"foo"`, `"\"bar\""`, `"hello world"`,...
 
 You can make operations between characters and strings:
 
