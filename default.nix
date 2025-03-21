@@ -1,5 +1,5 @@
 let
-  nixpkgs = fetchTarball "https://github.com/NixOS/nixpkgs/tarball/nixos-24.11";
+  nixpkgs = import ./nixpkgs.nix;
   pkgs = import nixpkgs { config = {}; overlays = []; };
 in
 {
