@@ -1,6 +1,6 @@
 let
   nixpkgs = import ./nixpkgs.nix;
-  pkgs = import nixpkgs { config = {}; overlays = []; };
+  pkgs = import nixpkgs { };
 in
 {
   book = pkgs.callPackage ./book/book.nix { };
