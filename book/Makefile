@@ -1,3 +1,5 @@
+out ?= $(PWD)/../site/
+
 build:
 	mdbook build $(PWD) --dest-dir $(PWD)/book
 
