@@ -24,7 +24,7 @@ build-playground:
 	(cd $(CURRENT_DIR)/core-browser && sh build.sh $(WEBSITE_DIR)/play)
 
 build-book:
-	mdbook build $(CURRENT_DIR)/book --dest-dir $(WEBSITE_DIR)/book
+	nix-build -A book && cp -r $(PWD)/result/book $(PWD)/site/book
 
 test: test-core
 
