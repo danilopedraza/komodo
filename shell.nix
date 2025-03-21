@@ -4,17 +4,17 @@ let
 in
 
 pkgs.mkShell {
-  packages = [
-    pkgs.bashInteractive
-    pkgs.mdbook
-    pkgs.nil
-    pkgs.nodejs_20
-    pkgs.rustup
-    pkgs.typst
-    pkgs.tinymist
-    pkgs.wasm-bindgen-cli
-    pkgs.wasm-pack
-    pkgs.vsce
+  packages = with pkgs; [
+    bashInteractive
+    mdbook
+    nil
+    nodejs_20
+    rustup
+    typst
+    tinymist
+    wasm-bindgen-cli
+    wasm-pack
+    vsce
   ];
 
   shellHook = ''
