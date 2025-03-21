@@ -10,4 +10,7 @@ devenv.local.nix
 .pre-commit-config.yaml
 
 # deployed site usual dir
-site/
+/site
+
+# Nix result dir
+/result
