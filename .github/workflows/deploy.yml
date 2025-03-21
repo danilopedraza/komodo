@@ -24,7 +24,7 @@ jobs:
       - uses: cachix/install-nix-action@v30
 
       - name: Build Site
-        run: nix-shell --command "make build"
+        run: make build
       
       - name: Setup Pages
         uses: actions/configure-pages@v5
