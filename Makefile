@@ -13,7 +13,7 @@ build-core-wasm:
 	cargo build --target wasm32-unknown-unknown
 
 build-report:
-	typst compile $(CURRENT_DIR)/report/report.typ $(WEBSITE_DIR)/report.pdf
+	nix-build -A report && cp $(PWD)/result/report.pdf $(WEBSITE_DIR)
 
 build-site:
 	mkdir -p $(WEBSITE_DIR)
