@@ -202,3 +202,29 @@ The `Set` type represents an unordered collection of Komodo values. You can writ
   ```
 
 Sets are very useful when you do not need an ordered collection, but you do need to join collections frequently, avoid repetitions, and check if some element is inside the collection.
+
+## Dictionaries
+
+The `Dict` type represents a collection of key-value pairs, when keys and values are Komodo values. You can write them as pairs between braces:
+
+```
+{5 => 7, "foo" => "bar", [1, 'x'] => {55, 9}}
+```
+
+Let's say that the variable `data` has a value of the `Dict` type. You can get a value from `data` with its key by writing `data[key]`:
+
+```
+>>> let data = {"bar" => 1}
+{"bar" => 1}
+>>> data["bar"]
+1
+```
+
+When a key in a `Dict` is of the `String` type, You can use another notation:
+
+```
+>>> let data = {"bar" => 1}
+{"bar" => 1}
+>>> data.bar
+1
+```
