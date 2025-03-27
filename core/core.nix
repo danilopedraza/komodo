@@ -17,4 +17,6 @@ buildCargoPackage {
     gnumake
     libgcc
   ];
+
+  cargoBuildOptions = default: default ++ [ "--all-features" ];
 }
