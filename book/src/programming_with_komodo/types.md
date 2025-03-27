@@ -130,6 +130,15 @@ The `List` type represents a sequence of Komodo values. You can write lists with
 
   This is known as the `cons` notation. The name comes from a [basic function in Lisp](https://en.wikipedia.org/wiki/Cons).
 
+- You can check if a value is inside the list:
+
+  ```
+  >>> 1 in [2]
+  false
+  >>> 1 in [1, 5]
+  true
+  ```
+
 - You can write lists by comprehension:
   ```
   >>> [x*2 for x in 0..3]
