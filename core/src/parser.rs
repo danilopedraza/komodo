@@ -2126,25 +2126,4 @@ mod tests {
             ))),
         );
     }
-
-    #[test]
-    #[ignore = "not yet implemented"]
-    fn block_within_list() {
-        let code = unindent(
-            "
-        [
-            a ->
-                2
-                a
-        ]
-        ",
-        );
-
-        let lexer = lexer_from(&code);
-
-        assert_eq!(
-            Parser::from(lexer).next(),
-            Some(Ok(extension_list(vec![], pos(0, 22)))),
-        );
-    }
 }
