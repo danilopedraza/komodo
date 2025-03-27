@@ -12,5 +12,6 @@ devenv.local.nix
 # deployed site usual dir
 /site
 
-# Nix result dir
+# Nix result dirs
 /result
+/result-*
