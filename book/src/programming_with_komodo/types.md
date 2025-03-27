@@ -54,6 +54,23 @@ You can write floats as two decimal integers with a dot in between: `0.1`, `0.5`
 
 Komodo implements all the essential arithmetic operations between floats. When you operate an integer and a float, the result will be a float.
 
+### Fractions
+
+The `Fraction` type represents a rational number, a ratio between two integers, where one of them is non-zero.
+
+You can write fractions as two integers separated by the `//` operator: `0 // 1`, `1 // 2`, `7 // 3`,...
+
+Actually, `//` is an **operator** receiving integers as inputs, you can create fractions with non-constant values:
+
+```
+>>> let x := 2
+2
+>>> x // 3
+2 // 3
+>>> (5*x) // 7
+10 // 7
+```
+
 ## Characters
 
 The `Char` type represents any [Unicode](https://home.unicode.org/) symbol. You can write chars with single quotes, like this: `'a'`, `'\''`, `'\\'`,...
