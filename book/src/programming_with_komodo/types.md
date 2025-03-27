@@ -46,6 +46,14 @@ You get the following result:
 
 That makes sense: 1011 in binary is just 11 in decimal.
 
+### Floats
+
+The `Float` type represents a double precision floating-point binary number, equivalent at first to the one specified in the [IEEE 754](https://en.wikipedia.org/wiki/IEEE_754) standard. The difference is that `Float`s have arbitrary precision, so they will increase their digits when necessary.
+
+You can write floats as two decimal integers with a dot in between: `0.1`, `0.5`, `115.2555`,...
+
+Komodo implements all the essential arithmetic operations between floats. When you operate an integer and a float, the result will be a float.
+
 ## Characters
 
 The `Char` type represents any [Unicode](https://home.unicode.org/) symbol. You can write chars with single quotes, like this: `'a'`, `'\''`, `'\\'`,...
