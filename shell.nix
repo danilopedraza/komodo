@@ -7,7 +7,11 @@ pkgs.mkShell {
   packages = with pkgs; [
     bashInteractive
     mdbook
+    diffutils
+    gnum4
+    gnumake
     nil
+    libgcc
     nodejs_20
     rustup
     typst
