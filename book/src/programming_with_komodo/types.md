@@ -137,3 +137,53 @@ The `List` type represents a sequence of Komodo values. You can write lists with
   ```
 
 Lists are the most basic container in Komodo. They will be very useful.
+
+## Sets
+
+The `Set` type represents an unordered collection of Komodo values. You can write sets with braces: `{}`, `{1, 2}`, `{1, 1, "2"}`,...
+
+- You can get the union between two sets:
+  ```
+  >>> {1, 2} + {2, 3}
+  {1, 2, 3}
+  ```
+
+- You can get the difference between two sets:
+  ```
+  >>> {1, 2} - {2, 3}
+  {1}
+  ```
+
+- You can check if a set is a subset of another:
+  ```
+  >>> {} < {1, 2}
+  true
+  >>> {1, 2} < {1, 2}
+  false
+  >>> {1, 2} <= {1, 2}
+  true
+  >>> {1} <= {1, 2}
+  true
+  ```
+
+- You can add elements to a set:
+  ```
+  >>> {5|{"a", 1}}
+  {1, 5, "a"}
+  ```
+
+- You can check if a value is an element of a set:
+  ```
+  >>> 0 in {}
+  false
+  >>> {1} in {0, {1}}
+  true
+  ```
+
+- You can write sets by comprehension:
+  ```
+  >>> {k % 2 for k in 0..10}
+  {0, 1}
+  ```
+
+Sets are very useful when you do not need an ordered collection, but you do need to join collections frequently, avoid repetitions, and check if some element is inside the collection.
