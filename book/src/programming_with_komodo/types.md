@@ -113,9 +113,15 @@ You can make operations between characters and strings:
   "FUUUUUUUUUU"
   ```
 
+## Tuples
+
+The `Tuple` type represents an ordered collection of Komodo values. You can write tuples with round parenthesis: `()`, `(1, "foo")`,...
+
+The purpose of tuples is to put values together. You can use the empty tuple as a "null" value, which you use to say that is nothing to return. In fact, Komodo builtins use the empty tuple in that way, and some constructions, like `for` loops, return `()`.
+
 ## Lists
 
-The `List` type represents a sequence of Komodo values. You can write lists with square brackets: `[]`, `[1, 2]`, `["foo", 'z', 5.5, []]`,...
+The `List` type represents a sequence of Komodo values. You can add values to lists, which is something you can't do with tuples. You can write lists with square brackets: `[]`, `[1, 2]`, `["foo", 'z', 5.5, []]`,...
 
 - You can concatenate lists:
   ```
