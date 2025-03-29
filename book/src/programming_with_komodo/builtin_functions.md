@@ -69,9 +69,9 @@ This function allows you to make assertions while your program is executing, and
 
 These functions allow to convert values of certain type into types of another. In some cases the types can't be equivalent, so Komodo will do some assumptions about how would you like to transform values. For these cases, the [standard library](./the_standard_library.md) has some functions that allow you to do different transformations.
 
-- `Integer(value)`: Casts any number into an integer. Rounds down when necessary.
+- `Integer(value)`: Casts any number into an integer. Rounds down when necessary. Fails when you pass it something that is not a number.
 
-- `Float(value)`: Casts any number into a float. It will return the closest approximation.
+- `Float(value)`: Casts any number into a float. It will return the closest approximation. Fails when you pass it something that is not a number.
 
 - `List(value)`: Turns sets and ranges into lists.
 
@@ -80,3 +80,7 @@ These functions allow to convert values of certain type into types of another. I
 - `String(value)`: Turns any Komodo value into its string representation.
 
 ## Misc
+
+- `len(container)`: Returns the length of a set or a list. If you pass it something else, it will fail.
+
+- `sorted(list)`: Returns the input list, but sorted. If you pass it something else, it will fail.
