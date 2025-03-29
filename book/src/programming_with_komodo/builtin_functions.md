@@ -73,9 +73,9 @@ These functions allow to convert values of certain type into types of another. I
 
 - `Float(value)`: Casts any number into a float. It will return the closest approximation. Fails when you pass it something that is not a number.
 
-- `List(value)`: Turns sets and ranges into lists.
+- `List(value)`: Turns sets and ranges into lists. If you pass it something else, it will fail.
 
-- `Set(value)`: Turns lists and ranges into lists.
+- `Set(value)`: Turns lists and ranges into lists. If you pass it something else, it will fail.
 
 - `String(value)`: Turns any Komodo value into its string representation.
 
