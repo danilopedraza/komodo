@@ -12,7 +12,7 @@
   - [Core features](./programming_with_komodo/core_features.md)
   - [Types](./programming_with_komodo/types.md)
   - [Functions](./programming_with_komodo/functions.md)
-    - [Builtin functions](./programming_with_komodo/builtin_functions.md)
+    - [Builtin functions](./programming_with_komodo/functions/builtin_functions.md)
     - [Named functions](./programming_with_komodo/functions/named_functions.md)
     - [Anonymous functions](./programming_with_komodo/functions/anonymous_functions.md)
   - [Pattern matching](./programming_with_komodo/pattern_matching.md)
