@@ -69,11 +69,11 @@ ni se proveen detalles del intérprete más allá de lo estructural.
 = Visión general
 
 El propósito de Komodo tiene consecuencias en su diseño. Puesto que Komodo es un lenguaje para _scripting_, no es una prioridad que el lenguaje
-pueda procesarse a si mismo, o que la representación de los datos sea similar a la representación de los programas. Asimismo, el nivel de abstracción de Komodo y la etapa en que se encuentra el proyecto hacen preferible implementar un intérprete en lugar de un compilador.
+se procese a si mismo, o que la representación de los datos sea similar a la representación de los programas. Asimismo, el nivel de abstracción de Komodo y la etapa en que se encuentra el proyecto hacen preferible implementar un intérprete en lugar de un compilador.
 
 El diseño de Komodo no es deliberado, sino que se ha llegado a él con una construcción iterativa.
 
-En esta sección se explican brevemente algunas características de Komodo, que son descritas con mayor detalle en secciones posteriores.
+En esta sección se explican brevemente las características de Komodo, que son descritas con mayor detalle en secciones posteriores.
 
 == Sistema de tipos
 
