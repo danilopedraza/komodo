@@ -57,3 +57,5 @@
 # Upstream
 
 - Improve error handling and fix a bug in `json.stringify`
+
+- Fix bug in pattern matching of lists

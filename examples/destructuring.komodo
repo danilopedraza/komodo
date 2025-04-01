@@ -1,0 +1,6 @@
+let data := [5, 442, 533, 2, 5334]
+
+let [first, _, _, fourth, ..] := data
+
+assert(first = 5)
+assert(fourth = 2)

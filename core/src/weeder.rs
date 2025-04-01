@@ -113,7 +113,7 @@ fn list_pattern(values: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
                 kind: CSTNodeKind::AdInfinitum,
                 position,
             } => Ok(ASTNode::new(ASTNodeKind::AdInfinitum, position)),
-            node => rewrite(node),
+            node => rewrite_pattern(node),
         })
         .collect();
 
