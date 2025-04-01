@@ -1,0 +1,8 @@
+let transform("") := []
+let transform([first|tail]) := transform((first, 1), tail)
+let transform(tuple, []) := [tuple]
+let transform((currentChar, count), [currentChar|tail]) := transform((currentChar, count + 1), tail)
+let transform(tuple, tail) := [tuple|transform(tail)]
+
+assert(transform("") = [])
+assert(transform("aabcccdd") = [('a', 2), ('b', 1), ('c', 3), ('d', 2)])
