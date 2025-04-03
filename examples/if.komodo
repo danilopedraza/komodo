@@ -1,0 +1,11 @@
+let parityMessage(n: Integer) :=
+    let text :=
+        if n % 2 = 0 then
+            " is even!"
+        else
+            " is odd!"
+    
+    String(n) + text
+
+assert(parityMessage(0) = "0 is even!")
+assert(parityMessage(5) = "5 is odd!")
