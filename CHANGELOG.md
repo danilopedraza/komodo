@@ -54,8 +54,10 @@
 
 - Fix bug where non-empty sets were being matched to the `{}` expression.
 
-# Upstream
+# 0.4.1
 
 - Improve error handling and fix a bug in `json.stringify`
 
 - Fix bug in pattern matching of lists
+
+# Upstream
