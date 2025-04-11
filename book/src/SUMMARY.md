@@ -22,6 +22,7 @@
   - [Control flow structures](./programming_with_komodo/control_flow_structures.md)
     - [`if` expressions](./programming_with_komodo/control_flow_structures/if_expressions.md)
     - [`for` expressions](./programming_with_komodo/control_flow_structures/for_expressions.md)
+  - [Mutability](./programming_with_komodo/mutability.md)
   - [Importing code](./programming_with_komodo/importing_code.md)
   - [The standard library](./programming_with_komodo/the_standard_library.md)
 - [Appendix](./appendix.md)
