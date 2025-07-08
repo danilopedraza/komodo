@@ -12,4 +12,5 @@ mod parser;
 pub mod repl;
 pub mod run;
 mod std;
+mod typecheck;
 mod weeder;
