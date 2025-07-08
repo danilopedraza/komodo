@@ -170,7 +170,7 @@ impl<'a> From<(&'a str, PathBuf)> for Lexer<'a> {
     }
 }
 
-impl<'a> Lexer<'a> {
+impl Lexer<'_> {
     pub fn path(&self) -> PathBuf {
         self.path.to_path_buf()
     }
