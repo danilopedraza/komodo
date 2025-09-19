@@ -116,7 +116,7 @@ mod tests {
                 &decimal("0", "0", dummy_pos()),
                 Type::Single(SingleType::Integer),
             ),
-            Ok(true)
+            Ok(false)
         )
     }
 }
