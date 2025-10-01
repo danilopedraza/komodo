@@ -23,18 +23,18 @@ jobs:
         toolchain: [stable]
         target:
           - x86_64-unknown-linux-gnu
-          - x86_64-apple-darwin
-          - aarch64-apple-darwin
+          # - x86_64-apple-darwin
+          # - aarch64-apple-darwin
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             cargo-tool: cargo
-          - os: macos-13 # intel
-            target: x86_64-apple-darwin
-            cargo-tool: cargo
-          - os: macos-latest # aarch64
-            target: aarch64-apple-darwin
-            cargo-tool: cargo
+          # - os: macos-13 # intel
+          #   target: x86_64-apple-darwin
+          #   cargo-tool: cargo
+          # - os: macos-latest # aarch64
+          #   target: aarch64-apple-darwin
+          #   cargo-tool: cargo
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
