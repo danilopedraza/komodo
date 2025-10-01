@@ -32,11 +32,6 @@ let filterFirst([first|tail], fn: Function) :=
         [first|filterFirst(tail, fn)]
     else
         tail
-let filter({first|tail}, fn: Function) :=
-    if fn(first) then
-        {first|filterFirst(tail, fn)}
-    else
-        tail
 
 let deleteOnce(container, element) := filterFirst(container, val -> val /= element)
 
