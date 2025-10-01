@@ -269,6 +269,13 @@ fn weeder_error_msg(err: &WeederError) -> String {
             It can be used as an operator and inside patterns
             ",
         ),
+        WeederError::BadAssignment => unindent(
+            "
+            Assignments can only refer to patterns, values inside lists or dictionaries using
+            the `[]` notation (with a name in the left), or values inside dictionaries using
+            the `.` notation (with a name both in the left and the right).
+            ",
+        ),
         WeederError::BadDeclaration => unindent(
             "
             Expressions inside a declaration must be symbols with properties or assignments.

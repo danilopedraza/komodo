@@ -19,7 +19,9 @@ enum SingleType {
 #[derive(Debug, PartialEq, Eq)]
 enum Type {
     Single(SingleType),
-    Either(SingleType, Box<Type>),
+    Function { input: Box<Type>, output: Box<Type> },
+    Tuple(Vec<Type>),
+    Either(Box<Type>, Box<Type>),
 }
 
 #[allow(dead_code)]

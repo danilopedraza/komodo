@@ -13,7 +13,9 @@ use crate::object::{
 
 type ExecResult<T> = Result<T, Error>;
 
-use crate::ast::{ASTNode, ASTNodeKind, Declaration, InfixOperator};
+use crate::ast::{
+    ASTNode, ASTNodeKind, AssignableSymbol, Constant, Declaration, InfixOperator, Pattern,
+};
 use crate::cst::{ComprehensionKind, PrefixOperator};
 use crate::env::{Address, EnvResponse, Environment, ScopeKind, ValueKind};
 use crate::object::{integer::Integer, Bool, Char, MyString, Object, Set, Symbol, Tuple};
@@ -73,6 +75,33 @@ pub fn list(l: &[ASTNode], env: &mut Environment) -> ExecResult<Vec<(Object, Add
     l.iter().map(|node| exec(node, env)).collect()
 }
 
+pub fn constant_list(list: &[Constant]) -> Object {
+    let list: Vec<(Object, Address)> = list
+        .iter()
+        .map(|constant| (eval_constant(constant), Address::default()))
+        .collect();
+
+    Object::List(list.into())
+}
+
+pub fn constant_tuple(list: &[Constant]) -> Object {
+    let list: Vec<(Object, Address)> = list
+        .iter()
+        .map(|constant| (eval_constant(constant), Address::default()))
+        .collect();
+
+    Object::Tuple(list.into())
+}
+
+pub fn constant_set(list: &[Constant]) -> Object {
+    let list: Vec<(Object, Address)> = list
+        .iter()
+        .map(|constant| (eval_constant(constant), Address::default()))
+        .collect();
+
+    Object::Set(list.into())
+}
+
 fn function(
     params: &[String],
     result: &ASTNode,
@@ -92,26 +121,26 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<(Object, Addres
     let res = match &node.kind {
         ASTNodeKind::Symbol { name } => symbol(name, env, node.position),
         ASTNodeKind::Set { list } => extension_set(list, env),
-        ASTNodeKind::Integer { literal, radix } => integer(literal, *radix),
+        ASTNodeKind::Integer { literal, radix } => Ok(integer(literal, *radix)),
         ASTNodeKind::Function { params, result } => function(params, result, env),
         ASTNodeKind::Infix { op, lhs, rhs } => infix(*op, lhs, rhs, node.position, env),
-        ASTNodeKind::Boolean(val) => boolean(*val),
+        ASTNodeKind::Boolean(val) => Ok(boolean(*val)),
         ASTNodeKind::Call { called, args } => call(called, args, env, node.position),
-        ASTNodeKind::Char(chr) => char(*chr),
+        ASTNodeKind::Char(chr) => Ok(char(*chr)),
         ASTNodeKind::If {
             cond,
             positive,
             negative,
         } => if_(exec(cond, env)?, positive, negative, env),
         ASTNodeKind::Prefix { op, val } => prefix(*op, exec(val, env)?, node.position, env),
-        ASTNodeKind::String { str } => string(str),
+        ASTNodeKind::String { str } => Ok(string(str)),
         ASTNodeKind::Tuple { list: values } => tuple(values, env),
         ASTNodeKind::For { val, iter, proc } => for_(val, iter, proc, env),
         ASTNodeKind::List { list } => extension_list(list, env),
         ASTNodeKind::Wildcard => unimplemented!(),
         ASTNodeKind::AdInfinitum => unimplemented!(),
         ASTNodeKind::Cons { first, tail } => cons(exec(first, env)?, tail, env),
-        ASTNodeKind::Decimal { int, dec } => decimal(int, dec),
+        ASTNodeKind::Decimal { int, dec } => Ok(decimal(int, dec)),
         ASTNodeKind::Fraction { numer, denom } => fraction(numer, denom, node.position, env),
         ASTNodeKind::Dictionary { pairs, complete: _ } => dictionary(pairs, env),
         ASTNodeKind::IndexNotation { container, index } => {
@@ -169,9 +198,23 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<(Object, Addres
     }
 }
 
+pub fn eval_constant(constant: &Constant) -> Object {
+    match constant {
+        Constant::Boolean(val) => boolean(*val).0,
+        Constant::Char(chr) => char(*chr).0,
+        Constant::Decimal { int, dec } => decimal(int, dec).0,
+        Constant::Dictionary { pairs, complete: _ } => constant_dictionary(pairs),
+        Constant::Integer { literal, radix } => integer(literal, *radix).0,
+        Constant::List { list } => constant_list(list),
+        Constant::Set { list } => constant_set(list),
+        Constant::String { str } => string(str).0,
+        Constant::Tuple { list } => constant_tuple(list),
+    }
+}
+
 fn case(
     expr: &ASTNode,
-    pairs: &[(ASTNode, ASTNode)],
+    pairs: &[(Pattern, ASTNode)],
     env: &mut Environment,
 ) -> ExecResult<(Object, Address)> {
     let expr_obj = exec(expr, env)?.0;
@@ -218,74 +261,75 @@ fn declaration(decl: &Declaration, env: &mut Environment) -> ExecResult<(Object,
     }
 }
 
-fn get_named_container_element(node: &ASTNode) -> Option<(&str, ASTNode, Position)> {
-    match &node.kind {
-        ASTNodeKind::IndexNotation { container, index } => match &container.kind {
-            ASTNodeKind::Symbol { name } => Some((name, *index.to_owned(), container.position)),
-            _ => None,
-        },
-        ASTNodeKind::DotNotation { lhs, rhs } => match (&lhs.kind, &rhs.kind) {
-            (ASTNodeKind::Symbol { name: container }, ASTNodeKind::Symbol { name: attr }) => {
-                let attr = ASTNode::new(
-                    ASTNodeKind::String {
-                        str: attr.to_string(),
-                    },
-                    rhs.position,
-                );
-
-                Some((container, attr, lhs.position))
-            }
-            _ => None,
-        },
-        _ => None,
-    }
-}
-
 fn assignment(
-    left: &ASTNode,
+    left: &AssignableSymbol,
     right: &ASTNode,
     env: &mut Environment,
 ) -> ExecResult<(Object, Address)> {
-    let value = exec(right, env)?.0;
+    let evaluated_value = exec(right, env)?.0;
 
-    if let Some((name, index, name_position)) = get_named_container_element(left) {
-        let index_obj = exec(&index, env)?.0;
-        let container = get_mutable_value(name, env, name_position)?;
+    match left {
+        AssignableSymbol::Pattern(pattern) => {
+            make_assignment(
+                destructure(pattern, right.position, &evaluated_value, env)?,
+                env,
+                right.position,
+            )?;
+            Ok((evaluated_value, Address::default()))
+        }
+        AssignableSymbol::ObjectValue { object, value } => {
+            let object = get_mutable_value(object, env, right.position)?;
 
-        let element_ref = match container {
-            Object::List(list) => match list.get_mut(&index_obj) {
-                Ok(obj) => Ok(&mut obj.0),
-                Err(eval_err) => Err(Error::with_position(
-                    eval_err.into(),
-                    index.position,
+            let element_ref = match object {
+                Object::Dictionary(dict) => {
+                    match dict.get_mut(&Object::String(value.as_str().into())) {
+                        Ok(obj) => Ok(obj),
+                        Err(eval_err) => Err(Error::with_position(
+                            eval_err.into(),
+                            right.position,
+                            env.file_path(),
+                        )),
+                    }
+                }
+                obj => Err(Error::with_position(
+                    ExecError::IndexingNonContainer { kind: obj.kind() }.into(),
+                    right.position,
                     env.file_path(),
                 )),
-            },
-            Object::Dictionary(dict) => match dict.get_mut(&index_obj) {
-                Ok(obj) => Ok(obj),
-                Err(eval_err) => Err(Error::with_position(
-                    eval_err.into(),
-                    index.position,
+            }?;
+
+            *element_ref = evaluated_value;
+            Ok((element_ref.to_owned(), Address::default()))
+        }
+        AssignableSymbol::IndexableValue { container, index } => {
+            let index = exec(&index, env)?.0;
+            let object = get_mutable_value(container, env, right.position)?;
+
+            let element_ref = match object {
+                Object::List(list) => match list.get_mut(&index) {
+                    Ok(obj) => Ok(&mut obj.0),
+                    Err(eval_err) => Err(Error::with_position(
+                        eval_err.into(),
+                        right.position,
+                        env.file_path(),
+                    )),
+                },
+                obj => Err(Error::with_position(
+                    ExecError::IndexingNonContainer { kind: obj.kind() }.into(),
+                    right.position,
                     env.file_path(),
                 )),
-            },
-            obj => Err(Error::with_position(
-                ExecError::IndexingNonContainer { kind: obj.kind() }.into(),
-                name_position,
-                env.file_path(),
-            )),
-        }?;
+            }?;
 
-        *element_ref = value;
-        return Ok((element_ref.to_owned(), Address::default()));
+            *element_ref = evaluated_value;
+            Ok((element_ref.to_owned(), Address::default()))
+        }
     }
-
-    make_assignment(destructure(left, &value, env)?, env, left.position)?;
-    Ok((value, Address::default()))
 }
 
 fn destructure(
-    pattern: &ASTNode,
+    pattern: &Pattern,
+    pos: Position,
     val: &Object,
     env: &mut Environment,
 ) -> ExecResult<BTreeMap<String, (Object, Address)>> {
@@ -293,7 +337,7 @@ fn destructure(
         Some(Match(map)) => Ok(map),
         None => Err(Error::with_position(
             ExecError::BadMatch.into(),
-            pattern.position,
+            pos,
             env.file_path(),
         )),
     }
@@ -416,8 +460,18 @@ fn dictionary(
     Ok((Object::Dictionary(dict), Address::default()))
 }
 
-fn decimal(int: &str, dec: &str) -> ExecResult<(Object, Address)> {
-    Ok((Object::Float(Float::new(int, dec)), Address::default()))
+fn constant_dictionary(pairs: &Vec<(Constant, Constant)>) -> Object {
+    let mut dict = Dictionary::default();
+
+    for (key, value) in pairs {
+        dict.dict.insert(eval_constant(key), eval_constant(value));
+    }
+
+    Object::Dictionary(dict)
+}
+
+fn decimal(int: &str, dec: &str) -> (Object, Address) {
+    (Object::Float(Float::new(int, dec)), Address::default())
 }
 
 fn cons(
@@ -460,20 +514,20 @@ fn tuple(l: &[ASTNode], env: &mut Environment) -> ExecResult<(Object, Address)> 
     list(l, env).map(|lst| (Object::Tuple(Tuple::from(lst)), Address::default()))
 }
 
-fn string(str: &str) -> ExecResult<(Object, Address)> {
-    Ok((Object::String(MyString::from(str)), Address::default()))
+fn string(str: &str) -> (Object, Address) {
+    (Object::String(MyString::from(str)), Address::default())
 }
 
-fn char(chr: char) -> ExecResult<(Object, Address)> {
-    Ok((Object::Char(Char::from(chr)), Address::default()))
+fn char(chr: char) -> (Object, Address) {
+    (Object::Char(Char::from(chr)), Address::default())
 }
 
-fn boolean(val: bool) -> ExecResult<(Object, Address)> {
-    Ok((Object::Boolean(Bool::from(val)), Address::default()))
+fn boolean(val: bool) -> (Object, Address) {
+    (Object::Boolean(Bool::from(val)), Address::default())
 }
 
 fn let_pattern(
-    left: &ASTNode,
+    left: &Pattern,
     right: &ASTNode,
     kind: ValueKind,
     env: &mut Environment,
@@ -492,7 +546,7 @@ fn let_pattern(
         }
         None => Err(Error::with_position(
             ExecError::BadMatch.into(),
-            left.position.join(right.position),
+            right.position,
             env.file_path(),
         )),
     }
@@ -513,11 +567,11 @@ fn let_without_value(
     Ok((symbol, Address::default()))
 }
 
-fn integer(str: &str, radix: Radix) -> ExecResult<(Object, Address)> {
-    Ok((
+fn integer(str: &str, radix: Radix) -> (Object, Address) {
+    (
         Object::Integer(Integer::new(str, radix)),
         Address::default(),
-    ))
+    )
 }
 
 fn extension_set(l: &[ASTNode], env: &mut Environment) -> ExecResult<(Object, Address)> {
@@ -579,7 +633,7 @@ fn comprehension(
 
 fn let_function(
     name: &str,
-    args: &[ASTNode],
+    args: &[Pattern],
     value: &ASTNode,
     kind: FunctionPatternKind,
     env: &mut Environment,
@@ -635,7 +689,7 @@ fn if_(
 }
 
 fn for_(
-    pattern: &ASTNode,
+    pattern: &Pattern,
     iterable: &ASTNode,
     proc: &ASTNode,
     env: &mut Environment,
@@ -645,7 +699,7 @@ fn for_(
     env.push_scope(ScopeKind::Loop);
 
     for val in iter {
-        for (name, val) in destructure(pattern, &val.0, env)? {
+        for (name, val) in destructure(pattern, iterable.position, &val.0, env)? {
             env.set_inmutable(&name, val.clone());
         }
 
@@ -904,10 +958,12 @@ mod tests {
 
     use super::*;
     use crate::ast::tests::{
-        _for, _if, assignment, block, boolean, call, case, comprehension, cons, container_element,
-        dec_integer, decimal, dictionary, dot_notation, extension_list, extension_set, fraction,
-        function, function_declaration, infix, let_, memoized_function_declaration, pos, prefix,
-        range, set_cons, string, symbol, symbolic_let, tuple, var,
+        _for, _if, assignable_container_element, assignable_object_value, assignable_pattern,
+        assignment, block, boolean, call, case, comprehension, cons, container_element,
+        dec_integer, dec_integer_pattern, decimal, dictionary, dot_notation, extension_list,
+        extension_set, fraction, function, function_declaration, infix, let_,
+        memoized_function_declaration, pos, prefix, range, set_cons, string, symbol,
+        symbol_pattern, symbolic_let, tuple, var,
     };
     use crate::cst::tests::dummy_pos;
     use crate::env::EnvResponse;
@@ -1019,7 +1075,7 @@ mod tests {
     #[test]
     fn let_expression() {
         let node = &let_(
-            symbol("x", dummy_pos()),
+            symbol_pattern("x"),
             dec_integer("0", dummy_pos()),
             dummy_pos(),
         );
@@ -1277,7 +1333,7 @@ mod tests {
         let mut env = Environment::default();
 
         let node = &let_(
-            symbol("x", dummy_pos()),
+            symbol_pattern("x"),
             dec_integer("0", dummy_pos()),
             dummy_pos(),
         );
@@ -1431,7 +1487,7 @@ mod tests {
         );
 
         let node = &_for(
-            symbol("val", dummy_pos()),
+            symbol_pattern("val"),
             extension_list(
                 vec![
                     dec_integer("1", dummy_pos()),
@@ -1476,7 +1532,7 @@ mod tests {
                 block(
                     vec![
                         let_(
-                            symbol("y", dummy_pos()),
+                            symbol_pattern("y"),
                             infix(
                                 InfixOperator::Product,
                                 dec_integer("2", dummy_pos()),
@@ -1551,7 +1607,7 @@ mod tests {
         let mut env = Environment::default();
         let func = function_declaration(
             "f",
-            vec![symbol("x", dummy_pos())],
+            vec![symbol_pattern("x")],
             symbol("x", dummy_pos()),
             dummy_pos(),
         );
@@ -1806,7 +1862,7 @@ mod tests {
     #[test]
     fn mutable_value() {
         let declaration = var(
-            symbol("x", dummy_pos()),
+            symbol_pattern("x"),
             dec_integer("0", dummy_pos()),
             dummy_pos(),
         );
@@ -1815,7 +1871,7 @@ mod tests {
         exec(&declaration, &mut env).unwrap();
 
         let assignment = assignment(
-            symbol("x", dummy_pos()),
+            assignable_pattern(symbol_pattern("x")),
             dec_integer("1", dummy_pos()),
             dummy_pos(),
         );
@@ -1831,7 +1887,7 @@ mod tests {
     #[test]
     fn assign_inmutable() {
         let declaration = let_(
-            symbol("x", dummy_pos()),
+            symbol_pattern("x"),
             dec_integer("0", dummy_pos()),
             dummy_pos(),
         );
@@ -1840,7 +1896,7 @@ mod tests {
         exec(&declaration, &mut env).unwrap();
 
         let assignment = assignment(
-            symbol("x", dummy_pos()),
+            assignable_pattern(symbol_pattern("x")),
             dec_integer("1", dummy_pos()),
             dummy_pos(),
         );
@@ -1862,13 +1918,16 @@ mod tests {
 
         env.set_mutable("list", (list, Address::default()));
 
+        let assignable_element =
+            assignable_container_element("list", dec_integer("0", dummy_pos()));
+
         let element = container_element(
             symbol("list", dummy_pos()),
             dec_integer("0", dummy_pos()),
             dummy_pos(),
         );
 
-        let assignment = assignment(element.clone(), string("foo", dummy_pos()), dummy_pos());
+        let assignment = assignment(assignable_element, string("foo", dummy_pos()), dummy_pos());
 
         assert!(exec(&assignment, &mut env).is_ok());
 
@@ -1897,7 +1956,7 @@ mod tests {
 
         let func_decl = memoized_function_declaration(
             "bar",
-            vec![symbol("x", dummy_pos())],
+            vec![symbol_pattern("x")],
             call(
                 symbol("foo", dummy_pos()),
                 vec![symbol("x", dummy_pos())],
@@ -1929,11 +1988,8 @@ mod tests {
         let node = case(
             dec_integer("5", dummy_pos()),
             vec![
-                (dec_integer("1", dummy_pos()), dec_integer("1", dummy_pos())),
-                (
-                    dec_integer("5", dummy_pos()),
-                    dec_integer("10", dummy_pos()),
-                ),
+                (dec_integer_pattern("1"), dec_integer("1", dummy_pos())),
+                (dec_integer_pattern("5"), dec_integer("10", dummy_pos())),
             ],
             dummy_pos(),
         );
@@ -1950,7 +2006,7 @@ mod tests {
             vec![],
             block(
                 vec![assignment(
-                    symbol("a", dummy_pos()),
+                    assignable_pattern(symbol_pattern("a")),
                     dec_integer("1", dummy_pos()),
                     dummy_pos(),
                 )],
@@ -2080,13 +2136,13 @@ mod tests {
     #[test]
     fn loop_mutation() {
         let loop_node = _for(
-            symbol("i", dummy_pos()),
+            symbol_pattern("i"),
             extension_list(
                 vec![dec_integer("1", dummy_pos()), dec_integer("2", dummy_pos())],
                 dummy_pos(),
             ),
             vec![assignment(
-                symbol("res", dummy_pos()),
+                assignable_pattern(symbol_pattern("res")),
                 cons(
                     symbol("i", dummy_pos()),
                     symbol("res", dummy_pos()),
@@ -2129,13 +2185,15 @@ mod tests {
         let dict = exec(&dict, &mut env).unwrap();
         env.set_mutable("dict", dict);
 
+        let assignable_value = assignable_object_value("dict", "val");
+
         let value = dot_notation(
             symbol("dict", dummy_pos()),
             symbol("val", dummy_pos()),
             dummy_pos(),
         );
 
-        let assignment = assignment(value.clone(), dec_integer("5", dummy_pos()), dummy_pos());
+        let assignment = assignment(assignable_value, dec_integer("5", dummy_pos()), dummy_pos());
 
         assert!(exec(&assignment, &mut env).is_ok());
 

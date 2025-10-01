@@ -21,7 +21,7 @@ use fraction::Fraction;
 use integer::Integer;
 
 use crate::{
-    ast::ASTNode,
+    ast::{ASTNode, Pattern},
     env::{Address, Environment, ScopeKind},
     error::{Error, Position},
     exec::{exec, ExecError},
@@ -1024,7 +1024,7 @@ pub enum FunctionPatternKind {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PatternFunction {
     pub env: Rc<RefCell<Environment>>,
-    patterns: Vec<(FunctionPatternKind, Vec<ASTNode>, ASTNode)>,
+    patterns: Vec<(FunctionPatternKind, Vec<Pattern>, ASTNode)>,
     cache: BTreeMap<Vec<Object>, Object>,
     params: usize,
 }
@@ -1046,7 +1046,7 @@ impl PatternFunction {
             params: usize::default(),
         }
     }
-    pub fn add_pattern(&mut self, args: &[ASTNode], value: &ASTNode, kind: FunctionPatternKind) {
+    pub fn add_pattern(&mut self, args: &[Pattern], value: &ASTNode, kind: FunctionPatternKind) {
         for i in 0..self.patterns.len() {
             let (_, other_args, _) = &self.patterns[i];
             if args == other_args {
