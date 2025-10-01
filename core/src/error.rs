@@ -301,7 +301,7 @@ fn weeder_error_msg(err: &WeederError) -> String {
         ),
         WeederError::BadInfixPattern => unindent(
             "
-            You are using using an operator not allowed inside patterns.
+            You are using an operator not allowed inside patterns.
             You can only use the range operator `..` and the or operator `||`",
         ),
         WeederError::BadPattern => {
