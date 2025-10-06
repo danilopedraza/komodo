@@ -90,7 +90,6 @@ impl Ord for ASTNode {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ASTNodeKind {
-    AdInfinitum,
     Assignment {
         left: AssignableSymbol,
         right: Box<ASTNode>,
@@ -191,7 +190,6 @@ pub enum ASTNodeKind {
     Tuple {
         list: Vec<ASTNode>,
     },
-    Wildcard,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]

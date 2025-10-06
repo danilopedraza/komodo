@@ -34,7 +34,6 @@ fn infer(val: &ASTNode) -> Result<Type, (TypeError, Position)> {
     match &val.kind {
         ASTNodeKind::Integer { .. } => Ok(Type::Single(SingleType::Integer)),
         ASTNodeKind::Decimal { .. } => Ok(Type::Single(SingleType::Float)),
-        ASTNodeKind::AdInfinitum => Ok(Type::Single(SingleType::Unknown)),
         ASTNodeKind::Assignment { .. } => Ok(Type::Single(SingleType::Unknown)),
         ASTNodeKind::Boolean(_) => Ok(Type::Single(SingleType::Unknown)),
         ASTNodeKind::Block(_) => Ok(Type::Single(SingleType::Unknown)),
@@ -61,7 +60,6 @@ fn infer(val: &ASTNode) -> Result<Type, (TypeError, Position)> {
         ASTNodeKind::String { .. } => Ok(Type::Single(SingleType::Unknown)),
         ASTNodeKind::Symbol { .. } => Ok(Type::Single(SingleType::Unknown)),
         ASTNodeKind::Tuple { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Wildcard => Ok(Type::Single(SingleType::Unknown)),
     }
 }
 

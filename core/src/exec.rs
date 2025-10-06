@@ -137,8 +137,6 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<(Object, Addres
         ASTNodeKind::Tuple { list: values } => tuple(values, env),
         ASTNodeKind::For { val, iter, proc } => for_(val, iter, proc, env),
         ASTNodeKind::List { list } => extension_list(list, env),
-        ASTNodeKind::Wildcard => unimplemented!(),
-        ASTNodeKind::AdInfinitum => unimplemented!(),
         ASTNodeKind::Cons { first, tail } => cons(exec(first, env)?, tail, env),
         ASTNodeKind::Decimal { int, dec } => Ok(decimal(int, dec)),
         ASTNodeKind::Fraction { numer, denom } => fraction(numer, denom, node.position, env),
