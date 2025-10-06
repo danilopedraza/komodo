@@ -9,17 +9,11 @@ enum TypeError {}
 
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
-enum SingleType {
+enum Type {
     Boolean,
     Float,
     Integer,
     String,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, PartialEq, Eq)]
-enum Type {
-    Single(SingleType),
     Function { input: Box<Type>, output: Box<Type> },
     Tuple(Vec<Type>),
     Either(Box<Type>, Box<Type>),
@@ -34,10 +28,10 @@ fn check(val: &ASTNode, sig: Type) -> Result<bool, (TypeError, Position)> {
 #[allow(dead_code)]
 fn infer(val: &ASTNode) -> Result<Type, (TypeError, Position)> {
     match &val.kind {
-        ASTNodeKind::Integer { .. } => Ok(Type::Single(SingleType::Integer)),
-        ASTNodeKind::Decimal { .. } => Ok(Type::Single(SingleType::Float)),
+        ASTNodeKind::Integer { .. } => Ok(Type::Integer),
+        ASTNodeKind::Decimal { .. } => Ok(Type::Float),
         ASTNodeKind::Assignment { .. } => Ok(Type::Unknown),
-        ASTNodeKind::Boolean(_) => Ok(Type::Single(SingleType::Boolean)),
+        ASTNodeKind::Boolean(_) => Ok(Type::Boolean),
         ASTNodeKind::Block(block) => infer_block(block),
         ASTNodeKind::Call { .. } => Ok(Type::Unknown),
         ASTNodeKind::Case { .. } => Ok(Type::Unknown),
@@ -58,7 +52,7 @@ fn infer(val: &ASTNode) -> Result<Type, (TypeError, Position)> {
         ASTNodeKind::Prefix { .. } => Ok(Type::Unknown),
         ASTNodeKind::Cons { .. } => Ok(Type::Unknown),
         ASTNodeKind::SetCons { .. } => Ok(Type::Unknown),
-        ASTNodeKind::String { .. } => Ok(Type::Single(SingleType::String)),
+        ASTNodeKind::String { .. } => Ok(Type::String),
         ASTNodeKind::Symbol { .. } => Ok(Type::Unknown),
         ASTNodeKind::Tuple { .. } => Ok(Type::Unknown),
     }
@@ -73,72 +67,51 @@ mod tests {
     use crate::{
         ast::tests::{block, boolean, dec_integer, decimal, string},
         cst::tests::dummy_pos,
-        typecheck::{check, infer, SingleType, Type},
+        typecheck::{check, infer, Type},
     };
 
     #[test]
     fn integer_check() {
         assert_eq!(
-            check(
-                &dec_integer("10", dummy_pos()),
-                Type::Single(SingleType::Integer),
-            ),
+            check(&dec_integer("10", dummy_pos()), Type::Integer,),
             Ok(true)
         )
     }
 
     #[test]
     fn integer_infer() {
-        assert_eq!(
-            infer(&dec_integer("0", dummy_pos())),
-            Ok(Type::Single(SingleType::Integer)),
-        );
+        assert_eq!(infer(&dec_integer("0", dummy_pos())), Ok(Type::Integer),);
     }
 
     #[test]
     fn float_check() {
         assert_eq!(
-            check(
-                &decimal("0", "0", dummy_pos()),
-                Type::Single(SingleType::Float),
-            ),
+            check(&decimal("0", "0", dummy_pos()), Type::Float,),
             Ok(true)
         )
     }
 
     #[test]
     fn float_infer() {
-        assert_eq!(
-            infer(&decimal("0", "0", dummy_pos())),
-            Ok(Type::Single(SingleType::Float))
-        );
+        assert_eq!(infer(&decimal("0", "0", dummy_pos())), Ok(Type::Float));
     }
 
     #[test]
     fn bad_check() {
         assert_eq!(
-            check(
-                &decimal("0", "0", dummy_pos()),
-                Type::Single(SingleType::Integer),
-            ),
+            check(&decimal("0", "0", dummy_pos()), Type::Integer,),
             Ok(false)
         )
     }
 
     #[test]
     fn string_infer() {
-        assert_eq!(
-            infer(&string("foo", dummy_pos())),
-            Ok(Type::Single(SingleType::String)),
-        );
+        assert_eq!(infer(&string("foo", dummy_pos())), Ok(Type::String),);
     }
 
     #[test]
     fn boolean_infer() {
-        assert_eq!(
-            infer(&boolean(true, dummy_pos())),
-            Ok(Type::Single(SingleType::Boolean)),
-        );
+        assert_eq!(infer(&boolean(true, dummy_pos())), Ok(Type::Boolean),);
     }
 
     #[test]
@@ -148,7 +121,7 @@ mod tests {
                 vec![string("foo", dummy_pos()), dec_integer("10", dummy_pos()),],
                 dummy_pos()
             )),
-            Ok(Type::Single(SingleType::Integer)),
+            Ok(Type::Integer),
         );
     }
 }
