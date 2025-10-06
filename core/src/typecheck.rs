@@ -38,7 +38,7 @@ fn infer(val: &ASTNode) -> Result<Type, (TypeError, Position)> {
         ASTNodeKind::Decimal { .. } => Ok(Type::Single(SingleType::Float)),
         ASTNodeKind::Assignment { .. } => Ok(Type::Unknown),
         ASTNodeKind::Boolean(_) => Ok(Type::Single(SingleType::Boolean)),
-        ASTNodeKind::Block(_) => Ok(Type::Unknown),
+        ASTNodeKind::Block(block) => infer_block(block),
         ASTNodeKind::Call { .. } => Ok(Type::Unknown),
         ASTNodeKind::Case { .. } => Ok(Type::Unknown),
         ASTNodeKind::Char(_) => Ok(Type::Unknown),
@@ -64,10 +64,14 @@ fn infer(val: &ASTNode) -> Result<Type, (TypeError, Position)> {
     }
 }
 
+fn infer_block(block: &[ASTNode]) -> Result<Type, (TypeError, Position)> {
+    infer(block.last().unwrap())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::tests::{boolean, dec_integer, decimal, string},
+        ast::tests::{block, boolean, dec_integer, decimal, string},
         cst::tests::dummy_pos,
         typecheck::{check, infer, SingleType, Type},
     };
@@ -134,6 +138,17 @@ mod tests {
         assert_eq!(
             infer(&boolean(true, dummy_pos())),
             Ok(Type::Single(SingleType::Boolean)),
+        );
+    }
+
+    #[test]
+    fn block_infer() {
+        assert_eq!(
+            infer(&block(
+                vec![string("foo", dummy_pos()), dec_integer("10", dummy_pos()),],
+                dummy_pos()
+            )),
+            Ok(Type::Single(SingleType::Integer)),
         );
     }
 }
