@@ -299,7 +299,7 @@ fn assignment(
             Ok((element_ref.to_owned(), Address::default()))
         }
         AssignableSymbol::IndexableValue { container, index } => {
-            let index = exec(&index, env)?.0;
+            let index = exec(index, env)?.0;
             let object = get_mutable_value(container, env, right.position)?;
 
             let element_ref = match object {

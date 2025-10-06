@@ -330,8 +330,7 @@ fn weeder_error_msg(err: &WeederError) -> String {
         WeederError::ConstraintAsExpressionNotImplemented => unindent(
             "
             This operator is not implemented here.
-            As of now, you can only set type constraints when defining stuff!"
-                .into(),
+            As of now, you can only set type constraints when defining stuff!",
         ),
         WeederError::LeadingZeros => "Decimal numbers cannot have leading zeros".into(),
         WeederError::PlainImportNotImplemented => {
