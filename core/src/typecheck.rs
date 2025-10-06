@@ -53,7 +53,6 @@ fn infer(val: &ASTNode) -> Result<Type, (TypeError, Position)> {
         ASTNodeKind::ImportFrom { .. } => Ok(Type::Single(SingleType::Unknown)),
         ASTNodeKind::Infix { .. } => Ok(Type::Single(SingleType::Unknown)),
         ASTNodeKind::Declaration(_) => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::TaggedExpression { .. } => Ok(Type::Single(SingleType::Unknown)),
         ASTNodeKind::Prefix { .. } => Ok(Type::Single(SingleType::Unknown)),
         ASTNodeKind::Cons { .. } => Ok(Type::Single(SingleType::Unknown)),
         ASTNodeKind::SetCons { .. } => Ok(Type::Single(SingleType::Unknown)),

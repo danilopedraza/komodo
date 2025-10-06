@@ -165,10 +165,6 @@ pub enum ASTNodeKind {
         radix: Radix,
     },
     Declaration(Declaration),
-    TaggedExpression {
-        exp: Box<ASTNode>,
-        constraint: Option<Box<ASTNode>>,
-    },
     Prefix {
         op: cst::PrefixOperator,
         val: Box<ASTNode>,

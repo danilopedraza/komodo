@@ -327,6 +327,12 @@ fn weeder_error_msg(err: &WeederError) -> String {
         WeederError::BadAnonFunctionParameter => {
             "Only names can be parameters of anonymous functions. Replace this with a name".into()
         }
+        WeederError::ConstraintAsExpressionNotImplemented => unindent(
+            "
+            This operator is not implemented here.
+            As of now, you can only set type constraints when defining stuff!"
+                .into(),
+        ),
         WeederError::LeadingZeros => "Decimal numbers cannot have leading zeros".into(),
         WeederError::PlainImportNotImplemented => {
             "Jokes on you, this is not yet implemented. Use `from module import stuff`".into()

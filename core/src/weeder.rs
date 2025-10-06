@@ -24,6 +24,7 @@ pub enum WeederError {
     BadSymbolInImportTuple,
     BadAnonFunctionLHS,
     BadAnonFunctionParameter,
+    ConstraintAsExpressionNotImplemented,
     LeadingZeros,
     MemoizedNonFunctionDeclaration,
     MutableFunctionDeclaration,
@@ -373,7 +374,10 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
         InfixOperator::Sum => infix_node(ast::InfixOperator::Sum, lhs, rhs),
         InfixOperator::Element => container_element(lhs, rhs),
         InfixOperator::Assignment => assignment(lhs, rhs),
-        InfixOperator::Constraint => tagged_expression(lhs, rhs),
+        InfixOperator::Constraint => Err((
+            WeederError::ConstraintAsExpressionNotImplemented,
+            lhs.position.join(rhs.position),
+        )),
     }
 }
 
@@ -554,12 +558,6 @@ fn cons(first: CSTNode, tail: CSTNode) -> WeederResult<ASTNodeKind> {
     let first = Box::new(rewrite(first)?);
     let tail = Box::new(rewrite(tail)?);
     Ok(ASTNodeKind::Cons { first, tail })
-}
-
-fn tagged_expression(exp: CSTNode, constraint: CSTNode) -> WeederResult<ASTNodeKind> {
-    let exp = Box::new(rewrite(exp)?);
-    let constraint = Some(Box::new(rewrite(constraint)?));
-    Ok(ASTNodeKind::TaggedExpression { exp, constraint })
 }
 
 fn block(exprs: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
