@@ -6,10 +6,7 @@ use crate::{
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
 enum TypeError {
-    TypeMismatch {
-        expected: Type,
-        actual: Type,
-    }
+    TypeMismatch { expected: Type, actual: Type },
 }
 
 #[allow(dead_code)]
@@ -96,10 +93,7 @@ mod tests {
 
     #[test]
     fn float_check() {
-        assert_eq!(
-            check(&decimal("0", "0", dummy_pos()), Type::Float,),
-            Ok(())
-        )
+        assert_eq!(check(&decimal("0", "0", dummy_pos()), Type::Float,), Ok(()))
     }
 
     #[test]
@@ -111,7 +105,13 @@ mod tests {
     fn bad_check() {
         assert_eq!(
             check(&decimal("0", "0", dummy_pos()), Type::Integer,),
-            Err((TypeError::TypeMismatch { expected: Type::Integer, actual: Type::Float }, dummy_pos()))
+            Err((
+                TypeError::TypeMismatch {
+                    expected: Type::Integer,
+                    actual: Type::Float
+                },
+                dummy_pos()
+            ))
         )
     }
 
