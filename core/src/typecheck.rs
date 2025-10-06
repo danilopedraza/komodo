@@ -5,7 +5,12 @@ use crate::{
 
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
-enum TypeError {}
+enum TypeError {
+    TypeMismatch {
+        expected: Type,
+        actual: Type,
+    }
+}
 
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
@@ -21,8 +26,14 @@ enum Type {
 }
 
 #[allow(dead_code)]
-fn check(val: &ASTNode, sig: Type) -> Result<bool, (TypeError, Position)> {
-    Ok(infer(val)? == sig)
+fn check(val: &ASTNode, expected: Type) -> Result<(), (TypeError, Position)> {
+    let actual = infer(val)?;
+
+    if expected == actual {
+        Ok(())
+    } else {
+        Err((TypeError::TypeMismatch { expected, actual }, val.position))
+    }
 }
 
 #[allow(dead_code)]
@@ -67,14 +78,14 @@ mod tests {
     use crate::{
         ast::tests::{block, boolean, dec_integer, decimal, string},
         cst::tests::dummy_pos,
-        typecheck::{check, infer, Type},
+        typecheck::{check, infer, Type, TypeError},
     };
 
     #[test]
     fn integer_check() {
         assert_eq!(
             check(&dec_integer("10", dummy_pos()), Type::Integer,),
-            Ok(true)
+            Ok(())
         )
     }
 
@@ -87,7 +98,7 @@ mod tests {
     fn float_check() {
         assert_eq!(
             check(&decimal("0", "0", dummy_pos()), Type::Float,),
-            Ok(true)
+            Ok(())
         )
     }
 
@@ -100,7 +111,7 @@ mod tests {
     fn bad_check() {
         assert_eq!(
             check(&decimal("0", "0", dummy_pos()), Type::Integer,),
-            Ok(false)
+            Err((TypeError::TypeMismatch { expected: Type::Integer, actual: Type::Float }, dummy_pos()))
         )
     }
 
