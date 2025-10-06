@@ -12,7 +12,7 @@ enum TypeError {}
 enum SingleType {
     Float,
     Integer,
-    Unknown,
+    String,
 }
 
 #[allow(dead_code)]
@@ -22,6 +22,7 @@ enum Type {
     Function { input: Box<Type>, output: Box<Type> },
     Tuple(Vec<Type>),
     Either(Box<Type>, Box<Type>),
+    Unknown,
 }
 
 #[allow(dead_code)]
@@ -34,38 +35,38 @@ fn infer(val: &ASTNode) -> Result<Type, (TypeError, Position)> {
     match &val.kind {
         ASTNodeKind::Integer { .. } => Ok(Type::Single(SingleType::Integer)),
         ASTNodeKind::Decimal { .. } => Ok(Type::Single(SingleType::Float)),
-        ASTNodeKind::Assignment { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Boolean(_) => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Block(_) => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Call { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Case { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Char(_) => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Comprehension { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::DotNotation { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::IndexNotation { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Dictionary { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::List { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Set { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::For { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Function { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Fraction { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::If { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::ImportFrom { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Infix { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Declaration(_) => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Prefix { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Cons { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::SetCons { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::String { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Symbol { .. } => Ok(Type::Single(SingleType::Unknown)),
-        ASTNodeKind::Tuple { .. } => Ok(Type::Single(SingleType::Unknown)),
+        ASTNodeKind::Assignment { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Boolean(_) => Ok(Type::Unknown),
+        ASTNodeKind::Block(_) => Ok(Type::Unknown),
+        ASTNodeKind::Call { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Case { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Char(_) => Ok(Type::Unknown),
+        ASTNodeKind::Comprehension { .. } => Ok(Type::Unknown),
+        ASTNodeKind::DotNotation { .. } => Ok(Type::Unknown),
+        ASTNodeKind::IndexNotation { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Dictionary { .. } => Ok(Type::Unknown),
+        ASTNodeKind::List { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Set { .. } => Ok(Type::Unknown),
+        ASTNodeKind::For { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Function { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Fraction { .. } => Ok(Type::Unknown),
+        ASTNodeKind::If { .. } => Ok(Type::Unknown),
+        ASTNodeKind::ImportFrom { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Infix { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Declaration(_) => Ok(Type::Unknown),
+        ASTNodeKind::Prefix { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Cons { .. } => Ok(Type::Unknown),
+        ASTNodeKind::SetCons { .. } => Ok(Type::Unknown),
+        ASTNodeKind::String { .. } => Ok(Type::Single(SingleType::String)),
+        ASTNodeKind::Symbol { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Tuple { .. } => Ok(Type::Unknown),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::tests::{dec_integer, decimal},
+        ast::tests::{dec_integer, decimal, string},
         cst::tests::dummy_pos,
         typecheck::{check, infer, SingleType, Type},
     };
@@ -117,5 +118,13 @@ mod tests {
             ),
             Ok(false)
         )
+    }
+
+    #[test]
+    fn string_infer() {
+        assert_eq!(
+            infer(&string("foo", dummy_pos())),
+            Ok(Type::Single(SingleType::String)),
+        );
     }
 }
