@@ -10,6 +10,7 @@ enum TypeError {}
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
 enum SingleType {
+    Boolean,
     Float,
     Integer,
     String,
@@ -36,7 +37,7 @@ fn infer(val: &ASTNode) -> Result<Type, (TypeError, Position)> {
         ASTNodeKind::Integer { .. } => Ok(Type::Single(SingleType::Integer)),
         ASTNodeKind::Decimal { .. } => Ok(Type::Single(SingleType::Float)),
         ASTNodeKind::Assignment { .. } => Ok(Type::Unknown),
-        ASTNodeKind::Boolean(_) => Ok(Type::Unknown),
+        ASTNodeKind::Boolean(_) => Ok(Type::Single(SingleType::Boolean)),
         ASTNodeKind::Block(_) => Ok(Type::Unknown),
         ASTNodeKind::Call { .. } => Ok(Type::Unknown),
         ASTNodeKind::Case { .. } => Ok(Type::Unknown),
@@ -66,7 +67,7 @@ fn infer(val: &ASTNode) -> Result<Type, (TypeError, Position)> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::tests::{dec_integer, decimal, string},
+        ast::tests::{boolean, dec_integer, decimal, string},
         cst::tests::dummy_pos,
         typecheck::{check, infer, SingleType, Type},
     };
@@ -125,6 +126,14 @@ mod tests {
         assert_eq!(
             infer(&string("foo", dummy_pos())),
             Ok(Type::Single(SingleType::String)),
+        );
+    }
+
+    #[test]
+    fn boolean_infer() {
+        assert_eq!(
+            infer(&boolean(true, dummy_pos())),
+            Ok(Type::Single(SingleType::Boolean)),
         );
     }
 }
