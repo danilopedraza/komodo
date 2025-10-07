@@ -95,7 +95,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::Dictionary { .. } => Ok(Type::Unknown),
         ASTNodeKind::List { .. } => Ok(Type::List),
         ASTNodeKind::Set { .. } => Ok(Type::Set),
-        ASTNodeKind::For { .. } => Ok(Type::Unknown),
+        ASTNodeKind::For { .. } => Ok(Type::Tuple(vec![])),
         ASTNodeKind::Function { .. } => Ok(Type::Unknown),
         ASTNodeKind::Fraction { .. } => Ok(Type::Unknown),
         ASTNodeKind::If { .. } => Ok(Type::Unknown),
@@ -131,7 +131,8 @@ mod tests {
     use crate::{
         ast::{
             tests::{
-                block, boolean, dec_integer, decimal, extension_list, extension_set, string, symbol,
+                _for, block, boolean, dec_integer, decimal, extension_list, extension_set, string,
+                symbol, tuple, wildcard,
             },
             ASTNode,
         },
@@ -240,6 +241,19 @@ mod tests {
         assert_eq!(
             fresh_infer(&extension_set(vec![], dummy_pos())),
             Ok(Type::Set),
+        );
+    }
+
+    #[test]
+    fn for_infer() {
+        assert_eq!(
+            fresh_infer(&_for(
+                wildcard(),
+                extension_list(vec![], dummy_pos()),
+                vec![tuple(vec![], dummy_pos())],
+                dummy_pos()
+            )),
+            Ok(Type::Tuple(vec![])),
         );
     }
 
