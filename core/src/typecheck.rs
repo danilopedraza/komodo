@@ -1,16 +1,55 @@
+use std::collections::HashMap;
+
 use crate::{
     ast::{ASTNode, ASTNodeKind},
     error::Position,
 };
 
 #[allow(dead_code)]
-#[derive(Debug, PartialEq, Eq)]
-enum TypeError {
-    TypeMismatch { expected: Type, actual: Type },
+#[derive(Debug, Default)]
+struct SymbolTable {
+    bottom: Level,
+    stack: Vec<Level>,
+}
+
+#[allow(dead_code)]
+impl SymbolTable {
+    pub fn set_type(&mut self, name: &str, typ: Type) {
+        self.stack
+            .last_mut()
+            .unwrap_or(&mut self.bottom)
+            .set_type(name, typ)
+    }
+
+    pub fn get_type(&self, name: &str) -> Option<&Type> {
+        self.stack.last().unwrap_or(&self.bottom).get_type(name)
+    }
+}
+
+#[derive(Debug, Default)]
+struct Level {
+    dict: HashMap<String, Type>,
+}
+
+impl Level {
+    fn set_type(&mut self, name: &str, typ: Type) {
+        self.dict.insert(name.to_string(), typ);
+    }
+
+    fn get_type(&self, name: &str) -> Option<&Type> {
+        self.dict.get(name)
+    }
 }
 
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
+enum TypeError {
+    TypeMismatch { expected: Type, actual: Type },
+    UnknownSymbol { name: String },
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 enum Type {
     Boolean,
     Float,
@@ -23,8 +62,12 @@ enum Type {
 }
 
 #[allow(dead_code)]
-fn check(val: &ASTNode, expected: Type) -> Result<(), (TypeError, Position)> {
-    let actual = infer(val)?;
+fn check(
+    val: &ASTNode,
+    expected: Type,
+    env: &mut SymbolTable,
+) -> Result<(), (TypeError, Position)> {
+    let actual = infer(val, env)?;
 
     if expected == actual {
         Ok(())
@@ -34,13 +77,13 @@ fn check(val: &ASTNode, expected: Type) -> Result<(), (TypeError, Position)> {
 }
 
 #[allow(dead_code)]
-fn infer(val: &ASTNode) -> Result<Type, (TypeError, Position)> {
+fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Position)> {
     match &val.kind {
         ASTNodeKind::Integer { .. } => Ok(Type::Integer),
         ASTNodeKind::Decimal { .. } => Ok(Type::Float),
         ASTNodeKind::Assignment { .. } => Ok(Type::Unknown),
         ASTNodeKind::Boolean(_) => Ok(Type::Boolean),
-        ASTNodeKind::Block(block) => infer_block(block),
+        ASTNodeKind::Block(block) => infer_block(block, env),
         ASTNodeKind::Call { .. } => Ok(Type::Unknown),
         ASTNodeKind::Case { .. } => Ok(Type::Unknown),
         ASTNodeKind::Char(_) => Ok(Type::Unknown),
@@ -61,50 +104,82 @@ fn infer(val: &ASTNode) -> Result<Type, (TypeError, Position)> {
         ASTNodeKind::Cons { .. } => Ok(Type::Unknown),
         ASTNodeKind::SetCons { .. } => Ok(Type::Unknown),
         ASTNodeKind::String { .. } => Ok(Type::String),
-        ASTNodeKind::Symbol { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Symbol { name } => infer_symbol(name, val.position, env),
         ASTNodeKind::Tuple { .. } => Ok(Type::Unknown),
     }
 }
 
-fn infer_block(block: &[ASTNode]) -> Result<Type, (TypeError, Position)> {
-    infer(block.last().unwrap())
+fn infer_block(block: &[ASTNode], env: &mut SymbolTable) -> Result<Type, (TypeError, Position)> {
+    infer(block.last().unwrap(), env)
+}
+
+fn infer_symbol(
+    name: &str,
+    name_pos: Position,
+    env: &mut SymbolTable,
+) -> Result<Type, (TypeError, Position)> {
+    match env.get_type(name) {
+        Some(typ) => Ok(typ.to_owned()),
+        None => Err((TypeError::UnknownSymbol { name: name.into() }, name_pos)),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::tests::{block, boolean, dec_integer, decimal, string},
+        ast::{
+            tests::{block, boolean, dec_integer, decimal, string, symbol},
+            ASTNode,
+        },
         cst::tests::dummy_pos,
-        typecheck::{check, infer, Type, TypeError},
+        error::Position,
+        typecheck::{check, infer, SymbolTable, Type, TypeError},
     };
+
+    fn fresh_check(val: &ASTNode, expected: Type) -> Result<(), (TypeError, Position)> {
+        check(val, expected, &mut SymbolTable::default())
+    }
+
+    fn fresh_infer(val: &ASTNode) -> Result<Type, (TypeError, Position)> {
+        infer(val, &mut SymbolTable::default())
+    }
 
     #[test]
     fn integer_check() {
         assert_eq!(
-            check(&dec_integer("10", dummy_pos()), Type::Integer,),
+            fresh_check(&dec_integer("10", dummy_pos()), Type::Integer,),
             Ok(())
         )
     }
 
     #[test]
     fn integer_infer() {
-        assert_eq!(infer(&dec_integer("0", dummy_pos())), Ok(Type::Integer),);
+        assert_eq!(
+            fresh_infer(&dec_integer("0", dummy_pos())),
+            Ok(Type::Integer),
+        );
     }
 
     #[test]
     fn float_check() {
-        assert_eq!(check(&decimal("0", "0", dummy_pos()), Type::Float,), Ok(()))
+        assert_eq!(
+            fresh_check(&decimal("0", "0", dummy_pos()), Type::Float,),
+            Ok(())
+        )
     }
 
     #[test]
     fn float_infer() {
-        assert_eq!(infer(&decimal("0", "0", dummy_pos())), Ok(Type::Float));
+        assert_eq!(
+            fresh_infer(&decimal("0", "0", dummy_pos())),
+            Ok(Type::Float)
+        );
     }
 
     #[test]
     fn bad_check() {
         assert_eq!(
-            check(&decimal("0", "0", dummy_pos()), Type::Integer,),
+            fresh_check(&decimal("0", "0", dummy_pos()), Type::Integer,),
             Err((
                 TypeError::TypeMismatch {
                     expected: Type::Integer,
@@ -117,22 +192,47 @@ mod tests {
 
     #[test]
     fn string_infer() {
-        assert_eq!(infer(&string("foo", dummy_pos())), Ok(Type::String),);
+        assert_eq!(fresh_infer(&string("foo", dummy_pos())), Ok(Type::String),);
     }
 
     #[test]
     fn boolean_infer() {
-        assert_eq!(infer(&boolean(true, dummy_pos())), Ok(Type::Boolean),);
+        assert_eq!(fresh_infer(&boolean(true, dummy_pos())), Ok(Type::Boolean),);
     }
 
     #[test]
     fn block_infer() {
         assert_eq!(
-            infer(&block(
+            fresh_infer(&block(
                 vec![string("foo", dummy_pos()), dec_integer("10", dummy_pos()),],
                 dummy_pos()
             )),
             Ok(Type::Integer),
+        );
+    }
+
+    #[test]
+    fn symbol_infer() {
+        let mut env = SymbolTable::default();
+
+        env.set_type("foo", Type::Boolean);
+
+        assert_eq!(
+            infer(&symbol("foo", dummy_pos()), &mut env,),
+            Ok(Type::Boolean),
+        );
+    }
+
+    #[test]
+    fn unknown_symbol() {
+        assert_eq!(
+            fresh_infer(&symbol("foo", Position::new(0, 3))),
+            Err((
+                TypeError::UnknownSymbol {
+                    name: String::from("foo")
+                },
+                Position::new(0, 3)
+            ))
         );
     }
 }
