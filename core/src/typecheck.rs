@@ -54,6 +54,7 @@ enum TypeError {
 enum Type {
     Boolean,
     Char,
+    Dictionary,
     Float,
     Integer,
     List,
@@ -94,7 +95,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::Comprehension { kind, .. } => Ok(infer_comprehension(*kind)),
         ASTNodeKind::DotNotation { .. } => Ok(Type::Unknown),
         ASTNodeKind::IndexNotation { .. } => Ok(Type::Unknown),
-        ASTNodeKind::Dictionary { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Dictionary { .. } => Ok(Type::Dictionary),
         ASTNodeKind::List { .. } => Ok(Type::List),
         ASTNodeKind::Set { .. } => Ok(Type::Set),
         ASTNodeKind::For { .. } => Ok(Type::Tuple(vec![])),
@@ -140,8 +141,8 @@ mod tests {
     use crate::{
         ast::{
             tests::{
-                _for, block, boolean, char, comprehension, dec_integer, decimal, extension_list,
-                extension_set, string, symbol, tuple, wildcard,
+                _for, block, boolean, char, comprehension, dec_integer, decimal, dictionary,
+                extension_list, extension_set, string, symbol, tuple, wildcard,
             },
             ASTNode,
         },
@@ -283,6 +284,14 @@ mod tests {
                 dummy_pos()
             )),
             Ok(Type::Set),
+        );
+    }
+
+    #[test]
+    fn dict_infer() {
+        assert_eq!(
+            fresh_infer(&dictionary(vec![], true, dummy_pos())),
+            Ok(Type::Dictionary),
         );
     }
 
