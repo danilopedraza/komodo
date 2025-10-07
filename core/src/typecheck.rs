@@ -54,6 +54,7 @@ enum Type {
     Boolean,
     Float,
     Integer,
+    List,
     String,
     Function { input: Box<Type>, output: Box<Type> },
     Tuple(Vec<Type>),
@@ -91,7 +92,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::DotNotation { .. } => Ok(Type::Unknown),
         ASTNodeKind::IndexNotation { .. } => Ok(Type::Unknown),
         ASTNodeKind::Dictionary { .. } => Ok(Type::Unknown),
-        ASTNodeKind::List { .. } => Ok(Type::Unknown),
+        ASTNodeKind::List { .. } => Ok(Type::List),
         ASTNodeKind::Set { .. } => Ok(Type::Unknown),
         ASTNodeKind::For { .. } => Ok(Type::Unknown),
         ASTNodeKind::Function { .. } => Ok(Type::Unknown),
@@ -128,7 +129,7 @@ fn infer_symbol(
 mod tests {
     use crate::{
         ast::{
-            tests::{block, boolean, dec_integer, decimal, string, symbol},
+            tests::{block, boolean, dec_integer, decimal, extension_list, string, symbol},
             ASTNode,
         },
         cst::tests::dummy_pos,
@@ -220,6 +221,14 @@ mod tests {
         assert_eq!(
             infer(&symbol("foo", dummy_pos()), &mut env,),
             Ok(Type::Boolean),
+        );
+    }
+
+    #[test]
+    fn list_infer() {
+        assert_eq!(
+            fresh_infer(&extension_list(vec![], dummy_pos())),
+            Ok(Type::List),
         );
     }
 
