@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     ast::{ASTNode, ASTNodeKind},
+    cst::ComprehensionKind,
     error::Position,
 };
 
@@ -52,6 +53,7 @@ enum TypeError {
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Type {
     Boolean,
+    Char,
     Float,
     Integer,
     List,
@@ -88,8 +90,8 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::Block(block) => infer_block(block, env),
         ASTNodeKind::Call { .. } => Ok(Type::Unknown),
         ASTNodeKind::Case { .. } => Ok(Type::Unknown),
-        ASTNodeKind::Char(_) => Ok(Type::Unknown),
-        ASTNodeKind::Comprehension { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Char(_) => Ok(Type::Char),
+        ASTNodeKind::Comprehension { kind, .. } => Ok(infer_comprehension(*kind)),
         ASTNodeKind::DotNotation { .. } => Ok(Type::Unknown),
         ASTNodeKind::IndexNotation { .. } => Ok(Type::Unknown),
         ASTNodeKind::Dictionary { .. } => Ok(Type::Unknown),
@@ -126,17 +128,24 @@ fn infer_symbol(
     }
 }
 
+fn infer_comprehension(kind: ComprehensionKind) -> Type {
+    match kind {
+        ComprehensionKind::List => Type::List,
+        ComprehensionKind::Set => Type::Set,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
         ast::{
             tests::{
-                _for, block, boolean, dec_integer, decimal, extension_list, extension_set, string,
-                symbol, tuple, wildcard,
+                _for, block, boolean, char, comprehension, dec_integer, decimal, extension_list,
+                extension_set, string, symbol, tuple, wildcard,
             },
             ASTNode,
         },
-        cst::tests::dummy_pos,
+        cst::{tests::dummy_pos, ComprehensionKind},
         error::Position,
         typecheck::{check, infer, SymbolTable, Type, TypeError},
     };
@@ -196,6 +205,11 @@ mod tests {
     }
 
     #[test]
+    fn char_infer() {
+        assert_eq!(fresh_infer(&char('x', dummy_pos())), Ok(Type::Char),);
+    }
+
+    #[test]
     fn string_infer() {
         assert_eq!(fresh_infer(&string("foo", dummy_pos())), Ok(Type::String),);
     }
@@ -237,9 +251,37 @@ mod tests {
     }
 
     #[test]
+    fn list_comprehension_infer() {
+        assert_eq!(
+            fresh_infer(&comprehension(
+                symbol("x", dummy_pos()),
+                "x".into(),
+                extension_list(vec![], dummy_pos()),
+                ComprehensionKind::List,
+                dummy_pos()
+            )),
+            Ok(Type::List),
+        );
+    }
+
+    #[test]
     fn set_infer() {
         assert_eq!(
             fresh_infer(&extension_set(vec![], dummy_pos())),
+            Ok(Type::Set),
+        );
+    }
+
+    #[test]
+    fn set_comprehension_infer() {
+        assert_eq!(
+            fresh_infer(&comprehension(
+                symbol("x", dummy_pos()),
+                "x".into(),
+                extension_list(vec![], dummy_pos()),
+                ComprehensionKind::Set,
+                dummy_pos()
+            )),
             Ok(Type::Set),
         );
     }

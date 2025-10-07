@@ -583,6 +583,10 @@ pub mod tests {
         ASTNode::new(ASTNodeKind::String { str }, position)
     }
 
+    pub fn char(chr: char, position: Position) -> ASTNode {
+        ASTNode::new(ASTNodeKind::Char(chr), position)
+    }
+
     pub fn string_pattern(str: &str) -> Pattern {
         let str = str.to_string();
         Pattern::Constant(Constant::String { str })
