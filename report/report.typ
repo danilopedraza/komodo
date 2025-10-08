@@ -786,7 +786,7 @@ Los tipos de Komodo no están asociados a símbolos, sino a valores. La principa
 
 === Gradual
 
-Se pueden añadir chequeos de tipos a un programa de Komodo de manera opcional, y a conveniencia. Estos chequeos se realizan en tiempo de compilación. Por ejemplo, en este programa hay un chequeo de tipos:
+Se pueden añadir chequeos de tipos a un programa de Komodo de manera opcional, y a conveniencia. Estos chequeos se realizan en tiempo de ejecución. Por ejemplo, en este programa hay un chequeo de tipos:
 
 #figure(
   ```
