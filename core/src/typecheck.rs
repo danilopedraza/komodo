@@ -56,6 +56,7 @@ enum Type {
     Char,
     Dictionary,
     Float,
+    Fraction,
     Integer,
     List,
     Set,
@@ -100,7 +101,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::Set { .. } => Ok(Type::Set),
         ASTNodeKind::For { .. } => Ok(Type::Tuple(vec![])),
         ASTNodeKind::Function { .. } => Ok(Type::Unknown),
-        ASTNodeKind::Fraction { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Fraction { .. } => Ok(Type::Fraction),
         ASTNodeKind::If { .. } => Ok(Type::Unknown),
         ASTNodeKind::ImportFrom { .. } => Ok(Type::Unknown),
         ASTNodeKind::Infix { .. } => Ok(Type::Unknown),
@@ -142,7 +143,7 @@ mod tests {
         ast::{
             tests::{
                 _for, block, boolean, char, comprehension, dec_integer, decimal, dictionary,
-                extension_list, extension_set, string, symbol, tuple, wildcard,
+                extension_list, extension_set, fraction, string, symbol, tuple, wildcard,
             },
             ASTNode,
         },
@@ -305,6 +306,18 @@ mod tests {
                 dummy_pos()
             )),
             Ok(Type::Tuple(vec![])),
+        );
+    }
+
+    #[test]
+    fn fraction_infer() {
+        assert_eq!(
+            fresh_infer(&fraction(
+                dec_integer("0", dummy_pos()),
+                dec_integer("1", dummy_pos()),
+                dummy_pos()
+            )),
+            Ok(Type::Fraction)
         );
     }
 
