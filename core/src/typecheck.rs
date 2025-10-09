@@ -107,7 +107,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::Infix { .. } => Ok(Type::Unknown),
         ASTNodeKind::Declaration(_) => Ok(Type::Unknown),
         ASTNodeKind::Prefix { .. } => Ok(Type::Unknown),
-        ASTNodeKind::Cons { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Cons { .. } => Ok(Type::List),
         ASTNodeKind::SetCons { .. } => Ok(Type::Unknown),
         ASTNodeKind::String { .. } => Ok(Type::String),
         ASTNodeKind::Symbol { name } => infer_symbol(name, val.position, env),
@@ -144,7 +144,7 @@ mod tests {
     use crate::{
         ast::{
             tests::{
-                _for, block, boolean, char, comprehension, dec_integer, decimal, dictionary,
+                _for, block, boolean, char, comprehension, cons, dec_integer, decimal, dictionary,
                 extension_list, extension_set, fraction, import_from, string, symbol, tuple,
                 wildcard,
             },
@@ -336,6 +336,18 @@ mod tests {
                 dummy_pos()
             )),
             Ok(Type::Tuple(vec![]))
+        );
+    }
+
+    #[test]
+    fn cons_infer() {
+        assert_eq!(
+            fresh_infer(&cons(
+                dec_integer("1", dummy_pos()),
+                symbol("tail", dummy_pos()),
+                dummy_pos()
+            )),
+            Ok(Type::List),
         );
     }
 
