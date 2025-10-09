@@ -61,3 +61,5 @@
 - Fix bug in pattern matching of lists
 
 # Upstream
+
+- Fix bug where a list-cons produced from a new element and a set returned a set. Now it returns a list!

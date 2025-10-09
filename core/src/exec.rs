@@ -493,7 +493,7 @@ fn cons(
                 res.push(obj.to_owned());
             }
 
-            Ok((Object::Set(res.into()), Address::default()))
+            Ok((Object::List(res.into()), Address::default()))
         }
         obj => Err(Error::WithPosition(
             ExecError::NonPrependableObject(obj.kind()).into(),
@@ -2197,6 +2197,24 @@ mod tests {
         assert_eq!(
             exec(&value, &mut env),
             Ok((Object::Integer(5.into()), Address::default()))
+        );
+    }
+
+    #[test]
+    fn list_cons_from_set() {
+        assert_eq!(
+            exec(
+                &cons(
+                    dec_integer("1", dummy_pos()),
+                    extension_set(vec![], dummy_pos()),
+                    dummy_pos()
+                ),
+                &mut Environment::default()
+            ),
+            Ok((
+                Object::List(vec![Object::Integer(1.into())].into()),
+                Address::default()
+            ))
         );
     }
 }
