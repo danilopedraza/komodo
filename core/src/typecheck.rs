@@ -103,7 +103,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::Function { .. } => Ok(Type::Unknown),
         ASTNodeKind::Fraction { .. } => Ok(Type::Fraction),
         ASTNodeKind::If { .. } => Ok(Type::Unknown),
-        ASTNodeKind::ImportFrom { .. } => Ok(Type::Unknown),
+        ASTNodeKind::ImportFrom { .. } => Ok(Type::Tuple(vec![])),
         ASTNodeKind::Infix { .. } => Ok(Type::Unknown),
         ASTNodeKind::Declaration(_) => Ok(Type::Unknown),
         ASTNodeKind::Prefix { .. } => Ok(Type::Unknown),
@@ -139,16 +139,20 @@ fn infer_comprehension(kind: ComprehensionKind) -> Type {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use crate::{
         ast::{
             tests::{
                 _for, block, boolean, char, comprehension, dec_integer, decimal, dictionary,
-                extension_list, extension_set, fraction, string, symbol, tuple, wildcard,
+                extension_list, extension_set, fraction, import_from, string, symbol, tuple,
+                wildcard,
             },
             ASTNode,
         },
         cst::{tests::dummy_pos, ComprehensionKind},
         error::Position,
+        run::ModuleAddress,
         typecheck::{check, infer, SymbolTable, Type, TypeError},
     };
 
@@ -318,6 +322,20 @@ mod tests {
                 dummy_pos()
             )),
             Ok(Type::Fraction)
+        );
+    }
+
+    #[test]
+    fn import_infer() {
+        assert_eq!(
+            fresh_infer(&import_from(
+                ModuleAddress::LocalPath {
+                    path: PathBuf::new()
+                },
+                vec![],
+                dummy_pos()
+            )),
+            Ok(Type::Tuple(vec![]))
         );
     }
 

@@ -578,6 +578,18 @@ pub mod tests {
         Pattern::Dictionary { pairs, complete }
     }
 
+    pub fn import_from(
+        source: ModuleAddress,
+        values: Vec<(&str, Position)>,
+        position: Position,
+    ) -> ASTNode {
+        let values = values
+            .into_iter()
+            .map(|(str, pos)| (str.to_string(), pos))
+            .collect();
+        ASTNode::new(ASTNodeKind::ImportFrom { source, values }, position)
+    }
+
     pub fn string(str: &str, position: Position) -> ASTNode {
         let str = str.to_string();
         ASTNode::new(ASTNodeKind::String { str }, position)
