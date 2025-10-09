@@ -102,7 +102,11 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::For { .. } => Ok(Type::Tuple(vec![])),
         ASTNodeKind::Function { .. } => Ok(Type::Unknown),
         ASTNodeKind::Fraction { .. } => Ok(Type::Fraction),
-        ASTNodeKind::If { .. } => Ok(Type::Unknown),
+        ASTNodeKind::If {
+            cond,
+            positive,
+            negative,
+        } => infer_if(cond, positive, negative, env),
         ASTNodeKind::ImportFrom { .. } => Ok(Type::Tuple(vec![])),
         ASTNodeKind::Infix { .. } => Ok(Type::Unknown),
         ASTNodeKind::Declaration(_) => Ok(Type::Unknown),
@@ -144,6 +148,24 @@ fn infer_tuple(vals: &[ASTNode], env: &mut SymbolTable) -> Result<Type, (TypeErr
     vals_types.map(|types| Type::Tuple(types))
 }
 
+fn infer_if(
+    cond: &ASTNode,
+    positive: &ASTNode,
+    negative: &ASTNode,
+    env: &mut SymbolTable,
+) -> Result<Type, (TypeError, Position)> {
+    check(cond, Type::Boolean, env)?;
+
+    let lhs_type = infer(positive, env)?;
+    let rhs_type = infer(negative, env)?;
+
+    if lhs_type == rhs_type {
+        Ok(lhs_type)
+    } else {
+        todo!()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
@@ -151,9 +173,9 @@ mod tests {
     use crate::{
         ast::{
             tests::{
-                _for, block, boolean, char, comprehension, cons, dec_integer, decimal, dictionary,
-                extension_list, extension_set, fraction, import_from, set_cons, string, symbol,
-                tuple, wildcard,
+                _for, _if, block, boolean, char, comprehension, cons, dec_integer, decimal,
+                dictionary, extension_list, extension_set, fraction, import_from, set_cons, string,
+                symbol, tuple, wildcard,
             },
             ASTNode,
         },
@@ -391,6 +413,38 @@ mod tests {
                 },
                 Position::new(0, 3)
             ))
+        );
+    }
+
+    #[test]
+    fn if_infer_single_type() {
+        assert_eq!(
+            fresh_infer(&_if(
+                boolean(true, dummy_pos()),
+                dec_integer("5", dummy_pos()),
+                dec_integer("6", dummy_pos()),
+                dummy_pos()
+            )),
+            Ok(Type::Integer),
+        );
+    }
+
+    #[test]
+    fn if_infer_non_boolean_condition() {
+        assert_eq!(
+            fresh_infer(&_if(
+                dec_integer("1", Position::new(3, 1)),
+                dec_integer("5", dummy_pos()),
+                dec_integer("6", dummy_pos()),
+                dummy_pos()
+            )),
+            Err((
+                TypeError::TypeMismatch {
+                    expected: Type::Boolean,
+                    actual: Type::Integer
+                },
+                Position::new(3, 1)
+            )),
         );
     }
 }
