@@ -108,7 +108,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::Declaration(_) => Ok(Type::Unknown),
         ASTNodeKind::Prefix { .. } => Ok(Type::Unknown),
         ASTNodeKind::Cons { .. } => Ok(Type::List),
-        ASTNodeKind::SetCons { .. } => Ok(Type::Unknown),
+        ASTNodeKind::SetCons { .. } => Ok(Type::Set),
         ASTNodeKind::String { .. } => Ok(Type::String),
         ASTNodeKind::Symbol { name } => infer_symbol(name, val.position, env),
         ASTNodeKind::Tuple { .. } => Ok(Type::Unknown),
@@ -145,8 +145,8 @@ mod tests {
         ast::{
             tests::{
                 _for, block, boolean, char, comprehension, cons, dec_integer, decimal, dictionary,
-                extension_list, extension_set, fraction, import_from, string, symbol, tuple,
-                wildcard,
+                extension_list, extension_set, fraction, import_from, set_cons, string, symbol,
+                tuple, wildcard,
             },
             ASTNode,
         },
@@ -348,6 +348,18 @@ mod tests {
                 dummy_pos()
             )),
             Ok(Type::List),
+        );
+    }
+
+    #[test]
+    fn set_cons_infer() {
+        assert_eq!(
+            fresh_infer(&set_cons(
+                dec_integer("1", dummy_pos()),
+                symbol("tail", dummy_pos()),
+                dummy_pos()
+            )),
+            Ok(Type::Set),
         );
     }
 
