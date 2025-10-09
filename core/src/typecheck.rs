@@ -111,7 +111,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::SetCons { .. } => Ok(Type::Set),
         ASTNodeKind::String { .. } => Ok(Type::String),
         ASTNodeKind::Symbol { name } => infer_symbol(name, val.position, env),
-        ASTNodeKind::Tuple { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Tuple { list } => infer_tuple(list, env),
     }
 }
 
@@ -135,6 +135,13 @@ fn infer_comprehension(kind: ComprehensionKind) -> Type {
         ComprehensionKind::List => Type::List,
         ComprehensionKind::Set => Type::Set,
     }
+}
+
+fn infer_tuple(vals: &[ASTNode], env: &mut SymbolTable) -> Result<Type, (TypeError, Position)> {
+    let vals_types: Result<Vec<Type>, (TypeError, Position)> =
+        vals.iter().map(|val| infer(val, env)).collect();
+
+    vals_types.map(|types| Type::Tuple(types))
 }
 
 #[cfg(test)]
@@ -360,6 +367,17 @@ mod tests {
                 dummy_pos()
             )),
             Ok(Type::Set),
+        );
+    }
+
+    #[test]
+    fn tuple_infer() {
+        assert_eq!(
+            fresh_infer(&tuple(
+                vec![dec_integer("10", dummy_pos()), string("ten", dummy_pos()),],
+                dummy_pos()
+            )),
+            Ok(Type::Tuple(vec![Type::Integer, Type::String]))
         );
     }
 
