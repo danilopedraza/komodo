@@ -155,12 +155,12 @@ fn infer_if(
     env: &mut SymbolTable,
 ) -> Result<Type, (TypeError, Position)> {
     check(cond, Type::Boolean, env)?;
+    Ok(join(infer(positive, env)?, infer(negative, env)?))
+}
 
-    let lhs_type = infer(positive, env)?;
-    let rhs_type = infer(negative, env)?;
-
-    if lhs_type == rhs_type {
-        Ok(lhs_type)
+fn join(left: Type, right: Type) -> Type {
+    if left == right {
+        left
     } else {
         todo!()
     }
