@@ -51,6 +51,56 @@ enum TypeError {
 
 #[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+struct Either {
+    left: Box<Type>,
+    right: Box<Type>,
+}
+
+impl Either {
+    fn new(left: Type, right: Type) -> Self {
+        let left = Box::new(left);
+        let right = Box::new(right);
+        Self { left, right }
+    }
+
+    fn collect(&self) -> Vec<Type> {
+        let mut stack = vec![self.right.as_ref(), self.left.as_ref()];
+        let mut res = vec![];
+
+        while let Some(top) = stack.last() {
+            match top {
+                Type::Either(either) => {
+                    stack.push(either.right.as_ref());
+                    stack.push(either.left.as_ref());
+                }
+                typ => {
+                    res.push(typ.to_owned().to_owned());
+                }
+            }
+        }
+
+        res
+    }
+}
+
+impl PartialOrd for Either {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let left = self.collect();
+        let right = other.collect();
+        let left_subset_right = left.iter().all(|typ| right.contains(typ));
+        let right_subset_left = right.iter().all(|typ| left.contains(typ));
+
+        match (left_subset_right, right_subset_left) {
+            (true, true) => Some(std::cmp::Ordering::Equal),
+            (true, false) => Some(std::cmp::Ordering::Less),
+            (false, true) => Some(std::cmp::Ordering::Greater),
+            (false, false) => None,
+        }
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
 enum Type {
     Boolean,
     Char,
@@ -63,8 +113,61 @@ enum Type {
     String,
     Function { input: Box<Type>, output: Box<Type> },
     Tuple(Vec<Type>),
-    Either(Box<Type>, Box<Type>),
+    Either(Either),
     Unknown,
+}
+
+impl PartialEq for Type {
+    fn eq(&self, other: &Self) -> bool {
+        matches!(self.partial_cmp(other), Some(std::cmp::Ordering::Equal))
+    }
+}
+
+impl Eq for Type {}
+
+impl PartialOrd for Type {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match (self, other) {
+            (Self::Boolean, Self::Boolean) => Some(std::cmp::Ordering::Equal),
+            (Self::Char, Self::Char) => Some(std::cmp::Ordering::Equal),
+            (Self::Dictionary, Self::Dictionary) => Some(std::cmp::Ordering::Equal),
+            (Self::Float, Self::Float) => Some(std::cmp::Ordering::Equal),
+            (Self::Fraction, Self::Fraction) => Some(std::cmp::Ordering::Equal),
+            (Self::Integer, Self::Integer) => Some(std::cmp::Ordering::Equal),
+            (Self::List, Self::List) => Some(std::cmp::Ordering::Equal),
+            (Self::Set, Self::Set) => Some(std::cmp::Ordering::Equal),
+            (Self::String, Self::String) => Some(std::cmp::Ordering::Equal),
+            (
+                Self::Function { input, output },
+                Self::Function {
+                    input: input2,
+                    output: output2,
+                },
+            ) => match (input.partial_cmp(input2), output.partial_cmp(output2)) {
+                (Some(std::cmp::Ordering::Equal), Some(std::cmp::Ordering::Equal)) => {
+                    Some(std::cmp::Ordering::Equal)
+                }
+                _ => None,
+            },
+            (Self::Tuple(left_tup), Self::Tuple(right_tup)) => {
+                if left_tup.len() != right_tup.len() {
+                    return None;
+                }
+
+                if left_tup.iter().zip(right_tup).all(|(left, right)| {
+                    matches!(left.partial_cmp(right), Some(std::cmp::Ordering::Equal))
+                }) {
+                    Some(std::cmp::Ordering::Equal)
+                } else {
+                    None
+                }
+            }
+            (Self::Either(left_either), Self::Either(right_either)) => {
+                left_either.partial_cmp(right_either)
+            }
+            (_left, _right) => None,
+        }
+    }
 }
 
 #[allow(dead_code)]
@@ -145,7 +248,7 @@ fn infer_tuple(vals: &[ASTNode], env: &mut SymbolTable) -> Result<Type, (TypeErr
     let vals_types: Result<Vec<Type>, (TypeError, Position)> =
         vals.iter().map(|val| infer(val, env)).collect();
 
-    vals_types.map(|types| Type::Tuple(types))
+    vals_types.map(Type::Tuple)
 }
 
 fn infer_if(
@@ -159,10 +262,11 @@ fn infer_if(
 }
 
 fn join(left: Type, right: Type) -> Type {
-    if left == right {
-        left
-    } else {
-        todo!()
+    match left.partial_cmp(&right) {
+        Some(std::cmp::Ordering::Equal) => left,
+        Some(std::cmp::Ordering::Less) => right,
+        Some(std::cmp::Ordering::Greater) => left,
+        None => Type::Either(Either::new(left, right)),
     }
 }
 
