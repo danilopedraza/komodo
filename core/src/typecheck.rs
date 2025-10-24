@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     ast::{ASTNode, ASTNodeKind},
-    cst::ComprehensionKind,
+    cst::{ComprehensionKind, PrefixOperator},
     error::Position,
 };
 
@@ -67,7 +67,7 @@ impl Either {
         let mut stack = vec![self.right.as_ref(), self.left.as_ref()];
         let mut res = vec![];
 
-        while let Some(top) = stack.last() {
+        while let Some(top) = stack.pop() {
             match top {
                 Type::Either(either) => {
                     stack.push(either.right.as_ref());
@@ -77,6 +77,18 @@ impl Either {
                     res.push(typ.to_owned().to_owned());
                 }
             }
+        }
+
+        res
+    }
+}
+
+impl From<(Type, Type, Vec<Type>)> for Either {
+    fn from((first, second, tail): (Type, Type, Vec<Type>)) -> Self {
+        let mut res = Either::new(first, second);
+
+        for typ in tail {
+            res = Either::new(Type::Either(res), typ);
         }
 
         res
@@ -115,6 +127,12 @@ enum Type {
     Tuple(Vec<Type>),
     Either(Either),
     Unknown,
+}
+
+impl Type {
+    fn any_number() -> Self {
+        Self::Either((Self::Integer, Self::Float, vec![Self::Fraction]).into())
+    }
 }
 
 impl PartialEq for Type {
@@ -165,6 +183,20 @@ impl PartialOrd for Type {
             (Self::Either(left_either), Self::Either(right_either)) => {
                 left_either.partial_cmp(right_either)
             }
+            (typ, Self::Either(either)) => {
+                if either.collect().contains(typ) {
+                    Some(std::cmp::Ordering::Less)
+                } else {
+                    None
+                }
+            }
+            (Self::Either(either), typ) => {
+                if either.collect().contains(typ) {
+                    Some(std::cmp::Ordering::Greater)
+                } else {
+                    None
+                }
+            }
             (_left, _right) => None,
         }
     }
@@ -175,11 +207,11 @@ fn check(
     val: &ASTNode,
     expected: Type,
     env: &mut SymbolTable,
-) -> Result<(), (TypeError, Position)> {
+) -> Result<Type, (TypeError, Position)> {
     let actual = infer(val, env)?;
 
-    if expected == actual {
-        Ok(())
+    if actual <= expected {
+        Ok(actual)
     } else {
         Err((TypeError::TypeMismatch { expected, actual }, val.position))
     }
@@ -213,12 +245,24 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::ImportFrom { .. } => Ok(Type::Tuple(vec![])),
         ASTNodeKind::Infix { .. } => Ok(Type::Unknown),
         ASTNodeKind::Declaration(_) => Ok(Type::Unknown),
-        ASTNodeKind::Prefix { .. } => Ok(Type::Unknown),
+        ASTNodeKind::Prefix { op, val } => infer_prefix(*op, val, env),
         ASTNodeKind::Cons { .. } => Ok(Type::List),
         ASTNodeKind::SetCons { .. } => Ok(Type::Set),
         ASTNodeKind::String { .. } => Ok(Type::String),
         ASTNodeKind::Symbol { name } => infer_symbol(name, val.position, env),
         ASTNodeKind::Tuple { list } => infer_tuple(list, env),
+    }
+}
+
+fn infer_prefix(
+    op: PrefixOperator,
+    val: &ASTNode,
+    env: &mut SymbolTable,
+) -> Result<Type, (TypeError, Position)> {
+    match op {
+        PrefixOperator::BitwiseNot => check(val, Type::Integer, env),
+        PrefixOperator::LogicNot => check(val, Type::Boolean, env),
+        PrefixOperator::Minus => check(val, Type::any_number(), env),
     }
 }
 
@@ -278,8 +322,8 @@ mod tests {
         ast::{
             tests::{
                 _for, _if, block, boolean, char, comprehension, cons, dec_integer, decimal,
-                dictionary, extension_list, extension_set, fraction, import_from, set_cons, string,
-                symbol, tuple, wildcard,
+                dictionary, extension_list, extension_set, fraction, import_from, prefix, set_cons,
+                string, symbol, tuple, wildcard,
             },
             ASTNode,
         },
@@ -289,7 +333,7 @@ mod tests {
         typecheck::{check, infer, SymbolTable, Type, TypeError},
     };
 
-    fn fresh_check(val: &ASTNode, expected: Type) -> Result<(), (TypeError, Position)> {
+    fn fresh_check(val: &ASTNode, expected: Type) -> Result<Type, (TypeError, Position)> {
         check(val, expected, &mut SymbolTable::default())
     }
 
@@ -301,7 +345,7 @@ mod tests {
     fn integer_check() {
         assert_eq!(
             fresh_check(&dec_integer("10", dummy_pos()), Type::Integer,),
-            Ok(())
+            Ok(Type::Integer)
         )
     }
 
@@ -317,7 +361,7 @@ mod tests {
     fn float_check() {
         assert_eq!(
             fresh_check(&decimal("0", "0", dummy_pos()), Type::Float,),
-            Ok(())
+            Ok(Type::Float)
         )
     }
 
@@ -549,6 +593,42 @@ mod tests {
                 },
                 Position::new(3, 1)
             )),
+        );
+    }
+
+    #[test]
+    fn negated_boolean_infer() {
+        assert_eq!(
+            fresh_infer(&prefix(
+                crate::cst::PrefixOperator::LogicNot,
+                boolean(true, dummy_pos()),
+                dummy_pos()
+            )),
+            Ok(Type::Boolean)
+        );
+    }
+
+    #[test]
+    fn negative_number_infer() {
+        assert_eq!(
+            fresh_infer(&prefix(
+                crate::cst::PrefixOperator::Minus,
+                dec_integer("1", dummy_pos()),
+                dummy_pos()
+            )),
+            Ok(Type::Integer),
+        );
+    }
+
+    #[test]
+    fn infer_bitwise_not() {
+        assert_eq!(
+            fresh_infer(&prefix(
+                crate::cst::PrefixOperator::BitwiseNot,
+                dec_integer("0", dummy_pos()),
+                dummy_pos()
+            )),
+            Ok(Type::Integer),
         );
     }
 }
