@@ -1,0 +1,22 @@
+
+# a(n) is the number of free polyominoes with n cells.
+# A polyomino is a generalization of a domino,
+# where there can be an arbitrary number of squares.
+let a(0 || 1 || 2) := 1
+
+
+# Some tests!
+let A := [1, 1, 1, 2, 5, 12]
+
+for n in 0..3 do
+    let expected := A[n]
+    let actual := a(n)
+    assert(
+        expected = actual,
+        "The expected value of a(" +
+        String(n) +
+        ") is " +
+        String(expected) +
+        "but your implementation returns " +
+        String(actual)
+    )
