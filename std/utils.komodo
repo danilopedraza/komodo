@@ -60,3 +60,11 @@ let indexOf(values: List, value) :=
             ()
     
     res
+
+let inspect(obj) :=
+    print(obj)
+    obj
+
+let inspect(obj, msg: String) :=
+    print(msg + ": " + String(obj))
+    obj

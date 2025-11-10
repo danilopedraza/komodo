@@ -1,14 +1,76 @@
+from utils import (map, reduce)
 
-# a(n) is the number of free polyominoes with n cells.
+let neighbors((y, x)) := [
+    (y - 1,     x),
+    (    y, x - 1),
+    (y + 1,     x),
+    (    y, x + 1),
+]
+
+let newCells(polyomino) :=
+    var res := {}
+
+    for cell in polyomino do
+        for neighbor in cell.neighbors() do
+            if !((neighbor in res) || (neighbor in polyomino)) then
+                res := {neighbor|res}
+            else
+                ()
+    print(res)
+    res
+
+let rotate90((y, x))  := ( x, -y)
+let rotate180((y, x)) := (-y, -x)
+let rotate270((y, x)) := (-x,  y)
+let reflect((y, x))   := (-y,  x)
+
+let rotationsAndReflections(polyomino) := {
+    polyomino,
+    polyomino.map(rotate90),
+    polyomino.map(rotate180),
+    polyomino.map(rotate270),
+    polyomino.map(reflect),
+    polyomino.map(rotate90).map(reflect),
+    polyomino.map(rotate180).map(reflect),
+    polyomino.map(rotate270).map(reflect),
+}
+
+let firstComponent((y, x)) := y
+let secondComponent((y, x)) := x
+
+let normalize(polyomino) :=
+    let {miny|_} := polyomino.map(firstComponent)
+    let {minx|_} := polyomino.map(secondComponent)
+    
+    let f((y, x)) := (y - miny, x - minx)
+
+    polyomino.map(f)
+
+let canonical(polyomino) :=
+    let {res|_} := polyomino.rotationsAndReflections().map(normalize)
+    res
+
 # A polyomino is a generalization of a domino,
 # where there can be an arbitrary number of squares.
-let a(0 || 1 || 2) := 1
+# polyominoes(n) is a list with all the polyominoes
+# with n squares.
+let polyominoes(1) := {{(0, 0)}}
+let polyominoes(n) :=
+    polyominoes(
+        n - 1
+    ).map(polyomino ->
+        {canonical({cell|polyomino}) for cell in newCells(polyomino)}
+    ).reduce(
+        (acc, cur) -> acc + cur, {}
+    )
 
+# a(n) is the number of free polyominoes with n cells.
+let a(n) := len(polyominoes(n))
 
 # Some tests!
-let A := [1, 1, 1, 2, 5, 12]
+let A := [(), 1, 1, 2, 5, 12]
 
-for n in 0..3 do
+for n in 1..5 do
     let expected := A[n]
     let actual := a(n)
     assert(
@@ -17,6 +79,6 @@ for n in 0..3 do
         String(n) +
         ") is " +
         String(expected) +
-        "but your implementation returns " +
+        ", but your implementation returns " +
         String(actual)
     )

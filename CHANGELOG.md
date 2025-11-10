@@ -63,3 +63,7 @@
 # Upstream
 
 - Fix bug where a list-cons produced from a new element and a set returned a set. Now it returns a list!
+
+- Add the `inspect` function to the `utils` module. This function prints its input and then returns it.
+
+- 
