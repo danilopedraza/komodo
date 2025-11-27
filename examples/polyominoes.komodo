@@ -16,7 +16,6 @@ let newCells(polyomino) :=
                 res := {neighbor|res}
             else
                 ()
-    print(res)
     res
 
 let rotate90((y, x))  := ( x, -y)
