@@ -1,0 +1,21 @@
+let pseudo_random(x) :=
+    (x * 37 + 13) % 100
+
+let guessing_game() :=
+    let seed := 47
+    let answer := pseudo_random(seed) 
+    guess_loop(answer)
+
+let guess_loop(answer) :=
+    let userguess := getln('What is your guess?') # Falta el cast a Integer
+
+
+        print("Right! The answer is", user_guess)
+
+        print("Your guess of", n, "is too low!")
+
+
+        print("Your guess of", n, "is too high!")
+
+
+guessing_game()
