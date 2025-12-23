@@ -1,21 +1,31 @@
-let pseudo_random(x) :=
-    (x * 37 + 13) % 100
+# Warm-up exercise: practice loops, user input, type conversion, and comparisons.
+# Write a function called guessing_game with no arguments.
+# The program chooses a random number between 0 and 100.
+# It asks the user to guess the number and tells them if the guess is too high, too low, or correct.
+# The program keeps asking until the correct number is guessed.
 
-let guessing_game() :=
+
+let guessinGame() :=
     let seed := 47
-    let answer := pseudo_random(seed) 
-    guess_loop(answer)
+    let number :=(seed * 37 + 13) % 100
+    println("You have 10 attempts.")
+    for k in 0..10 do
+        println("What is your guess?--" + "Attempt number:" + String(k))
+        let userguess := getln("What is your guess?--") 
 
-let guess_loop(answer) :=
-    let userguess := getln('What is your guess?') # Falta el cast a Integer
+        let correctNumber(s: String) :=
 
+            case s = String(number)  do
+                true  => println("Correct answer:" + String(s))
+                false => println("Error anser:"  + String(s))
 
-        print("Right! The answer is", user_guess)
+        correctNumber(userguess)
 
-        print("Your guess of", n, "is too low!")
+guessinGame()
 
-
-        print("Your guess of", n, "is too high!")
-
-
-guessing_game()
+# Language constraints and missing features
+# Komodo does not have type conversion.
+# It does not have a module to generate random numbers.
+# Since there is no type conversion, I cannot compare values to check
+# whether a guess is too high or too low.
+# Infinite loops do not exist, and there is no way to break out of them.
