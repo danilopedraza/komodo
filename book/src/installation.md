@@ -27,7 +27,7 @@ You can build and install Komodo using the Rust infrastructure. Komodo is not pu
 ```
 git clone https://github.com/danilopedraza/komodo.git
 cd komodo/core
-cargo build --release
+cargo build --release --all-features
 chmod +x target/release/komodo
 cp target/release/komodo $HOME/.local/bin
 ```
