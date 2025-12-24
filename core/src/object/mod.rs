@@ -16,6 +16,8 @@ use std::{
     vec,
 };
 
+use rug::Complete;
+
 use float::Float;
 use fraction::Fraction;
 use integer::Integer;
@@ -166,11 +168,26 @@ impl Object {
             Object::Integer(num) => Ok(num.to_owned()),
             Object::Float(num) => num.floor(),
             Object::Fraction(num) => Ok(num.floor()),
+            Object::String(MyString { val }) => {
+                match rug::Integer::parse_radix(val.as_bytes(), 10) {
+                    Ok(parsed) => Ok(Integer::from(parsed.complete())),
+                    Err(_) => Err(ObjectError::UnexpectedType(
+                        vec![
+                            String::from("Float"),
+                            String::from("Integer"),
+                            String::from("Fraction"),
+                            String::from("String (representing a number)"),
+                        ],
+                        String::from("String"),
+                    )),
+                }
+            }
             obj => Err(ObjectError::UnexpectedType(
                 vec![
                     String::from("Float"),
                     String::from("Integer"),
                     String::from("Fraction"),
+                    String::from("String (representing a number)"),
                 ],
                 obj.kind(),
             )),

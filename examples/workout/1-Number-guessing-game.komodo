@@ -4,28 +4,27 @@
 # It asks the user to guess the number and tells them if the guess is too high, too low, or correct.
 # The program keeps asking until the correct number is guessed.
 
-
-let guessinGame() :=
+let speudoRandomNumber():=
     let seed := 47
     let number :=(seed * 37 + 13) % 100
+
+let correctNumber(s: String, number: Integer) :=
+    case s = String(number)  do
+        true  => assert(false,println("Correct answer:" + String(s)))
+        false => println("Error answer:"  + String(s) +" try again")
+
+let guessinGame() :=
+    let number := speudoRandomNumber()
     println("You have 10 attempts.")
     for k in 0..10 do
         println("What is your guess?--" + "Attempt number:" + String(k))
         let userguess := getln("What is your guess?--") 
-
-        let correctNumber(s: String) :=
-
-            case s = String(number)  do
-                true  => println("Correct answer:" + String(s))
-                false => println("Error anser:"  + String(s))
-
-        correctNumber(userguess)
+        correctNumber(userguess, number)
 
 guessinGame()
 
-# Language constraints and missing features
-# Komodo does not have type conversion.
-# It does not have a module to generate random numbers.
-# Since there is no type conversion, I cannot compare values to check
-# whether a guess is too high or too low.
-# Infinite loops do not exist, and there is no way to break out of them.
+# Missing parts of the solution
+# Ask the user for an integer or be able to cast a string to an integer
+# We can replace the loop with a for loop that gives us n attempts
+# We can stop our for loop using an assert
+
