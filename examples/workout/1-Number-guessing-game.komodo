@@ -8,23 +8,29 @@ let speudoRandomNumber():=
     let seed := 47
     let number :=(seed * 37 + 13) % 100
 
+let highORlowNumber(n: Integer ,number: Integer):=
+    if n>number then 
+        println(String(n) + " is too high")
+    else
+        println(String(n) + " is too low")
+
 let correctNumber(s: String, number: Integer) :=
     case s = String(number)  do
         true  => assert(false,println("Correct answer:" + String(s)))
-        false => println("Error answer:"  + String(s) +" try again")
+        false => highORlowNumber( Integer(s),number)
 
 let guessinGame() :=
     let number := speudoRandomNumber()
     println("You have 10 attempts.")
     for k in 0..10 do
         println("What is your guess?--" + "Attempt number:" + String(k))
-        let userguess := getln("What is your guess?--") 
+        let userguess := getln("What is your guess?--")
         correctNumber(userguess, number)
 
 guessinGame()
 
-# Missing parts of the solution
-# Ask the user for an integer or be able to cast a string to an integer
-# We can replace the loop with a for loop that gives us n attempts
-# We can stop our for loop using an assert
+# This current solution seems like a good approximate solution
+# Later, a 'break' can be implemented for the for loop
+# A function to generate random numbers could be added to the standard library
+
 
