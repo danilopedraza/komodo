@@ -7,7 +7,7 @@ let mysum([]) := 0
 let mysum([first|tail]) := first + mysum(tail)
 
 # Test cases
-println(mysum([1, 2, 3]))
+assert(mysum([1, 2, 3]) = 6)
 println(mysum([]))
 println(mysum([10, 20, 30, 40, 50, 60]))
 
