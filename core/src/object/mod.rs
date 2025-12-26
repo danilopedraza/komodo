@@ -187,7 +187,7 @@ impl Object {
                     String::from("Float"),
                     String::from("Integer"),
                     String::from("Fraction"),
-                    String::from("String (representing a number)"),
+                    String::from("String"),
                 ],
                 obj.kind(),
             )),
