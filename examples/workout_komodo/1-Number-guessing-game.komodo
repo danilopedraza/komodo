@@ -23,7 +23,7 @@ let guessinGame() :=
     let number := speudoRandomNumber()
     println("You have 10 attempts.")
     for k in 0..10 do
-        println("What is your guess?--" + "Attempt number:" + String(k))
+        println("What is your guess?--" + "Attempt number: " + String(k))
         let userguess := getln("What is your guess?--")
         correctNumber(userguess, number)
 
