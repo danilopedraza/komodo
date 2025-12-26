@@ -171,15 +171,10 @@ impl Object {
             Object::String(MyString { val }) => {
                 match rug::Integer::parse_radix(val.as_bytes(), 10) {
                     Ok(parsed) => Ok(Integer::from(parsed.complete())),
-                    Err(_) => Err(ObjectError::UnexpectedType(
-                        vec![
-                            String::from("Float"),
-                            String::from("Integer"),
-                            String::from("Fraction"),
-                            String::from("String (representing a number)"),
-                        ],
-                        String::from("String"),
-                    )),
+                    Err(_) => Err(ObjectError::ParseError(format!(
+                        "Cannot parse string \"{}\" as an integer",
+                        val
+                    ))),
                 }
             }
             obj => Err(ObjectError::UnexpectedType(
@@ -1413,6 +1408,7 @@ pub enum ObjectError {
     BadJSONParse(String),
     CastInfinityToInt,
     FailedAssertion(Option<String>),
+    ParseError(String),
     UnexpectedType(Vec<String>, String),
 }
 
