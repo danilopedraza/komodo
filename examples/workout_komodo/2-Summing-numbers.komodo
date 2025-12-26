@@ -8,8 +8,8 @@ let mysum([first|tail]) := first + mysum(tail)
 
 # Test cases
 assert(mysum([1, 2, 3]) = 6)
-println(mysum([]))
-println(mysum([10, 20, 30, 40, 50, 60]))
+assert(mysum([])= 0)
+println(mysum([10, 20, 30, 40, 50, 60]) = 210)
 
 
 # mysum([1, 2, 3])

@@ -16,7 +16,7 @@ let highORlowNumber(n: Integer ,number: Integer):=
 
 let correctNumber(s: String, number: Integer) :=
     case s = String(number)  do
-        true  => assert(false,println("Correct answer:" + String(s)))
+        true  => assert(false,println("Correct answer: " + String(s)))
         false => highORlowNumber( Integer(s),number)
 
 let guessinGame() :=
