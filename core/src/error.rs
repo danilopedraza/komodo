@@ -486,6 +486,7 @@ fn object_error_msg(err: &ObjectError) -> String {
         ObjectError::BadJSONParse(msg) => bad_json_parse(msg),
         ObjectError::CastInfinityToInt => "Cannot cast infinity to an integer".into(),
         ObjectError::FailedAssertion(opt_msg) => failed_assertion(opt_msg),
+        ObjectError::ParseError(msg) => msg.clone(),
         ObjectError::UnexpectedType(expected, actual) => unexpected_type(expected, actual),
     }
 }
