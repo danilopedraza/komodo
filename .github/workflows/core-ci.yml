@@ -81,11 +81,15 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           target: ${{ matrix.target }}
+      
+      - name: Setup Bencher
+        uses: bencherdev/bencher@v0.5.9
+
+      - name: Setup Hyperfine
+        uses: blacha/hyperfine-action@v1
 
       - name: Run benchmarks
         working-directory: ./core
-        uses: bencherdev/bencher@v0.5.9
-        uses: blacha/hyperfine-action@v1
         run: make second_to_last_push_hash=${{ vars.SECOND_TO_LAST_PUSH_HASH }} bench
         env:
           BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
