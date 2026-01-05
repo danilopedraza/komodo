@@ -19,6 +19,7 @@ pkgs.mkShell {
     wasm-bindgen-cli
     wasm-pack
     vsce
+    hyperfine
   ];
 
   shellHook = ''

@@ -1,3 +1,4 @@
 /target
 result
+results*.json
 .vscode
