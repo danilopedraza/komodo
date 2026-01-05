@@ -49,6 +49,54 @@ jobs:
         working-directory: ./core
         run: make test
   
+  bench:
+    name: benchmark
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      matrix:
+        toolchain: [stable]
+        target:
+          - x86_64-unknown-linux-gnu
+          # - x86_64-apple-darwin
+          # - aarch64-apple-darwin
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            cargo-tool: cargo
+          # - os: macos-13 # intel
+          #   target: x86_64-apple-darwin
+          #   cargo-tool: cargo
+          # - os: macos-latest # aarch64
+          #   target: aarch64-apple-darwin
+          #   cargo-tool: cargo
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        fetch-depth: 50
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          target: ${{ matrix.target }}
+
+      - name: Run benchmarks
+        working-directory: ./core
+        uses: bencherdev/bencher@v0.5.9
+        uses: blacha/hyperfine-action@v1
+        run: make second_to_last_push_hash=${{ vars.SECOND_TO_LAST_PUSH_HASH }} bench
+        env:
+          BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
+      
+      - name: Update SECOND_TO_LAST_PUSH_HASH variable
+        run: |
+            gh variable list
+            gh variable set SECOND_TO_LAST_PUSH_HASH --body $(git rev-parse HEAD)
+            gh variable list
+        env:
+          GH_TOKEN: ${{ secrets.REPO_VAR_PAT }}
+  
   # test-windows:
   #   runs-on: windows-latest
   #   timeout-minutes: 10
