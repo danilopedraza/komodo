@@ -82,11 +82,11 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           target: ${{ matrix.target }}
       
-      - name: Setup Bencher
+      - name: Install Bencher
         uses: bencherdev/bencher@v0.5.9
 
-      - name: Setup Hyperfine
-        uses: blacha/hyperfine-action@v1
+      - name: Install Hyperfine
+        run: sudo apt install -y hyperfine
 
       - name: Run benchmarks
         working-directory: ./core
