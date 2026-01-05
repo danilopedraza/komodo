@@ -1,10 +1,12 @@
 # Example of use:
 # BENCHER_API_TOKEN=<token> KOMODO_STD=$PWD/../std ./bench.sh $PWD/../bench 480c8d7a87199251658890d05ce65f6e075a05b6
 
-benchmarks_dir=$1
-last_push_hash=$2
+set -e
 
-git checkout $last_push_hash
+benchmarks_dir=$1
+second_to_last_push_hash=$2
+
+git checkout $second_to_last_push_hash
 
 cargo build --release
 
@@ -13,7 +15,7 @@ for file in $(find "$benchmarks_dir" -type f -name "*.komodo"); do
     bencher run \
     --project komodo \
     --branch main \
-    --hash $last_push_hash \
+    --hash $second_to_last_push_hash \
     --start-point main \
     --start-point-reset \
     --testbed ci-runner \
