@@ -13,6 +13,7 @@ cargo build --release
 echo "Running benchmarks..."
 for file in $(find "$benchmarks_dir" -type f -name "*.komodo"); do
     bencher run \
+    --token $BENCHER_API_TOKEN \
     --project komodo \
     --branch main \
     --hash $second_to_last_push_hash \
@@ -36,6 +37,7 @@ cargo build --release
 
 for file in $(find "$benchmarks_dir" -type f -name "*.komodo"); do
     bencher run \
+    --token $BENCHER_API_TOKEN \
     --project komodo \
     --branch main \
     --hash $(git rev-parse HEAD) \
