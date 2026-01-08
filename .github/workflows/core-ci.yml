@@ -94,8 +94,10 @@ jobs:
       
       - name: Update SECOND_TO_LAST_PUSH_HASH variable
         run: |
+            echo "Before:"
             gh variable list
             gh variable set SECOND_TO_LAST_PUSH_HASH --body $(git rev-parse HEAD)
+            echo "Now:"
             gh variable list
         env:
           GH_TOKEN: ${{ secrets.REPO_VAR_PAT }}
