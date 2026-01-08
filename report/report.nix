@@ -7,22 +7,22 @@ buildTypstDocument {
   name = "report";
   packagesRepo = builtins.fetchGit {
     url = "https://github.com/typst/packages";
-    rev = "d7cb4032b0e105504d5dc43a60220b132b3c83b7";
+    rev = "2cfc68ae23980f656c7971a53667c08e6a6c05df";
     # Use a recent typst packages commit
   };
 
   typstDependencies = [
     {
       name = "cetz";
-      version = "0.3.1";
+      version = "0.3.4";
     }
     {
       name = "chronos";
-      version = "0.2.0";
+      version = "0.2.1";
     }
     {
       name = "oxifmt";
-      version = "0.2.0";
+      version = "0.2.1";
     }
     {
       name = "simplebnf";
@@ -30,7 +30,7 @@ buildTypstDocument {
     }
     {
       name = "syntree";
-      version = "0.2.0";
+      version = "0.2.1";
     }
   ];
 }

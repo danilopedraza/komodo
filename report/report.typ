@@ -1,6 +1,6 @@
-#import "@preview/chronos:0.2.0"
+#import "@preview/chronos:0.2.1"
 #import "@preview/simplebnf:0.1.1": *
-#import "@preview/syntree:0.2.0": syntree
+#import "@preview/syntree:0.2.1": syntree
 
 
 #set par(justify: true)
