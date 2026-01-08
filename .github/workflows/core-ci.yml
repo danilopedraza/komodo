@@ -81,13 +81,11 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           target: ${{ matrix.target }}
-      
-      - name: Install Bencher
-        uses: bencherdev/bencher@v0.5.9
 
       - name: Install Hyperfine
         run: sudo apt install -y hyperfine
 
+      - uses: bencherdev/bencher@main
       - name: Run benchmarks
         working-directory: ./core
         run: make second_to_last_push_hash=${{ vars.SECOND_TO_LAST_PUSH_HASH }} bench
