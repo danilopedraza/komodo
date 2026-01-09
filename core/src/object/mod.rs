@@ -4,7 +4,7 @@ pub mod integer;
 
 use std::{
     cell::RefCell,
-    cmp::min,
+    cmp::{min, Ordering},
     collections::{
         btree_set::{IntoIter, Iter},
         BTreeMap, BTreeSet,
@@ -143,8 +143,12 @@ impl Object {
         Self::Boolean(Bool::from(false))
     }
 
-    pub fn from_fn(func: fn(&[Object]) -> Object, param_number: usize) -> Self {
-        Self::Function(Function::Extern(ExternFunction { func, param_number }))
+    pub fn from_fn(func: fn(&[Object]) -> Object, name: String, param_number: usize) -> Self {
+        Self::Function(Function::Extern(ExternFunction {
+            func,
+            name,
+            param_number,
+        }))
     }
 
     pub fn to_float(&self) -> Result<Float, ObjectError> {
@@ -1161,15 +1165,20 @@ impl AnonFunction {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Debug)]
 pub struct ExternFunction {
     func: fn(&[Object]) -> Object,
+    name: String,
     param_number: usize,
 }
 
 impl ExternFunction {
-    pub fn new(func: fn(&[Object]) -> Object, param_number: usize) -> Self {
-        Self { func, param_number }
+    pub fn new(func: fn(&[Object]) -> Object, name: String, param_number: usize) -> Self {
+        Self {
+            func,
+            name,
+            param_number,
+        }
     }
 
     fn call(
@@ -1185,6 +1194,36 @@ impl ExternFunction {
         self.param_number
     }
 }
+
+impl Hash for ExternFunction {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+        self.param_number.hash(state);
+    }
+}
+
+impl Ord for ExternFunction {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self.name.cmp(&other.name) {
+            std::cmp::Ordering::Equal => self.param_number.cmp(&other.param_number),
+            less_or_greater => less_or_greater,
+        }
+    }
+}
+
+impl PartialOrd for ExternFunction {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for ExternFunction {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl Eq for ExternFunction {}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct List {

@@ -127,8 +127,11 @@ fn stringify(args: &[Object]) -> Object {
 pub fn komodo_json(ctx: ExecContext) -> Environment {
     env_with(
         vec![
-            ("parse", Object::from_fn(parse, 1)),
-            ("stringify", Object::from_fn(stringify, 1)),
+            ("parse", Object::from_fn(parse, "parse".into(), 1)),
+            (
+                "stringify",
+                Object::from_fn(stringify, "stringify".into(), 1),
+            ),
         ],
         ctx,
     )

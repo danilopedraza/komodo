@@ -45,8 +45,8 @@ fn time(_args: &[Object]) -> Object {
 pub fn komodo_time(ctx: ExecContext) -> Environment {
     env_with(
         vec![
-            ("sleep", Object::from_fn(sleep, 1)),
-            ("time", Object::from_fn(time, 0)),
+            ("sleep", Object::from_fn(sleep, "sleep".into(), 1)),
+            ("time", Object::from_fn(time, "time".into(), 0)),
         ],
         ctx,
     )

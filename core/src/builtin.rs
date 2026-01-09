@@ -80,17 +80,20 @@ fn sorted(args: &[Object]) -> Object {
 pub fn standard_env(ctx: ExecContext) -> Environment {
     env_with(
         vec![
-            ("println", Object::from_fn(komodo_println, 1)),
-            ("print", Object::from_fn(komodo_print, 1)),
-            ("getln", Object::from_fn(komodo_getln, 0)),
-            ("assert", Object::from_fn(komodo_assert, 1)),
-            ("Integer", Object::from_fn(to_int, 1)),
-            ("Float", Object::from_fn(to_float, 1)),
-            ("List", Object::from_fn(to_list, 1)),
-            ("Set", Object::from_fn(to_set, 1)),
-            ("String", Object::from_fn(to_string, 1)),
-            ("len", Object::from_fn(len, 1)),
-            ("sorted", Object::from_fn(sorted, 1)),
+            (
+                "println",
+                Object::from_fn(komodo_println, "println".into(), 1),
+            ),
+            ("print", Object::from_fn(komodo_print, "print".into(), 1)),
+            ("getln", Object::from_fn(komodo_getln, "getln".into(), 0)),
+            ("assert", Object::from_fn(komodo_assert, "assert".into(), 1)),
+            ("Integer", Object::from_fn(to_int, "Integer".into(), 1)),
+            ("Float", Object::from_fn(to_float, "Float".into(), 1)),
+            ("List", Object::from_fn(to_list, "List".into(), 1)),
+            ("Set", Object::from_fn(to_set, "Set".into(), 1)),
+            ("String", Object::from_fn(to_string, "String".into(), 1)),
+            ("len", Object::from_fn(len, "len".into(), 1)),
+            ("sorted", Object::from_fn(sorted, "sorted".into(), 1)),
         ],
         ctx,
     )

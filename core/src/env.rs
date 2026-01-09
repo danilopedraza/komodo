@@ -59,7 +59,7 @@ impl Scope {
         }
     }
 
-    fn get(&mut self, name: &str) -> ScopeResponse {
+    fn get(&mut self, name: &str) -> ScopeResponse<'_> {
         match self.dict.get_mut(name) {
             Some((ValueKind::Inmutable, value, addr)) => ScopeResponse::Inmutable((value, *addr)),
             Some((ValueKind::Mutable, value, addr)) => ScopeResponse::Mutable((value, *addr)),

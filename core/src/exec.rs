@@ -1478,7 +1478,11 @@ mod tests {
         env.set_inmutable(
             "f",
             (
-                Object::Function(Function::Extern(ExternFunction::new(test, 1))),
+                Object::Function(Function::Extern(ExternFunction::new(
+                    test,
+                    "test".into(),
+                    1,
+                ))),
                 Address::default(),
             ),
         );
@@ -1945,7 +1949,7 @@ mod tests {
             Object::empty_tuple()
         }
 
-        let foo_obj = Object::Function(Function::Extern(ExternFunction::new(foo, 1)));
+        let foo_obj = Object::Function(Function::Extern(ExternFunction::new(foo, "foo".into(), 1)));
 
         let mut env = Environment::default();
 
