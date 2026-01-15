@@ -32,15 +32,27 @@ pub fn standard_env() -> Environment {
     let assets = vec![
         (
             "println",
-            Object::Function(Function::Extern(ExternFunction::new(komodo_println, 1))),
+            Object::Function(Function::Extern(ExternFunction::new(
+                komodo_println,
+                "println".into(),
+                1,
+            ))),
         ),
         (
             "getln",
-            Object::Function(Function::Extern(ExternFunction::new(komodo_getln, 0))),
+            Object::Function(Function::Extern(ExternFunction::new(
+                komodo_getln,
+                "getln".into(),
+                0,
+            ))),
         ),
         (
             "assert",
-            Object::Function(Function::Extern(ExternFunction::new(komodo_assert, 1))),
+            Object::Function(Function::Extern(ExternFunction::new(
+                komodo_assert,
+                "assert".into(),
+                1,
+            ))),
         ),
     ];
 
