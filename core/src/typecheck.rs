@@ -314,11 +314,28 @@ fn infer_if(
 }
 
 fn join(left: Type, right: Type) -> Type {
-    match left.partial_cmp(&right) {
-        Some(std::cmp::Ordering::Equal) => left,
-        Some(std::cmp::Ordering::Less) => right,
-        Some(std::cmp::Ordering::Greater) => left,
-        None => Type::Either(Either::new(left, right)),
+    match (left, right) {
+        (
+            Type::Function {
+                input: input1,
+                output: output1,
+            },
+            Type::Function {
+                input: input2,
+                output: output2,
+            },
+        ) => {
+            let input = Box::new(join(*input1, *input2));
+            let output = Box::new(join(*output1, *output2));
+
+            Type::Function { input, output }
+        }
+        (left, right) => match left.partial_cmp(&right) {
+            Some(std::cmp::Ordering::Less) => right,
+            Some(std::cmp::Ordering::Equal) => left,
+            Some(std::cmp::Ordering::Greater) => left,
+            None => Type::Either(Either::new(left, right)),
+        },
     }
 }
 
