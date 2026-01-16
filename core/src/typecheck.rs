@@ -222,7 +222,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
     match &val.kind {
         ASTNodeKind::Integer { .. } => Ok(Type::Integer),
         ASTNodeKind::Decimal { .. } => Ok(Type::Float),
-        ASTNodeKind::Assignment { .. } => todo!(),
+        ASTNodeKind::Assignment { left: _, right } => infer(right, env),
         ASTNodeKind::Boolean(_) => Ok(Type::Boolean),
         ASTNodeKind::Block(block) => infer_block(block, env),
         ASTNodeKind::Call { .. } => todo!(),
@@ -321,9 +321,9 @@ mod tests {
     use crate::{
         ast::{
             tests::{
-                _for, _if, block, boolean, char, comprehension, cons, dec_integer, decimal,
-                dictionary, extension_list, extension_set, fraction, import_from, prefix, set_cons,
-                string, symbol, tuple, wildcard,
+                _for, _if, assignable_pattern, assignment, block, boolean, char, comprehension,
+                cons, dec_integer, decimal, dictionary, extension_list, extension_set, fraction,
+                import_from, prefix, set_cons, string, symbol, symbol_pattern, tuple, wildcard,
             },
             ASTNode,
         },
@@ -626,6 +626,18 @@ mod tests {
             fresh_infer(&prefix(
                 crate::cst::PrefixOperator::BitwiseNot,
                 dec_integer("0", dummy_pos()),
+                dummy_pos()
+            )),
+            Ok(Type::Integer),
+        );
+    }
+
+    #[test]
+    fn infer_assignment() {
+        assert_eq!(
+            fresh_infer(&assignment(
+                assignable_pattern(symbol_pattern("x")),
+                dec_integer("10", dummy_pos()),
                 dummy_pos()
             )),
             Ok(Type::Integer),
