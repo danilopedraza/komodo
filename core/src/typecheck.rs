@@ -165,6 +165,14 @@ impl PartialOrd for Type {
                 (Some(std::cmp::Ordering::Equal), Some(std::cmp::Ordering::Equal)) => {
                     Some(std::cmp::Ordering::Equal)
                 }
+                (
+                    Some(std::cmp::Ordering::Equal | std::cmp::Ordering::Less),
+                    Some(std::cmp::Ordering::Equal | std::cmp::Ordering::Less),
+                ) => Some(std::cmp::Ordering::Less),
+                (
+                    Some(std::cmp::Ordering::Equal | std::cmp::Ordering::Greater),
+                    Some(std::cmp::Ordering::Equal | std::cmp::Ordering::Greater),
+                ) => Some(std::cmp::Ordering::Greater),
                 _ => None,
             },
             (Self::Tuple(left_tup), Self::Tuple(right_tup)) => {
