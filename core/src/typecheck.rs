@@ -155,6 +155,7 @@ impl PartialOrd for Type {
             (Self::List, Self::List) => Some(std::cmp::Ordering::Equal),
             (Self::Set, Self::Set) => Some(std::cmp::Ordering::Equal),
             (Self::String, Self::String) => Some(std::cmp::Ordering::Equal),
+            (Self::Unknown, Self::Unknown) => Some(std::cmp::Ordering::Equal),
             (
                 Self::Function { input, output },
                 Self::Function {
@@ -205,6 +206,8 @@ impl PartialOrd for Type {
                     None
                 }
             }
+            (_left, Self::Unknown) => Some(std::cmp::Ordering::Less),
+            (Self::Unknown, _right) => Some(std::cmp::Ordering::Greater),
             (_left, _right) => None,
         }
     }
