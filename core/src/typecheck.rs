@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, vec};
 
 use crate::{
     ast::{ASTNode, ASTNodeKind},
@@ -221,10 +221,14 @@ fn check(
 ) -> Result<Type, (TypeError, Position)> {
     let actual = infer(val, env)?;
 
+    check_type(actual, expected).map_err(|type_error| (type_error, val.position))
+}
+
+fn check_type(actual: Type, expected: Type) -> Result<Type, TypeError> {
     if actual <= expected {
         Ok(actual)
     } else {
-        Err((TypeError::TypeMismatch { expected, actual }, val.position))
+        Err(TypeError::TypeMismatch { expected, actual })
     }
 }
 
@@ -236,7 +240,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::Assignment { left: _, right } => infer(right, env),
         ASTNodeKind::Boolean(_) => Ok(Type::Boolean),
         ASTNodeKind::Block(block) => infer_block(block, env),
-        ASTNodeKind::Call { .. } => todo!(),
+        ASTNodeKind::Call { called, args } => infer_call(called, args, env),
         ASTNodeKind::Case { .. } => todo!(),
         ASTNodeKind::Char(_) => Ok(Type::Char),
         ASTNodeKind::Comprehension { kind, .. } => Ok(infer_comprehension(*kind)),
@@ -262,6 +266,40 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::String { .. } => Ok(Type::String),
         ASTNodeKind::Symbol { name } => infer_symbol(name, val.position, env),
         ASTNodeKind::Tuple { list } => infer_tuple(list, env),
+    }
+}
+
+fn infer_call(
+    called: &ASTNode,
+    args: &[ASTNode],
+    env: &mut SymbolTable,
+) -> Result<Type, (TypeError, Position)> {
+    let actual_input = Box::new(
+        args.first()
+            .map_or(Ok(Type::Tuple(vec![])), |typ| infer(typ, env))?,
+    );
+
+    match infer(called, env)? {
+        Type::Function {
+            input: expected_input,
+            output: expected_output,
+        } => {
+            check_type(*actual_input, *expected_input)
+                .map_err(|type_error| (type_error, called.position))?;
+            Ok(*expected_output)
+        }
+        typ => {
+            let actual = Type::Function {
+                input: actual_input,
+                output: Box::new(Type::Unknown),
+            };
+            let expected = typ;
+
+            Err((
+                TypeError::TypeMismatch { expected, actual },
+                called.position,
+            ))
+        }
     }
 }
 
@@ -349,9 +387,10 @@ mod tests {
     use crate::{
         ast::{
             tests::{
-                _for, _if, assignable_pattern, assignment, block, boolean, char, comprehension,
-                cons, dec_integer, decimal, dictionary, extension_list, extension_set, fraction,
-                import_from, prefix, set_cons, string, symbol, symbol_pattern, tuple, wildcard,
+                _for, _if, assignable_pattern, assignment, block, boolean, call, char,
+                comprehension, cons, dec_integer, decimal, dictionary, extension_list,
+                extension_set, fraction, import_from, prefix, set_cons, string, symbol,
+                symbol_pattern, tuple, wildcard,
             },
             ASTNode,
         },
@@ -669,6 +708,62 @@ mod tests {
                 dummy_pos()
             )),
             Ok(Type::Integer),
+        );
+    }
+
+    #[test]
+    fn infer_call() {
+        let mut env = SymbolTable::default();
+
+        env.set_type(
+            "foo",
+            Type::Function {
+                input: Box::new(Type::Integer),
+                output: Box::new(Type::Integer),
+            },
+        );
+
+        assert_eq!(
+            infer(
+                &call(
+                    symbol("foo", dummy_pos()),
+                    vec![dec_integer("1", dummy_pos())],
+                    dummy_pos()
+                ),
+                &mut env,
+            ),
+            Ok(Type::Integer),
+        );
+    }
+
+    #[test]
+    fn infer_call_type_mismatch() {
+        let mut env = SymbolTable::default();
+
+        env.set_type(
+            "foo",
+            Type::Function {
+                input: Box::new(Type::Integer),
+                output: Box::new(Type::Integer),
+            },
+        );
+
+        assert_eq!(
+            infer(
+                &call(
+                    symbol("foo", dummy_pos()),
+                    vec![boolean(true, dummy_pos())],
+                    dummy_pos()
+                ),
+                &mut env,
+            ),
+            Err((
+                TypeError::TypeMismatch {
+                    expected: Type::Integer,
+                    actual: Type::Boolean
+                },
+                dummy_pos()
+            )),
         );
     }
 }
