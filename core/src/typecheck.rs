@@ -344,7 +344,7 @@ fn infer_prefix(
 }
 
 fn infer_block(block: &[ASTNode], env: &mut SymbolTable) -> Result<Type, (TypeError, Position)> {
-    infer(block.last().unwrap(), env)
+    env.within_new_level(|env| infer(block.last().unwrap(), env))
 }
 
 fn infer_symbol(
