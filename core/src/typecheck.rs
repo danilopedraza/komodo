@@ -25,6 +25,13 @@ impl SymbolTable {
     pub fn get_type(&self, name: &str) -> Option<&Type> {
         self.stack.last().unwrap_or(&self.bottom).get_type(name)
     }
+
+    pub fn within_new_level<T, F: FnOnce(&mut Self) -> T>(&mut self, procedure: F) -> T {
+        self.stack.push(Level::default());
+        let res = procedure(self);
+        self.stack.pop();
+        res
+    }
 }
 
 #[derive(Debug, Default)]
@@ -250,7 +257,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::List { .. } => Ok(Type::List),
         ASTNodeKind::Set { .. } => Ok(Type::Set),
         ASTNodeKind::For { .. } => Ok(Type::Tuple(vec![])),
-        ASTNodeKind::Function { .. } => todo!(),
+        ASTNodeKind::Function { params, result } => infer_function(params, result, env),
         ASTNodeKind::Fraction { .. } => Ok(Type::Fraction),
         ASTNodeKind::If {
             cond,
@@ -267,6 +274,27 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::Symbol { name } => infer_symbol(name, val.position, env),
         ASTNodeKind::Tuple { list } => infer_tuple(list, env),
     }
+}
+
+fn infer_function(
+    params: &[String],
+    result: &ASTNode,
+    env: &mut SymbolTable,
+) -> Result<Type, (TypeError, Position)> {
+    let input = Box::new(if params.is_empty() {
+        Type::Tuple(vec![])
+    } else {
+        Type::Unknown
+    });
+    let output = Box::new(env.within_new_level(|env| {
+        for name in params {
+            env.set_type(name, Type::Unknown);
+        }
+
+        infer(result, env)
+    })?);
+
+    Ok(Type::Function { input, output })
 }
 
 fn infer_call(
@@ -389,7 +417,7 @@ mod tests {
             tests::{
                 _for, _if, assignable_pattern, assignment, block, boolean, call, char,
                 comprehension, cons, dec_integer, decimal, dictionary, extension_list,
-                extension_set, fraction, import_from, prefix, set_cons, string, symbol,
+                extension_set, fraction, function, import_from, prefix, set_cons, string, symbol,
                 symbol_pattern, tuple, wildcard,
             },
             ASTNode,
@@ -764,6 +792,17 @@ mod tests {
                 },
                 dummy_pos()
             )),
+        );
+    }
+
+    #[test]
+    fn infer_function() {
+        assert_eq!(
+            fresh_infer(&function(vec!["a"], symbol("a", dummy_pos()), dummy_pos())),
+            Ok(Type::Function {
+                input: Box::new(Type::Unknown),
+                output: Box::new(Type::Unknown)
+            }),
         );
     }
 }
