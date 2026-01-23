@@ -837,4 +837,17 @@ mod tests {
             Ok(Type::Either(Either::new(Type::Integer, Type::String)))
         );
     }
+
+    #[test]
+    #[ignore = "not yet implemented"]
+    fn infer_case_with_destructuring() {
+        assert_eq!(
+            fresh_infer(&case(
+                dec_integer("5", dummy_pos()),
+                vec![(symbol_pattern("foo"), symbol("foo", dummy_pos())),],
+                dummy_pos(),
+            )),
+            Ok(Type::Integer),
+        );
+    }
 }
