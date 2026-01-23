@@ -1,7 +1,7 @@
 use std::{collections::HashMap, vec};
 
 use crate::{
-    ast::{ASTNode, ASTNodeKind},
+    ast::{ASTNode, ASTNodeKind, Pattern},
     cst::{ComprehensionKind, PrefixOperator},
     error::Position,
 };
@@ -248,7 +248,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::Boolean(_) => Ok(Type::Boolean),
         ASTNodeKind::Block(block) => infer_block(block, env),
         ASTNodeKind::Call { called, args } => infer_call(called, args, env),
-        ASTNodeKind::Case { .. } => todo!(),
+        ASTNodeKind::Case { expr, pairs } => infer_case(expr, pairs, env),
         ASTNodeKind::Char(_) => Ok(Type::Char),
         ASTNodeKind::Comprehension { kind, .. } => Ok(infer_comprehension(*kind)),
         ASTNodeKind::DotNotation { .. } => Ok(Type::Unknown),
@@ -274,6 +274,23 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::Symbol { name } => infer_symbol(name, val.position, env),
         ASTNodeKind::Tuple { list } => infer_tuple(list, env),
     }
+}
+
+fn infer_case(
+    expr: &ASTNode,
+    pairs: &[(Pattern, ASTNode)],
+    env: &mut SymbolTable,
+) -> Result<Type, (TypeError, Position)> {
+    let _expr_type = infer(expr, env)?;
+
+    let mut outputs = pairs.iter().map(|(_, output)| output);
+
+    let mut result = infer(outputs.next().unwrap(), env)?;
+    for output in outputs {
+        result = join(result, infer(output, env)?);
+    }
+
+    Ok(result)
 }
 
 fn infer_function(
@@ -415,17 +432,17 @@ mod tests {
     use crate::{
         ast::{
             tests::{
-                _for, _if, assignable_pattern, assignment, block, boolean, call, char,
-                comprehension, cons, dec_integer, decimal, dictionary, extension_list,
-                extension_set, fraction, function, import_from, prefix, set_cons, string, symbol,
-                symbol_pattern, tuple, wildcard,
+                _for, _if, assignable_pattern, assignment, block, boolean, call, case, char,
+                comprehension, cons, dec_integer, dec_integer_pattern, decimal, dictionary,
+                extension_list, extension_set, fraction, function, import_from, prefix, set_cons,
+                string, string_pattern, symbol, symbol_pattern, tuple, wildcard,
             },
             ASTNode,
         },
         cst::{tests::dummy_pos, ComprehensionKind},
         error::Position,
         run::ModuleAddress,
-        typecheck::{check, infer, SymbolTable, Type, TypeError},
+        typecheck::{check, infer, Either, SymbolTable, Type, TypeError},
     };
 
     fn fresh_check(val: &ASTNode, expected: Type) -> Result<Type, (TypeError, Position)> {
@@ -803,6 +820,21 @@ mod tests {
                 input: Box::new(Type::Unknown),
                 output: Box::new(Type::Unknown)
             }),
+        );
+    }
+
+    #[test]
+    fn infer_case() {
+        assert_eq!(
+            fresh_infer(&case(
+                dec_integer("2", dummy_pos()),
+                vec![
+                    (dec_integer_pattern("1"), string("foo", dummy_pos())),
+                    (string_pattern("foo"), dec_integer("1", dummy_pos())),
+                ],
+                dummy_pos(),
+            )),
+            Ok(Type::Either(Either::new(Type::Integer, Type::String)))
         );
     }
 }
