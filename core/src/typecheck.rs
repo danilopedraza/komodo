@@ -1,7 +1,7 @@
 use std::{collections::HashMap, vec};
 
 use crate::{
-    ast::{ASTNode, ASTNodeKind, Pattern},
+    ast::{ASTNode, ASTNodeKind, InfixOperator, Pattern},
     cst::{ComprehensionKind, PrefixOperator},
     error::Position,
 };
@@ -128,6 +128,7 @@ enum Type {
     Fraction,
     Integer,
     List,
+    Range,
     Set,
     String,
     Function { input: Box<Type>, output: Box<Type> },
@@ -213,8 +214,8 @@ impl PartialOrd for Type {
                     None
                 }
             }
-            (_left, Self::Unknown) => Some(std::cmp::Ordering::Less),
-            (Self::Unknown, _right) => Some(std::cmp::Ordering::Greater),
+            (_left, Self::Unknown) => Some(std::cmp::Ordering::Greater),
+            (Self::Unknown, _right) => Some(std::cmp::Ordering::Less),
             (_left, _right) => None,
         }
     }
@@ -265,7 +266,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
             negative,
         } => infer_if(cond, positive, negative, env),
         ASTNodeKind::ImportFrom { .. } => Ok(Type::Tuple(vec![])),
-        ASTNodeKind::Infix { .. } => todo!(),
+        ASTNodeKind::Infix { op, lhs, rhs } => infer_infix(*op, lhs, rhs, env),
         ASTNodeKind::Declaration(_) => todo!(),
         ASTNodeKind::Prefix { op, val } => infer_prefix(*op, val, env),
         ASTNodeKind::Cons { .. } => Ok(Type::List),
@@ -273,6 +274,34 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::String { .. } => Ok(Type::String),
         ASTNodeKind::Symbol { name } => infer_symbol(name, val.position, env),
         ASTNodeKind::Tuple { list } => infer_tuple(list, env),
+    }
+}
+
+fn infer_infix(op: InfixOperator, lhs: &ASTNode, rhs: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Position)> {
+    let lhs_type = infer(lhs, env)?;
+    let rhs_type = infer(rhs, env)?;
+
+    match op {
+        InfixOperator::BitwiseAnd => todo!(),
+        InfixOperator::BitwiseXor => todo!(),
+        InfixOperator::Division => todo!(),
+        InfixOperator::Equality => Ok(Type::Boolean),
+        InfixOperator::Exponentiation => todo!(),
+        InfixOperator::Greater => todo!(),
+        InfixOperator::GreaterEqual => todo!(),
+        InfixOperator::In => todo!(),
+        InfixOperator::LeftShift => todo!(),
+        InfixOperator::Less => todo!(),
+        InfixOperator::LessEqual => todo!(),
+        InfixOperator::LogicAnd => todo!(),
+        InfixOperator::Or => todo!(),
+        InfixOperator::Rem => todo!(),
+        InfixOperator::NotEquality => Ok(Type::Boolean),
+        InfixOperator::Product => todo!(),
+        InfixOperator::Range => todo!(),
+        InfixOperator::RightShift => todo!(),
+        InfixOperator::Substraction => todo!(),
+        InfixOperator::Sum => todo!(),
     }
 }
 
