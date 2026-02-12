@@ -277,29 +277,62 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
     }
 }
 
-fn infer_infix(op: InfixOperator, lhs: &ASTNode, rhs: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Position)> {
-    let lhs_type = infer(lhs, env)?;
-    let rhs_type = infer(rhs, env)?;
+fn infer_infix(
+    op: InfixOperator,
+    lhs: &ASTNode,
+    rhs: &ASTNode,
+    env: &mut SymbolTable,
+) -> Result<Type, (TypeError, Position)> {
+    // let lhs_type = infer(lhs, env)?;
+    // let rhs_type = infer(rhs, env)?;
 
     match op {
-        InfixOperator::BitwiseAnd => todo!(),
-        InfixOperator::BitwiseXor => todo!(),
+        InfixOperator::BitwiseAnd => {
+            check(lhs, Type::Integer, env)?;
+            check(rhs, Type::Integer, env)?;
+            Ok(Type::Integer)
+        }
+        InfixOperator::BitwiseXor => {
+            check(lhs, Type::Integer, env)?;
+            check(rhs, Type::Integer, env)?;
+            Ok(Type::Integer)
+        }
         InfixOperator::Division => todo!(),
         InfixOperator::Equality => Ok(Type::Boolean),
         InfixOperator::Exponentiation => todo!(),
         InfixOperator::Greater => todo!(),
         InfixOperator::GreaterEqual => todo!(),
-        InfixOperator::In => todo!(),
-        InfixOperator::LeftShift => todo!(),
+        InfixOperator::In => {
+            infer(lhs, env)?;
+            check(rhs, Type::Either(Either::new(Type::List, Type::Set)), env)?;
+            Ok(Type::Boolean)
+        }
+        InfixOperator::LeftShift => Ok(Type::Integer),
         InfixOperator::Less => todo!(),
         InfixOperator::LessEqual => todo!(),
-        InfixOperator::LogicAnd => todo!(),
-        InfixOperator::Or => todo!(),
+        InfixOperator::LogicAnd => {
+            check(lhs, Type::Boolean, env)?;
+            check(rhs, Type::Boolean, env)?;
+            Ok(Type::Boolean)
+        }
+        InfixOperator::Or => {
+            check(lhs, Type::Boolean, env)?;
+            check(rhs, Type::Boolean, env)?;
+            Ok(Type::Boolean)
+        }
         InfixOperator::Rem => todo!(),
         InfixOperator::NotEquality => Ok(Type::Boolean),
         InfixOperator::Product => todo!(),
-        InfixOperator::Range => todo!(),
-        InfixOperator::RightShift => todo!(),
+        InfixOperator::Range => {
+            check(lhs, Type::Integer, env)?;
+            check(rhs, Type::Integer, env)?;
+            Ok(Type::Range)
+        }
+        InfixOperator::RightShift => {
+            check(lhs, Type::Integer, env)?;
+            check(rhs, Type::Integer, env)?;
+            Ok(Type::Integer)
+        }
         InfixOperator::Substraction => todo!(),
         InfixOperator::Sum => todo!(),
     }
