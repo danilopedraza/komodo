@@ -147,7 +147,7 @@ jobs:
       
       - name: Check formatting
         working-directory: ./core
-        run: make fmt
+        run: make fmt-check
 
   lint:
     name: lint

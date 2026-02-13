@@ -14,6 +14,9 @@ lint:
 	cargo clippy --all-targets --all-features
 
 fmt:
+	cargo fmt
+
+fmt-check:
 	cargo fmt --check
 
 repl:
