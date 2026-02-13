@@ -2126,4 +2126,33 @@ mod tests {
             ))),
         );
     }
+
+    #[test]
+    #[ignore = "not yet implemented"]
+    fn leftmost_currying() {
+        let input = "x -> y -> x + y";
+
+        let lexer = lexer_from(input);
+        let mut parser = Parser::from(lexer);
+
+        assert_eq!(
+            parser.next(),
+            Some(Ok(infix(
+                InfixOperator::Correspondence,
+                symbol("x", _pos(0, 1)),
+                infix(
+                    InfixOperator::Correspondence,
+                    symbol("y", _pos(5, 1)),
+                    infix(
+                        InfixOperator::Sum,
+                        symbol("x", _pos(10, 1)),
+                        symbol("y", _pos(14, 1)),
+                        _pos(10, 5),
+                    ),
+                    _pos(5, 15)
+                ),
+                _pos(0, 15),
+            ))),
+        );
+    }
 }
