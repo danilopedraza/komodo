@@ -9,8 +9,8 @@ use crate::{
 pub enum Precedence {
     Lowest,
     Assignment,
-    In,
     Correspondence,
+    In,
     Constraint,
     Range,
     LogicOr,

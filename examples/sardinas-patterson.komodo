@@ -34,7 +34,7 @@ let allDanglingSuffixes(codes) :=
 
 let isUniquelyDecodable(code) :=
     let suffixes := allDanglingSuffixes(code)
-    let intersection := code.filter(word -> (word in suffixes))
+    let intersection := code.filter(word -> word in suffixes)
     intersection = {}
 
 let code := {"ab", "cb", "abbc", "cbc", "abb"}
