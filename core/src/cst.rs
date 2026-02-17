@@ -28,6 +28,12 @@ pub enum Precedence {
     // Highest,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Associativity {
+    Left,
+    Right,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum InfixOperator {
     Assignment,
@@ -122,6 +128,38 @@ impl InfixOperator {
             Self::RightShift => Precedence::Shift,
             Self::Substraction => Precedence::Addition,
             Self::Sum => Precedence::Addition,
+        }
+    }
+
+    pub fn associativity(&self) -> Associativity {
+        match self {
+            InfixOperator::Assignment => Associativity::Right,
+            InfixOperator::BitwiseAnd => Associativity::Left,
+            InfixOperator::BitwiseXor => Associativity::Left,
+            InfixOperator::Call => Associativity::Left,
+            InfixOperator::Constraint => Associativity::Left,
+            InfixOperator::Correspondence => Associativity::Right,
+            InfixOperator::Division => Associativity::Left,
+            InfixOperator::Dot => Associativity::Right,
+            InfixOperator::Element => Associativity::Left,
+            InfixOperator::Equality => Associativity::Left,
+            InfixOperator::Exponentiation => Associativity::Right,
+            InfixOperator::Fraction => Associativity::Left,
+            InfixOperator::Greater => Associativity::Left,
+            InfixOperator::GreaterEqual => Associativity::Left,
+            InfixOperator::In => Associativity::Left,
+            InfixOperator::LeftShift => Associativity::Left,
+            InfixOperator::Less => Associativity::Left,
+            InfixOperator::LessEqual => Associativity::Left,
+            InfixOperator::LogicAnd => Associativity::Left,
+            InfixOperator::Or => Associativity::Left,
+            InfixOperator::Rem => Associativity::Left,
+            InfixOperator::NotEquality => Associativity::Left,
+            InfixOperator::Product => Associativity::Left,
+            InfixOperator::Range => Associativity::Left,
+            InfixOperator::RightShift => Associativity::Left,
+            InfixOperator::Substraction => Associativity::Left,
+            InfixOperator::Sum => Associativity::Left,
         }
     }
 }

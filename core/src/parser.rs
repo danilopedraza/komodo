@@ -178,11 +178,13 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         let mut expr = self.non_infix()?;
 
         while let Some(op) = self.current_infix() {
-            if precedence <= op.precedence() {
-                self.next_token()?;
-                expr = self.infix(expr, op, start)?;
-            } else {
-                break;
+            match (precedence.cmp(&op.precedence()), op.associativity()) {
+                (core::cmp::Ordering::Less, _)
+                | (core::cmp::Ordering::Equal, Associativity::Right) => {
+                    self.next_token()?;
+                    expr = self.infix(expr, op, start)?;
+                }
+                _ => break,
             }
         }
 
