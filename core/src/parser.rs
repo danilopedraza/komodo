@@ -178,7 +178,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         let mut expr = self.non_infix()?;
 
         while let Some(op) = self.current_infix() {
-            if precedence < op.precedence() {
+            if precedence <= op.precedence() {
                 self.next_token()?;
                 expr = self.infix(expr, op, start)?;
             } else {
@@ -2128,7 +2128,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn leftmost_currying() {
         let input = "x -> y -> x + y";
 
@@ -2149,7 +2148,7 @@ mod tests {
                         symbol("y", _pos(14, 1)),
                         _pos(10, 5),
                     ),
-                    _pos(5, 15)
+                    _pos(5, 10)
                 ),
                 _pos(0, 15),
             ))),
