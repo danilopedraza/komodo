@@ -55,6 +55,7 @@ nav {
 
 .nav-item {
   margin: 10px;
+  min-width: 50px;
 }
 
 header {
