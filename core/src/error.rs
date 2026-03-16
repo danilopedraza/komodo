@@ -486,9 +486,16 @@ fn object_error_msg(err: &ObjectError) -> String {
         ObjectError::BadJSONParse(msg) => bad_json_parse(msg),
         ObjectError::CastInfinityToInt => "Cannot cast infinity to an integer".into(),
         ObjectError::FailedAssertion(opt_msg) => failed_assertion(opt_msg),
+        ObjectError::FailedCast { from, to } => failed_cast(from, to),
         ObjectError::ParseError(msg) => msg.clone(),
         ObjectError::UnexpectedType(expected, actual) => unexpected_type(expected, actual),
     }
+}
+
+fn failed_cast(from: &str, to: &str) -> String {
+    format!(
+        "Could not cast from {from} to {to}. Check for overflows, underflows, or things like NaN"
+    )
 }
 
 fn bad_json_parse(msg: &str) -> String {

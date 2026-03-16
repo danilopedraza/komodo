@@ -5,7 +5,9 @@ use std::{
     time::Duration,
 };
 
-use rug::ops::{CompleteRound, Pow};
+use num_bigint::BigInt;
+use num_rational::BigRational;
+use num_traits::{Pow, ToPrimitive, Zero};
 
 use super::{integer::Integer, Bool, Fraction, InfixOperable, Object, ObjectError, PrefixOperable};
 
@@ -19,7 +21,7 @@ macro_rules! wrapper_fn {
 
 #[derive(Clone, Debug)]
 pub struct Float {
-    val: rug::Float,
+    val: f64,
 }
 
 pub static PREC: u32 = 53;
@@ -29,7 +31,7 @@ impl Float {
     }
 
     pub fn from_num_str(str: &str) -> Self {
-        rug::Float::parse(str).unwrap().complete(PREC).into()
+        str.parse::<f64>().unwrap().into()
     }
 
     pub fn is_zero(&self) -> bool {
@@ -47,28 +49,19 @@ impl Float {
     }
 
     pub fn hypot(self, other: Self) -> Self {
-        self.val.hypot(&other.into()).into()
+        self.val.hypot(other.into()).into()
     }
 
     pub fn floor(&self) -> Result<Integer, ObjectError> {
-        match self.val.to_integer_round(rug::float::Round::Down) {
-            Some(int) => Ok(int.0.into()),
-            None => Err(ObjectError::CastInfinityToInt),
-        }
+        Ok(self.val.floor().to_i64().unwrap().into())
     }
 
     pub fn ceil(&self) -> Result<Integer, ObjectError> {
-        match self.val.to_integer_round(rug::float::Round::Up) {
-            Some(int) => Ok(int.0.into()),
-            None => Err(ObjectError::CastInfinityToInt),
-        }
+        Ok(self.val.ceil().to_i64().unwrap().into())
     }
 
     pub fn round(&self) -> Result<Integer, ObjectError> {
-        match self.val.to_integer_round(rug::float::Round::Nearest) {
-            Some(int) => Ok(int.0.into()),
-            None => Err(ObjectError::CastInfinityToInt),
-        }
+        Ok(self.val.round().to_i64().unwrap().into())
     }
 
     wrapper_fn!(sin);
@@ -85,7 +78,7 @@ impl Float {
 
 impl Ord for Float {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.val.as_ord().cmp(other.val.as_ord())
+        self.val.total_cmp(&other.val)
     }
 }
 
@@ -97,7 +90,7 @@ impl PartialOrd for Float {
 
 impl PartialEq for Float {
     fn eq(&self, other: &Self) -> bool {
-        self.val.as_ord().eq(other.val.as_ord())
+        self.val.to_bits() == other.val.to_bits()
     }
 }
 
@@ -105,7 +98,7 @@ impl Eq for Float {}
 
 impl Hash for Float {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.val.as_ord().hash(state)
+        self.val.to_bits().hash(state);
     }
 }
 
@@ -114,7 +107,7 @@ impl Add for &Float {
 
     fn add(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: (&self.val + &rhs.val).complete(PREC),
+            val: self.val + rhs.val,
         }
     }
 }
@@ -124,7 +117,7 @@ impl Sub for &Float {
 
     fn sub(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: (&self.val - &rhs.val).complete(PREC),
+            val: self.val - rhs.val,
         }
     }
 }
@@ -134,7 +127,7 @@ impl Mul for &Float {
 
     fn mul(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: (&self.val * &rhs.val).complete(PREC),
+            val: self.val * rhs.val,
         }
     }
 }
@@ -144,7 +137,7 @@ impl Div for &Float {
 
     fn div(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: (&self.val / &rhs.val).complete(PREC),
+            val: self.val / rhs.val,
         }
     }
 }
@@ -164,52 +157,54 @@ impl Rem for &Float {
 
     fn rem(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: (&self.val % &rhs.val).complete(PREC),
+            val: self.val % rhs.val,
         }
     }
 }
 
 impl PrefixOperable for Float {
     fn inverse(&self) -> Option<Object> {
-        Some(Object::Float(Float::from((-&self.val).complete(PREC))))
+        Some(Object::Float(Float::from(-&self.val)))
     }
 }
 
-impl From<Float> for rug::Float {
+impl From<Float> for f64 {
     fn from(val: Float) -> Self {
         val.val
     }
 }
 
-impl From<&Integer> for Float {
-    fn from(value: &Integer) -> Self {
-        Self {
-            val: rug::Integer::from(value.to_owned()) + rug::Float::new(super::float::PREC),
-        }
+impl TryFrom<&Integer> for Float {
+    type Error = ObjectError;
+    fn try_from(value: &Integer) -> Result<Self, ObjectError> {
+        value
+            .try_into()
+            .map(|val| Self { val })
+            .map_err(|_| ObjectError::FailedCast {
+                from: "Integer".into(),
+                to: "Float".into(),
+            })
     }
 }
 
 impl From<f64> for Float {
-    fn from(value: f64) -> Self {
-        let mut val = rug::Float::new(PREC);
-        val += value;
-
+    fn from(val: f64) -> Self {
         Self { val }
     }
 }
 
 impl From<&Float> for Duration {
     fn from(value: &Float) -> Self {
-        Duration::from_secs_f64(value.val.to_f64())
+        Duration::from_secs_f64(value.val)
     }
 }
 
 impl From<&Fraction> for Float {
     fn from(frac: &Fraction) -> Self {
-        let frac = rug::Rational::from(frac.to_owned());
-        let mut val = rug::Float::new(PREC);
-        val += frac.numer().to_owned();
-        val /= frac.denom().to_owned();
+        let frac = BigRational::from(frac.to_owned());
+        let mut val = 0.0;
+        val += frac.numer().to_f64().unwrap();
+        val /= frac.denom().to_f64().unwrap();
 
         Self { val }
     }
@@ -218,13 +213,11 @@ impl From<&Fraction> for Float {
 impl InfixOperable for Float {
     fn sum(&self, other: &Object) -> Option<Object> {
         match other {
-            Object::Float(Float { val }) => {
-                Some(Object::Float(Float::from((&self.val + val).complete(PREC))))
+            Object::Float(Float { val }) => Some(Object::Float(Float::from(self.val + val))),
+            Object::Integer(val) => Some(Object::Float(self + &Float::try_from(val).ok()?)),
+            Object::Fraction(frac) => {
+                Some(Object::Float(Float::from(self.val + Float::from(frac).val)))
             }
-            Object::Integer(val) => Some(Object::Float(self + &Float::from(val))),
-            Object::Fraction(frac) => Some(Object::Float(Float::from(
-                &self.val + Float::from(frac).val,
-            ))),
             _ => None,
         }
     }
@@ -232,7 +225,7 @@ impl InfixOperable for Float {
     fn substraction(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Float(val) => Some(Object::Float(self - val)),
-            Object::Integer(val) => Some(Object::Float(self - &Float::from(val))),
+            Object::Integer(val) => Some(Object::Float(self - &Float::try_from(val).ok()?)),
             Object::Fraction(frac) => Some(Object::Float(self - &Float::from(frac))),
             _ => None,
         }
@@ -241,7 +234,7 @@ impl InfixOperable for Float {
     fn product(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Float(val) => Some(Object::Float(self * val)),
-            Object::Integer(val) => Some(Object::Float(self * &Float::from(val))),
+            Object::Integer(val) => Some(Object::Float(self * &Float::try_from(val).ok()?)),
             Object::Fraction(val) => Some(Object::Float(self * &Float::from(val))),
             _ => None,
         }
@@ -250,7 +243,7 @@ impl InfixOperable for Float {
     fn over(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Float(val) => Some(Object::Float(self / val)),
-            Object::Integer(val) => Some(Object::Float(self / &Float::from(val))),
+            Object::Integer(val) => Some(Object::Float(self / &Float::try_from(val).ok()?)),
             Object::Fraction(val) => Some(Object::Float(self / &Float::from(val))),
             _ => None,
         }
@@ -260,8 +253,7 @@ impl InfixOperable for Float {
         match other {
             Object::Integer(int) => Some(Object::Float(
                 (&self.val)
-                    .pow(<&rug::Integer>::from(int))
-                    .complete(PREC)
+                    .pow(i32::try_from(<&BigInt>::from(int)).unwrap())
                     .into(),
             )),
             _ => None,
@@ -271,7 +263,9 @@ impl InfixOperable for Float {
     fn greater(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Float(val) => Some(Object::Boolean(Bool::from(self > val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(self > &Float::from(val)))),
+            Object::Integer(val) => Some(Object::Boolean(Bool::from(
+                self > &Float::try_from(val).ok()?,
+            ))),
             Object::Fraction(val) => Some(Object::Boolean(Bool::from(self > &Float::from(val)))),
             _ => None,
         }
@@ -280,7 +274,9 @@ impl InfixOperable for Float {
     fn less(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Float(val) => Some(Object::Boolean(Bool::from(self < val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(self < &Float::from(val)))),
+            Object::Integer(val) => Some(Object::Boolean(Bool::from(
+                self < &Float::try_from(val).ok()?,
+            ))),
             Object::Fraction(val) => Some(Object::Boolean(Bool::from(self < &Float::from(val)))),
             _ => None,
         }
@@ -289,7 +285,9 @@ impl InfixOperable for Float {
     fn greater_equal(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Float(val) => Some(Object::Boolean(Bool::from(self >= val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(self >= &Float::from(val)))),
+            Object::Integer(val) => Some(Object::Boolean(Bool::from(
+                self >= &Float::try_from(val).ok()?,
+            ))),
             Object::Fraction(frac) => Some(Object::Boolean(Bool::from(
                 self.val >= Float::from(frac).val,
             ))),
@@ -300,7 +298,9 @@ impl InfixOperable for Float {
     fn less_equal(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Float(val) => Some(Object::Boolean(Bool::from(self <= val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(self <= &Float::from(val)))),
+            Object::Integer(val) => Some(Object::Boolean(Bool::from(
+                self <= &Float::try_from(val).ok()?,
+            ))),
             Object::Fraction(val) => Some(Object::Boolean(Bool::from(self <= &Float::from(val)))),
             _ => None,
         }
@@ -309,7 +309,9 @@ impl InfixOperable for Float {
     fn equality(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Float(val) => Some(Object::Boolean(Bool::from(self == val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(self == &Float::from(val)))),
+            Object::Integer(val) => Some(Object::Boolean(Bool::from(
+                self == &Float::try_from(val).ok()?,
+            ))),
             Object::Fraction(val) => Some(Object::Boolean(Bool::from(self == &Float::from(val)))),
             _ => Some(Object::Boolean(false.into())),
         }
@@ -318,7 +320,9 @@ impl InfixOperable for Float {
     fn neq(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Float(val) => Some(Object::Boolean(Bool::from(self != val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(self != &Float::from(val)))),
+            Object::Integer(val) => Some(Object::Boolean(Bool::from(
+                self != &Float::try_from(val).ok()?,
+            ))),
             Object::Fraction(frac) => Some(Object::Boolean(Bool::from(
                 self.val != Float::from(frac).val,
             ))),
@@ -329,7 +333,7 @@ impl InfixOperable for Float {
     fn rem(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Float(val) => Some(Object::Float(self % val)),
-            Object::Integer(val) => Some(Object::Float(self % &Float::from(val))),
+            Object::Integer(val) => Some(Object::Float(self % &Float::try_from(val).ok()?)),
             _ => None,
         }
     }
@@ -338,11 +342,5 @@ impl InfixOperable for Float {
 impl fmt::Display for Float {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.val.fmt(f)
-    }
-}
-
-impl From<rug::Float> for Float {
-    fn from(val: rug::Float) -> Self {
-        Self { val }
     }
 }

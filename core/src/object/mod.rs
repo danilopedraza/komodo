@@ -16,7 +16,7 @@ use std::{
     vec,
 };
 
-use rug::Complete;
+use num_bigint::BigInt;
 
 use float::Float;
 use fraction::Fraction;
@@ -154,7 +154,7 @@ impl Object {
     pub fn to_float(&self) -> Result<Float, ObjectError> {
         match self {
             Object::Float(num) => Ok(num.to_owned()),
-            Object::Integer(num) => Ok(num.into()),
+            Object::Integer(num) => num.try_into(),
             Object::Fraction(num) => Ok(num.into()),
             obj => Err(ObjectError::UnexpectedType(
                 vec![
@@ -172,15 +172,13 @@ impl Object {
             Object::Integer(num) => Ok(num.to_owned()),
             Object::Float(num) => num.floor(),
             Object::Fraction(num) => Ok(num.floor()),
-            Object::String(MyString { val }) => {
-                match rug::Integer::parse_radix(val.as_bytes(), 10) {
-                    Ok(parsed) => Ok(Integer::from(parsed.complete())),
-                    Err(_) => Err(ObjectError::ParseError(format!(
-                        "Cannot parse string \"{}\" as an integer",
-                        val
-                    ))),
-                }
-            }
+            Object::String(MyString { val }) => match BigInt::parse_bytes(val.as_bytes(), 10) {
+                Some(parsed) => Ok(Integer::from(parsed)),
+                None => Err(ObjectError::ParseError(format!(
+                    "Cannot parse string \"{}\" as an integer",
+                    val
+                ))),
+            },
             obj => Err(ObjectError::UnexpectedType(
                 vec![
                     String::from("Float"),
@@ -1447,6 +1445,7 @@ pub enum ObjectError {
     BadJSONParse(String),
     CastInfinityToInt,
     FailedAssertion(Option<String>),
+    FailedCast { from: String, to: String },
     ParseError(String),
     UnexpectedType(Vec<String>, String),
 }
@@ -1627,7 +1626,7 @@ mod tests {
 
         let c = a.pow(&b).unwrap().to_string();
 
-        assert_eq!(c, "25.000000000000000");
+        assert_eq!(c, "25");
     }
 
     #[test]
@@ -1635,9 +1634,11 @@ mod tests {
         let a = Object::Integer(Integer::new("10", Radix::Decimal));
         let b = a.inverse().unwrap();
 
+        println!("{a}, {b}");
+
         let c = a.pow(&b).unwrap().to_string();
 
-        assert_eq!(c, "1.0000000000000000e-10");
+        assert_eq!(c, "0.0000000001");
     }
 
     #[test]

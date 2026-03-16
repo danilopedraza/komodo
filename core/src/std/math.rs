@@ -31,7 +31,10 @@ fn log(args: &[Object]) -> Object {
     match args.get(1) {
         None => ln(args),
         Some(Object::Integer(base)) => match args[0].to_float() {
-            Ok(f) => Object::Float(f.ln() / Float::from(base).ln()),
+            Ok(f) => Float::try_from(base)
+                .map(|num| Object::Float(f.ln() / num.ln()))
+                .map_err(Object::from)
+                .unwrap_or_else(|e| e),
             Err(err) => err.into(),
         },
         Some(obj) => Object::Error(ObjectError::UnexpectedType(

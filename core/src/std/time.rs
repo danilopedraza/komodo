@@ -16,12 +16,14 @@ fn sleep(args: &[Object]) -> Object {
 
             Object::empty_tuple()
         }
-        Object::Integer(int) => {
-            let duration = Duration::from(&Float::from(int));
-            thread::sleep(duration);
-
-            Object::empty_tuple()
-        }
+        Object::Integer(int) => match Float::try_from(int) {
+            Ok(num) => {
+                let duration = Duration::from(&num);
+                thread::sleep(duration);
+                Object::empty_tuple()
+            }
+            Err(err) => err.into(),
+        },
         Object::Fraction(f) => {
             let duration = Duration::from(&Float::from(f));
             thread::sleep(duration);

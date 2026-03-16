@@ -3,24 +3,26 @@ use std::{
     ops::{Add, Div, Mul, Sub},
 };
 
-use rug::{ops::Pow, Complete, Rational};
+use num_bigint::BigInt;
+use num_rational::{BigRational, Ratio};
+use num_traits::{Pow, Signed, Zero};
 
 use super::{float::Float, integer::Integer, Bool, InfixOperable, Object, PrefixOperable};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Fraction {
-    val: Rational,
+    val: Ratio<BigInt>,
 }
 
 impl Fraction {
     pub fn _new(numer: i32, denom: i32) -> Self {
-        let val = Rational::from((numer, denom));
+        let val = Ratio::from((BigInt::from(numer), BigInt::from(denom)));
 
         Self { val }
     }
 
     pub fn new(numer: Integer, denom: Integer) -> Self {
-        let val = Rational::from((numer, denom));
+        let val = Ratio::from((numer.into(), denom.into()));
 
         Self { val }
     }
@@ -42,25 +44,25 @@ impl Fraction {
     }
 
     pub fn floor(&self) -> Integer {
-        self.val.clone().floor().into_numer_denom().0.into()
+        self.val.clone().floor().numer().to_owned().into()
     }
 
     pub fn ceil(&self) -> Integer {
-        self.val.clone().ceil().into_numer_denom().0.into()
+        self.val.clone().ceil().numer().to_owned().into()
     }
 
     pub fn round(&self) -> Integer {
-        self.val.clone().round().into_numer_denom().0.into()
+        self.val.clone().round().numer().to_owned().into()
     }
 }
 
-impl From<Rational> for Fraction {
-    fn from(val: Rational) -> Self {
+impl From<BigRational> for Fraction {
+    fn from(val: BigRational) -> Self {
         Self { val }
     }
 }
 
-impl From<Fraction> for Rational {
+impl From<Fraction> for BigRational {
     fn from(value: Fraction) -> Self {
         value.val
     }
@@ -69,7 +71,7 @@ impl From<Fraction> for Rational {
 impl From<&Integer> for Fraction {
     fn from(value: &Integer) -> Self {
         Self {
-            val: Rational::from(value.to_owned()),
+            val: BigRational::from(BigInt::from(value.to_owned())),
         }
     }
 }
@@ -79,7 +81,7 @@ impl Add for &Fraction {
 
     fn add(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: (&self.val + &rhs.val).complete(),
+            val: &self.val + &rhs.val,
         }
     }
 }
@@ -89,7 +91,7 @@ impl Sub for &Fraction {
 
     fn sub(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: (&self.val - &rhs.val).complete(),
+            val: &self.val - &rhs.val,
         }
     }
 }
@@ -99,7 +101,7 @@ impl Mul for &Fraction {
 
     fn mul(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: (&self.val * &rhs.val).complete(),
+            val: &self.val * &rhs.val,
         }
     }
 }
@@ -109,7 +111,7 @@ impl Div for &Fraction {
 
     fn div(self, rhs: Self) -> Self::Output {
         Self::Output {
-            val: (&self.val / &rhs.val).complete(),
+            val: &self.val / &rhs.val,
         }
     }
 }
@@ -118,7 +120,7 @@ impl InfixOperable for Fraction {
     fn sum(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Fraction(Fraction { val }) => Some(Object::Fraction(Fraction {
-                val: (&self.val + val).complete(),
+                val: &self.val + val,
             })),
             Object::Integer(val) => Some(Object::Fraction(self + &Fraction::from(val))),
             Object::Float(val) => Some(Object::Float(&Float::from(self) + val)),
