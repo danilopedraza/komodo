@@ -3,7 +3,7 @@
 ROOT_DIR = $(shell pwd)
 WEBSITE_DIR = $(ROOT_DIR)/site
 
-build: build-site build-core-wasm build-book build-installer build-report
+build: build-site build-book build-installer build-report
 
 build-installer:
 	cp $(ROOT_DIR)/installer/linux/install.sh $(WEBSITE_DIR)
@@ -15,7 +15,9 @@ build-core-wasm:
 build-report:
 	nix-build -A report && cp $(PWD)/result/report.pdf $(WEBSITE_DIR)
 
-build-site:
+build-site: build-landing-page build-playground
+
+build-landing-page:
 	mkdir -p $(WEBSITE_DIR)
 	cp $(ROOT_DIR)/website/index.html $(ROOT_DIR)/website/index.css $(WEBSITE_DIR)
 
