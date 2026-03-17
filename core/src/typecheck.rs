@@ -324,7 +324,11 @@ fn infer_infix(
             check(rhs, Type::Boolean, env)?;
             Ok(Type::Boolean)
         }
-        InfixOperator::Rem => todo!(),
+        InfixOperator::Rem => {
+            check(lhs, Type::Integer, env)?;
+            check(rhs, Type::Integer, env)?;
+            Ok(Type::Integer)
+        }
         InfixOperator::NotEquality => Ok(Type::Boolean),
         InfixOperator::Product => todo!(),
         InfixOperator::Range => {
