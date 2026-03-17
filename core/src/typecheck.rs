@@ -141,6 +141,10 @@ impl Type {
     fn any_number() -> Self {
         Self::Either((Self::Integer, Self::Float, vec![Self::Fraction]).into())
     }
+
+    fn empty_tuple() -> Self {
+        Self::Tuple(vec![])
+    }
 }
 
 impl PartialEq for Type {
@@ -257,7 +261,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::Dictionary { .. } => Ok(Type::Dictionary),
         ASTNodeKind::List { .. } => Ok(Type::List),
         ASTNodeKind::Set { .. } => Ok(Type::Set),
-        ASTNodeKind::For { .. } => Ok(Type::Tuple(vec![])),
+        ASTNodeKind::For { .. } => Ok(Type::empty_tuple()),
         ASTNodeKind::Function { params, result } => infer_function(params, result, env),
         ASTNodeKind::Fraction { .. } => Ok(Type::Fraction),
         ASTNodeKind::If {
@@ -265,7 +269,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
             positive,
             negative,
         } => infer_if(cond, positive, negative, env),
-        ASTNodeKind::ImportFrom { .. } => Ok(Type::Tuple(vec![])),
+        ASTNodeKind::ImportFrom { .. } => Ok(Type::empty_tuple()),
         ASTNodeKind::Infix { op, lhs, rhs } => infer_infix(*op, lhs, rhs, env),
         ASTNodeKind::Declaration(_) => todo!(),
         ASTNodeKind::Prefix { op, val } => infer_prefix(*op, val, env),
@@ -361,7 +365,7 @@ fn infer_function(
     env: &mut SymbolTable,
 ) -> Result<Type, (TypeError, Position)> {
     let input = Box::new(if params.is_empty() {
-        Type::Tuple(vec![])
+        Type::empty_tuple()
     } else {
         Type::Unknown
     });
@@ -383,7 +387,7 @@ fn infer_call(
 ) -> Result<Type, (TypeError, Position)> {
     let actual_input = Box::new(
         args.first()
-            .map_or(Ok(Type::Tuple(vec![])), |typ| infer(typ, env))?,
+            .map_or(Ok(Type::empty_tuple()), |typ| infer(typ, env))?,
     );
 
     match infer(called, env)? {
@@ -660,7 +664,7 @@ mod tests {
                 vec![tuple(vec![], dummy_pos())],
                 dummy_pos()
             )),
-            Ok(Type::Tuple(vec![])),
+            Ok(Type::empty_tuple()),
         );
     }
 
@@ -686,7 +690,7 @@ mod tests {
                 vec![],
                 dummy_pos()
             )),
-            Ok(Type::Tuple(vec![]))
+            Ok(Type::empty_tuple())
         );
     }
 
