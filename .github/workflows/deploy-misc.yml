@@ -1,4 +1,4 @@
-name: Deploy website and VSC extension
+name: Deploy
 
 on:
   push:
