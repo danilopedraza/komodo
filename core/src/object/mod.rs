@@ -1648,4 +1648,22 @@ mod tests {
 
         assert_eq!(a.rem(&b), Some(Object::Float(Float::new("0", "0"))));
     }
+
+    #[test]
+    fn string_to_int() {
+        let s = Object::String(MyString::from("42"));
+        assert_eq!(s.to_int(), Ok(Integer::from(42)));
+    }
+
+    #[test]
+    fn negative_string_to_int() {
+        let s = Object::String(MyString::from("-7"));
+        assert_eq!(s.to_int(), Ok(Integer::from(-7)));
+    }
+
+    #[test]
+    fn invalid_string_to_int() {
+        let s = Object::String(MyString::from("abc"));
+        assert!(s.to_int().is_err());
+    }
 }
