@@ -301,19 +301,52 @@ fn infer_infix(
             check(rhs, Type::Integer, env)?;
             Ok(Type::Integer)
         }
-        InfixOperator::Division => todo!(),
+        InfixOperator::Division => infer_generic_arithmetic_op(infer(lhs, env)?, infer(rhs, env)?)
+            .map_err(|err| (err, lhs.position.join(rhs.position))),
         InfixOperator::Equality => Ok(Type::Boolean),
         InfixOperator::Exponentiation => todo!(),
-        InfixOperator::Greater => todo!(),
-        InfixOperator::GreaterEqual => todo!(),
+        InfixOperator::Greater => match (infer(lhs, env)?, infer(rhs, env)?) {
+            (Type::Set, Type::Set) => Ok(Type::Boolean),
+            (lhs_type, rhs_type) => {
+                check_type(lhs_type, Type::any_number()).map_err(|err| (err, lhs.position))?;
+                check_type(rhs_type, Type::any_number()).map_err(|err| (err, rhs.position))?;
+                Ok(Type::Boolean)
+            }
+        },
+        InfixOperator::GreaterEqual => match (infer(lhs, env)?, infer(rhs, env)?) {
+            (Type::Set, Type::Set) => Ok(Type::Boolean),
+            (lhs_type, rhs_type) => {
+                check_type(lhs_type, Type::any_number()).map_err(|err| (err, lhs.position))?;
+                check_type(rhs_type, Type::any_number()).map_err(|err| (err, rhs.position))?;
+                Ok(Type::Boolean)
+            }
+        },
         InfixOperator::In => {
             infer(lhs, env)?;
             check(rhs, Type::Either(Either::new(Type::List, Type::Set)), env)?;
             Ok(Type::Boolean)
         }
-        InfixOperator::LeftShift => Ok(Type::Integer),
-        InfixOperator::Less => todo!(),
-        InfixOperator::LessEqual => todo!(),
+        InfixOperator::LeftShift => {
+            check(lhs, Type::Integer, env)?;
+            check(rhs, Type::Integer, env)?;
+            Ok(Type::Integer)
+        }
+        InfixOperator::Less => match (infer(lhs, env)?, infer(rhs, env)?) {
+            (Type::Set, Type::Set) => Ok(Type::Boolean),
+            (lhs_type, rhs_type) => {
+                check_type(lhs_type, Type::any_number()).map_err(|err| (err, lhs.position))?;
+                check_type(rhs_type, Type::any_number()).map_err(|err| (err, rhs.position))?;
+                Ok(Type::Boolean)
+            }
+        },
+        InfixOperator::LessEqual => match (infer(lhs, env)?, infer(rhs, env)?) {
+            (Type::Set, Type::Set) => Ok(Type::Boolean),
+            (lhs_type, rhs_type) => {
+                check_type(lhs_type, Type::any_number()).map_err(|err| (err, lhs.position))?;
+                check_type(rhs_type, Type::any_number()).map_err(|err| (err, rhs.position))?;
+                Ok(Type::Boolean)
+            }
+        },
         InfixOperator::LogicAnd => {
             check(lhs, Type::Boolean, env)?;
             check(rhs, Type::Boolean, env)?;
@@ -343,6 +376,27 @@ fn infer_infix(
         }
         InfixOperator::Substraction => todo!(),
         InfixOperator::Sum => todo!(),
+    }
+}
+
+fn infer_generic_arithmetic_op(lhs: Type, rhs: Type) -> Result<Type, TypeError> {
+    match (lhs, rhs) {
+        (Type::Integer, Type::Integer) => Ok(Type::Integer),
+        (Type::Integer, Type::Float) => Ok(Type::Float),
+        (Type::Integer, Type::Fraction) => Ok(Type::Fraction),
+        (Type::Float, Type::Integer) => Ok(Type::Float),
+        (Type::Float, Type::Float) => Ok(Type::Float),
+        (Type::Float, Type::Fraction) => Ok(Type::Float),
+        (Type::Fraction, Type::Integer) => Ok(Type::Fraction),
+        (Type::Fraction, Type::Float) => Ok(Type::Float),
+        (Type::Fraction, Type::Fraction) => Ok(Type::Fraction),
+        (lhs, rhs) => {
+            check_type(lhs, Type::any_number())?;
+            Err(TypeError::TypeMismatch {
+                expected: Type::any_number(),
+                actual: rhs,
+            })
+        }
     }
 }
 
