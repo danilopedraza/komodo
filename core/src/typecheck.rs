@@ -16,14 +16,16 @@ struct SymbolTable {
 #[allow(dead_code)]
 impl SymbolTable {
     pub fn set_type(&mut self, name: &str, typ: Type) {
-        self.stack
-            .last_mut()
-            .unwrap_or(&mut self.bottom)
-            .set_type(name, typ)
+        self.top_level_mut().set_type(name, typ)
     }
 
     pub fn get_type(&self, name: &str) -> Option<&Type> {
-        self.stack.last().unwrap_or(&self.bottom).get_type(name)
+        self.stack
+            .iter()
+            .rev()
+            .chain([&self.bottom])
+            .flat_map(|lvl| lvl.get_type(name))
+            .next()
     }
 
     pub fn within_new_level<T, F: FnOnce(&mut Self) -> T>(&mut self, procedure: F) -> T {
@@ -31,6 +33,14 @@ impl SymbolTable {
         let res = procedure(self);
         self.stack.pop();
         res
+    }
+
+    fn top_level(&self) -> &Level {
+        self.stack.last().unwrap_or(&self.bottom)
+    }
+
+    fn top_level_mut(&mut self) -> &mut Level {
+        self.stack.last_mut().unwrap_or(&mut self.bottom)
     }
 }
 
