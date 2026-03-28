@@ -62,6 +62,7 @@ impl Level {
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
 enum TypeError {
+    NonExistentInfix { lhs: Type, rhs: Type },
     TypeMismatch { expected: Type, actual: Type },
     UnknownSymbol { name: String },
 }
@@ -297,9 +298,6 @@ fn infer_infix(
     rhs: &ASTNode,
     env: &mut SymbolTable,
 ) -> Result<Type, (TypeError, Position)> {
-    // let lhs_type = infer(lhs, env)?;
-    // let rhs_type = infer(rhs, env)?;
-
     match op {
         InfixOperator::BitwiseAnd => {
             check(lhs, Type::Integer, env)?;
@@ -373,7 +371,16 @@ fn infer_infix(
             Ok(Type::Integer)
         }
         InfixOperator::NotEquality => Ok(Type::Boolean),
-        InfixOperator::Product => todo!(),
+        InfixOperator::Product => match (infer(lhs, env)?, infer(rhs, env)?) {
+            (Type::List, Type::Integer) => Ok(Type::List),
+            (Type::Integer, Type::List) => Ok(Type::List),
+            (Type::Char, Type::Integer) => Ok(Type::String),
+            (Type::Integer, Type::Char) => Ok(Type::String),
+            (Type::String, Type::Integer) => Ok(Type::String),
+            (Type::Integer, Type::String) => Ok(Type::String),
+            (lhs_type, rhs_type) => infer_generic_arithmetic_op(lhs_type, rhs_type)
+                .map_err(|err| (err, lhs.position.join(rhs.position))),
+        },
         InfixOperator::Range => {
             check(lhs, Type::Integer, env)?;
             check(rhs, Type::Integer, env)?;
@@ -384,8 +391,21 @@ fn infer_infix(
             check(rhs, Type::Integer, env)?;
             Ok(Type::Integer)
         }
-        InfixOperator::Substraction => todo!(),
-        InfixOperator::Sum => todo!(),
+        InfixOperator::Substraction => match (infer(lhs, env)?, infer(rhs, env)?) {
+            (Type::Set, Type::Set) => Ok(Type::Set),
+            (lhs_type, rhs_type) => infer_generic_arithmetic_op(lhs_type, rhs_type)
+                .map_err(|err| (err, lhs.position.join(rhs.position))),
+        },
+        InfixOperator::Sum => match (infer(lhs, env)?, infer(rhs, env)?) {
+            (Type::List, Type::List) => Ok(Type::List),
+            (Type::Set, Type::Set) => Ok(Type::Set),
+            (Type::String, Type::String) => Ok(Type::String),
+            (Type::Char, Type::Char) => Ok(Type::String),
+            (Type::String, Type::Char) => Ok(Type::String),
+            (Type::Char, Type::String) => Ok(Type::String),
+            (lhs_type, rhs_type) => infer_generic_arithmetic_op(lhs_type, rhs_type)
+                .map_err(|err| (err, lhs.position.join(rhs.position))),
+        },
     }
 }
 
@@ -400,13 +420,7 @@ fn infer_generic_arithmetic_op(lhs: Type, rhs: Type) -> Result<Type, TypeError> 
         (Type::Fraction, Type::Integer) => Ok(Type::Fraction),
         (Type::Fraction, Type::Float) => Ok(Type::Float),
         (Type::Fraction, Type::Fraction) => Ok(Type::Fraction),
-        (lhs, rhs) => {
-            check_type(lhs, Type::any_number())?;
-            Err(TypeError::TypeMismatch {
-                expected: Type::any_number(),
-                actual: rhs,
-            })
-        }
+        (lhs, rhs) => Err(TypeError::NonExistentInfix { lhs, rhs }),
     }
 }
 
