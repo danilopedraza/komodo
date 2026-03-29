@@ -1,4 +1,4 @@
-name: Deploy website and VSC extension
+name: Deploy
 
 on:
   push:
@@ -30,7 +30,7 @@ jobs:
           target: wasm32-unknown-unknown
       
       - name: Install `wasm-pack`
-        run: cargo install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: Build Site
         run: make build

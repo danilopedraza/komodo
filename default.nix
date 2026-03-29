@@ -7,13 +7,13 @@ let
   }) {};
 in
 {
-  book = pkgs.callPackage ./book/book.nix { };
+  book = pkgs.callPackage ./book { };
 
-  core = pkgs.callPackage ./core/core.nix {
+  core = pkgs.callPackage ./core {
     buildCargoPackage = naersk.buildPackage;
   };
 
-  report = pkgs.callPackage ./report/report.nix {
+  report = pkgs.callPackage ./report {
     buildTypstDocument = pkgs.callPackage ./report/build-typst-document.nix { };
   };
 }

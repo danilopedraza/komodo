@@ -16,14 +16,16 @@ struct SymbolTable {
 #[allow(dead_code)]
 impl SymbolTable {
     pub fn set_type(&mut self, name: &str, typ: Type) {
-        self.stack
-            .last_mut()
-            .unwrap_or(&mut self.bottom)
-            .set_type(name, typ)
+        self.top_level_mut().set_type(name, typ)
     }
 
     pub fn get_type(&self, name: &str) -> Option<&Type> {
-        self.stack.last().unwrap_or(&self.bottom).get_type(name)
+        self.stack
+            .iter()
+            .rev()
+            .chain([&self.bottom])
+            .flat_map(|lvl| lvl.get_type(name))
+            .next()
     }
 
     pub fn within_new_level<T, F: FnOnce(&mut Self) -> T>(&mut self, procedure: F) -> T {
@@ -31,6 +33,14 @@ impl SymbolTable {
         let res = procedure(self);
         self.stack.pop();
         res
+    }
+
+    fn top_level(&self) -> &Level {
+        self.stack.last().unwrap_or(&self.bottom)
+    }
+
+    fn top_level_mut(&mut self) -> &mut Level {
+        self.stack.last_mut().unwrap_or(&mut self.bottom)
     }
 }
 
@@ -140,6 +150,10 @@ enum Type {
 impl Type {
     fn any_number() -> Self {
         Self::Either((Self::Integer, Self::Float, vec![Self::Fraction]).into())
+    }
+
+    fn empty_tuple() -> Self {
+        Self::Tuple(vec![])
     }
 }
 
@@ -257,7 +271,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         ASTNodeKind::Dictionary { .. } => Ok(Type::Dictionary),
         ASTNodeKind::List { .. } => Ok(Type::List),
         ASTNodeKind::Set { .. } => Ok(Type::Set),
-        ASTNodeKind::For { .. } => Ok(Type::Tuple(vec![])),
+        ASTNodeKind::For { .. } => Ok(Type::empty_tuple()),
         ASTNodeKind::Function { params, result } => infer_function(params, result, env),
         ASTNodeKind::Fraction { .. } => Ok(Type::Fraction),
         ASTNodeKind::If {
@@ -265,7 +279,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
             positive,
             negative,
         } => infer_if(cond, positive, negative, env),
-        ASTNodeKind::ImportFrom { .. } => Ok(Type::Tuple(vec![])),
+        ASTNodeKind::ImportFrom { .. } => Ok(Type::empty_tuple()),
         ASTNodeKind::Infix { op, lhs, rhs } => infer_infix(*op, lhs, rhs, env),
         ASTNodeKind::Declaration(_) => todo!(),
         ASTNodeKind::Prefix { op, val } => infer_prefix(*op, val, env),
@@ -297,19 +311,52 @@ fn infer_infix(
             check(rhs, Type::Integer, env)?;
             Ok(Type::Integer)
         }
-        InfixOperator::Division => todo!(),
+        InfixOperator::Division => infer_generic_arithmetic_op(infer(lhs, env)?, infer(rhs, env)?)
+            .map_err(|err| (err, lhs.position.join(rhs.position))),
         InfixOperator::Equality => Ok(Type::Boolean),
         InfixOperator::Exponentiation => todo!(),
-        InfixOperator::Greater => todo!(),
-        InfixOperator::GreaterEqual => todo!(),
+        InfixOperator::Greater => match (infer(lhs, env)?, infer(rhs, env)?) {
+            (Type::Set, Type::Set) => Ok(Type::Boolean),
+            (lhs_type, rhs_type) => {
+                check_type(lhs_type, Type::any_number()).map_err(|err| (err, lhs.position))?;
+                check_type(rhs_type, Type::any_number()).map_err(|err| (err, rhs.position))?;
+                Ok(Type::Boolean)
+            }
+        },
+        InfixOperator::GreaterEqual => match (infer(lhs, env)?, infer(rhs, env)?) {
+            (Type::Set, Type::Set) => Ok(Type::Boolean),
+            (lhs_type, rhs_type) => {
+                check_type(lhs_type, Type::any_number()).map_err(|err| (err, lhs.position))?;
+                check_type(rhs_type, Type::any_number()).map_err(|err| (err, rhs.position))?;
+                Ok(Type::Boolean)
+            }
+        },
         InfixOperator::In => {
             infer(lhs, env)?;
             check(rhs, Type::Either(Either::new(Type::List, Type::Set)), env)?;
             Ok(Type::Boolean)
         }
-        InfixOperator::LeftShift => Ok(Type::Integer),
-        InfixOperator::Less => todo!(),
-        InfixOperator::LessEqual => todo!(),
+        InfixOperator::LeftShift => {
+            check(lhs, Type::Integer, env)?;
+            check(rhs, Type::Integer, env)?;
+            Ok(Type::Integer)
+        }
+        InfixOperator::Less => match (infer(lhs, env)?, infer(rhs, env)?) {
+            (Type::Set, Type::Set) => Ok(Type::Boolean),
+            (lhs_type, rhs_type) => {
+                check_type(lhs_type, Type::any_number()).map_err(|err| (err, lhs.position))?;
+                check_type(rhs_type, Type::any_number()).map_err(|err| (err, rhs.position))?;
+                Ok(Type::Boolean)
+            }
+        },
+        InfixOperator::LessEqual => match (infer(lhs, env)?, infer(rhs, env)?) {
+            (Type::Set, Type::Set) => Ok(Type::Boolean),
+            (lhs_type, rhs_type) => {
+                check_type(lhs_type, Type::any_number()).map_err(|err| (err, lhs.position))?;
+                check_type(rhs_type, Type::any_number()).map_err(|err| (err, rhs.position))?;
+                Ok(Type::Boolean)
+            }
+        },
         InfixOperator::LogicAnd => {
             check(lhs, Type::Boolean, env)?;
             check(rhs, Type::Boolean, env)?;
@@ -320,7 +367,11 @@ fn infer_infix(
             check(rhs, Type::Boolean, env)?;
             Ok(Type::Boolean)
         }
-        InfixOperator::Rem => todo!(),
+        InfixOperator::Rem => {
+            check(lhs, Type::Integer, env)?;
+            check(rhs, Type::Integer, env)?;
+            Ok(Type::Integer)
+        }
         InfixOperator::NotEquality => Ok(Type::Boolean),
         InfixOperator::Product => todo!(),
         InfixOperator::Range => {
@@ -335,6 +386,27 @@ fn infer_infix(
         }
         InfixOperator::Substraction => todo!(),
         InfixOperator::Sum => todo!(),
+    }
+}
+
+fn infer_generic_arithmetic_op(lhs: Type, rhs: Type) -> Result<Type, TypeError> {
+    match (lhs, rhs) {
+        (Type::Integer, Type::Integer) => Ok(Type::Integer),
+        (Type::Integer, Type::Float) => Ok(Type::Float),
+        (Type::Integer, Type::Fraction) => Ok(Type::Fraction),
+        (Type::Float, Type::Integer) => Ok(Type::Float),
+        (Type::Float, Type::Float) => Ok(Type::Float),
+        (Type::Float, Type::Fraction) => Ok(Type::Float),
+        (Type::Fraction, Type::Integer) => Ok(Type::Fraction),
+        (Type::Fraction, Type::Float) => Ok(Type::Float),
+        (Type::Fraction, Type::Fraction) => Ok(Type::Fraction),
+        (lhs, rhs) => {
+            check_type(lhs, Type::any_number())?;
+            Err(TypeError::TypeMismatch {
+                expected: Type::any_number(),
+                actual: rhs,
+            })
+        }
     }
 }
 
@@ -361,7 +433,7 @@ fn infer_function(
     env: &mut SymbolTable,
 ) -> Result<Type, (TypeError, Position)> {
     let input = Box::new(if params.is_empty() {
-        Type::Tuple(vec![])
+        Type::empty_tuple()
     } else {
         Type::Unknown
     });
@@ -383,7 +455,7 @@ fn infer_call(
 ) -> Result<Type, (TypeError, Position)> {
     let actual_input = Box::new(
         args.first()
-            .map_or(Ok(Type::Tuple(vec![])), |typ| infer(typ, env))?,
+            .map_or(Ok(Type::empty_tuple()), |typ| infer(typ, env))?,
     );
 
     match infer(called, env)? {
@@ -660,7 +732,7 @@ mod tests {
                 vec![tuple(vec![], dummy_pos())],
                 dummy_pos()
             )),
-            Ok(Type::Tuple(vec![])),
+            Ok(Type::empty_tuple()),
         );
     }
 
@@ -686,7 +758,7 @@ mod tests {
                 vec![],
                 dummy_pos()
             )),
-            Ok(Type::Tuple(vec![]))
+            Ok(Type::empty_tuple())
         );
     }
 
