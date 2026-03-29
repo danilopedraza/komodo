@@ -159,9 +159,10 @@ impl InfixOperable for Fraction {
         match other {
             Object::Integer(val) => {
                 let exponent = BigInt::from(val.to_owned());
-                Some(Object::Fraction(
-                    Fraction::from(Pow::pow(self.val.to_owned(), exponent)),
-                ))
+                Some(Object::Fraction(Fraction::from(Pow::pow(
+                    self.val.to_owned(),
+                    exponent,
+                ))))
             }
             _ => None,
         }

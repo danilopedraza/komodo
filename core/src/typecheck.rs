@@ -62,9 +62,18 @@ impl Level {
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
 enum TypeError {
-    NonExistentInfix { lhs: Type, rhs: Type },
-    TypeMismatch { expected: Type, actual: Type },
-    UnknownSymbol { name: String },
+    NonExistentInfix {
+        op: InfixOperator,
+        lhs_type: Type,
+        rhs_type: Type,
+    },
+    TypeMismatch {
+        expected: Type,
+        actual: Type,
+    },
+    UnknownSymbol {
+        name: String,
+    },
 }
 
 #[allow(dead_code)]
@@ -309,10 +318,26 @@ fn infer_infix(
             check(rhs, Type::Integer, env)?;
             Ok(Type::Integer)
         }
-        InfixOperator::Division => infer_generic_arithmetic_op(infer(lhs, env)?, infer(rhs, env)?)
-            .map_err(|err| (err, lhs.position.join(rhs.position))),
+        InfixOperator::Division => {
+            infer_generic_arithmetic_op(op, infer(lhs, env)?, infer(rhs, env)?)
+                .map_err(|err| (err, lhs.position.join(rhs.position)))
+        }
         InfixOperator::Equality => Ok(Type::Boolean),
-        InfixOperator::Exponentiation => todo!(),
+        InfixOperator::Exponentiation => match (infer(lhs, env)?, infer(rhs, env)?) {
+            (Type::Integer, Type::Integer) => {
+                Ok(Type::Either(Either::new(Type::Integer, Type::Float)))
+            }
+            (Type::Float, Type::Integer) => Ok(Type::Float),
+            (Type::Fraction, Type::Integer) => Ok(Type::Fraction),
+            (lhs_type, rhs_type) => Err((
+                TypeError::NonExistentInfix {
+                    op,
+                    lhs_type,
+                    rhs_type,
+                },
+                lhs.position.join(rhs.position),
+            )),
+        },
         InfixOperator::Greater => match (infer(lhs, env)?, infer(rhs, env)?) {
             (Type::Set, Type::Set) => Ok(Type::Boolean),
             (lhs_type, rhs_type) => {
@@ -378,7 +403,7 @@ fn infer_infix(
             (Type::Integer, Type::Char) => Ok(Type::String),
             (Type::String, Type::Integer) => Ok(Type::String),
             (Type::Integer, Type::String) => Ok(Type::String),
-            (lhs_type, rhs_type) => infer_generic_arithmetic_op(lhs_type, rhs_type)
+            (lhs_type, rhs_type) => infer_generic_arithmetic_op(op, lhs_type, rhs_type)
                 .map_err(|err| (err, lhs.position.join(rhs.position))),
         },
         InfixOperator::Range => {
@@ -393,7 +418,7 @@ fn infer_infix(
         }
         InfixOperator::Substraction => match (infer(lhs, env)?, infer(rhs, env)?) {
             (Type::Set, Type::Set) => Ok(Type::Set),
-            (lhs_type, rhs_type) => infer_generic_arithmetic_op(lhs_type, rhs_type)
+            (lhs_type, rhs_type) => infer_generic_arithmetic_op(op, lhs_type, rhs_type)
                 .map_err(|err| (err, lhs.position.join(rhs.position))),
         },
         InfixOperator::Sum => match (infer(lhs, env)?, infer(rhs, env)?) {
@@ -403,14 +428,18 @@ fn infer_infix(
             (Type::Char, Type::Char) => Ok(Type::String),
             (Type::String, Type::Char) => Ok(Type::String),
             (Type::Char, Type::String) => Ok(Type::String),
-            (lhs_type, rhs_type) => infer_generic_arithmetic_op(lhs_type, rhs_type)
+            (lhs_type, rhs_type) => infer_generic_arithmetic_op(op, lhs_type, rhs_type)
                 .map_err(|err| (err, lhs.position.join(rhs.position))),
         },
     }
 }
 
-fn infer_generic_arithmetic_op(lhs: Type, rhs: Type) -> Result<Type, TypeError> {
-    match (lhs, rhs) {
+fn infer_generic_arithmetic_op(
+    op: InfixOperator,
+    lhs_type: Type,
+    rhs_type: Type,
+) -> Result<Type, TypeError> {
+    match (lhs_type, rhs_type) {
         (Type::Integer, Type::Integer) => Ok(Type::Integer),
         (Type::Integer, Type::Float) => Ok(Type::Float),
         (Type::Integer, Type::Fraction) => Ok(Type::Fraction),
@@ -420,7 +449,11 @@ fn infer_generic_arithmetic_op(lhs: Type, rhs: Type) -> Result<Type, TypeError> 
         (Type::Fraction, Type::Integer) => Ok(Type::Fraction),
         (Type::Fraction, Type::Float) => Ok(Type::Float),
         (Type::Fraction, Type::Fraction) => Ok(Type::Fraction),
-        (lhs, rhs) => Err(TypeError::NonExistentInfix { lhs, rhs }),
+        (lhs_type, rhs_type) => Err(TypeError::NonExistentInfix {
+            op,
+            lhs_type,
+            rhs_type,
+        }),
     }
 }
 
