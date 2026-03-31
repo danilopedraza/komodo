@@ -446,7 +446,7 @@ fn infer_destructuring(
     err_pos: Position,
     env: &mut SymbolTable,
 ) -> Result<Type, (TypeError, Position)> {
-    let introduced_symbols = destructure(pattern, value, err_pos)?;
+    let introduced_symbols = destructure(pattern, value, err_pos, env)?;
 
     for (name, typ) in introduced_symbols {
         env.set_type(&name, typ);
@@ -533,9 +533,15 @@ fn destructure(
     pattern: &Pattern,
     value: &ASTNode,
     err_pos: Position,
+    env: &mut SymbolTable,
 ) -> Result<Vec<(String, Type)>, (TypeError, Position)> {
+    check(
+        value,
+        infer_pattern(pattern).map_err(|err| (err, err_pos))?,
+        env,
+    )?;
     let mut acc = vec![];
-    destructure_helper(pattern, value, &mut acc).map_err(|err| (err, err_pos))?;
+    destructure_helper(pattern, value, &mut acc, env).map_err(|err| (err, err_pos))?;
 
     Ok(acc)
 }
@@ -544,6 +550,7 @@ fn destructure_helper(
     pattern: &Pattern,
     _value: &ASTNode,
     acc: &mut Vec<(String, Type)>,
+    _env: &mut SymbolTable,
 ) -> Result<(), TypeError> {
     // TODO: actually contrast the pattern information with the value to destructure
     get_introduced_symbols_helper(pattern, acc)
