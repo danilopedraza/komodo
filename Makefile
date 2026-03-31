@@ -26,7 +26,7 @@ build-playground:
 	(cd $(ROOT_DIR)/core-browser && sh build.sh $(WEBSITE_DIR)/play)
 
 build-book:
-	nix-build -A book && cp -r $(PWD)/result/book $(PWD)/site/book
+	nix-build -A book && cp -r --no-preserve=mode $(PWD)/result/book $(PWD)/site/book
 
 test: test-core test-core-browser test-installer
 
