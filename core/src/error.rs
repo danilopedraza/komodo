@@ -307,10 +307,10 @@ fn weeder_error_msg(err: &WeederError) -> String {
         WeederError::BadPattern => {
             "The code here must be a pattern, and this is not a pattern".into()
         }
-        WeederError::BadSignature => unindent(
+        WeederError::BadTypeHint => unindent(
             "
-            The code here must be a signature.
-            A signature is a type name or type names separated by `||`.
+            The code here must be a type hint.
+            A type hint is a type name or type names separated by `||`.
             Replace this with an expression like that",
         ),
         WeederError::BadSymbolicDeclaration => {

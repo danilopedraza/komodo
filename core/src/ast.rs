@@ -251,7 +251,7 @@ pub enum Pattern {
     },
     Signature {
         pattern: Box<Pattern>,
-        constraint: Box<Pattern>,
+        constraint: TypeHint,
     },
     Either {
         lhs: Box<Pattern>,
@@ -259,6 +259,15 @@ pub enum Pattern {
     },
     Wildcard,
     AdInfinitum,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum TypeHint {
+    Simple(String),
+    Either {
+        lhs: Box<TypeHint>,
+        rhs: Box<TypeHint>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -340,6 +349,16 @@ pub mod tests {
     pub fn symbol_pattern(name: &str) -> Pattern {
         let name = name.to_string();
         Pattern::Symbol { name }
+    }
+
+    pub fn simple_type_hint(name: &str) -> TypeHint {
+        TypeHint::Simple(name.into())
+    }
+
+    pub fn either_type_hint(lhs: TypeHint, rhs: TypeHint) -> TypeHint {
+        let lhs = Box::new(lhs);
+        let rhs = Box::new(rhs);
+        TypeHint::Either { lhs, rhs }
     }
 
     pub fn dec_integer(dec: &str, position: Position) -> ASTNode {
@@ -514,9 +533,8 @@ pub mod tests {
         ASTNode::new(ASTNodeKind::Prefix { op, val }, position)
     }
 
-    pub fn signature_pattern(pattern: Pattern, constraint: Pattern) -> Pattern {
+    pub fn signature_pattern(pattern: Pattern, constraint: TypeHint) -> Pattern {
         let pattern = Box::new(pattern);
-        let constraint = Box::new(constraint);
 
         Pattern::Signature {
             pattern,

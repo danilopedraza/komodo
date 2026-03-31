@@ -11,7 +11,7 @@ use super::{float::Float, integer::Integer, Bool, InfixOperable, Object, PrefixO
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Fraction {
-    val: Ratio<BigInt>,
+    val: BigRational,
 }
 
 impl Fraction {
@@ -158,10 +158,11 @@ impl InfixOperable for Fraction {
     fn pow(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Integer(val) => {
-                let exponent: u32 = val.try_into().unwrap_or(u32::MAX);
-                Some(Object::Fraction(
-                    Pow::pow(self.val.to_owned(), exponent).into(),
-                ))
+                let exponent = BigInt::from(val.to_owned());
+                Some(Object::Fraction(Fraction::from(Pow::pow(
+                    self.val.to_owned(),
+                    exponent,
+                ))))
             }
             _ => None,
         }

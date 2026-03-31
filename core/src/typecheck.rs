@@ -1,7 +1,7 @@
-use std::{collections::HashMap, vec};
+use std::{collections::HashMap, ops::Deref, vec};
 
 use crate::{
-    ast::{ASTNode, ASTNodeKind, InfixOperator, Pattern},
+    ast::{ASTNode, ASTNodeKind, Constant, Declaration, InfixOperator, Pattern, TypeHint},
     cst::{ComprehensionKind, PrefixOperator},
     error::Position,
 };
@@ -62,8 +62,21 @@ impl Level {
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
 enum TypeError {
-    TypeMismatch { expected: Type, actual: Type },
-    UnknownSymbol { name: String },
+    NonExistentInfix {
+        op: InfixOperator,
+        lhs_type: Type,
+        rhs_type: Type,
+    },
+    TypeMismatch {
+        expected: Type,
+        actual: Type,
+    },
+    UnknownSymbol {
+        name: String,
+    },
+    UnknownType {
+        name: String,
+    },
 }
 
 #[allow(dead_code)]
@@ -281,7 +294,7 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
         } => infer_if(cond, positive, negative, env),
         ASTNodeKind::ImportFrom { .. } => Ok(Type::empty_tuple()),
         ASTNodeKind::Infix { op, lhs, rhs } => infer_infix(*op, lhs, rhs, env),
-        ASTNodeKind::Declaration(_) => todo!(),
+        ASTNodeKind::Declaration(declaration) => infer_declaration(declaration, val.position, env),
         ASTNodeKind::Prefix { op, val } => infer_prefix(*op, val, env),
         ASTNodeKind::Cons { .. } => Ok(Type::List),
         ASTNodeKind::SetCons { .. } => Ok(Type::Set),
@@ -291,15 +304,264 @@ fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Posit
     }
 }
 
+fn infer_declaration(
+    declaration: &Declaration,
+    position: Position,
+    env: &mut SymbolTable,
+) -> Result<Type, (TypeError, Position)> {
+    match declaration {
+        Declaration::Mutable { left, right } => infer_destructuring(left, right, position, env),
+        Declaration::Inmutable { left, right } => infer_destructuring(left, right, position, env),
+        Declaration::MemoizedFunction {
+            name,
+            params,
+            result,
+        } => infer_function_definition(name, params, result, position, env),
+        Declaration::Symbolic {
+            name: _,
+            constraint: _,
+        } => todo!(),
+        Declaration::Function {
+            name,
+            params,
+            result,
+        } => infer_function_definition(name, params, result, position, env),
+    }
+}
+
+fn infer_pattern_constant(constant: &Constant) -> Type {
+    match constant {
+        crate::ast::Constant::Boolean(_) => Type::Boolean,
+        crate::ast::Constant::Char(_) => Type::Char,
+        crate::ast::Constant::Decimal { .. } => Type::Float,
+        crate::ast::Constant::Dictionary { .. } => Type::Dictionary,
+        crate::ast::Constant::Integer { .. } => Type::Integer,
+        crate::ast::Constant::List { .. } => Type::List,
+        crate::ast::Constant::Set { .. } => Type::Set,
+        crate::ast::Constant::String { .. } => Type::String,
+        crate::ast::Constant::Tuple { list } => {
+            Type::Tuple(list.iter().map(infer_pattern_constant).collect())
+        }
+    }
+}
+
+fn infer_pattern(pattern: &Pattern) -> Result<Type, TypeError> {
+    match pattern {
+        Pattern::Constant(constant) => Ok(infer_pattern_constant(constant)),
+        Pattern::Dictionary { .. } => Ok(Type::Dictionary),
+        Pattern::List { .. } => Ok(Type::List),
+        Pattern::Set { .. } => Ok(Type::Set),
+        Pattern::ListCons { .. } => Ok(Type::List),
+        Pattern::SetCons { .. } => Ok(Type::Set),
+        Pattern::Symbol { .. } => todo!(),
+        Pattern::Tuple { list } => Ok(Type::Tuple(
+            list.iter().map(infer_pattern).collect::<Result<_, _>>()?,
+        )),
+        Pattern::Range { .. } => Ok(Type::Range),
+        Pattern::Fraction { .. } => Ok(Type::Fraction),
+        Pattern::Signature {
+            pattern,
+            constraint,
+        } => {
+            let pat_type = infer_pattern(pattern)?;
+
+            let constraint_type = type_from_type_hint(constraint)?;
+
+            check_type(pat_type, constraint_type)
+        }
+        Pattern::Either { lhs, rhs } => Ok(Type::Either(Either::new(
+            infer_pattern(lhs)?,
+            infer_pattern(rhs)?,
+        ))),
+        Pattern::Wildcard => Ok(Type::Unknown),
+        Pattern::AdInfinitum => Ok(Type::Unknown),
+    }
+}
+
+fn type_from_type_hint(type_hint: &TypeHint) -> Result<Type, TypeError> {
+    match type_hint {
+        TypeHint::Simple(typename) => lookup_type(typename),
+        TypeHint::Either { lhs, rhs } => Ok(Type::Either(Either::new(
+            type_from_type_hint(lhs)?,
+            type_from_type_hint(rhs)?,
+        ))),
+    }
+}
+
+fn lookup_type(typename: &str) -> Result<Type, TypeError> {
+    match typename {
+        "Boolean" => Ok(Type::Boolean),
+        "Char" => Ok(Type::Char),
+        "Dictionary" => Ok(Type::Dictionary),
+        "Float" => Ok(Type::Float),
+        "Fraction" => Ok(Type::Fraction),
+        "Integer" => Ok(Type::Integer),
+        "List" => Ok(Type::List),
+        "Range" => Ok(Type::Range),
+        "Set" => Ok(Type::Set),
+        "String" => Ok(Type::String),
+        "Function" => todo!(), // Ok(Type::Function { input, output }),
+        "Tuple" => todo!(),    // Ok(Type::Tuple(items)),
+        name => Err(TypeError::UnknownType {
+            name: name.to_string(),
+        }),
+    }
+}
+
+fn infer_function_definition(
+    name: &str,
+    params: &[Pattern],
+    result: &ASTNode,
+    err_pos: Position,
+    env: &mut SymbolTable,
+) -> Result<Type, (TypeError, Position)> {
+    let input_type = match params.first() {
+        None => Ok(Type::empty_tuple()),
+        Some(param) => infer_pattern(param).map_err(|err| (err, err_pos)),
+    }?;
+
+    let output_type = env.within_new_level(|env| {
+        for param in params {
+            let introduced_symbols = get_introduced_symbols(param, err_pos)?;
+            for (name, typ) in introduced_symbols {
+                env.set_type(&name, typ);
+            }
+        }
+        infer(result, env)
+    })?;
+
+    let input = Box::new(input_type);
+    let output = Box::new(output_type);
+
+    let res = Type::Function { input, output };
+
+    env.set_type(name, res.clone());
+
+    Ok(res)
+}
+
+fn infer_destructuring(
+    pattern: &Pattern,
+    value: &ASTNode,
+    err_pos: Position,
+    env: &mut SymbolTable,
+) -> Result<Type, (TypeError, Position)> {
+    let introduced_symbols = destructure(pattern, value, err_pos, env)?;
+
+    for (name, typ) in introduced_symbols {
+        env.set_type(&name, typ);
+    }
+
+    infer(value, env)
+}
+
+fn get_introduced_symbols(
+    pattern: &Pattern,
+    position: Position,
+) -> Result<Vec<(String, Type)>, (TypeError, Position)> {
+    let mut acc = vec![];
+    get_introduced_symbols_helper(pattern, &mut acc).map_err(|err| (err, position))?;
+
+    Ok(acc)
+}
+
+fn get_introduced_symbols_helper(
+    pattern: &Pattern,
+    acc: &mut Vec<(String, Type)>,
+) -> Result<(), TypeError> {
+    match pattern {
+        Pattern::Constant(_) => return Ok(()),
+        Pattern::Dictionary { pairs, complete: _ } => {
+            for (pattern1, pattern2) in pairs {
+                get_introduced_symbols_helper(pattern1, acc)?;
+                get_introduced_symbols_helper(pattern2, acc)?;
+            }
+        }
+        Pattern::List { list } => {
+            for pattern in list {
+                get_introduced_symbols_helper(pattern, acc)?;
+            }
+        }
+        Pattern::Set { list } => {
+            for pattern in list {
+                get_introduced_symbols_helper(pattern, acc)?;
+            }
+        }
+        Pattern::ListCons { first, tail } => {
+            get_introduced_symbols_helper(first, acc)?;
+            get_introduced_symbols_helper(tail, acc)?;
+        }
+        Pattern::SetCons { some, most } => {
+            get_introduced_symbols_helper(some, acc)?;
+            get_introduced_symbols_helper(most, acc)?;
+        }
+        Pattern::Symbol { name } => acc.push((name.to_string(), Type::Unknown)),
+        Pattern::Tuple { list } => {
+            for pattern in list {
+                get_introduced_symbols_helper(pattern, acc)?;
+            }
+        }
+        Pattern::Range { start, end } => {
+            get_introduced_symbols_helper(start, acc)?;
+            get_introduced_symbols_helper(end, acc)?;
+        }
+        Pattern::Fraction { numer, denom } => {
+            get_introduced_symbols_helper(numer, acc)?;
+            get_introduced_symbols_helper(denom, acc)?;
+        }
+        Pattern::Signature {
+            pattern,
+            constraint,
+        } => match pattern.deref() {
+            Pattern::Symbol { name } => {
+                acc.push((name.to_string(), type_from_type_hint(constraint)?));
+            }
+            pattern => get_introduced_symbols_helper(pattern, acc)?,
+        },
+        Pattern::Either { lhs, rhs } => {
+            get_introduced_symbols_helper(lhs, acc)?;
+            get_introduced_symbols_helper(rhs, acc)?;
+        }
+        Pattern::Wildcard => return Ok(()),
+        Pattern::AdInfinitum => return Ok(()),
+    };
+
+    Ok(())
+}
+
+fn destructure(
+    pattern: &Pattern,
+    value: &ASTNode,
+    err_pos: Position,
+    env: &mut SymbolTable,
+) -> Result<Vec<(String, Type)>, (TypeError, Position)> {
+    check(
+        value,
+        infer_pattern(pattern).map_err(|err| (err, err_pos))?,
+        env,
+    )?;
+    let mut acc = vec![];
+    destructure_helper(pattern, value, &mut acc, env).map_err(|err| (err, err_pos))?;
+
+    Ok(acc)
+}
+
+fn destructure_helper(
+    pattern: &Pattern,
+    _value: &ASTNode,
+    acc: &mut Vec<(String, Type)>,
+    _env: &mut SymbolTable,
+) -> Result<(), TypeError> {
+    // TODO: actually contrast the pattern information with the value to destructure
+    get_introduced_symbols_helper(pattern, acc)
+}
+
 fn infer_infix(
     op: InfixOperator,
     lhs: &ASTNode,
     rhs: &ASTNode,
     env: &mut SymbolTable,
 ) -> Result<Type, (TypeError, Position)> {
-    // let lhs_type = infer(lhs, env)?;
-    // let rhs_type = infer(rhs, env)?;
-
     match op {
         InfixOperator::BitwiseAnd => {
             check(lhs, Type::Integer, env)?;
@@ -311,10 +573,26 @@ fn infer_infix(
             check(rhs, Type::Integer, env)?;
             Ok(Type::Integer)
         }
-        InfixOperator::Division => infer_generic_arithmetic_op(infer(lhs, env)?, infer(rhs, env)?)
-            .map_err(|err| (err, lhs.position.join(rhs.position))),
+        InfixOperator::Division => {
+            infer_generic_arithmetic_op(op, infer(lhs, env)?, infer(rhs, env)?)
+                .map_err(|err| (err, lhs.position.join(rhs.position)))
+        }
         InfixOperator::Equality => Ok(Type::Boolean),
-        InfixOperator::Exponentiation => todo!(),
+        InfixOperator::Exponentiation => match (infer(lhs, env)?, infer(rhs, env)?) {
+            (Type::Integer, Type::Integer) => {
+                Ok(Type::Either(Either::new(Type::Integer, Type::Float)))
+            }
+            (Type::Float, Type::Integer) => Ok(Type::Float),
+            (Type::Fraction, Type::Integer) => Ok(Type::Fraction),
+            (lhs_type, rhs_type) => Err((
+                TypeError::NonExistentInfix {
+                    op,
+                    lhs_type,
+                    rhs_type,
+                },
+                lhs.position.join(rhs.position),
+            )),
+        },
         InfixOperator::Greater => match (infer(lhs, env)?, infer(rhs, env)?) {
             (Type::Set, Type::Set) => Ok(Type::Boolean),
             (lhs_type, rhs_type) => {
@@ -373,7 +651,16 @@ fn infer_infix(
             Ok(Type::Integer)
         }
         InfixOperator::NotEquality => Ok(Type::Boolean),
-        InfixOperator::Product => todo!(),
+        InfixOperator::Product => match (infer(lhs, env)?, infer(rhs, env)?) {
+            (Type::List, Type::Integer) => Ok(Type::List),
+            (Type::Integer, Type::List) => Ok(Type::List),
+            (Type::Char, Type::Integer) => Ok(Type::String),
+            (Type::Integer, Type::Char) => Ok(Type::String),
+            (Type::String, Type::Integer) => Ok(Type::String),
+            (Type::Integer, Type::String) => Ok(Type::String),
+            (lhs_type, rhs_type) => infer_generic_arithmetic_op(op, lhs_type, rhs_type)
+                .map_err(|err| (err, lhs.position.join(rhs.position))),
+        },
         InfixOperator::Range => {
             check(lhs, Type::Integer, env)?;
             check(rhs, Type::Integer, env)?;
@@ -384,13 +671,30 @@ fn infer_infix(
             check(rhs, Type::Integer, env)?;
             Ok(Type::Integer)
         }
-        InfixOperator::Substraction => todo!(),
-        InfixOperator::Sum => todo!(),
+        InfixOperator::Substraction => match (infer(lhs, env)?, infer(rhs, env)?) {
+            (Type::Set, Type::Set) => Ok(Type::Set),
+            (lhs_type, rhs_type) => infer_generic_arithmetic_op(op, lhs_type, rhs_type)
+                .map_err(|err| (err, lhs.position.join(rhs.position))),
+        },
+        InfixOperator::Sum => match (infer(lhs, env)?, infer(rhs, env)?) {
+            (Type::List, Type::List) => Ok(Type::List),
+            (Type::Set, Type::Set) => Ok(Type::Set),
+            (Type::String, Type::String) => Ok(Type::String),
+            (Type::Char, Type::Char) => Ok(Type::String),
+            (Type::String, Type::Char) => Ok(Type::String),
+            (Type::Char, Type::String) => Ok(Type::String),
+            (lhs_type, rhs_type) => infer_generic_arithmetic_op(op, lhs_type, rhs_type)
+                .map_err(|err| (err, lhs.position.join(rhs.position))),
+        },
     }
 }
 
-fn infer_generic_arithmetic_op(lhs: Type, rhs: Type) -> Result<Type, TypeError> {
-    match (lhs, rhs) {
+fn infer_generic_arithmetic_op(
+    op: InfixOperator,
+    lhs_type: Type,
+    rhs_type: Type,
+) -> Result<Type, TypeError> {
+    match (lhs_type, rhs_type) {
         (Type::Integer, Type::Integer) => Ok(Type::Integer),
         (Type::Integer, Type::Float) => Ok(Type::Float),
         (Type::Integer, Type::Fraction) => Ok(Type::Fraction),
@@ -400,13 +704,11 @@ fn infer_generic_arithmetic_op(lhs: Type, rhs: Type) -> Result<Type, TypeError> 
         (Type::Fraction, Type::Integer) => Ok(Type::Fraction),
         (Type::Fraction, Type::Float) => Ok(Type::Float),
         (Type::Fraction, Type::Fraction) => Ok(Type::Fraction),
-        (lhs, rhs) => {
-            check_type(lhs, Type::any_number())?;
-            Err(TypeError::TypeMismatch {
-                expected: Type::any_number(),
-                actual: rhs,
-            })
-        }
+        (lhs_type, rhs_type) => Err(TypeError::NonExistentInfix {
+            op,
+            lhs_type,
+            rhs_type,
+        }),
     }
 }
 

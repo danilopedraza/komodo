@@ -306,7 +306,7 @@ impl InfixOperable for Integer {
     fn pow(&self, other: &Object) -> Option<Object> {
         match other {
             Object::Integer(int) => {
-                let exponent = int.val.abs().to_biguint().unwrap();
+                let (_, exponent) = int.val.to_owned().into_parts();
                 if int.val.is_negative() {
                     let inverse = Pow::pow(self.val.clone(), exponent);
                     let val = Float::try_from(&Integer::from(inverse)).ok()?.inv();

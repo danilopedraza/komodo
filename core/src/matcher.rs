@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, iter::zip};
 
 use crate::{
-    ast::{Constant, Pattern},
+    ast::{Constant, Pattern, TypeHint},
     env::Address,
     exec::eval_constant,
     object::{Dictionary, List, Object, Tuple},
@@ -61,11 +61,10 @@ fn match_sequence(patterns: &[Pattern], vals: &[Object]) -> Option<Match> {
     }
 }
 
-fn satisfies(obj: &Object, constraint: &Pattern) -> bool {
+fn satisfies(obj: &Object, constraint: &TypeHint) -> bool {
     match constraint {
-        Pattern::Symbol { name } => obj.has_property(name),
-        Pattern::Either { lhs, rhs } => satisfies(obj, lhs) || satisfies(obj, rhs),
-        _ => false,
+        TypeHint::Simple(name) => obj.has_property(name),
+        TypeHint::Either { lhs, rhs } => satisfies(obj, lhs) || satisfies(obj, rhs),
     }
 }
 
@@ -95,7 +94,7 @@ fn match_either(lhs: &Pattern, rhs: &Pattern, val: &Object) -> Option<Match> {
     match_(lhs, val).or_else(|| match_(rhs, val))
 }
 
-fn match_signature(pattern: &Pattern, constraint: &Pattern, val: &Object) -> Option<Match> {
+fn match_signature(pattern: &Pattern, constraint: &TypeHint, val: &Object) -> Option<Match> {
     if satisfies(val, constraint) {
         match_(pattern, val)
     } else {
@@ -287,8 +286,9 @@ mod tests {
     use crate::{
         ast::tests::{
             ad_infinitum, cons_pattern, dec_integer_pattern, dictionary_pattern, either_pattern,
-            fraction_pattern, list_pattern, range_pattern, set_cons_pattern, set_pattern,
-            signature_pattern, string_pattern, symbol_pattern, wildcard,
+            either_type_hint, fraction_pattern, list_pattern, range_pattern, set_cons_pattern,
+            set_pattern, signature_pattern, simple_type_hint, string_pattern, symbol_pattern,
+            wildcard,
         },
         env::Address,
         object::{fraction::Fraction, integer::Integer, Dictionary, Range, Set, Symbol},
@@ -497,7 +497,7 @@ mod tests {
 
     #[test]
     fn match_property() {
-        let pattern = signature_pattern(wildcard(), symbol_pattern("String"));
+        let pattern = signature_pattern(wildcard(), simple_type_hint("String"));
 
         let value = Object::String("".into());
 
@@ -506,7 +506,7 @@ mod tests {
 
     #[test]
     fn unsatisfied_constraint() {
-        let pattern = signature_pattern(wildcard(), symbol_pattern("String"));
+        let pattern = signature_pattern(wildcard(), simple_type_hint("String"));
 
         let value = Object::Integer(0.into());
 
@@ -515,7 +515,7 @@ mod tests {
 
     #[test]
     fn symbol_with_property() {
-        let pattern = signature_pattern(symbol_pattern("a"), symbol_pattern("Real"));
+        let pattern = signature_pattern(symbol_pattern("a"), simple_type_hint("Real"));
 
         let value = Object::Symbol(Symbol::new("a".into(), "Real".into()));
 
@@ -544,7 +544,7 @@ mod tests {
     fn signature_conjunction() {
         let pattern = signature_pattern(
             symbol_pattern("n"),
-            either_pattern(symbol_pattern("Float"), symbol_pattern("Integer")),
+            either_type_hint(simple_type_hint("Float"), simple_type_hint("Integer")),
         );
 
         let value = Object::Integer(0.into());
