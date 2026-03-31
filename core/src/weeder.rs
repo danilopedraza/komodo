@@ -1,5 +1,5 @@
 use crate::{
-    ast::{self, ASTNode, ASTNodeKind, AssignableSymbol, Constant, Declaration, Pattern},
+    ast::{self, ASTNode, ASTNodeKind, AssignableSymbol, Constant, Declaration, Pattern, TypeHint},
     cst::{
         CSTNode, CSTNodeKind, ComprehensionKind, DeclarationKind, InfixOperator, PrefixOperator,
     },
@@ -19,7 +19,7 @@ pub enum WeederError {
     BadImportSymbol,
     BadInfixPattern,
     BadPattern,
-    BadSignature,
+    BadTypeHint,
     BadSymbolicDeclaration,
     BadSymbolInImportTuple,
     BadAnonFunctionLHS,
@@ -152,7 +152,7 @@ fn dictionary_pattern(pairs: Vec<(CSTNode, CSTNode)>, complete: bool) -> WeederR
 
 fn tagged_expression_pattern(exp: CSTNode, constraint: CSTNode) -> WeederResult<Pattern> {
     let pattern = Box::new(rewrite_pattern(exp)?);
-    let constraint = Box::new(rewrite_signature(constraint)?);
+    let constraint = rewrite_type_hint(constraint)?;
 
     Ok(Pattern::Signature {
         pattern,
@@ -160,16 +160,16 @@ fn tagged_expression_pattern(exp: CSTNode, constraint: CSTNode) -> WeederResult<
     })
 }
 
-fn rewrite_signature(signature: CSTNode) -> WeederResult<Pattern> {
-    match signature.kind {
-        CSTNodeKind::Symbol(name) => Ok(symbol_pattern(name)),
+fn rewrite_type_hint(type_hint: CSTNode) -> WeederResult<TypeHint> {
+    match type_hint.kind {
+        CSTNodeKind::Symbol(name) => Ok(TypeHint::Simple(name)),
         CSTNodeKind::Infix(InfixOperator::Or, lhs, rhs) => {
-            let lhs = Box::new(rewrite_signature(*lhs)?);
-            let rhs = Box::new(rewrite_signature(*rhs)?);
+            let lhs = Box::new(rewrite_type_hint(*lhs)?);
+            let rhs = Box::new(rewrite_type_hint(*rhs)?);
 
-            Ok(Pattern::Either { lhs, rhs })
+            Ok(TypeHint::Either { lhs, rhs })
         }
-        _ => Err((WeederError::BadSignature, signature.position)),
+        _ => Err((WeederError::BadTypeHint, type_hint.position)),
     }
 }
 
