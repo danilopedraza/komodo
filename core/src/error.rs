@@ -17,6 +17,7 @@ use crate::{
     object::ObjectError,
     parser::ParserError,
     run::ImportError,
+    typecheck::TypeError,
     weeder::WeederError,
 };
 
@@ -94,6 +95,7 @@ pub enum ErrorKind {
     Lexer(LexerError),
     Parser(ParserError),
     Weeder(WeederError),
+    Type(TypeError),
     Exec(ExecError),
     Import(ImportError),
     Object(ObjectError),
@@ -114,6 +116,12 @@ impl From<ParserError> for ErrorKind {
 impl From<WeederError> for ErrorKind {
     fn from(err: WeederError) -> Self {
         Self::Weeder(err)
+    }
+}
+
+impl From<TypeError> for ErrorKind {
+    fn from(err: TypeError) -> Self {
+        Self::Type(err)
     }
 }
 
@@ -159,6 +167,7 @@ pub fn error_msg(err: &ErrorKind) -> String {
         ErrorKind::Lexer(err) => lexer_error_msg(err),
         ErrorKind::Parser(err) => parser_error_msg(err),
         ErrorKind::Weeder(err) => weeder_error_msg(err),
+        ErrorKind::Type(err) => type_error_msg(err),
         ErrorKind::Exec(err) => exec_error_msg(err),
         ErrorKind::Import(err) => import_error_msg(err),
         ErrorKind::Object(err) => object_error_msg(err),
@@ -344,6 +353,27 @@ fn weeder_error_msg(err: &WeederError) -> String {
         }
         WeederError::WildcardAsExpression => {
             "The wildcard `_` generates patterns, which are only allowed in certain places".into()
+        }
+    }
+}
+
+fn type_error_msg(err: &TypeError) -> String {
+    match err {
+        TypeError::NonExistentInfix {
+            op,
+            lhs_type,
+            rhs_type,
+        } => {
+            format!("The `{op}` operation doesn't exist between `{lhs_type}` and `{rhs_type}`")
+        }
+        TypeError::TypeMismatch { expected, actual } => {
+            format!("Expected a value of type `{expected}`, got one of type `{actual}`")
+        }
+        TypeError::UnknownSymbol { name } => {
+            format!("Reference to unkwown variable: `{name}`. Check for typos")
+        }
+        TypeError::UnknownType { name } => {
+            format!("Reference to unknown type: `{name}`. Check for typos")
         }
     }
 }

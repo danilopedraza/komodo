@@ -21,7 +21,7 @@ fn get_reference_path(path: PathBuf) -> std::io::Result<PathBuf> {
     }
 }
 
-fn run_file(path: &str) -> std::io::Result<()> {
+pub fn run_file(path: &str) -> std::io::Result<()> {
     let input_res = fs::read_to_string(path);
 
     match input_res {

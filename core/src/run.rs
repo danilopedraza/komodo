@@ -16,6 +16,7 @@ use crate::{
     object::Object,
     parser::Parser,
     std::{json::komodo_json, math::komodo_math, time::komodo_time},
+    typecheck::{infer, SymbolTable},
     weeder::{rewrite, WeederError},
 };
 
@@ -43,6 +44,12 @@ pub fn run(source: &str, env: &mut Environment) -> Result<(), Error> {
     let lexer = Lexer::from((source, env.file_path()));
     let parser = Parser::from(lexer);
     let nodes = collect_nodes(parser)?;
+    let mut symbol_table = SymbolTable::std_table();
+
+    for node in &nodes {
+        infer(node, &mut symbol_table)
+            .map_err(|(err, pos)| Error::with_position(err.into(), pos, env.file_path()))?;
+    }
 
     for node in nodes {
         run_node(node, env)?;

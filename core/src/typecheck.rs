@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{collections::HashMap, ops::Deref, vec};
 
 use crate::{
@@ -6,41 +7,70 @@ use crate::{
     error::Position,
 };
 
-#[allow(dead_code)]
 #[derive(Debug, Default)]
-struct SymbolTable {
+pub struct SymbolTable {
     bottom: Level,
     stack: Vec<Level>,
 }
 
-#[allow(dead_code)]
 impl SymbolTable {
-    pub fn set_type(&mut self, name: &str, typ: Type) {
+    fn set_type(&mut self, name: &str, typ: Type) {
         self.top_level_mut().set_type(name, typ)
     }
 
-    pub fn get_type(&self, name: &str) -> Option<&Type> {
-        self.stack
-            .iter()
-            .rev()
-            .chain([&self.bottom])
-            .flat_map(|lvl| lvl.get_type(name))
-            .next()
+    fn get_type(&self, name: &str) -> Option<&Type> {
+        for lvl in self.stack.iter().rev() {
+            if let Some(type_hint) = lvl.get_type(name) {
+                return Some(type_hint);
+            }
+        }
+
+        self.bottom.get_type(name)
     }
 
-    pub fn within_new_level<T, F: FnOnce(&mut Self) -> T>(&mut self, procedure: F) -> T {
+    fn within_new_level<T, F: FnOnce(&mut Self) -> T>(&mut self, procedure: F) -> T {
         self.stack.push(Level::default());
         let res = procedure(self);
         self.stack.pop();
         res
     }
 
-    fn top_level(&self) -> &Level {
-        self.stack.last().unwrap_or(&self.bottom)
-    }
+    // fn top_level(&self) -> &Level {
+    //     self.stack.last().unwrap_or(&self.bottom)
+    // }
 
     fn top_level_mut(&mut self) -> &mut Level {
         self.stack.last_mut().unwrap_or(&mut self.bottom)
+    }
+
+    pub fn std_table() -> Self {
+        let mut res = Self::default();
+
+        let hints = [
+            ("println", Type::Unknown),
+            ("print", Type::Unknown),
+            ("getln", Type::Unknown),
+            (
+                "assert",
+                Type::Function {
+                    input: Box::new(Type::Boolean),
+                    output: Box::new(Type::Unknown),
+                },
+            ),
+            ("Integer", Type::Unknown),
+            ("Float", Type::Unknown),
+            ("List", Type::Unknown),
+            ("Set", Type::Unknown),
+            ("String", Type::Unknown),
+            ("len", Type::Unknown),
+            ("sorted", Type::Unknown),
+        ];
+
+        for (name, type_hint) in hints {
+            res.bottom.set_type(name, type_hint);
+        }
+
+        res
     }
 }
 
@@ -59,9 +89,8 @@ impl Level {
     }
 }
 
-#[allow(dead_code)]
-#[derive(Debug, PartialEq, Eq)]
-enum TypeError {
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TypeError {
     NonExistentInfix {
         op: InfixOperator,
         lhs_type: Type,
@@ -79,9 +108,8 @@ enum TypeError {
     },
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Eq)]
-struct Either {
+pub struct Either {
     left: Box<Type>,
     right: Box<Type>,
 }
@@ -141,9 +169,8 @@ impl PartialOrd for Either {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Debug)]
-enum Type {
+pub enum Type {
     Boolean,
     Char,
     Dictionary,
@@ -158,6 +185,46 @@ enum Type {
     Tuple(Vec<Type>),
     Either(Either),
     Unknown,
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Type::Boolean => write!(f, "Boolean"),
+            Type::Char => write!(f, "Char"),
+            Type::Dictionary => write!(f, "Dictionary"),
+            Type::Float => write!(f, "Float"),
+            Type::Fraction => write!(f, "Fraction"),
+            Type::Integer => write!(f, "Integer"),
+            Type::List => write!(f, "List"),
+            Type::Range => write!(f, "Range"),
+            Type::Set => write!(f, "Set"),
+            Type::String => write!(f, "String"),
+            Type::Function { input, output } => {
+                write!(f, "{} -> {}", input, output)
+            }
+            Type::Tuple(items) => {
+                let type_strs = items
+                    .iter()
+                    .map(|typ| typ.to_string())
+                    .reduce(|acc, cur| acc + ", " + &cur)
+                    .unwrap_or(String::new());
+
+                write!(f, "({})", type_strs)
+            }
+            Type::Either(either) => {
+                let type_str = either
+                    .collect()
+                    .into_iter()
+                    .map(|typ| typ.to_string())
+                    .reduce(|acc, cur| acc + " | " + &cur)
+                    .unwrap();
+
+                write!(f, "{}", &type_str)
+            }
+            Type::Unknown => write!(f, "Unknown"),
+        }
+    }
 }
 
 impl Type {
@@ -241,15 +308,14 @@ impl PartialOrd for Type {
                     None
                 }
             }
-            (_left, Self::Unknown) => Some(std::cmp::Ordering::Greater),
-            (Self::Unknown, _right) => Some(std::cmp::Ordering::Less),
+            (_left, Self::Unknown) => Some(std::cmp::Ordering::Less),
+            (Self::Unknown, _right) => Some(std::cmp::Ordering::Greater),
             (_left, _right) => None,
         }
     }
 }
 
-#[allow(dead_code)]
-fn check(
+pub fn check(
     val: &ASTNode,
     expected: Type,
     env: &mut SymbolTable,
@@ -260,15 +326,42 @@ fn check(
 }
 
 fn check_type(actual: Type, expected: Type) -> Result<Type, TypeError> {
-    if actual <= expected {
-        Ok(actual)
-    } else {
-        Err(TypeError::TypeMismatch { expected, actual })
+    match (actual, expected) {
+        (actual, expected) if actual == expected => Ok(actual),
+        (Type::Unknown, _) => Ok(Type::Unknown),
+        (actual, Type::Unknown) => Ok(actual),
+        (Type::Either(e1), Type::Either(e2)) => {
+            let cmp_res = e1.partial_cmp(&e2);
+            let actual = Type::Either(e1);
+            let expected = Type::Either(e2);
+            match cmp_res {
+                Some(res) => match res {
+                    std::cmp::Ordering::Less => Ok(actual),
+                    std::cmp::Ordering::Equal => Ok(actual),
+                    std::cmp::Ordering::Greater => {
+                        Err(TypeError::TypeMismatch { expected, actual })
+                    }
+                },
+                None => Err(TypeError::TypeMismatch { expected, actual }),
+            }
+        }
+        (actual, Type::Either(either)) => {
+            if either.collect().contains(&actual) {
+                Ok(actual)
+            } else {
+                let expected = Type::Either(either);
+                Err(TypeError::TypeMismatch { expected, actual })
+            }
+        }
+        (Type::Either(either), expected) => {
+            let actual = Type::Either(either);
+            Err(TypeError::TypeMismatch { expected, actual })
+        }
+        (actual, expected) => Err(TypeError::TypeMismatch { expected, actual }),
     }
 }
 
-#[allow(dead_code)]
-fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Position)> {
+pub fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Position)> {
     match &val.kind {
         ASTNodeKind::Integer { .. } => Ok(Type::Integer),
         ASTNodeKind::Decimal { .. } => Ok(Type::Float),
@@ -351,9 +444,9 @@ fn infer_pattern(pattern: &Pattern) -> Result<Type, TypeError> {
         Pattern::Dictionary { .. } => Ok(Type::Dictionary),
         Pattern::List { .. } => Ok(Type::List),
         Pattern::Set { .. } => Ok(Type::Set),
-        Pattern::ListCons { .. } => Ok(Type::List),
+        Pattern::ListCons { .. } => Ok(Type::Either(Either::new(Type::List, Type::String))),
         Pattern::SetCons { .. } => Ok(Type::Set),
-        Pattern::Symbol { .. } => todo!(),
+        Pattern::Symbol { .. } => Ok(Type::Unknown),
         Pattern::Tuple { list } => Ok(Type::Tuple(
             list.iter().map(infer_pattern).collect::<Result<_, _>>()?,
         )),
@@ -367,7 +460,11 @@ fn infer_pattern(pattern: &Pattern) -> Result<Type, TypeError> {
 
             let constraint_type = type_from_type_hint(constraint)?;
 
-            check_type(pat_type, constraint_type)
+            if constraint_type <= pat_type {
+                Ok(constraint_type)
+            } else {
+                check_type(pat_type, constraint_type)
+            }
         }
         Pattern::Either { lhs, rhs } => Ok(Type::Either(Either::new(
             infer_pattern(lhs)?,
@@ -535,25 +632,27 @@ fn destructure(
     err_pos: Position,
     env: &mut SymbolTable,
 ) -> Result<Vec<(String, Type)>, (TypeError, Position)> {
-    check(
-        value,
-        infer_pattern(pattern).map_err(|err| (err, err_pos))?,
-        env,
-    )?;
     let mut acc = vec![];
-    destructure_helper(pattern, value, &mut acc, env).map_err(|err| (err, err_pos))?;
+    destructure_helper(pattern, value, &mut acc, err_pos, env)?;
 
     Ok(acc)
 }
 
 fn destructure_helper(
     pattern: &Pattern,
-    _value: &ASTNode,
+    value: &ASTNode,
     acc: &mut Vec<(String, Type)>,
-    _env: &mut SymbolTable,
-) -> Result<(), TypeError> {
+    err_pos: Position,
+    env: &mut SymbolTable,
+) -> Result<(), (TypeError, Position)> {
     // TODO: actually contrast the pattern information with the value to destructure
-    get_introduced_symbols_helper(pattern, acc)
+    if let Pattern::Symbol { name } = pattern {
+        let type_hint = infer(value, env)?;
+        acc.push((name.to_string(), type_hint));
+        Ok(())
+    } else {
+        get_introduced_symbols_helper(pattern, acc).map_err(|err| (err, err_pos))
+    }
 }
 
 fn infer_infix(
@@ -562,6 +661,16 @@ fn infer_infix(
     rhs: &ASTNode,
     env: &mut SymbolTable,
 ) -> Result<Type, (TypeError, Position)> {
+    let lhs_type = infer(lhs, env)?;
+    let rhs_type = infer(rhs, env)?;
+    if lhs_type == Type::Unknown {
+        return Ok(Type::Unknown);
+    }
+    if rhs_type == Type::Unknown {
+        return Ok(Type::Unknown);
+    }
+    
+
     match op {
         InfixOperator::BitwiseAnd => {
             check(lhs, Type::Integer, env)?;
@@ -719,11 +828,21 @@ fn infer_case(
 ) -> Result<Type, (TypeError, Position)> {
     let _expr_type = infer(expr, env)?;
 
-    let mut outputs = pairs.iter().map(|(_, output)| output);
+    let mut pairs = pairs.iter();
 
-    let mut result = infer(outputs.next().unwrap(), env)?;
-    for output in outputs {
-        result = join(result, infer(output, env)?);
+    let mut result = env.within_new_level(|env| {
+        let (pattern, output) = pairs.next().unwrap();
+        infer_destructuring(pattern, expr, expr.position, env)?;
+        infer(output, env)
+    })?;
+
+    for (pattern, output) in pairs {
+        let new_output_type = env.within_new_level(|env| {
+            infer_destructuring(pattern, expr, expr.position, env)?;
+            infer(output, env)
+        })?;
+
+        result = join(result, new_output_type);
     }
 
     Ok(result)
@@ -769,6 +888,7 @@ fn infer_call(
                 .map_err(|type_error| (type_error, called.position))?;
             Ok(*expected_output)
         }
+        Type::Unknown => Ok(Type::Unknown),
         typ => {
             let actual = Type::Function {
                 input: actual_input,
@@ -797,7 +917,17 @@ fn infer_prefix(
 }
 
 fn infer_block(block: &[ASTNode], env: &mut SymbolTable) -> Result<Type, (TypeError, Position)> {
-    env.within_new_level(|env| infer(block.last().unwrap(), env))
+    
+    env.within_new_level(|env| {
+        let mut block = block.iter();
+        let mut res = infer(block.next().unwrap(), env)?;
+
+        for expr in block {
+            res = infer(expr, env)?;
+        }
+        
+        Ok(res)
+    })
 }
 
 fn infer_symbol(
@@ -867,18 +997,10 @@ mod tests {
 
     use crate::{
         ast::{
-            tests::{
-                _for, _if, assignable_pattern, assignment, block, boolean, call, case, char,
-                comprehension, cons, dec_integer, dec_integer_pattern, decimal, dictionary,
-                extension_list, extension_set, fraction, function, import_from, prefix, set_cons,
-                string, string_pattern, symbol, symbol_pattern, tuple, wildcard,
-            },
-            ASTNode,
-        },
-        cst::{tests::dummy_pos, ComprehensionKind},
-        error::Position,
-        run::ModuleAddress,
-        typecheck::{check, infer, Either, SymbolTable, Type, TypeError},
+            ASTNode, InfixOperator, tests::{
+                _for, _if, assignable_pattern, assignment, block, boolean, call, case, char, comprehension, cons, dec_integer, dec_integer_pattern, decimal, dictionary, extension_list, extension_set, fraction, function, import_from, infix, let_, prefix, set_cons, string, string_pattern, symbol, symbol_pattern, tuple, wildcard
+            }
+        }, cst::{ComprehensionKind, tests::dummy_pos}, error::Position, run::ModuleAddress, typecheck::{Either, SymbolTable, Type, TypeError, check, infer}
     };
 
     fn fresh_check(val: &ASTNode, expected: Type) -> Result<Type, (TypeError, Position)> {
@@ -1275,7 +1397,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "not yet implemented"]
     fn infer_case_with_destructuring() {
         assert_eq!(
             fresh_infer(&case(
@@ -1284,6 +1405,22 @@ mod tests {
                 dummy_pos(),
             )),
             Ok(Type::Integer),
+        );
+    }
+
+    #[test]
+    fn simple_let() {
+        assert_eq!(
+            fresh_infer(
+                &block(
+                    vec![
+                        let_(symbol_pattern("x"), dec_integer("5", dummy_pos()), dummy_pos()),
+                        infix(InfixOperator::Sum, symbol("x", dummy_pos()), dec_integer("1", dummy_pos()), dummy_pos()),
+                    ],
+                    dummy_pos()
+                )
+            ),
+            Ok(Type::Integer)
         );
     }
 }
