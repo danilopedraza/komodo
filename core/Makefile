@@ -3,6 +3,9 @@ CURRENT_DIR = $(shell pwd)
 build:
 	cargo build --all-features --release
 
+build-linux-amd64:
+	cargo build --all-features --release --target x86_64-unknown-linux-musl
+
 test:
 	KOMODO_STD=$(CURRENT_DIR)/../std/ sh test.sh $(CURRENT_DIR)/../examples
 
