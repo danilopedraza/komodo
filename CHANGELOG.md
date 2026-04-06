@@ -60,10 +60,12 @@
 
 - Fix bug in pattern matching of lists
 
-# Upstream
+# 0.5.0
 
 - Fix bug where a list-cons produced from a new element and a set returned a set. Now it returns a list!
 
 - Add the `inspect` function to the `utils` module. This function prints its input and then returns it.
 
-- 
+- Now the Komodo binary is statically linked, making it more portable.
+
+- The Komodo interpreter can be compiled to Wasm again, returning the web playground back to life!
