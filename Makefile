@@ -45,7 +45,9 @@ test-installer:
 	docker run --rm  \
 		-v $(ROOT_DIR)/installer/linux/identity_script:/usr/bin/sudo \
 		-v $(ROOT_DIR)/installer/linux/install.sh:/install.sh \
-		-v $(ROOT_DIR)/installer/linux/test.sh:/test.sh alpine/curl:8.9.1 \
+		-v $(ROOT_DIR)/installer/linux/test.sh:/test.sh \
+		-v $(ROOT_DIR)/examples/hello.komodo:/hello.komodo \
+		alpine/curl:8.9.1 \
 		sh "/test.sh"
 
 lint-core:

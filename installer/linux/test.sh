@@ -34,4 +34,15 @@ if [ "$someone_failed" = true ] ; then
     exit 1
 fi
 
+
 echo "✅ The standard library has been installed successfully."
+
+output=$(eval "komodo /hello.komodo $file" 2>&1)
+
+if [ $? -ne 0 ]; then
+    echo "❌ The interpreter failed executing `examples/hello.komodo`" >&2
+    echo "This is the message from the interpreter:" >&2
+    echo "$output" >&2
+fi
+
+echo "✅ The interpreter works with a basic program."
