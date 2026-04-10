@@ -1,8 +1,8 @@
 from utils import (filter, reduce)
 
+let cartesianProd(_, {}) := {}
 let cartesianProd(A, {first|rest}) :=
     {(val, first) for val in A} + cartesianProd(A, rest)
-let cartesianProd(_, {}) := {}
 
 let getSuffix(("", "")) := ()
 let getSuffix(("", suffix)) := suffix

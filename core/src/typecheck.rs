@@ -5,6 +5,7 @@ use crate::{
     ast::{ASTNode, ASTNodeKind, Constant, Declaration, InfixOperator, Pattern, TypeHint},
     cst::{ComprehensionKind, PrefixOperator},
     error::Position,
+    run::ModuleAddress,
 };
 
 #[derive(Debug, Default)]
@@ -100,8 +101,15 @@ pub enum TypeError {
         expected: Type,
         actual: Type,
     },
+    UnknownStdModule {
+        name: String,
+    },
     UnknownSymbol {
         name: String,
+    },
+    UnknownSymbolInStd {
+        symbol: String,
+        module: String,
     },
     UnknownType {
         name: String,
@@ -137,6 +145,7 @@ impl Either {
             }
         }
 
+        res.dedup();
         res
     }
 }
@@ -258,6 +267,7 @@ impl PartialOrd for Type {
             (Self::Set, Self::Set) => Some(std::cmp::Ordering::Equal),
             (Self::String, Self::String) => Some(std::cmp::Ordering::Equal),
             (Self::Unknown, Self::Unknown) => Some(std::cmp::Ordering::Equal),
+            (Self::Range, Self::Range) => Some(std::cmp::Ordering::Equal),
             (
                 Self::Function { input, output },
                 Self::Function {
@@ -346,16 +356,37 @@ fn check_type(actual: Type, expected: Type) -> Result<Type, TypeError> {
             }
         }
         (actual, Type::Either(either)) => {
-            if either.collect().contains(&actual) {
-                Ok(actual)
-            } else {
-                let expected = Type::Either(either);
-                Err(TypeError::TypeMismatch { expected, actual })
+            for type_hint in either.collect() {
+                let res = check_type(actual.clone(), type_hint);
+
+                if res.is_ok() {
+                    return res;
+                }
             }
+
+            let expected = Type::Either(either);
+            Err(TypeError::TypeMismatch { expected, actual })
         }
         (Type::Either(either), expected) => {
             let actual = Type::Either(either);
             Err(TypeError::TypeMismatch { expected, actual })
+        }
+        (Type::Tuple(ltup), Type::Tuple(rtup)) => {
+            if ltup.len() != rtup.len() {
+                let actual = Type::Tuple(ltup);
+                let expected = Type::Tuple(rtup);
+                return Err(TypeError::TypeMismatch { expected, actual });
+            }
+
+            for (lhs, rhs) in ltup.iter().zip(&rtup) {
+                if check_type(lhs.clone(), rhs.clone()).is_err() {
+                    let actual = Type::Tuple(ltup);
+                    let expected = Type::Tuple(rtup);
+                    return Err(TypeError::TypeMismatch { expected, actual });
+                }
+            }
+
+            Ok(Type::Tuple(ltup))
         }
         (actual, expected) => Err(TypeError::TypeMismatch { expected, actual }),
     }
@@ -365,7 +396,19 @@ pub fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, P
     match &val.kind {
         ASTNodeKind::Integer { .. } => Ok(Type::Integer),
         ASTNodeKind::Decimal { .. } => Ok(Type::Float),
-        ASTNodeKind::Assignment { left: _, right } => infer(right, env),
+        ASTNodeKind::Assignment { left, right } => match left {
+            crate::ast::AssignableSymbol::Pattern(pattern) => {
+                infer_destructuring(pattern, right, val.position, env)
+            }
+            crate::ast::AssignableSymbol::ObjectValue {
+                object: _,
+                value: _,
+            } => infer(right, env),
+            crate::ast::AssignableSymbol::IndexableValue {
+                container: _,
+                index: _,
+            } => infer(right, env),
+        },
         ASTNodeKind::Boolean(_) => Ok(Type::Boolean),
         ASTNodeKind::Block(block) => infer_block(block, env),
         ASTNodeKind::Call { called, args } => infer_call(called, args, env),
@@ -385,7 +428,9 @@ pub fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, P
             positive,
             negative,
         } => infer_if(cond, positive, negative, env),
-        ASTNodeKind::ImportFrom { .. } => Ok(Type::empty_tuple()),
+        ASTNodeKind::ImportFrom { source, values } => {
+            infer_import_from(source, values, val.position, env)
+        }
         ASTNodeKind::Infix { op, lhs, rhs } => infer_infix(*op, lhs, rhs, env),
         ASTNodeKind::Declaration(declaration) => infer_declaration(declaration, val.position, env),
         ASTNodeKind::Prefix { op, val } => infer_prefix(*op, val, env),
@@ -394,6 +439,107 @@ pub fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, P
         ASTNodeKind::String { .. } => Ok(Type::String),
         ASTNodeKind::Symbol { name } => infer_symbol(name, val.position, env),
         ASTNodeKind::Tuple { list } => infer_tuple(list, env),
+    }
+}
+
+fn infer_import_from(
+    source: &ModuleAddress,
+    values: &[(String, Position)],
+    err_pos: Position,
+    env: &mut SymbolTable,
+) -> Result<Type, (TypeError, Position)> {
+    match source {
+        ModuleAddress::StandardLibrary { name } => match name.as_str() {
+            "json" => {
+                for (name, position) in values {
+                    let type_hint = match name.as_str() {
+                        "parse" => {
+                            let input = Box::new(Type::String);
+                            let output = Box::new(Type::Dictionary);
+                            Ok(Type::Function { input, output })
+                        }
+                        "stringify" => {
+                            let input = Box::new(Type::Unknown);
+                            let output = Box::new(Type::String);
+                            Ok(Type::Function { input, output })
+                        }
+                        symbol => Err((
+                            TypeError::UnknownSymbolInStd {
+                                symbol: symbol.to_string(),
+                                module: name.to_string(),
+                            },
+                            *position,
+                        )),
+                    }?;
+
+                    env.set_type(name, type_hint);
+                }
+                Ok(Type::empty_tuple())
+            }
+            "math" => {
+                for (name, position) in values {
+                    let type_hint = match name.as_str() {
+                        "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "exp" | "ln" | "log"
+                        | "cbrt" | "sqrt" | "hypot" => Ok(Type::Function {
+                            input: Box::new(Type::any_number()),
+                            output: Box::new(Type::Float),
+                        }),
+                        "abs" => Ok(Type::Function {
+                            input: Box::new(Type::any_number()),
+                            output: Box::new(Type::any_number()),
+                        }),
+                        "round" | "floor" | "ceil" => Ok(Type::Function {
+                            input: Box::new(Type::any_number()),
+                            output: Box::new(Type::Integer),
+                        }),
+                        symbol => Err((
+                            TypeError::UnknownSymbolInStd {
+                                symbol: symbol.to_string(),
+                                module: name.to_string(),
+                            },
+                            *position,
+                        )),
+                    }?;
+
+                    env.set_type(name, type_hint);
+                }
+                Ok(Type::empty_tuple())
+            }
+            "time" => {
+                for (name, position) in values {
+                    let type_hint = match name.as_str() {
+                        "time" => {
+                            let input = Box::new(Type::empty_tuple());
+                            let output = Box::new(Type::Float);
+                            Ok(Type::Function { input, output })
+                        }
+                        "sleep" => {
+                            let input = Box::new(Type::any_number());
+                            let output = Box::new(Type::empty_tuple());
+                            Ok(Type::Function { input, output })
+                        }
+                        symbol => Err((
+                            TypeError::UnknownSymbolInStd {
+                                symbol: symbol.to_string(),
+                                module: name.to_string(),
+                            },
+                            *position,
+                        )),
+                    }?;
+
+                    env.set_type(name, type_hint);
+                }
+                Ok(Type::empty_tuple())
+            }
+            "utils" => Ok(Type::empty_tuple()),
+            _ => Err((
+                TypeError::UnknownStdModule {
+                    name: name.to_string(),
+                },
+                err_pos,
+            )),
+        },
+        ModuleAddress::LocalPath { path: _ } => Ok(Type::empty_tuple()),
     }
 }
 
@@ -497,8 +643,11 @@ fn lookup_type(typename: &str) -> Result<Type, TypeError> {
         "Range" => Ok(Type::Range),
         "Set" => Ok(Type::Set),
         "String" => Ok(Type::String),
-        "Function" => todo!(), // Ok(Type::Function { input, output }),
-        "Tuple" => todo!(),    // Ok(Type::Tuple(items)),
+        "Function" => Ok(Type::Function {
+            input: Box::new(Type::Unknown),
+            output: Box::new(Type::Unknown),
+        }),
+        "Tuple" => Ok(Type::Tuple(vec![])),
         name => Err(TypeError::UnknownType {
             name: name.to_string(),
         }),
@@ -517,6 +666,24 @@ fn infer_function_definition(
         Some(param) => infer_pattern(param).map_err(|err| (err, err_pos)),
     }?;
 
+    if let Some(Type::Function { input, output }) = env.get_type(name) {
+        env.set_type(
+            name,
+            Type::Function {
+                input: Box::new(join(input_type.clone(), *input.to_owned())),
+                output: Box::new(*output.to_owned()),
+            },
+        );
+    } else {
+        env.set_type(
+            name,
+            Type::Function {
+                input: Box::new(input_type.clone()),
+                output: Box::new(Type::Unknown),
+            },
+        );
+    }
+
     let output_type = env.within_new_level(|env| {
         for param in params {
             let introduced_symbols = get_introduced_symbols(param, err_pos)?;
@@ -527,10 +694,17 @@ fn infer_function_definition(
         infer(result, env)
     })?;
 
-    let input = Box::new(input_type);
-    let output = Box::new(output_type);
-
-    let res = Type::Function { input, output };
+    let res = if let Some(Type::Function { input, output }) = env.get_type(name) {
+        Type::Function {
+            input: input.clone(),
+            output: Box::new(join(output_type, *output.to_owned())),
+        }
+    } else {
+        Type::Function {
+            input: Box::new(input_type),
+            output: Box::new(output_type),
+        }
+    };
 
     env.set_type(name, res.clone());
 
@@ -669,7 +843,6 @@ fn infer_infix(
     if rhs_type == Type::Unknown {
         return Ok(Type::Unknown);
     }
-    
 
     match op {
         InfixOperator::BitwiseAnd => {
@@ -917,7 +1090,6 @@ fn infer_prefix(
 }
 
 fn infer_block(block: &[ASTNode], env: &mut SymbolTable) -> Result<Type, (TypeError, Position)> {
-    
     env.within_new_level(|env| {
         let mut block = block.iter();
         let mut res = infer(block.next().unwrap(), env)?;
@@ -925,7 +1097,7 @@ fn infer_block(block: &[ASTNode], env: &mut SymbolTable) -> Result<Type, (TypeEr
         for expr in block {
             res = infer(expr, env)?;
         }
-        
+
         Ok(res)
     })
 }
@@ -993,14 +1165,20 @@ fn join(left: Type, right: Type) -> Type {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use crate::{
         ast::{
-            ASTNode, InfixOperator, tests::{
-                _for, _if, assignable_pattern, assignment, block, boolean, call, case, char, comprehension, cons, dec_integer, dec_integer_pattern, decimal, dictionary, extension_list, extension_set, fraction, function, import_from, infix, let_, prefix, set_cons, string, string_pattern, symbol, symbol_pattern, tuple, wildcard
-            }
-        }, cst::{ComprehensionKind, tests::dummy_pos}, error::Position, run::ModuleAddress, typecheck::{Either, SymbolTable, Type, TypeError, check, infer}
+            tests::{
+                _for, _if, assignable_pattern, assignment, block, boolean, call, case, char,
+                comprehension, cons, dec_integer, dec_integer_pattern, decimal, dictionary,
+                extension_list, extension_set, fraction, function, import_from, infix, let_,
+                prefix, set_cons, string, string_pattern, symbol, symbol_pattern, tuple, wildcard,
+            },
+            ASTNode, InfixOperator,
+        },
+        cst::{tests::dummy_pos, ComprehensionKind},
+        error::Position,
+        run::ModuleAddress,
+        typecheck::{check, infer, Either, SymbolTable, Type, TypeError},
     };
 
     fn fresh_check(val: &ASTNode, expected: Type) -> Result<Type, (TypeError, Position)> {
@@ -1176,10 +1354,10 @@ mod tests {
     fn import_infer() {
         assert_eq!(
             fresh_infer(&import_from(
-                ModuleAddress::LocalPath {
-                    path: PathBuf::new()
+                ModuleAddress::StandardLibrary {
+                    name: "math".to_string()
                 },
-                vec![],
+                vec![("cos", dummy_pos())],
                 dummy_pos()
             )),
             Ok(Type::empty_tuple())
@@ -1411,15 +1589,22 @@ mod tests {
     #[test]
     fn simple_let() {
         assert_eq!(
-            fresh_infer(
-                &block(
-                    vec![
-                        let_(symbol_pattern("x"), dec_integer("5", dummy_pos()), dummy_pos()),
-                        infix(InfixOperator::Sum, symbol("x", dummy_pos()), dec_integer("1", dummy_pos()), dummy_pos()),
-                    ],
-                    dummy_pos()
-                )
-            ),
+            fresh_infer(&block(
+                vec![
+                    let_(
+                        symbol_pattern("x"),
+                        dec_integer("5", dummy_pos()),
+                        dummy_pos()
+                    ),
+                    infix(
+                        InfixOperator::Sum,
+                        symbol("x", dummy_pos()),
+                        dec_integer("1", dummy_pos()),
+                        dummy_pos()
+                    ),
+                ],
+                dummy_pos()
+            )),
             Ok(Type::Integer)
         );
     }

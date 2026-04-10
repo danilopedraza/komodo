@@ -375,6 +375,12 @@ fn type_error_msg(err: &TypeError) -> String {
         TypeError::UnknownType { name } => {
             format!("Reference to unknown type: `{name}`. Check for typos")
         }
+        TypeError::UnknownStdModule { name } => {
+            format!("The `{name}` module does not exist in the standard library. Check for typos")
+        }
+        TypeError::UnknownSymbolInStd { symbol, module } => {
+            format!("`{symbol}` is not in the `{module}` module of the standard library. Check for typos")
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 let transform("") := []
+let transform((currentChar, count), [currentChar|tail]) := transform((currentChar, count + 1), tail)
 let transform([first|tail]) := transform((first, 1), tail)
 let transform(tuple, []) := [tuple]
-let transform((currentChar, count), [currentChar|tail]) := transform((currentChar, count + 1), tail)
 let transform(tuple, tail) := [tuple|transform(tail)]
 
 assert(transform("") = [])
