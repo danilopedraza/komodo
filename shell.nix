@@ -10,6 +10,7 @@ pkgs.mkShell {
     gnumake
     nil
     nodejs_20
+    rust-analyzer
     rustup
     typst
     tinymist
