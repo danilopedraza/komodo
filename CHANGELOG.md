@@ -69,3 +69,7 @@
 - Now the Komodo binary is statically linked, making it more portable.
 
 - The Komodo interpreter can be compiled to Wasm again, returning the web playground back to life!
+
+# Upstream
+
+
