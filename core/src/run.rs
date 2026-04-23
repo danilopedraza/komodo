@@ -16,7 +16,7 @@ use crate::{
     object::Object,
     parser::Parser,
     std::{json::komodo_json, math::komodo_math, time::komodo_time},
-    typecheck::{infer, SymbolTable},
+    typecheck::{self, infer},
     weeder::{rewrite, WeederError},
 };
 
@@ -25,7 +25,7 @@ pub enum ImportError {
     SymbolNotFound { module: String, symbol: String },
 }
 
-fn collect_nodes<T: Iterator<Item = Result<Token, Error>>>(
+pub fn collect_nodes<T: Iterator<Item = Result<Token, Error>>>(
     parser: Parser<T>,
 ) -> Result<Vec<ASTNode>, Error> {
     let path = parser.path();
@@ -44,10 +44,10 @@ pub fn run(source: &str, env: &mut Environment) -> Result<(), Error> {
     let lexer = Lexer::from((source, env.file_path()));
     let parser = Parser::from(lexer);
     let nodes = collect_nodes(parser)?;
-    let mut symbol_table = SymbolTable::std_table();
+    let mut typecheck_env = typecheck::Environment::std_env(env.ctx());
 
     for node in &nodes {
-        infer(node, &mut symbol_table)
+        infer(node, &mut typecheck_env)
             .map_err(|(err, pos)| Error::with_position(err.into(), pos, env.file_path()))?;
     }
 
@@ -62,8 +62,8 @@ pub fn run_node(node: ASTNode, env: &mut Environment) -> Result<Object, Error> {
     exec(&node, env).map(|(obj, _)| obj)
 }
 
-static STDLIB_PATH: &str = "/usr/local/lib/komodo/";
-static STDLIB_PATH_VAR: &str = "KOMODO_STD";
+pub static STDLIB_PATH: &str = "/usr/local/lib/komodo/";
+pub static STDLIB_PATH_VAR: &str = "KOMODO_STD";
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ModuleAddress {
@@ -92,7 +92,7 @@ impl fmt::Display for ModuleAddress {
     }
 }
 
-fn get_std_path(env_var: Result<String, VarError>) -> PathBuf {
+pub fn get_std_path(env_var: Result<String, VarError>) -> PathBuf {
     match env_var {
         Ok(path) if path.is_empty() => Path::new(STDLIB_PATH).to_path_buf(),
         Ok(path) => Path::new(&path).to_path_buf(),

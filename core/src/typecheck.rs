@@ -1,20 +1,30 @@
 use core::fmt;
-use std::{collections::HashMap, ops::Deref, vec};
+use std::{
+    collections::HashMap,
+    env, fs,
+    ops::Deref,
+    path::{Path, PathBuf},
+    vec,
+};
 
 use crate::{
     ast::{ASTNode, ASTNodeKind, Constant, Declaration, InfixOperator, Pattern, TypeHint},
     cst::{ComprehensionKind, PrefixOperator},
+    env::ExecContext,
     error::Position,
-    run::ModuleAddress,
+    lexer::Lexer,
+    parser::Parser,
+    run::{collect_nodes, get_std_path, ModuleAddress, STDLIB_PATH_VAR},
 };
 
 #[derive(Debug, Default)]
-pub struct SymbolTable {
+pub struct Environment {
     bottom: Level,
     stack: Vec<Level>,
+    ctx: ExecContext,
 }
 
-impl SymbolTable {
+impl Environment {
     fn set_type(&mut self, name: &str, typ: Type) {
         self.top_level_mut().set_type(name, typ)
     }
@@ -44,8 +54,8 @@ impl SymbolTable {
         self.stack.last_mut().unwrap_or(&mut self.bottom)
     }
 
-    pub fn std_table() -> Self {
-        let mut res = Self::default();
+    pub fn std_env(ctx: ExecContext) -> Self {
+        let mut res = Self::new(ctx);
 
         let hints = [
             ("println", Type::Unknown),
@@ -72,6 +82,13 @@ impl SymbolTable {
         }
 
         res
+    }
+
+    pub fn new(ctx: ExecContext) -> Self {
+        Self {
+            ctx,
+            ..Self::default()
+        }
     }
 }
 
@@ -328,7 +345,7 @@ impl PartialOrd for Type {
 pub fn check(
     val: &ASTNode,
     expected: Type,
-    env: &mut SymbolTable,
+    env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
     let actual = infer(val, env)?;
 
@@ -392,7 +409,7 @@ fn check_type(actual: Type, expected: Type) -> Result<Type, TypeError> {
     }
 }
 
-pub fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, Position)> {
+pub fn infer(val: &ASTNode, env: &mut Environment) -> Result<Type, (TypeError, Position)> {
     match &val.kind {
         ASTNodeKind::Integer { .. } => Ok(Type::Integer),
         ASTNodeKind::Decimal { .. } => Ok(Type::Float),
@@ -428,9 +445,7 @@ pub fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, P
             positive,
             negative,
         } => infer_if(cond, positive, negative, env),
-        ASTNodeKind::ImportFrom { source, values } => {
-            infer_import_from(source, values, val.position, env)
-        }
+        ASTNodeKind::ImportFrom { source, values } => infer_import_from(source, values, env),
         ASTNodeKind::Infix { op, lhs, rhs } => infer_infix(*op, lhs, rhs, env),
         ASTNodeKind::Declaration(declaration) => infer_declaration(declaration, val.position, env),
         ASTNodeKind::Prefix { op, val } => infer_prefix(*op, val, env),
@@ -445,8 +460,8 @@ pub fn infer(val: &ASTNode, env: &mut SymbolTable) -> Result<Type, (TypeError, P
 fn infer_import_from(
     source: &ModuleAddress,
     values: &[(String, Position)],
-    err_pos: Position,
-    env: &mut SymbolTable,
+    // err_pos: Position,
+    env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
     match source {
         ModuleAddress::StandardLibrary { name } => match name.as_str() {
@@ -531,22 +546,62 @@ fn infer_import_from(
                 }
                 Ok(Type::empty_tuple())
             }
-            "utils" => Ok(Type::empty_tuple()),
-            _ => Err((
-                TypeError::UnknownStdModule {
-                    name: name.to_string(),
-                },
-                err_pos,
-            )),
+            name => {
+                let path = get_std_path(env::var(STDLIB_PATH_VAR))
+                    .join(Path::new(&format!("{name}.komodo")));
+                let foreign_env = infer_module(path, env)?;
+
+                infer_imported_values(values, env, &foreign_env)
+            }
         },
-        ModuleAddress::LocalPath { path: _ } => Ok(Type::empty_tuple()),
+        ModuleAddress::LocalPath { path } => {
+            let reference_path = &env.ctx.reference_path;
+            let abs_path = reference_path.join(Path::new(path));
+            let foreign_env = infer_module(abs_path, env)?;
+
+            infer_imported_values(values, env, &foreign_env)
+        }
     }
+}
+
+fn infer_module(
+    path: PathBuf,
+    env: &mut Environment,
+) -> Result<Environment, (TypeError, Position)> {
+    let source = fs::read_to_string(path).unwrap();
+    let lexer = Lexer::from((source.as_str(), env.ctx.executed_file_path.to_path_buf()));
+    let parser = Parser::from(lexer);
+    let nodes = collect_nodes(parser).unwrap();
+
+    let mut temp_env = Environment::std_env(env.ctx.clone());
+
+    for node in nodes {
+        infer(&node, &mut temp_env)?;
+    }
+    Ok(temp_env)
+}
+
+fn infer_imported_values(
+    values: &[(String, Position)],
+    env: &mut Environment,
+    foreign_env: &Environment,
+) -> Result<Type, (TypeError, Position)> {
+    for (name, pos) in values {
+        if let Some(type_hint) = foreign_env.get_type(name) {
+            env.set_type(name, type_hint.to_owned());
+        } else {
+            let name = name.to_owned();
+            return Err((TypeError::UnknownSymbol { name }, *pos));
+        }
+    }
+
+    Ok(Type::empty_tuple())
 }
 
 fn infer_declaration(
     declaration: &Declaration,
     position: Position,
-    env: &mut SymbolTable,
+    env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
     match declaration {
         Declaration::Mutable { left, right } => infer_destructuring(left, right, position, env),
@@ -659,7 +714,7 @@ fn infer_function_definition(
     params: &[Pattern],
     result: &ASTNode,
     err_pos: Position,
-    env: &mut SymbolTable,
+    env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
     let input_type = match params.first() {
         None => Ok(Type::empty_tuple()),
@@ -715,7 +770,7 @@ fn infer_destructuring(
     pattern: &Pattern,
     value: &ASTNode,
     err_pos: Position,
-    env: &mut SymbolTable,
+    env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
     let introduced_symbols = destructure(pattern, value, err_pos, env)?;
 
@@ -804,7 +859,7 @@ fn destructure(
     pattern: &Pattern,
     value: &ASTNode,
     err_pos: Position,
-    env: &mut SymbolTable,
+    env: &mut Environment,
 ) -> Result<Vec<(String, Type)>, (TypeError, Position)> {
     let mut acc = vec![];
     destructure_helper(pattern, value, &mut acc, err_pos, env)?;
@@ -817,7 +872,7 @@ fn destructure_helper(
     value: &ASTNode,
     acc: &mut Vec<(String, Type)>,
     err_pos: Position,
-    env: &mut SymbolTable,
+    env: &mut Environment,
 ) -> Result<(), (TypeError, Position)> {
     // TODO: actually contrast the pattern information with the value to destructure
     if let Pattern::Symbol { name } = pattern {
@@ -833,7 +888,7 @@ fn infer_infix(
     op: InfixOperator,
     lhs: &ASTNode,
     rhs: &ASTNode,
-    env: &mut SymbolTable,
+    env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
     let lhs_type = infer(lhs, env)?;
     let rhs_type = infer(rhs, env)?;
@@ -997,7 +1052,7 @@ fn infer_generic_arithmetic_op(
 fn infer_case(
     expr: &ASTNode,
     pairs: &[(Pattern, ASTNode)],
-    env: &mut SymbolTable,
+    env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
     let _expr_type = infer(expr, env)?;
 
@@ -1024,7 +1079,7 @@ fn infer_case(
 fn infer_function(
     params: &[String],
     result: &ASTNode,
-    env: &mut SymbolTable,
+    env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
     let input = Box::new(if params.is_empty() {
         Type::empty_tuple()
@@ -1045,7 +1100,7 @@ fn infer_function(
 fn infer_call(
     called: &ASTNode,
     args: &[ASTNode],
-    env: &mut SymbolTable,
+    env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
     let actual_input = Box::new(
         args.first()
@@ -1080,7 +1135,7 @@ fn infer_call(
 fn infer_prefix(
     op: PrefixOperator,
     val: &ASTNode,
-    env: &mut SymbolTable,
+    env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
     match op {
         PrefixOperator::BitwiseNot => check(val, Type::Integer, env),
@@ -1089,7 +1144,7 @@ fn infer_prefix(
     }
 }
 
-fn infer_block(block: &[ASTNode], env: &mut SymbolTable) -> Result<Type, (TypeError, Position)> {
+fn infer_block(block: &[ASTNode], env: &mut Environment) -> Result<Type, (TypeError, Position)> {
     env.within_new_level(|env| {
         let mut block = block.iter();
         let mut res = infer(block.next().unwrap(), env)?;
@@ -1105,7 +1160,7 @@ fn infer_block(block: &[ASTNode], env: &mut SymbolTable) -> Result<Type, (TypeEr
 fn infer_symbol(
     name: &str,
     name_pos: Position,
-    env: &mut SymbolTable,
+    env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
     match env.get_type(name) {
         Some(typ) => Ok(typ.to_owned()),
@@ -1120,7 +1175,7 @@ fn infer_comprehension(kind: ComprehensionKind) -> Type {
     }
 }
 
-fn infer_tuple(vals: &[ASTNode], env: &mut SymbolTable) -> Result<Type, (TypeError, Position)> {
+fn infer_tuple(vals: &[ASTNode], env: &mut Environment) -> Result<Type, (TypeError, Position)> {
     let vals_types: Result<Vec<Type>, (TypeError, Position)> =
         vals.iter().map(|val| infer(val, env)).collect();
 
@@ -1131,7 +1186,7 @@ fn infer_if(
     cond: &ASTNode,
     positive: &ASTNode,
     negative: &ASTNode,
-    env: &mut SymbolTable,
+    env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
     check(cond, Type::Boolean, env)?;
     Ok(join(infer(positive, env)?, infer(negative, env)?))
@@ -1178,15 +1233,15 @@ mod tests {
         cst::{tests::dummy_pos, ComprehensionKind},
         error::Position,
         run::ModuleAddress,
-        typecheck::{check, infer, Either, SymbolTable, Type, TypeError},
+        typecheck::{check, infer, Either, Environment, Type, TypeError},
     };
 
     fn fresh_check(val: &ASTNode, expected: Type) -> Result<Type, (TypeError, Position)> {
-        check(val, expected, &mut SymbolTable::default())
+        check(val, expected, &mut Environment::default())
     }
 
     fn fresh_infer(val: &ASTNode) -> Result<Type, (TypeError, Position)> {
-        infer(val, &mut SymbolTable::default())
+        infer(val, &mut Environment::default())
     }
 
     #[test]
@@ -1263,7 +1318,7 @@ mod tests {
 
     #[test]
     fn symbol_infer() {
-        let mut env = SymbolTable::default();
+        let mut env = Environment::default();
 
         env.set_type("foo", Type::Boolean);
 
@@ -1494,7 +1549,7 @@ mod tests {
 
     #[test]
     fn infer_call() {
-        let mut env = SymbolTable::default();
+        let mut env = Environment::default();
 
         env.set_type(
             "foo",
@@ -1519,7 +1574,7 @@ mod tests {
 
     #[test]
     fn infer_call_type_mismatch() {
-        let mut env = SymbolTable::default();
+        let mut env = Environment::default();
 
         env.set_type(
             "foo",
