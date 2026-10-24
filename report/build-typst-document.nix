@@ -12,22 +12,25 @@
   ...
 }:
 
-# We try to use this trick to make packages available locally:
+# Use an explicit package path: macOS does not use XDG_DATA_HOME for packages.
 let
   typstDependencyScript = dep: ''
-    mkdir -p $XDG_DATA_HOME/typst/packages/preview/${dep.name}
-    ln -s ${packagesRepo}/packages/preview/${dep.name}/${dep.version} $XDG_DATA_HOME/typst/packages/preview/${dep.name}/${dep.version}
+    mkdir -p "$TYPST_PACKAGE_PATH/preview/${dep.name}"
+    ln -s ${packagesRepo}/packages/preview/${dep.name}/${dep.version} "$TYPST_PACKAGE_PATH/preview/${dep.name}/${dep.version}"
   '';
   typstDependencyScripts = lib.concatStringsSep "\n" (builtins.map typstDependencyScript typstDependencies);
 in
 stdenv.mkDerivation {
   inherit name src;
-  buildInputs = [
+  nativeBuildInputs = [
     typst
   ];
 
   configurePhase = ''
-    export XDG_DATA_HOME=$(pwd)
+    runHook preConfigure
+    export TYPST_PACKAGE_PATH="$TMPDIR/typst-packages"
+    export TYPST_PACKAGE_CACHE_PATH="$TMPDIR/typst-package-cache"
     ${typstDependencyScripts}
+    runHook postConfigure
   '';
 }
