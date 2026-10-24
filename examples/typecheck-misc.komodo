@@ -1,0 +1,28 @@
+# Binding annotations validate the initializer and preserve the declared type.
+let number: Integer := 3
+var decimal: Float := 1.5
+let numeric: Integer || Float := if true then number else decimal
+let pair: Tuple := (number, decimal)
+let (integerPart: Integer, floatPart: Float) := pair
+
+assert(integerPart = 3)
+assert(floatPart = 1.5)
+assert(numeric + 2 = 5)
+
+# Every numeric alternative supports these operators.
+let choose(flag) := if flag then 2 else 2.5
+assert(choose(true) + 1 = 3)
+assert(choose(false) + 1 = 3.5)
+assert(choose(true) - choose(false) = -0.5)
+assert(choose(false) * choose(true) = 5.0)
+assert(choose(false) / choose(true) = 1.25)
+assert(choose(false) ** 2 = 6.25)
+
+# Arithmetic also works on numeric unions returned by native functions.
+from math import abs
+assert(abs(-3) + 0.5 = 3.5)
+
+# Existing string operators still work with union alternatives.
+let text(flag) := if flag then 'a' else "ab"
+assert(text(true) + text(false) = "aab")
+assert(text(true) * 2 = "aa")

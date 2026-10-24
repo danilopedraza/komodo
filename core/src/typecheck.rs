@@ -470,7 +470,7 @@ pub fn infer(val: &ASTNode, env: &mut Environment) -> Result<Type, (TypeError, P
         ASTNodeKind::Decimal { .. } => Ok(Type::Float),
         ASTNodeKind::Assignment { left, right } => match left {
             crate::ast::AssignableSymbol::Pattern(pattern) => {
-                infer_destructuring(pattern, right, val.position, env)
+                infer_binding(pattern, right, val.position, env)
             }
             crate::ast::AssignableSymbol::ObjectValue {
                 object: _,
@@ -673,8 +673,8 @@ fn infer_declaration(
     env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
     match declaration {
-        Declaration::Mutable { left, right } => infer_destructuring(left, right, position, env),
-        Declaration::Inmutable { left, right } => infer_destructuring(left, right, position, env),
+        Declaration::Mutable { left, right } => infer_binding(left, right, position, env),
+        Declaration::Inmutable { left, right } => infer_binding(left, right, position, env),
         Declaration::MemoizedFunction {
             name,
             param,
@@ -839,6 +839,98 @@ fn infer_function_definition(
     Ok(res)
 }
 
+fn infer_binding(
+    pattern: &Pattern,
+    value: &ASTNode,
+    err_pos: Position,
+    env: &mut Environment,
+) -> Result<Type, (TypeError, Position)> {
+    let actual = infer(value, env)?;
+    let mut introduced = vec![];
+    bind_pattern_types(pattern, &actual, &mut introduced).map_err(|err| (err, err_pos))?;
+    for (name, typ) in introduced {
+        env.set_type(&name, typ);
+    }
+    Ok(actual)
+}
+
+fn bind_pattern_types(
+    pattern: &Pattern,
+    actual: &Type,
+    introduced: &mut Vec<(String, Type)>,
+) -> Result<(), TypeError> {
+    match (pattern, actual) {
+        (
+            Pattern::Signature {
+                pattern,
+                constraint,
+            },
+            actual,
+        ) => {
+            let expected = binding_annotation_type(constraint, actual)?;
+            check_type(actual.clone(), expected.clone())?;
+            bind_pattern_types(pattern, &expected, introduced)
+        }
+        (Pattern::Symbol { name }, actual) => {
+            introduced.push((name.clone(), actual.clone()));
+            Ok(())
+        }
+        (Pattern::Tuple { list }, Type::Tuple(items)) if list.len() == items.len() => {
+            for (pattern, typ) in list.iter().zip(items) {
+                bind_pattern_types(pattern, typ, introduced)?;
+            }
+            Ok(())
+        }
+        (pattern, Type::Either(either)) => {
+            let mut merged: HashMap<String, Type> = HashMap::new();
+            for alternative in either.collect() {
+                let mut symbols = vec![];
+                bind_pattern_types(pattern, &alternative, &mut symbols)?;
+                for (name, typ) in symbols {
+                    let typ = match merged.remove(&name) {
+                        Some(previous) => join(previous, typ),
+                        None => typ,
+                    };
+                    merged.insert(name, typ);
+                }
+            }
+            introduced.extend(merged);
+            Ok(())
+        }
+        (Pattern::Tuple { .. }, Type::Unknown) => {
+            get_introduced_symbols_helper(pattern, introduced)
+        }
+        (Pattern::Tuple { .. }, actual) => Err(TypeError::TypeMismatch {
+            expected: infer_pattern(pattern)?,
+            actual: actual.clone(),
+        }),
+        // Collection element types are currently unknown. Preserve annotations
+        // on their bindings until element types can be inferred.
+        _ => get_introduced_symbols_helper(pattern, introduced),
+    }
+}
+
+fn binding_annotation_type(constraint: &TypeHint, actual: &Type) -> Result<Type, TypeError> {
+    match constraint {
+        // `Tuple` constrains the kind, not the number or types of its elements.
+        TypeHint::Simple(name) if name == "Tuple" => Ok(match actual {
+            Type::Tuple(_) | Type::Unknown => actual.clone(),
+            Type::Either(either) => either
+                .collect()
+                .into_iter()
+                .filter(|typ| matches!(typ, Type::Tuple(_)))
+                .reduce(join)
+                .unwrap_or_else(Type::empty_tuple),
+            _ => Type::empty_tuple(),
+        }),
+        TypeHint::Either { lhs, rhs } => Ok(Type::Either(Either::new(
+            binding_annotation_type(lhs, actual)?,
+            binding_annotation_type(rhs, actual)?,
+        ))),
+        _ => type_from_type_hint(constraint),
+    }
+}
+
 fn infer_destructuring(
     pattern: &Pattern,
     value: &ASTNode,
@@ -965,6 +1057,17 @@ fn infer_infix(
 ) -> Result<Type, (TypeError, Position)> {
     let lhs_type = infer(lhs, env)?;
     let rhs_type = infer(rhs, env)?;
+    if matches!(
+        op,
+        InfixOperator::Sum
+            | InfixOperator::Substraction
+            | InfixOperator::Product
+            | InfixOperator::Division
+            | InfixOperator::Exponentiation
+    ) {
+        return infer_arithmetic_op(op, lhs_type, rhs_type)
+            .map_err(|err| (err, lhs.position.join(rhs.position)));
+    }
     if lhs_type == Type::Unknown {
         return Ok(Type::Unknown);
     }
@@ -983,26 +1086,12 @@ fn infer_infix(
             check(rhs, Type::Integer, env)?;
             Ok(Type::Integer)
         }
-        InfixOperator::Division => {
-            infer_generic_arithmetic_op(op, infer(lhs, env)?, infer(rhs, env)?)
-                .map_err(|err| (err, lhs.position.join(rhs.position)))
-        }
         InfixOperator::Equality => Ok(Type::Boolean),
-        InfixOperator::Exponentiation => match (infer(lhs, env)?, infer(rhs, env)?) {
-            (Type::Integer, Type::Integer) => {
-                Ok(Type::Either(Either::new(Type::Integer, Type::Float)))
-            }
-            (Type::Float, Type::Integer) => Ok(Type::Float),
-            (Type::Fraction, Type::Integer) => Ok(Type::Fraction),
-            (lhs_type, rhs_type) => Err((
-                TypeError::NonExistentInfix {
-                    op,
-                    lhs_type,
-                    rhs_type,
-                },
-                lhs.position.join(rhs.position),
-            )),
-        },
+        InfixOperator::Division
+        | InfixOperator::Exponentiation
+        | InfixOperator::Product
+        | InfixOperator::Substraction
+        | InfixOperator::Sum => unreachable!(),
         InfixOperator::Greater => match (infer(lhs, env)?, infer(rhs, env)?) {
             (Type::Set, Type::Set) => Ok(Type::Boolean),
             (lhs_type, rhs_type) => {
@@ -1061,16 +1150,6 @@ fn infer_infix(
             Ok(Type::Integer)
         }
         InfixOperator::NotEquality => Ok(Type::Boolean),
-        InfixOperator::Product => match (infer(lhs, env)?, infer(rhs, env)?) {
-            (Type::List, Type::Integer) => Ok(Type::List),
-            (Type::Integer, Type::List) => Ok(Type::List),
-            (Type::Char, Type::Integer) => Ok(Type::String),
-            (Type::Integer, Type::Char) => Ok(Type::String),
-            (Type::String, Type::Integer) => Ok(Type::String),
-            (Type::Integer, Type::String) => Ok(Type::String),
-            (lhs_type, rhs_type) => infer_generic_arithmetic_op(op, lhs_type, rhs_type)
-                .map_err(|err| (err, lhs.position.join(rhs.position))),
-        },
         InfixOperator::Range => {
             check(lhs, Type::Integer, env)?;
             check(rhs, Type::Integer, env)?;
@@ -1081,20 +1160,63 @@ fn infer_infix(
             check(rhs, Type::Integer, env)?;
             Ok(Type::Integer)
         }
-        InfixOperator::Substraction => match (infer(lhs, env)?, infer(rhs, env)?) {
-            (Type::Set, Type::Set) => Ok(Type::Set),
-            (lhs_type, rhs_type) => infer_generic_arithmetic_op(op, lhs_type, rhs_type)
-                .map_err(|err| (err, lhs.position.join(rhs.position))),
-        },
-        InfixOperator::Sum => match (infer(lhs, env)?, infer(rhs, env)?) {
-            (Type::List, Type::List) => Ok(Type::List),
-            (Type::Set, Type::Set) => Ok(Type::Set),
-            (Type::String, Type::String) => Ok(Type::String),
-            (Type::Char, Type::Char) => Ok(Type::String),
-            (Type::String, Type::Char) => Ok(Type::String),
-            (Type::Char, Type::String) => Ok(Type::String),
-            (lhs_type, rhs_type) => infer_generic_arithmetic_op(op, lhs_type, rhs_type)
-                .map_err(|err| (err, lhs.position.join(rhs.position))),
+    }
+}
+
+fn infer_arithmetic_op(op: InfixOperator, lhs: Type, rhs: Type) -> Result<Type, TypeError> {
+    match (lhs, rhs) {
+        (Type::Either(either), rhs) => either
+            .collect()
+            .into_iter()
+            .map(|lhs| infer_arithmetic_op(op, lhs, rhs.clone()))
+            .try_fold(None, |result, typ| {
+                let typ = typ?;
+                Ok(Some(match result {
+                    Some(previous) => join(previous, typ),
+                    None => typ,
+                }))
+            })
+            .map(|result| result.unwrap()),
+        (lhs, Type::Either(either)) => either
+            .collect()
+            .into_iter()
+            .map(|rhs| infer_arithmetic_op(op, lhs.clone(), rhs))
+            .try_fold(None, |result, typ| {
+                let typ = typ?;
+                Ok(Some(match result {
+                    Some(previous) => join(previous, typ),
+                    None => typ,
+                }))
+            })
+            .map(|result| result.unwrap()),
+        (Type::Unknown, _) | (_, Type::Unknown) => Ok(Type::Unknown),
+        (lhs, rhs) => match (op, lhs, rhs) {
+            (InfixOperator::Sum, Type::List, Type::List) => Ok(Type::List),
+            (InfixOperator::Sum | InfixOperator::Substraction, Type::Set, Type::Set) => {
+                Ok(Type::Set)
+            }
+            (InfixOperator::Sum, Type::String | Type::Char, Type::String | Type::Char) => {
+                Ok(Type::String)
+            }
+            (InfixOperator::Product, Type::List, Type::Integer)
+            | (InfixOperator::Product, Type::Integer, Type::List) => Ok(Type::List),
+            (InfixOperator::Product, Type::String | Type::Char, Type::Integer)
+            | (InfixOperator::Product, Type::Integer, Type::String | Type::Char) => {
+                Ok(Type::String)
+            }
+            (InfixOperator::Exponentiation, Type::Integer, Type::Integer) => {
+                Ok(Type::Either(Either::new(Type::Integer, Type::Float)))
+            }
+            (InfixOperator::Exponentiation, Type::Float, Type::Integer) => Ok(Type::Float),
+            (InfixOperator::Exponentiation, Type::Fraction, Type::Integer) => Ok(Type::Fraction),
+            (InfixOperator::Exponentiation, lhs_type, rhs_type) => {
+                Err(TypeError::NonExistentInfix {
+                    op,
+                    lhs_type,
+                    rhs_type,
+                })
+            }
+            (_, lhs, rhs) => infer_generic_arithmetic_op(op, lhs, rhs),
         },
     }
 }
@@ -1320,6 +1442,94 @@ mod tests {
             result = infer(&node, &mut env)?;
         }
         Ok(result)
+    }
+
+    #[test]
+    fn binding_annotations_check_initializers() {
+        for source in [
+            "let x: Integer := \"hello\"",
+            "var x: Integer := \"hello\"",
+            "let x: Integer || Float := true",
+            "let (x: Integer, y) := (\"hello\", 1)",
+            "let pair := (\"hello\", 1)\nlet (x: Integer, y) := pair",
+            "let x: Integer := if true then 1 else \"hello\"",
+        ] {
+            assert!(
+                matches!(
+                    infer_program(source),
+                    Err((TypeError::TypeMismatch { .. }, _))
+                ),
+                "{source}"
+            );
+        }
+        assert_eq!(infer_program("let x: Integer := 1\nx"), Ok(Type::Integer));
+        assert_eq!(
+            infer_program("let x: Integer || Float := 1\nx"),
+            Ok(Type::Either(Either::new(Type::Integer, Type::Float)))
+        );
+        assert_eq!(
+            infer_program("let x: Integer := println(1)\nx"),
+            Ok(Type::Integer)
+        );
+    }
+
+    #[test]
+    fn failed_annotation_does_not_introduce_a_binding() {
+        let mut env = Environment::default();
+        env.set_type("x", Type::Boolean);
+        let pattern = crate::ast::tests::signature_pattern(
+            symbol_pattern("x"),
+            crate::ast::tests::simple_type_hint("Integer"),
+        );
+        assert!(infer(
+            &let_(pattern, string("hello", dummy_pos()), dummy_pos()),
+            &mut env
+        )
+        .is_err());
+        assert_eq!(env.get_type("x"), Some(&Type::Boolean));
+    }
+
+    #[test]
+    fn arithmetic_distributes_over_numeric_unions() {
+        let numeric_union = Type::Either(Either::new(Type::Integer, Type::Float));
+        for op in ["+", "-", "*", "/"] {
+            let source = format!("(if true then 1 else 1.5) {op} (if false then 2 else 2.5)");
+            assert_eq!(
+                infer_program(&source),
+                Ok(numeric_union.clone()),
+                "{source}"
+            );
+        }
+        assert_eq!(
+            infer_program("(if true then 1 else 1.5) + 2.5"),
+            Ok(Type::Float)
+        );
+        assert_eq!(
+            infer_program("(if true then 1 else 1.5) ** 2"),
+            Ok(numeric_union)
+        );
+        assert_eq!(
+            infer_program("from math import abs\nabs(1) + 1.5"),
+            Ok(Type::Float)
+        );
+    }
+
+    #[test]
+    fn arithmetic_rejects_any_invalid_union_alternative() {
+        for source in [
+            "(if true then 1 else true) + 2",
+            "2 * (if true then 1 else false)",
+            "2 ** (if true then 1 else 1.5)",
+            "(if true then \"hello\" else 1) + (if true then \"world\" else 2)",
+        ] {
+            assert!(
+                matches!(
+                    infer_program(source),
+                    Err((TypeError::NonExistentInfix { .. }, _))
+                ),
+                "{source}"
+            );
+        }
     }
 
     #[test]
