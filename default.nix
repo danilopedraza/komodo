@@ -1,19 +1,7 @@
 let
-  nixpkgs = import ./nixpkgs.nix;
-  pkgs = import nixpkgs { };
-  naersk = pkgs.callPackage (builtins.fetchGit {
-    url = "https://github.com/nix-community/naersk";
-    rev = "a75c0584b0d69de943babc899530e9c70c642b42";
-  }) {};
+  packages = (builtins.getFlake (toString ./.)).packages.${builtins.currentSystem};
 in
 {
-  book = pkgs.callPackage ./book { };
-
-  core = pkgs.callPackage ./core {
-    buildCargoPackage = naersk.buildPackage;
-  };
-
-  report = pkgs.callPackage ./report {
-    buildTypstDocument = pkgs.callPackage ./report/build-typst-document.nix { };
-  };
+  inherit (packages) book report;
+  core = packages.komodo;
 }

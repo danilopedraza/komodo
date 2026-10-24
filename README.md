@@ -26,12 +26,12 @@ This is a monorepo with all the code related to Komodo. Here is a quick summary:
 
 ## Hacking
 
-I use a very simple Nix setup to develop and deploy everything. The `shell.nix` file contains all the requirements (I think) to build everything.
+The repository has a Nix flake containing the development tools and build outputs. Rust dependencies and builds are handled by [Crane](https://github.com/ipetkov/crane).
 
 You can create a dev shell with these programs typing
 
 ```
-nix-shell
+nix develop
 ```
 
-In the repo root directory. There are some convenient commands in the `Makefile`, as well as some commands that I use for deployment.
+Run that in the repository root. The existing Makefiles are the convenient command interface inside the development shell. You can also build the interpreter directly with `nix build`, or run all flake checks with `nix flake check`.

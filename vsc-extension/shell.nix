@@ -1,11 +1,1 @@
-let
-  nixpkgs = import ../nixpkgs.nix;
-  pkgs = import nixpkgs { };
-in
-
-pkgs.mkShell {
-  packages = [
-    pkgs.nodejs_20
-    pkgs.vsce
-  ];
-}
+(builtins.getFlake (toString ../.)).devShells.${builtins.currentSystem}.default

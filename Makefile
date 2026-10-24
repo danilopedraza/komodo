@@ -13,7 +13,8 @@ build-core-wasm:
 	cargo build --target wasm32-unknown-unknown
 
 build-report:
-	nix-build -A report && cp $(PWD)/result/report.pdf $(WEBSITE_DIR)
+	nix build .#report --out-link result
+	cp $(PWD)/result/report.pdf $(WEBSITE_DIR)
 
 build-site: build-landing-page build-playground
 
@@ -26,7 +27,8 @@ build-playground:
 	(cd $(ROOT_DIR)/core-browser && sh build.sh $(WEBSITE_DIR)/play)
 
 build-book:
-	nix-build -A book && cp -r --no-preserve=mode $(PWD)/result/book $(PWD)/site/book
+	nix build .#book --out-link result
+	cp -r --no-preserve=mode $(PWD)/result/book $(PWD)/site/book
 
 test: test-core test-core-browser test-installer
 
@@ -64,4 +66,4 @@ repl:
 	KOMODO_STD=$(ROOT_DIR)/std/ cargo run --all-features --quiet
 
 env:
-	nix-shell
+	nix develop
