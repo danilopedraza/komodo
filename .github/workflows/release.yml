@@ -1,73 +1,54 @@
 name: Release
-
 on:
   workflow_dispatch:
-
 permissions:
   contents: write
-
 jobs:
   ci:
     uses: ./.github/workflows/core-ci.yml
-
   version:
     needs: ci
-    if: success()
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./core
     outputs:
-      version: ${{ steps.get_version.outputs.version }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Get version from Cargo.toml
-        id: get_version
-        run: |
-          VERSION=$(cargo pkgid | cut -d "@" -f2)
-          echo "version=v$VERSION" >> $GITHUB_OUTPUT
-
+      - uses: cachix/install-nix-action@v30
+      - uses: cachix/magic-nix-cache-action@v13
+      - name: Read package version
+        id: version
+        run: echo "version=v$(nix eval --raw .#komodo.version)" >> "$GITHUB_OUTPUT"
   build:
     needs: [ci, version]
-    if: success()
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
             name: linux-x64
           - os: macos-latest
-            target: aarch64-apple-darwin
             name: macos-arm64
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        working-directory: ./core
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-      - run: cargo build --all-features --release --target ${{ matrix.target }}
-      - name: Smoke test
+      - uses: cachix/install-nix-action@v30
+      - uses: cachix/magic-nix-cache-action@v13
+      - run: nix build .#komodo-release -L
+      - run: nix run .#smoke
+      - name: Stage binary
         run: |
-          echo 'println("Smoke test!")' > /tmp/test.komodo
-          target/${{ matrix.target }}/release/komodo /tmp/test.komodo
-      - name: Rename binary
-        run: mv target/${{ matrix.target }}/release/komodo target/${{ matrix.target }}/release/komodo-${{ matrix.name }}
+          mkdir -p artifacts
+          cp result/bin/komodo artifacts/komodo-${{ matrix.name }}
       - uses: actions/upload-artifact@v4
         with:
           name: komodo-${{ matrix.name }}
-          path: core/target/${{ matrix.target }}/release/komodo-${{ matrix.name }}
+          path: artifacts/komodo-${{ matrix.name }}
       - uses: actions/upload-artifact@v4
+        if: runner.os == 'Linux'
         with:
           name: utils.komodo
           path: std/utils.komodo
-
   release:
     needs: [version, build]
-    if: success()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -76,4 +57,4 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.version.outputs.version }}
-          files: artifacts/**/*
+          files: artifacts/**

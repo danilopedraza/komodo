@@ -35,3 +35,35 @@ nix develop
 ```
 
 Run that in the repository root. The existing Makefiles are the convenient command interface inside the development shell. You can also build the interpreter directly with `nix build`, or run all flake checks with `nix flake check`.
+
+CI uses the locked flake for builds and checks, with the Nix store cached between
+GitHub Actions runs. Run the same checks locally:
+
+```sh
+nix flake check -L
+nix run .#cargo-test
+nix run .#examples
+nix run .#clippy
+nix run .#formatting
+nix run .#browser-test
+nix run .#browser-clippy
+nix run .#browser-formatting
+nix run .#smoke
+```
+
+Individual checks are also available as `nix build .#checks.<system>.<name>`.
+Successful checks are cached; `nix run` reuses their results until their inputs
+change. Build artifacts with `nix build .#komodo`, `.#komodo-release`,
+`.#playground`, `.#website`, `.#book`, `.#report`, or `.#extension`.
+`komodo-release` is statically linked on Linux so the downloaded release binary
+works without Nix. The website output contains the playground, book, report, and
+installer; the extension output contains `extension.vsix`.
+
+`nix run .#bench -- <previous-commit>` benchmarks both revisions with the current
+locked Nix build recipe, without changing your checkout. It requires
+`BENCHER_API_TOKEN` for uploading results. Benchmark timing depends on the host;
+the binaries and benchmark tooling are Nix builds. `nix run .#publish-extension`
+publishes the built VSIX using `VSCE_PAT` and `OVSX_PAT`.
+
+When updating browser dependencies, keep `core-browser/Cargo.lock`'s
+`wasm-bindgen` version aligned with the flake's `wasm-bindgen-cli` version.

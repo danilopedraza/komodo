@@ -1,0 +1,6 @@
+{
+  "name": "komodo-extension-publisher",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": { "ovsx": "0.10.9" }
+}

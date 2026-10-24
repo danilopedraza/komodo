@@ -1,9 +1,8 @@
-name: Interpreter CI
+name: CI
 on:
   pull_request:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_call:
 permissions:
   contents: read
@@ -11,64 +10,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 jobs:
-  test:
-    name: test
+  check:
+    name: Nix checks (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        toolchain: [stable]
-        target:
-          - x86_64-unknown-linux-gnu
-          - aarch64-apple-darwin
-        include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            cargo-tool: cargo
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            cargo-tool: cargo
+        os: [ubuntu-latest, macos-latest]
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{ matrix.toolchain }}
-          target: ${{ matrix.target }}
-      - name: Run tests
-        working-directory: ./core
-        run: make test
-
-  format:
-    name: format
-    runs-on: ubuntu-latest
-    if: success()
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          components: rustfmt
-      - name: Check formatting
-        working-directory: ./core
-        run: make fmt-check
-
-  lint:
-    name: lint
-    runs-on: ubuntu-latest
-    if: success()
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          components: clippy
-      - name: Run linter
-        working-directory: ./core
-        run: make lint
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v30
+      - uses: cachix/magic-nix-cache-action@v13
+      - run: nix flake check -L
