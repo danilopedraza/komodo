@@ -30,10 +30,6 @@ impl From<(String, Object)> for Match {
     }
 }
 
-pub fn match_call(patterns: &[Pattern], args: &[Object]) -> Option<Match> {
-    match_sequence(patterns, args)
-}
-
 fn join(match1: Option<Match>, match2: Option<Match>) -> Option<Match> {
     let Match(mut map1) = match1?;
     let Match(map2) = match2?;
@@ -345,7 +341,7 @@ mod tests {
             Object::Integer(Integer::from(2)),
         ];
 
-        assert_eq!(match_call(&patterns, &values), None);
+        assert_eq!(match_sequence(&patterns, &values), None);
     }
 
     #[test]

@@ -37,10 +37,6 @@ pub enum ExecError {
         kind: String,
     },
     ListIndexOutOfBounds,
-    MissingFunctionArguments {
-        expected: usize,
-        actual: usize,
-    },
     MutationOutOfScope {
         name: String,
     },
@@ -102,14 +98,10 @@ pub fn constant_set(list: &[Constant]) -> Object {
     Object::Set(list.into())
 }
 
-fn function(
-    params: &[String],
-    result: &ASTNode,
-    env: &Environment,
-) -> ExecResult<(Object, Address)> {
+fn function(param: &Pattern, result: &ASTNode, env: &Environment) -> ExecResult<(Object, Address)> {
     Ok((
         Object::Function(object::Function::Anonymous(AnonFunction::new(
-            params.to_owned(),
+            param.to_owned(),
             result.to_owned(),
             env.clone(),
         ))),
@@ -122,10 +114,10 @@ pub fn exec(node: &ASTNode, env: &mut Environment) -> ExecResult<(Object, Addres
         ASTNodeKind::Symbol { name } => symbol(name, env, node.position),
         ASTNodeKind::Set { list } => extension_set(list, env),
         ASTNodeKind::Integer { literal, radix } => Ok(integer(literal, *radix)),
-        ASTNodeKind::Function { params, result } => function(params, result, env),
+        ASTNodeKind::Function { param, result } => function(param, result, env),
         ASTNodeKind::Infix { op, lhs, rhs } => infix(*op, lhs, rhs, node.position, env),
         ASTNodeKind::Boolean(val) => Ok(boolean(*val)),
-        ASTNodeKind::Call { called, args } => call(called, args, env, node.position),
+        ASTNodeKind::Call { called, arg } => call(called, arg, env, node.position),
         ASTNodeKind::Char(chr) => Ok(char(*chr)),
         ASTNodeKind::If {
             cond,
@@ -247,14 +239,14 @@ fn declaration(decl: &Declaration, env: &mut Environment) -> ExecResult<(Object,
         Declaration::Mutable { left, right } => let_pattern(left, right, ValueKind::Mutable, env),
         Declaration::Function {
             name,
-            params,
+            param,
             result,
-        } => let_function(name, params, result, FunctionPatternKind::NotMemoized, env),
+        } => let_function(name, param, result, FunctionPatternKind::NotMemoized, env),
         Declaration::MemoizedFunction {
             name,
-            params,
+            param,
             result,
-        } => let_function(name, params, result, FunctionPatternKind::Memoized, env),
+        } => let_function(name, param, result, FunctionPatternKind::Memoized, env),
     }
 }
 
@@ -630,7 +622,7 @@ fn comprehension(
 
 fn let_function(
     name: &str,
-    args: &[Pattern],
+    param: &Pattern,
     value: &ASTNode,
     kind: FunctionPatternKind,
     env: &mut Environment,
@@ -656,7 +648,7 @@ fn let_function(
         _ => unimplemented!(),
     };
 
-    function.add_pattern(args, value, kind);
+    function.add_pattern(param, value, kind);
     function.env.borrow_mut().set_mutable(
         name,
         (
@@ -730,73 +722,52 @@ fn get_iterable(
 
 fn call(
     func_node: &ASTNode,
-    args: &[ASTNode],
+    arg: &ASTNode,
     env: &mut Environment,
     call_pos: Position,
 ) -> ExecResult<(Object, Address)> {
-    let (func, args): (Object, Vec<&ASTNode>) = match (func_node, args) {
-        (
-            ASTNode {
-                kind: ASTNodeKind::DotNotation { lhs, rhs },
-                ..
-            },
-            args,
-        ) => match exec(lhs, env) {
-            Ok((Object::Dictionary(_), _)) => {
-                (object_attr(lhs, rhs, env)?.0, args.iter().collect())
-            }
-            _ => {
-                let mut new_args = vec![lhs.as_ref()];
-                for arg in args {
-                    new_args.push(arg);
+    let (func, argument) = match &func_node.kind {
+        ASTNodeKind::DotNotation { lhs, rhs } => match exec(lhs, env) {
+            Ok((Object::Dictionary(_), _)) => (object_attr(lhs, rhs, env)?.0, exec(arg, env)?.0),
+            receiver => {
+                let receiver = receiver?.0;
+                let func = exec(rhs, env)?.0;
+                let argument = exec(arg, env)?.0;
+                // Method notation prepends the receiver to the tuple argument.
+                let mut values = vec![receiver];
+                match argument {
+                    Object::Tuple(tuple) => {
+                        values.extend(tuple.list.into_iter().map(|(obj, _)| obj))
+                    }
+                    obj => values.push(obj),
                 }
-
-                (exec(rhs, env)?.0, new_args)
+                let argument = if values.len() == 1 {
+                    values.pop().unwrap()
+                } else {
+                    Object::Tuple(values.into())
+                };
+                (func, argument)
             }
         },
-        (func_node, args) => (exec(func_node, env)?.0, args.iter().collect()),
+        _ => (exec(func_node, env)?.0, exec(arg, env)?.0),
     };
-
     let func_name = match &func_node.kind {
         ASTNodeKind::Symbol { name } => Some(name),
         _ => None,
     };
-
-    if let Object::Function(ref f) = func {
-        if args.len() < f.param_number() {
-            return Err(Error::WithPosition(
-                ExecError::MissingFunctionArguments {
-                    expected: f.param_number(),
-                    actual: args.len(),
-                }
-                .into(),
-                call_pos,
-                env.file_path(),
-            ));
-        }
-    }
-
-    let mut func_args = vec![];
-    for arg in args {
-        let func_arg = exec(arg, env)?.0;
-        func_args.push(func_arg);
-    }
-
     match func {
         Object::Function(mut f) => {
-            let res = f.call(&func_args, env, call_pos);
-
+            let res = f.call(&argument, env, call_pos);
             if let Some(name) = func_name {
                 env.set_mutable(name, (Object::Function(f.clone()), Address::default()));
             }
-
             res.map(|obj| (obj, Address::default()))
         }
         obj => Err(Error::WithPosition(
             ExecError::NonCallableObject(obj.kind()).into(),
             func_node.position,
             env.file_path(),
-        ))?,
+        )),
     }
 }
 
@@ -1375,7 +1346,7 @@ mod tests {
         assert_eq!(
             exec(node, &mut Environment::default()).unwrap().0,
             Object::Function(object::Function::Anonymous(AnonFunction::new(
-                vec![String::from("x"),],
+                symbol_pattern("x"),
                 infix(
                     InfixOperator::Product,
                     dec_integer("2", dummy_pos()),
@@ -1411,7 +1382,7 @@ mod tests {
     }
 
     #[test]
-    fn several_params_call() {
+    fn tuple_parameter_call() {
         let node = &call(
             function(
                 vec!["x", "y"],
@@ -1434,7 +1405,7 @@ mod tests {
     }
 
     #[test]
-    fn missing_args() {
+    fn tuple_parameter_requires_matching_shape() {
         let node = &call(
             function(
                 vec!["x", "y"],
@@ -1453,11 +1424,7 @@ mod tests {
         assert_eq!(
             exec(node, &mut Environment::default()),
             Err(Error::WithPosition(
-                ExecError::MissingFunctionArguments {
-                    expected: 2,
-                    actual: 1,
-                }
-                .into(),
+                ExecError::UnmatchedCall.into(),
                 pos(0, 5),
                 PathBuf::default()
             ))
@@ -1469,8 +1436,8 @@ mod tests {
         // I do this to test the change of state without assignments
         static ARGS: Mutex<Vec<String>> = Mutex::new(vec![]);
 
-        fn test(args: &[Object]) -> Object {
-            ARGS.lock().unwrap().push(args[0].to_string());
+        fn test(arg: &Object) -> Object {
+            ARGS.lock().unwrap().push(arg.to_string());
             Object::empty_tuple()
         }
 
@@ -1478,11 +1445,7 @@ mod tests {
         env.set_inmutable(
             "f",
             (
-                Object::Function(Function::Extern(ExternFunction::new(
-                    test,
-                    "test".into(),
-                    1,
-                ))),
+                Object::Function(Function::Extern(ExternFunction::new(test, "test".into()))),
                 Address::default(),
             ),
         );
@@ -1604,7 +1567,7 @@ mod tests {
     }
 
     #[test]
-    fn missing_args_2() {
+    fn symbol_parameter_accepts_unit() {
         let mut env = Environment::default();
         let func = function_declaration(
             "f",
@@ -1617,17 +1580,7 @@ mod tests {
 
         let call = call(symbol("f", dummy_pos()), vec![], dummy_pos());
 
-        assert_eq!(
-            exec(&call, &mut env),
-            Err(Error::WithPosition(
-                ErrorKind::Exec(ExecError::MissingFunctionArguments {
-                    expected: 1,
-                    actual: 0
-                }),
-                dummy_pos(),
-                PathBuf::default()
-            ))
-        );
+        assert_eq!(exec(&call, &mut env).unwrap().0, Object::empty_tuple());
     }
 
     #[test]
@@ -1942,14 +1895,14 @@ mod tests {
     fn memoization() {
         static mut CALL_COUNTER: usize = 0;
 
-        fn foo(_: &[Object]) -> Object {
+        fn foo(_: &Object) -> Object {
             unsafe {
                 CALL_COUNTER += 1;
             }
             Object::empty_tuple()
         }
 
-        let foo_obj = Object::Function(Function::Extern(ExternFunction::new(foo, "foo".into(), 1)));
+        let foo_obj = Object::Function(Function::Extern(ExternFunction::new(foo, "foo".into())));
 
         let mut env = Environment::default();
 
@@ -2125,7 +2078,7 @@ mod tests {
             exec(&attr, &mut env),
             Ok((
                 Object::Function(Function::Anonymous(AnonFunction::new(
-                    vec![],
+                    Pattern::Tuple { list: vec![] },
                     dec_integer("5", dummy_pos()),
                     Environment::default()
                 ))),

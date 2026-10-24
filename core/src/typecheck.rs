@@ -64,8 +64,11 @@ impl Environment {
             (
                 "assert",
                 Type::Function {
-                    input: Box::new(Type::Boolean),
-                    output: Box::new(Type::Unknown),
+                    input: Box::new(Type::Either(Either::new(
+                        Type::Boolean,
+                        Type::Tuple(vec![Type::Boolean, Type::Unknown]),
+                    ))),
+                    output: Box::new(Type::empty_tuple()),
                 },
             ),
             ("Integer", Type::Unknown),
@@ -357,36 +360,63 @@ fn check_type(actual: Type, expected: Type) -> Result<Type, TypeError> {
         (actual, expected) if actual == expected => Ok(actual),
         (Type::Unknown, _) => Ok(Type::Unknown),
         (actual, Type::Unknown) => Ok(actual),
-        (Type::Either(e1), Type::Either(e2)) => {
-            let cmp_res = e1.partial_cmp(&e2);
-            let actual = Type::Either(e1);
-            let expected = Type::Either(e2);
-            match cmp_res {
-                Some(res) => match res {
-                    std::cmp::Ordering::Less => Ok(actual),
-                    std::cmp::Ordering::Equal => Ok(actual),
-                    std::cmp::Ordering::Greater => {
-                        Err(TypeError::TypeMismatch { expected, actual })
-                    }
-                },
-                None => Err(TypeError::TypeMismatch { expected, actual }),
+        (Type::Either(either), expected) => {
+            let actual = Type::Either(either.clone());
+            for alternative in either.collect() {
+                if check_type(alternative, expected.clone()).is_err() {
+                    return Err(TypeError::TypeMismatch { expected, actual });
+                }
             }
+            Ok(actual)
         }
         (actual, Type::Either(either)) => {
             for type_hint in either.collect() {
-                let res = check_type(actual.clone(), type_hint);
-
-                if res.is_ok() {
-                    return res;
+                if check_type(actual.clone(), type_hint).is_ok() {
+                    return Ok(actual);
                 }
             }
-
+            // An overloaded function can cover different alternatives of a tuple
+            // argument in different clauses, e.g. (List | Set, Function).
+            if let Type::Tuple(items) = &actual {
+                let alternatives = tuple_alternatives(items);
+                if alternatives.len() > 1 {
+                    let expected = Type::Either(either);
+                    for alternative in alternatives {
+                        if check_type(Type::Tuple(alternative), expected.clone()).is_err() {
+                            return Err(TypeError::TypeMismatch { expected, actual });
+                        }
+                    }
+                    return Ok(actual);
+                }
+            }
             let expected = Type::Either(either);
             Err(TypeError::TypeMismatch { expected, actual })
         }
-        (Type::Either(either), expected) => {
-            let actual = Type::Either(either);
-            Err(TypeError::TypeMismatch { expected, actual })
+        (
+            Type::Function {
+                input: actual_input,
+                output: actual_output,
+            },
+            Type::Function {
+                input: expected_input,
+                output: expected_output,
+            },
+        ) => {
+            let compatible = check_type(*expected_input.clone(), *actual_input.clone()).is_ok()
+                && check_type(*actual_output.clone(), *expected_output.clone()).is_ok();
+            let actual = Type::Function {
+                input: actual_input,
+                output: actual_output,
+            };
+            if compatible {
+                Ok(actual)
+            } else {
+                let expected = Type::Function {
+                    input: expected_input,
+                    output: expected_output,
+                };
+                Err(TypeError::TypeMismatch { expected, actual })
+            }
         }
         (Type::Tuple(ltup), Type::Tuple(rtup)) => {
             if ltup.len() != rtup.len() {
@@ -409,6 +439,31 @@ fn check_type(actual: Type, expected: Type) -> Result<Type, TypeError> {
     }
 }
 
+fn tuple_alternatives(items: &[Type]) -> Vec<Vec<Type>> {
+    let mut tuples = vec![vec![]];
+    for item in items {
+        let alternatives = match item {
+            Type::Either(either) => either.collect(),
+            Type::Tuple(items) => tuple_alternatives(items)
+                .into_iter()
+                .map(Type::Tuple)
+                .collect(),
+            typ => vec![typ.clone()],
+        };
+        tuples = tuples
+            .into_iter()
+            .flat_map(|tuple| {
+                alternatives.iter().map(move |typ| {
+                    let mut tuple = tuple.clone();
+                    tuple.push(typ.clone());
+                    tuple
+                })
+            })
+            .collect();
+    }
+    tuples
+}
+
 pub fn infer(val: &ASTNode, env: &mut Environment) -> Result<Type, (TypeError, Position)> {
     match &val.kind {
         ASTNodeKind::Integer { .. } => Ok(Type::Integer),
@@ -428,7 +483,7 @@ pub fn infer(val: &ASTNode, env: &mut Environment) -> Result<Type, (TypeError, P
         },
         ASTNodeKind::Boolean(_) => Ok(Type::Boolean),
         ASTNodeKind::Block(block) => infer_block(block, env),
-        ASTNodeKind::Call { called, args } => infer_call(called, args, env),
+        ASTNodeKind::Call { called, arg } => infer_call(called, arg, env),
         ASTNodeKind::Case { expr, pairs } => infer_case(expr, pairs, env),
         ASTNodeKind::Char(_) => Ok(Type::Char),
         ASTNodeKind::Comprehension { kind, .. } => Ok(infer_comprehension(*kind)),
@@ -438,7 +493,7 @@ pub fn infer(val: &ASTNode, env: &mut Environment) -> Result<Type, (TypeError, P
         ASTNodeKind::List { .. } => Ok(Type::List),
         ASTNodeKind::Set { .. } => Ok(Type::Set),
         ASTNodeKind::For { .. } => Ok(Type::empty_tuple()),
-        ASTNodeKind::Function { params, result } => infer_function(params, result, env),
+        ASTNodeKind::Function { param, result } => infer_function(param, result, env),
         ASTNodeKind::Fraction { .. } => Ok(Type::Fraction),
         ASTNodeKind::If {
             cond,
@@ -494,9 +549,23 @@ fn infer_import_from(
             "math" => {
                 for (name, position) in values {
                     let type_hint = match name.as_str() {
-                        "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "exp" | "ln" | "log"
-                        | "cbrt" | "sqrt" | "hypot" => Ok(Type::Function {
+                        "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "exp" | "ln"
+                        | "cbrt" | "sqrt" => Ok(Type::Function {
                             input: Box::new(Type::any_number()),
+                            output: Box::new(Type::Float),
+                        }),
+                        "hypot" => Ok(Type::Function {
+                            input: Box::new(Type::Tuple(vec![
+                                Type::any_number(),
+                                Type::any_number(),
+                            ])),
+                            output: Box::new(Type::Float),
+                        }),
+                        "log" => Ok(Type::Function {
+                            input: Box::new(Type::Either(Either::new(
+                                Type::any_number(),
+                                Type::Tuple(vec![Type::any_number(), Type::Integer]),
+                            ))),
                             output: Box::new(Type::Float),
                         }),
                         "abs" => Ok(Type::Function {
@@ -608,18 +677,18 @@ fn infer_declaration(
         Declaration::Inmutable { left, right } => infer_destructuring(left, right, position, env),
         Declaration::MemoizedFunction {
             name,
-            params,
+            param,
             result,
-        } => infer_function_definition(name, params, result, position, env),
+        } => infer_function_definition(name, param, result, position, env),
         Declaration::Symbolic {
             name: _,
             constraint: _,
         } => todo!(),
         Declaration::Function {
             name,
-            params,
+            param,
             result,
-        } => infer_function_definition(name, params, result, position, env),
+        } => infer_function_definition(name, param, result, position, env),
     }
 }
 
@@ -711,15 +780,19 @@ fn lookup_type(typename: &str) -> Result<Type, TypeError> {
 
 fn infer_function_definition(
     name: &str,
-    params: &[Pattern],
+    param: &Pattern,
     result: &ASTNode,
     err_pos: Position,
     env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
-    let input_type = match params.first() {
-        None => Ok(Type::empty_tuple()),
-        Some(param) => infer_pattern(param).map_err(|err| (err, err_pos)),
-    }?;
+    let input_type = infer_pattern(param).map_err(|err| (err, err_pos))?;
+
+    // Keep real earlier clauses separate from the placeholder for recursion.
+    // Joining a first clause's result with that Unknown would erase its type.
+    let previous_output = match env.get_type(name) {
+        Some(Type::Function { output, .. }) => Some(output.as_ref().clone()),
+        _ => None,
+    };
 
     if let Some(Type::Function { input, output }) = env.get_type(name) {
         env.set_type(
@@ -740,19 +813,19 @@ fn infer_function_definition(
     }
 
     let output_type = env.within_new_level(|env| {
-        for param in params {
-            let introduced_symbols = get_introduced_symbols(param, err_pos)?;
-            for (name, typ) in introduced_symbols {
-                env.set_type(&name, typ);
-            }
+        for (name, typ) in get_introduced_symbols(param, err_pos)? {
+            env.set_type(&name, typ);
         }
         infer(result, env)
     })?;
 
-    let res = if let Some(Type::Function { input, output }) = env.get_type(name) {
+    let res = if let Some(Type::Function { input, .. }) = env.get_type(name) {
         Type::Function {
             input: input.clone(),
-            output: Box::new(join(output_type, *output.to_owned())),
+            output: Box::new(match previous_output {
+                Some(previous) => join(output_type, previous),
+                None => output_type,
+            }),
         }
     } else {
         Type::Function {
@@ -1077,35 +1150,26 @@ fn infer_case(
 }
 
 fn infer_function(
-    params: &[String],
+    param: &Pattern,
     result: &ASTNode,
     env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
-    let input = Box::new(if params.is_empty() {
-        Type::empty_tuple()
-    } else {
-        Type::Unknown
-    });
+    let input = Box::new(infer_pattern(param).map_err(|err| (err, result.position))?);
     let output = Box::new(env.within_new_level(|env| {
-        for name in params {
-            env.set_type(name, Type::Unknown);
+        for (name, typ) in get_introduced_symbols(param, result.position)? {
+            env.set_type(&name, typ);
         }
-
         infer(result, env)
     })?);
-
     Ok(Type::Function { input, output })
 }
 
 fn infer_call(
     called: &ASTNode,
-    args: &[ASTNode],
+    arg: &ASTNode,
     env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
-    let actual_input = Box::new(
-        args.first()
-            .map_or(Ok(Type::empty_tuple()), |typ| infer(typ, env))?,
-    );
+    let actual_input = Box::new(infer(arg, env)?);
 
     match infer(called, env)? {
         Type::Function {
@@ -1225,8 +1289,9 @@ mod tests {
             tests::{
                 _for, _if, assignable_pattern, assignment, block, boolean, call, case, char,
                 comprehension, cons, dec_integer, dec_integer_pattern, decimal, dictionary,
-                extension_list, extension_set, fraction, function, import_from, infix, let_,
-                prefix, set_cons, string, string_pattern, symbol, symbol_pattern, tuple, wildcard,
+                extension_list, extension_set, fraction, function, function_declaration,
+                import_from, infix, let_, prefix, set_cons, string, string_pattern, symbol,
+                symbol_pattern, tuple, wildcard,
             },
             ASTNode, InfixOperator,
         },
@@ -1242,6 +1307,146 @@ mod tests {
 
     fn fresh_infer(val: &ASTNode) -> Result<Type, (TypeError, Position)> {
         infer(val, &mut Environment::default())
+    }
+
+    fn infer_program(source: &str) -> Result<Type, (TypeError, Position)> {
+        let nodes = crate::run::collect_nodes(crate::parser::Parser::from(
+            crate::lexer::Lexer::from((source, std::path::PathBuf::default())),
+        ))
+        .unwrap();
+        let mut env = Environment::std_env(crate::env::ExecContext::default());
+        let mut result = Type::empty_tuple();
+        for node in nodes {
+            result = infer(&node, &mut env)?;
+        }
+        Ok(result)
+    }
+
+    #[test]
+    fn tuple_arguments_are_checked_in_full() {
+        assert_eq!(
+            infer_program("let f(a: Integer, b: Integer) := a + b\nf(1, 2)"),
+            Ok(Type::Integer)
+        );
+        assert!(matches!(
+            infer_program("let f(a: Integer, b: Integer) := a + b\nf(1, true)"),
+            Err((TypeError::TypeMismatch { .. }, _))
+        ));
+        assert!(matches!(
+            infer_program("let f(x) := x\nf(1, missing)"),
+            Err((TypeError::UnknownSymbol { name }, _)) if name == "missing"
+        ));
+    }
+
+    #[test]
+    fn tuple_overloads_cover_unions_and_accept_function_arguments() {
+        assert_eq!(
+            infer_program(
+                "let f(xs: List, fn: Function) := fn(1, 2)\n\
+             let f(xs: Set, fn: Function) := fn(1, 2)\n\
+             f(if true then [] else {}, (a, b) -> a + b)"
+            ),
+            Ok(Type::Unknown)
+        );
+        // Every combination must fit a clause; independent unions in each
+        // parameter would incorrectly admit (String, Boolean) here.
+        assert!(matches!(
+            infer_program(
+                "let f(x: Integer, y: Boolean) := 1\n\
+             let f(x: String, y: Integer) := 2\n\
+             f(if true then 1 else \"one\", true)"
+            ),
+            Err((TypeError::TypeMismatch { .. }, _))
+        ));
+    }
+
+    #[test]
+    fn unit_and_tuple_patterns_check_the_argument_shape() {
+        for source in [
+            "let f() := 1\nf(2)",
+            "let f(a, b) := a\nf(1)",
+            "let f := (a, b) -> a\nf(1)",
+            "let f := () -> 1\nf(2)",
+        ] {
+            assert!(
+                matches!(
+                    infer_program(source),
+                    Err((TypeError::TypeMismatch { .. }, _))
+                ),
+                "{source}"
+            );
+        }
+    }
+
+    #[test]
+    fn recursive_and_memoized_function_results_are_preserved() {
+        for declaration in ["let", "let memoize"] {
+            let source = format!(
+                "{declaration} f(0) := 1\n{declaration} f(n: Integer) := n * f(n - 1)\nf(3)"
+            );
+            assert_eq!(infer_program(&source), Ok(Type::Integer));
+        }
+        // A recursive function without a known base result remains conservative.
+        assert_eq!(infer_program("let f(x) := f(x)\nf(1)"), Ok(Type::Unknown));
+    }
+
+    #[test]
+    fn named_function_return_types() {
+        let mut env = Environment::default();
+        for (pattern, body, expected) in [
+            (
+                dec_integer_pattern("0"),
+                dec_integer("1", dummy_pos()),
+                Type::Integer,
+            ),
+            (
+                dec_integer_pattern("1"),
+                string("one", dummy_pos()),
+                Type::Either(Either::new(Type::Integer, Type::String)),
+            ),
+        ] {
+            let inferred = infer(
+                &function_declaration("f", vec![pattern], body, dummy_pos()),
+                &mut env,
+            )
+            .unwrap();
+            assert_eq!(
+                inferred,
+                Type::Function {
+                    input: Box::new(Type::Integer),
+                    output: Box::new(expected),
+                }
+            );
+        }
+    }
+
+    #[test]
+    fn named_function_result_is_checked_at_call_site() {
+        let mut env = Environment::default();
+        infer(
+            &function_declaration(
+                "f",
+                vec![wildcard()],
+                dec_integer("1", dummy_pos()),
+                dummy_pos(),
+            ),
+            &mut env,
+        )
+        .unwrap();
+        let expr = infix(
+            InfixOperator::Sum,
+            call(
+                symbol("f", dummy_pos()),
+                vec![tuple(vec![], dummy_pos())],
+                dummy_pos(),
+            ),
+            boolean(true, dummy_pos()),
+            dummy_pos(),
+        );
+        assert!(matches!(
+            infer(&expr, &mut env),
+            Err((TypeError::NonExistentInfix { .. }, _))
+        ));
     }
 
     #[test]

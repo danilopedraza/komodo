@@ -4,14 +4,13 @@ pub mod integer;
 
 use std::{
     cell::RefCell,
-    cmp::{min, Ordering},
+    cmp::Ordering,
     collections::{
         btree_set::{IntoIter, Iter},
         BTreeMap, BTreeSet,
     },
     fmt,
     hash::Hash,
-    iter::zip,
     rc::Rc,
     vec,
 };
@@ -27,7 +26,7 @@ use crate::{
     env::{Address, Environment, ScopeKind},
     error::{Error, Position},
     exec::{exec, ExecError},
-    matcher::{match_call, Match},
+    matcher::{match_, Match},
 };
 
 macro_rules! default_infix_method {
@@ -143,12 +142,8 @@ impl Object {
         Self::Boolean(Bool::from(false))
     }
 
-    pub fn from_fn(func: fn(&[Object]) -> Object, name: String, param_number: usize) -> Self {
-        Self::Function(Function::Extern(ExternFunction {
-            func,
-            name,
-            param_number,
-        }))
+    pub fn from_fn(func: fn(&Object) -> Object, name: String) -> Self {
+        Self::Function(Function::Extern(ExternFunction { func, name }))
     }
 
     pub fn to_float(&self) -> Result<Float, ObjectError> {
@@ -1009,22 +1004,14 @@ impl fmt::Display for Function {
 impl Function {
     pub fn call(
         &mut self,
-        args: &[Object],
+        arg: &Object,
         env: &mut Environment,
         call_pos: Position,
     ) -> Result<Object, Error> {
         match self {
-            Self::Pattern(f) => f.call(args, call_pos),
-            Self::Anonymous(f) => f.call(args, call_pos),
-            Self::Extern(ef) => ef.call(args, env, call_pos),
-        }
-    }
-
-    pub fn param_number(&self) -> usize {
-        match self {
-            Self::Pattern(f) => f.param_number(),
-            Self::Anonymous(f) => f.param_number(),
-            Self::Extern(f) => f.param_number(),
+            Self::Pattern(f) => f.call(arg, call_pos),
+            Self::Anonymous(f) => f.call(arg, call_pos),
+            Self::Extern(ef) => ef.call(arg, env, call_pos),
         }
     }
 }
@@ -1038,16 +1025,14 @@ pub enum FunctionPatternKind {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PatternFunction {
     pub env: Rc<RefCell<Environment>>,
-    patterns: Vec<(FunctionPatternKind, Vec<Pattern>, ASTNode)>,
-    cache: BTreeMap<Vec<Object>, Object>,
-    params: usize,
+    patterns: Vec<(FunctionPatternKind, Pattern, ASTNode)>,
+    cache: BTreeMap<Object, Object>,
 }
 
 impl Hash for PatternFunction {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.patterns.hash(state);
         self.cache.hash(state);
-        self.params.hash(state);
     }
 }
 
@@ -1057,24 +1042,17 @@ impl PatternFunction {
             env,
             patterns: Vec::default(),
             cache: BTreeMap::default(),
-            params: usize::default(),
         }
     }
-    pub fn add_pattern(&mut self, args: &[Pattern], value: &ASTNode, kind: FunctionPatternKind) {
+    pub fn add_pattern(&mut self, param: &Pattern, value: &ASTNode, kind: FunctionPatternKind) {
         for i in 0..self.patterns.len() {
             let (_, other_args, _) = &self.patterns[i];
-            if args == other_args {
-                self.patterns[i] = (kind, args.to_owned(), value.to_owned());
+            if param == other_args {
+                self.patterns[i] = (kind, param.to_owned(), value.to_owned());
             }
         }
 
-        if self.patterns.is_empty() {
-            self.params = args.len();
-        } else {
-            self.params = min(self.params, args.len())
-        }
-
-        self.patterns.push((kind, args.to_vec(), value.clone()));
+        self.patterns.push((kind, param.clone(), value.clone()));
     }
 
     fn exec_call(
@@ -1095,19 +1073,19 @@ impl PatternFunction {
         res.map(|(obj, _)| obj)
     }
 
-    fn call(&mut self, args: &[Object], call_pos: Position) -> Result<Object, Error> {
-        if let Some(cached) = self.cache.get(args) {
+    fn call(&mut self, arg: &Object, call_pos: Position) -> Result<Object, Error> {
+        if let Some(cached) = self.cache.get(arg) {
             Ok(cached.to_owned())
         } else {
             for (kind, patterns, val) in &self.patterns {
-                if let Some(Match(v)) = match_call(patterns, args) {
+                if let Some(Match(v)) = match_(patterns, arg) {
                     match kind {
                         FunctionPatternKind::NotMemoized => {
                             return Self::exec_call(v, val, &mut self.env.borrow().to_owned());
                         }
                         FunctionPatternKind::Memoized => {
                             let res = Self::exec_call(v, val, &mut self.env.borrow().to_owned())?;
-                            self.cache.insert(args.to_owned(), res.clone());
+                            self.cache.insert(arg.to_owned(), res.clone());
                             return Ok(res);
                         }
                     }
@@ -1121,91 +1099,68 @@ impl PatternFunction {
             ))
         }
     }
-
-    fn param_number(&self) -> usize {
-        self.params
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct AnonFunction {
-    params: Vec<String>,
+    param: Pattern,
     result: ASTNode,
     env: Environment,
 }
 
 impl AnonFunction {
-    pub fn new(params: Vec<String>, result: ASTNode, env: Environment) -> Self {
-        Self {
-            params,
-            result,
-            env,
-        }
+    pub fn new(param: Pattern, result: ASTNode, env: Environment) -> Self {
+        Self { param, result, env }
     }
 
-    fn call(&mut self, args: &[Object], _call_pos: Position) -> Result<Object, Error> {
+    fn call(&mut self, arg: &Object, call_pos: Position) -> Result<Object, Error> {
+        let Some(Match(values)) = match_(&self.param, arg) else {
+            return Err(Error::with_position(
+                ExecError::UnmatchedCall.into(),
+                call_pos,
+                self.env.file_path(),
+            ));
+        };
         self.env.push_scope(ScopeKind::Function);
-
-        for (arg, param) in zip(args, &self.params) {
-            self.env
-                .set_inmutable(param, (arg.clone(), Address::default()));
+        for (name, value) in values {
+            self.env.set_inmutable(&name, value);
         }
-
-        let res = exec(&self.result, &mut self.env)?;
-
+        let res = exec(&self.result, &mut self.env);
         self.env.pop_scope();
-
-        Ok(res.0)
-    }
-
-    fn param_number(&self) -> usize {
-        self.params.len()
+        res.map(|(obj, _)| obj)
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct ExternFunction {
-    func: fn(&[Object]) -> Object,
+    func: fn(&Object) -> Object,
     name: String,
-    param_number: usize,
 }
 
 impl ExternFunction {
-    pub fn new(func: fn(&[Object]) -> Object, name: String, param_number: usize) -> Self {
-        Self {
-            func,
-            name,
-            param_number,
-        }
+    pub fn new(func: fn(&Object) -> Object, name: String) -> Self {
+        Self { func, name }
     }
 
     fn call(
         &mut self,
-        args: &[Object],
+        arg: &Object,
         _env: &mut Environment,
         _call_pos: Position,
     ) -> Result<Object, Error> {
-        Ok((self.func)(args))
-    }
-
-    fn param_number(&self) -> usize {
-        self.param_number
+        Ok((self.func)(arg))
     }
 }
 
 impl Hash for ExternFunction {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name.hash(state);
-        self.param_number.hash(state);
     }
 }
 
 impl Ord for ExternFunction {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match self.name.cmp(&other.name) {
-            std::cmp::Ordering::Equal => self.param_number.cmp(&other.param_number),
-            less_or_greater => less_or_greater,
-        }
+        self.name.cmp(&other.name)
     }
 }
 

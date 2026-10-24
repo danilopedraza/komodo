@@ -3,8 +3,8 @@ use crate::{
     object::{float::Float, Kind, Object, ObjectError},
 };
 
-fn abs(args: &[Object]) -> Object {
-    match &args[0] {
+fn abs(arg: &Object) -> Object {
+    match arg {
         Object::Float(num) => Object::Float(num.abs()),
         Object::Integer(num) => Object::Integer(num.abs()),
         Object::Fraction(num) => Object::Fraction(num.abs()),
@@ -19,26 +19,45 @@ fn abs(args: &[Object]) -> Object {
     }
 }
 
-fn hypot(args: &[Object]) -> Object {
-    match (args[0].to_float(), args[1].to_float()) {
+fn hypot(arg: &Object) -> Object {
+    let Object::Tuple(tuple) = arg else {
+        return Object::Error(ObjectError::UnexpectedType(
+            vec!["Tuple".into()],
+            arg.kind(),
+        ));
+    };
+    let [(x, _), (y, _)] = tuple.list.as_slice() else {
+        return Object::Error(ObjectError::UnexpectedType(
+            vec!["(Number, Number)".into()],
+            arg.kind(),
+        ));
+    };
+    match (x.to_float(), y.to_float()) {
         (Ok(x), Ok(y)) => Object::Float(x.hypot(y)),
-        (Err(err), _) => err.into(),
-        (_, Err(err)) => err.into(),
+        (Err(err), _) | (_, Err(err)) => err.into(),
     }
 }
 
-fn log(args: &[Object]) -> Object {
-    match args.get(1) {
-        None => ln(args),
-        Some(Object::Integer(base)) => match args[0].to_float() {
+fn log(arg: &Object) -> Object {
+    let Object::Tuple(tuple) = arg else {
+        return ln(arg);
+    };
+    let [(value, _), (base, _)] = tuple.list.as_slice() else {
+        return Object::Error(ObjectError::UnexpectedType(
+            vec!["(Number, Integer)".into()],
+            arg.kind(),
+        ));
+    };
+    match base {
+        Object::Integer(base) => match value.to_float() {
             Ok(f) => Float::try_from(base)
                 .map(|num| Object::Float(f.ln() / num.ln()))
                 .map_err(Object::from)
                 .unwrap_or_else(|e| e),
             Err(err) => err.into(),
         },
-        Some(obj) => Object::Error(ObjectError::UnexpectedType(
-            vec![String::from("Integer")],
+        obj => Object::Error(ObjectError::UnexpectedType(
+            vec!["Integer".into()],
             obj.kind(),
         )),
     }
@@ -46,8 +65,8 @@ fn log(args: &[Object]) -> Object {
 
 macro_rules! float_fn {
     ($name:ident) => {
-        fn $name(args: &[Object]) -> Object {
-            match args[0].to_float() {
+        fn $name(arg: &Object) -> Object {
+            match arg.to_float() {
                 Ok(f) => Object::Float(f.$name()),
                 Err(err) => err.into(),
             }
@@ -57,8 +76,8 @@ macro_rules! float_fn {
 
 macro_rules! round_fn {
     ($name:ident) => {
-        fn $name(args: &[Object]) -> Object {
-            match &args[0] {
+        fn $name(arg: &Object) -> Object {
+            match arg {
                 Object::Integer(int) => Object::Integer(int.to_owned()),
                 Object::Float(f) => match f.$name() {
                     Ok(int) => Object::Integer(int),
@@ -96,22 +115,22 @@ round_fn!(ceil);
 pub fn komodo_math(ctx: ExecContext) -> Environment {
     env_with(
         vec![
-            ("sin", Object::from_fn(sin, "sin".into(), 1)),
-            ("cos", Object::from_fn(cos, "cos".into(), 1)),
-            ("tan", Object::from_fn(tan, "tan".into(), 1)),
-            ("asin", Object::from_fn(asin, "asin".into(), 1)),
-            ("acos", Object::from_fn(acos, "acos".into(), 1)),
-            ("atan", Object::from_fn(atan, "atan".into(), 1)),
-            ("exp", Object::from_fn(exp, "exp".into(), 1)),
-            ("ln", Object::from_fn(ln, "ln".into(), 1)),
-            ("log", Object::from_fn(log, "log".into(), 1)),
-            ("cbrt", Object::from_fn(cbrt, "cbrt".into(), 1)),
-            ("sqrt", Object::from_fn(sqrt, "sqrt".into(), 1)),
-            ("abs", Object::from_fn(abs, "abs".into(), 1)),
-            ("hypot", Object::from_fn(hypot, "hypot".into(), 2)),
-            ("round", Object::from_fn(round, "round".into(), 1)),
-            ("floor", Object::from_fn(floor, "floor".into(), 1)),
-            ("ceil", Object::from_fn(ceil, "ceil".into(), 1)),
+            ("sin", Object::from_fn(sin, "sin".into())),
+            ("cos", Object::from_fn(cos, "cos".into())),
+            ("tan", Object::from_fn(tan, "tan".into())),
+            ("asin", Object::from_fn(asin, "asin".into())),
+            ("acos", Object::from_fn(acos, "acos".into())),
+            ("atan", Object::from_fn(atan, "atan".into())),
+            ("exp", Object::from_fn(exp, "exp".into())),
+            ("ln", Object::from_fn(ln, "ln".into())),
+            ("log", Object::from_fn(log, "log".into())),
+            ("cbrt", Object::from_fn(cbrt, "cbrt".into())),
+            ("sqrt", Object::from_fn(sqrt, "sqrt".into())),
+            ("abs", Object::from_fn(abs, "abs".into())),
+            ("hypot", Object::from_fn(hypot, "hypot".into())),
+            ("round", Object::from_fn(round, "round".into())),
+            ("floor", Object::from_fn(floor, "floor".into())),
+            ("ceil", Object::from_fn(ceil, "ceil".into())),
         ],
         ctx,
     )

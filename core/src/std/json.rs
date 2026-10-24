@@ -56,8 +56,8 @@ fn parse_json(input: String) -> Object {
     }
 }
 
-fn parse(args: &[Object]) -> Object {
-    match &args[0] {
+fn parse(arg: &Object) -> Object {
+    match arg {
         Object::String(str) => parse_json(str.to_owned().into()),
         Object::Char(chr) => parse_json(String::from(chr)),
         obj => Object::Error(ObjectError::UnexpectedType(
@@ -120,18 +120,15 @@ fn to_json(obj: &Object) -> String {
     }
 }
 
-fn stringify(args: &[Object]) -> Object {
-    Object::String(to_json(&args[0]).into())
+fn stringify(arg: &Object) -> Object {
+    Object::String(to_json(arg).into())
 }
 
 pub fn komodo_json(ctx: ExecContext) -> Environment {
     env_with(
         vec![
-            ("parse", Object::from_fn(parse, "parse".into(), 1)),
-            (
-                "stringify",
-                Object::from_fn(stringify, "stringify".into(), 1),
-            ),
+            ("parse", Object::from_fn(parse, "parse".into())),
+            ("stringify", Object::from_fn(stringify, "stringify".into())),
         ],
         ctx,
     )

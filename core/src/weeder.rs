@@ -286,7 +286,8 @@ fn _for(expr: CSTNode, proc: CSTNode) -> WeederResult<ASTNodeKind> {
 
 fn function(params: Vec<String>, result: CSTNode) -> WeederResult<ASTNodeKind> {
     let result = Box::new(rewrite(result)?);
-    Ok(ASTNodeKind::Function { params, result })
+    let param = ast::single_pattern(params.into_iter().map(symbol_pattern).collect());
+    Ok(ASTNodeKind::Function { param, result })
 }
 
 fn fraction(numer: CSTNode, denom: CSTNode) -> WeederResult<ASTNodeKind> {
@@ -311,12 +312,13 @@ fn infix(cst_op: InfixOperator, lhs: CSTNode, rhs: CSTNode) -> WeederResult<ASTN
         InfixOperator::BitwiseAnd => infix_node(ast::InfixOperator::BitwiseAnd, lhs, rhs),
         InfixOperator::BitwiseXor => infix_node(ast::InfixOperator::BitwiseXor, lhs, rhs),
         InfixOperator::Call => {
+            let position = rhs.position;
             let args = match rhs.kind {
                 CSTNodeKind::Tuple(v) => v,
                 _ => unimplemented!(),
             };
 
-            call(lhs, args)
+            call(lhs, args, position)
         }
         InfixOperator::Correspondence => {
             let params = match lhs.kind {
@@ -463,20 +465,20 @@ fn declaration(node: CSTNode, kind: DeclarationKind) -> WeederResult<ASTNodeKind
             ..
         } => match (destructure_signature(&left), kind) {
             (Some((name, params)), DeclarationKind::Inmutable) => {
-                let params = rewrite_patterns(params)?;
+                let param = ast::single_pattern(rewrite_patterns(params)?);
                 let result = Box::new(rewrite(*right)?);
                 Ok(ASTNodeKind::Declaration(Declaration::Function {
                     name,
-                    params,
+                    param,
                     result,
                 }))
             }
             (Some((name, params)), DeclarationKind::InmutableMemoized) => {
-                let params = rewrite_patterns(params)?;
+                let param = ast::single_pattern(rewrite_patterns(params)?);
                 let result = Box::new(rewrite(*right)?);
                 Ok(ASTNodeKind::Declaration(Declaration::MemoizedFunction {
                     name,
-                    params,
+                    param,
                     result,
                 }))
             }
@@ -590,10 +592,10 @@ fn wildcard() -> Pattern {
     Pattern::Wildcard
 }
 
-fn call(called: CSTNode, args: Vec<CSTNode>) -> WeederResult<ASTNodeKind> {
+fn call(called: CSTNode, args: Vec<CSTNode>, position: Position) -> WeederResult<ASTNodeKind> {
     let called = Box::new(rewrite(called)?);
-    let args = rewrite_vec(args)?;
-    Ok(ASTNodeKind::Call { called, args })
+    let arg = Box::new(ast::single_argument(rewrite_vec(args)?, position));
+    Ok(ASTNodeKind::Call { called, arg })
 }
 
 fn dictionary(pairs: Vec<(CSTNode, CSTNode)>, complete: bool) -> WeederResult<ASTNodeKind> {

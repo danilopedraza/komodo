@@ -105,7 +105,7 @@ pub enum ASTNodeKind {
     Block(Vec<ASTNode>),
     Call {
         called: Box<ASTNode>,
-        args: Vec<ASTNode>,
+        arg: Box<ASTNode>,
     },
     Case {
         expr: Box<ASTNode>,
@@ -146,7 +146,7 @@ pub enum ASTNodeKind {
         proc: Box<ASTNode>,
     },
     Function {
-        params: Vec<String>,
+        param: Pattern,
         result: Box<ASTNode>,
     },
     Fraction {
@@ -211,12 +211,12 @@ pub enum Declaration {
     },
     Function {
         name: String,
-        params: Vec<Pattern>,
+        param: Pattern,
         result: Box<ASTNode>,
     },
     MemoizedFunction {
         name: String,
-        params: Vec<Pattern>,
+        param: Pattern,
         result: Box<ASTNode>,
     },
 }
@@ -320,6 +320,23 @@ pub enum Constant {
     },
 }
 
+// Parentheses group a single value; comma-separated values form a tuple.
+pub fn single_argument(mut values: Vec<ASTNode>, position: Position) -> ASTNode {
+    if values.len() == 1 {
+        values.pop().unwrap()
+    } else {
+        ASTNode::new(ASTNodeKind::Tuple { list: values }, position)
+    }
+}
+
+pub fn single_pattern(mut patterns: Vec<Pattern>) -> Pattern {
+    if patterns.len() == 1 {
+        patterns.pop().unwrap()
+    } else {
+        Pattern::Tuple { list: patterns }
+    }
+}
+
 #[cfg(test)]
 pub mod tests {
     use cst::{DeclarationKind, PrefixOperator};
@@ -327,13 +344,19 @@ pub mod tests {
     use super::*;
     pub fn call(called: ASTNode, args: Vec<ASTNode>, position: Position) -> ASTNode {
         let called = Box::new(called);
-        ASTNode::new(ASTNodeKind::Call { called, args }, position)
+        ASTNode::new(
+            ASTNodeKind::Call {
+                called,
+                arg: Box::new(single_argument(args, position)),
+            },
+            position,
+        )
     }
 
     pub fn function(params: Vec<&str>, result: ASTNode, position: Position) -> ASTNode {
-        let params = params.into_iter().map(|str| str.to_string()).collect();
+        let param = single_pattern(params.into_iter().map(symbol_pattern).collect());
         let result = Box::new(result);
-        ASTNode::new(ASTNodeKind::Function { params, result }, position)
+        ASTNode::new(ASTNodeKind::Function { param, result }, position)
     }
 
     pub fn fraction(numer: ASTNode, denom: ASTNode, position: Position) -> ASTNode {
@@ -510,7 +533,7 @@ pub mod tests {
         ASTNode::new(
             ASTNodeKind::Declaration(Declaration::Function {
                 name,
-                params,
+                param: single_pattern(params),
                 result,
             }),
             position,
@@ -528,7 +551,7 @@ pub mod tests {
         ASTNode::new(
             ASTNodeKind::Declaration(Declaration::MemoizedFunction {
                 name,
-                params,
+                param: single_pattern(params),
                 result,
             }),
             position,

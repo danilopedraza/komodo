@@ -1,0 +1,52 @@
+# Named functions receive a single value, including tuples and ().
+let identity(x) := x
+let add(a: Integer, b: Integer) := a + b
+let unit() := 42
+
+assert(identity(1, 2) = (1, 2))
+assert(identity() = ())
+assert(String(1, 2) = "(1, 2)")
+assert(add(1, 2) = 3)
+assert(add((1, 2)) = 3)
+assert(unit() = 42)
+assert(unit(()) = 42)
+
+# Tuple and scalar clauses match one value, including through method notation.
+let f(a, b) := a + b
+let f(x: Integer) := x
+
+assert(f(1, 2) = 3)
+assert(f(4) = 4)
+assert(1.f(2) = 3)
+assert(4.f() = 4)
+
+# Anonymous functions destructure their single argument.
+let anonymousIdentity := x -> x
+let anonymousAdd := (a, b) -> a + b
+let anonymousUnit := () -> 42
+
+assert(anonymousIdentity(1, 2) = (1, 2))
+assert(anonymousIdentity() = ())
+assert(anonymousAdd((1, 2)) = 3)
+assert(anonymousUnit(()) = 42)
+
+# Memoized functions accept equivalent tuple and empty-tuple calls.
+let memoize memoizedAdd(a, b) := a + b
+let memoize memoizedUnit() := 42
+
+assert(memoizedAdd(1, 2) = 3)
+assert(memoizedAdd((1, 2)) = 3)
+assert(memoizedUnit() = 42)
+assert(memoizedUnit(()) = 42)
+
+# Native functions follow the same argument rules.
+from math import (hypot, log)
+from time import time
+
+assert(hypot(3, 4) = 5.0)
+assert(hypot((3, 4)) = 5.0)
+assert(log(8, 2) = 3.0)
+assert(log((8, 2)) = 3.0)
+assert(time() > 0.0)
+assert(time(()) > 0.0)
+assert((true, "message"))

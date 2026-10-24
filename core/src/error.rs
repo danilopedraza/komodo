@@ -392,9 +392,6 @@ fn exec_error_msg(err: &ExecError) -> String {
         } => bad_fraction(numer_kind, denom_kind),
         ExecError::BadMatch => "The pattern did not match its assigned value".into(),
         ExecError::DenominatorZero => "Division by zero".into(),
-        ExecError::MissingFunctionArguments { expected, actual } => {
-            missing_func_arguments(*expected, *actual)
-        }
         ExecError::MutationOutOfScope { name } => mutation_out_of_scope(name),
         ExecError::NonCallableObject(kind) => non_callable_object(kind),
         ExecError::NonIterableObject(kind) => non_iterable_object(kind),
@@ -459,10 +456,6 @@ fn non_existent_prefix(op: &str, rhs: &str) -> String {
 
 fn non_iterable_object(kind: &str) -> String {
     format!("`{kind}` cannot be iterated through")
-}
-
-fn missing_func_arguments(expected: usize, actual: usize) -> String {
-    format!("Expected {expected} arguments for this function call, but found {actual}")
 }
 
 fn mutation_out_of_scope(var_name: &str) -> String {
@@ -626,14 +619,6 @@ mod tests {
         assert_eq!(
             non_callable_object("extension set"),
             String::from("`extension set` cannot be called like a function")
-        );
-    }
-
-    #[test]
-    fn missing_func_arguments_() {
-        assert_eq!(
-            missing_func_arguments(3, 1),
-            String::from("Expected 3 arguments for this function call, but found 1"),
         );
     }
 

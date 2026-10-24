@@ -15,16 +15,16 @@ let SPIteration(codes, suffixes) := {
     cartesianProd(codes, suffixes) + cartesianProd(suffixes, codes)
 }.filter(val -> val /= ())
 
-let allIterations(codes) :=
-    let initial := SPIteration(codes, codes)
-    allIterations(codes, initial, {initial})
-
 let allIterations(codes, lastSuffixes, acc) :=
     let newSuffixes := SPIteration(codes, lastSuffixes)
     if newSuffixes in acc then
         acc
     else
         allIterations(codes, newSuffixes, {newSuffixes|acc})
+
+let allIterations(codes: Set) :=
+    let initial := SPIteration(codes, codes)
+    allIterations(codes, initial, {initial})
 
 let allDanglingSuffixes(codes) :=
     codes.allIterations().reduce(

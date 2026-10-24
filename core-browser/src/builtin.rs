@@ -13,15 +13,15 @@ pub static STDOUT: Mutex<String> = Mutex::new(String::new());
 pub static STDIN: Mutex<Vec<String>> = Mutex::new(vec![]);
 
 pub fn standard_env() -> Environment {
-    fn komodo_println(args: &[Object]) -> Object {
+    fn komodo_println(arg: &Object) -> Object {
         let mut guard = STDOUT.lock().unwrap();
-        guard.push_str(&args[0].to_string());
+        guard.push_str(&arg.to_string());
         guard.push('\n');
 
         Object::empty_tuple()
     }
 
-    fn komodo_getln(_args: &[Object]) -> Object {
+    fn komodo_getln(_arg: &Object) -> Object {
         let mut guard = STDIN.lock().unwrap();
 
         let res = guard.pop().unwrap_or_default();
@@ -35,7 +35,6 @@ pub fn standard_env() -> Environment {
             Object::Function(Function::Extern(ExternFunction::new(
                 komodo_println,
                 "println".into(),
-                1,
             ))),
         ),
         (
@@ -43,7 +42,6 @@ pub fn standard_env() -> Environment {
             Object::Function(Function::Extern(ExternFunction::new(
                 komodo_getln,
                 "getln".into(),
-                0,
             ))),
         ),
         (
@@ -51,7 +49,6 @@ pub fn standard_env() -> Environment {
             Object::Function(Function::Extern(ExternFunction::new(
                 komodo_assert,
                 "assert".into(),
-                1,
             ))),
         ),
     ];

@@ -8,8 +8,8 @@ use crate::{
     object::{float::Float, Kind, Object, ObjectError},
 };
 
-fn sleep(args: &[Object]) -> Object {
-    match &args[0] {
+fn sleep(arg: &Object) -> Object {
+    match arg {
         Object::Float(f) => {
             let duration = Duration::from(f);
             thread::sleep(duration);
@@ -37,7 +37,7 @@ fn sleep(args: &[Object]) -> Object {
     }
 }
 
-fn time(_args: &[Object]) -> Object {
+fn time(_arg: &Object) -> Object {
     let start = SystemTime::now();
     let since_epoch = start.duration_since(UNIX_EPOCH).unwrap();
 
@@ -47,8 +47,8 @@ fn time(_args: &[Object]) -> Object {
 pub fn komodo_time(ctx: ExecContext) -> Environment {
     env_with(
         vec![
-            ("sleep", Object::from_fn(sleep, "sleep".into(), 1)),
-            ("time", Object::from_fn(time, "time".into(), 0)),
+            ("sleep", Object::from_fn(sleep, "sleep".into())),
+            ("time", Object::from_fn(time, "time".into())),
         ],
         ctx,
     )
