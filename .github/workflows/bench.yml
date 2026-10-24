@@ -16,7 +16,7 @@ jobs:
         with:
           fetch-depth: 0
       - uses: cachix/install-nix-action@v30
-      - uses: cachix/magic-nix-cache-action@v13
+      - uses: DeterminateSystems/magic-nix-cache-action@v13
       - name: Run benchmarks
         run: nix run .#bench -- "${PREVIOUS_COMMIT:-$(git rev-parse HEAD^)}"
         env:
