@@ -31,18 +31,13 @@ pub enum ValueKind {
     Mutable,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ScopeKind {
+    #[default]
     Root,
     Function,
     Loop,
     Block,
-}
-
-impl Default for ScopeKind {
-    fn default() -> Self {
-        Self::Root
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]

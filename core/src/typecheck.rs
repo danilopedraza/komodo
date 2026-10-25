@@ -252,7 +252,7 @@ impl fmt::Display for Type {
                     .reduce(|acc, cur| acc + " | " + &cur)
                     .unwrap();
 
-                write!(f, "{}", &type_str)
+                write!(f, "{}", type_str)
             }
             Type::Unknown => write!(f, "Unknown"),
         }

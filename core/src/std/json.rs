@@ -13,6 +13,10 @@ use crate::{
     object::{float::Float, integer::Integer, Kind, Object, ObjectError},
 };
 
+#[allow(
+    clippy::mutable_key_type,
+    reason = "Object ordering uses stable captured-environment identity; see PatternFunction::cmp"
+)]
 fn parse_value(value: Value<String, String>) -> Result<Object, ObjectError> {
     match value {
         Value::Null => Ok(Object::empty_tuple()),

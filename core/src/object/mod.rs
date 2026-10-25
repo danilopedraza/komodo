@@ -209,6 +209,10 @@ impl Object {
         }
     }
 
+    #[allow(
+        clippy::mutable_key_type,
+        reason = "Object ordering uses stable captured-environment identity; see PatternFunction::cmp"
+    )]
     pub fn to_set(&self) -> Result<Set, ObjectError> {
         match self {
             Object::Set(set) => Ok(set.to_owned()),
@@ -530,6 +534,10 @@ pub struct Set {
     set: BTreeSet<Object>,
 }
 
+#[allow(
+    clippy::mutable_key_type,
+    reason = "Object ordering uses stable captured-environment identity; see PatternFunction::cmp"
+)]
 impl Set {
     pub fn empty_set() -> Object {
         Object::Set(Self {
@@ -648,6 +656,10 @@ impl InfixOperable for Set {
 }
 impl PrefixOperable for Set {}
 
+#[allow(
+    clippy::mutable_key_type,
+    reason = "Object ordering uses stable captured-environment identity; see PatternFunction::cmp"
+)]
 impl From<Vec<Object>> for Set {
     fn from(list: Vec<Object>) -> Self {
         let mut set = BTreeSet::new();
@@ -656,12 +668,14 @@ impl From<Vec<Object>> for Set {
             set.insert(obj);
         }
 
-        let set = set;
-
         Self { set }
     }
 }
 
+#[allow(
+    clippy::mutable_key_type,
+    reason = "Object ordering uses stable captured-environment identity; see PatternFunction::cmp"
+)]
 impl From<Vec<(Object, Address)>> for Set {
     fn from(list: Vec<(Object, Address)>) -> Self {
         let mut set = BTreeSet::new();
@@ -669,8 +683,6 @@ impl From<Vec<(Object, Address)>> for Set {
         for obj in list {
             set.insert(obj.0);
         }
-
-        let set = set;
 
         Self { set }
     }
@@ -682,6 +694,10 @@ impl From<BTreeSet<Object>> for Set {
     }
 }
 
+#[allow(
+    clippy::mutable_key_type,
+    reason = "Object ordering uses stable captured-environment identity; see PatternFunction::cmp"
+)]
 impl From<BTreeSet<(Object, Address)>> for Set {
     fn from(set: BTreeSet<(Object, Address)>) -> Self {
         let mut new_set = BTreeSet::new();
@@ -717,6 +733,10 @@ impl From<BTreeMap<Object, Object>> for Dictionary {
     }
 }
 
+#[allow(
+    clippy::mutable_key_type,
+    reason = "Object ordering uses stable captured-environment identity; see PatternFunction::cmp"
+)]
 impl From<Vec<(Object, Object)>> for Dictionary {
     fn from(pairs: Vec<(Object, Object)>) -> Self {
         let mut dict = BTreeMap::new();
@@ -974,7 +994,7 @@ impl From<Vec<(Object, Address)>> for Tuple {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Function {
-    Anonymous(AnonFunction),
+    Anonymous(Box<AnonFunction>),
     Pattern(PatternFunction),
     Extern(ExternFunction),
 }
@@ -1023,15 +1043,43 @@ pub enum FunctionPatternKind {
     NotMemoized,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug)]
 pub struct PatternFunction {
     pub env: Rc<RefCell<Environment>>,
     patterns: Vec<(FunctionPatternKind, Pattern, ASTNode)>,
     cache: BTreeMap<Object, Object>,
 }
 
+// Captured environments are shared and can change when recursive clauses are
+// installed. Compare their allocation identity, never their mutable contents:
+// functions (including those nested in containers) must remain stable map keys.
+impl PartialEq for PatternFunction {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl Eq for PatternFunction {}
+
+impl PartialOrd for PatternFunction {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for PatternFunction {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (Rc::as_ptr(&self.env), &self.patterns, &self.cache).cmp(&(
+            Rc::as_ptr(&other.env),
+            &other.patterns,
+            &other.cache,
+        ))
+    }
+}
+
 impl Hash for PatternFunction {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        Rc::as_ptr(&self.env).hash(state);
         self.patterns.hash(state);
         self.cache.hash(state);
     }
@@ -1343,13 +1391,13 @@ impl Iterator for Range {
 
 impl PartialOrd for Range {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(vec![&self.start, &self.end].cmp(&vec![&other.start, &other.end]))
+        Some(self.cmp(other))
     }
 }
 
 impl Ord for Range {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        vec![&self.start, &self.end].cmp(&vec![&other.start, &other.end])
+        (&self.start, &self.end).cmp(&(&other.start, &other.end))
     }
 }
 
@@ -1434,6 +1482,57 @@ mod tests {
     use crate::lexer::Radix;
 
     use super::*;
+    #[test]
+    #[allow(
+        clippy::mutable_key_type,
+        reason = "Regression test for stable Object keys containing shared captured environments"
+    )]
+    fn recursive_function_keys_remain_stable_when_captures_change() {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::Hasher;
+
+        fn hash(value: &Object) -> u64 {
+            let mut hasher = DefaultHasher::new();
+            value.hash(&mut hasher);
+            hasher.finish()
+        }
+
+        let captured = Rc::new(RefCell::new(Environment::default()));
+        let function = Object::Function(Function::Pattern(PatternFunction::new(captured.clone())));
+        // Real named functions capture an environment that refers back to them.
+        captured
+            .borrow_mut()
+            .set_mutable("self", (function.clone(), Address::default()));
+        let nested = Object::Tuple(vec![(function.clone(), Address::default())].into());
+        let keys = [function, nested];
+        let mut set = BTreeSet::new();
+        let mut map = BTreeMap::new();
+        for key in &keys {
+            set.insert(key.clone());
+            map.insert(key.clone(), Object::true_obj());
+        }
+        let hashes = keys.each_ref().map(hash);
+
+        // Comparisons and hashing must not borrow the captured environment.
+        let mut captured = captured.borrow_mut();
+        captured.set_mutable("new_binding", (Object::false_obj(), Address::default()));
+        for (key, before) in keys.iter().zip(hashes) {
+            assert!(set.contains(key));
+            assert_eq!(map.get(key), Some(&Object::true_obj()));
+            assert_eq!(hash(key), before);
+            assert_eq!(key.cmp(&key.clone()), Ordering::Equal);
+        }
+    }
+
+    #[test]
+    fn separate_function_captures_have_distinct_identities() {
+        let first = PatternFunction::new(Rc::new(RefCell::new(Environment::default())));
+        let second = PatternFunction::new(Rc::new(RefCell::new(Environment::default())));
+        assert_eq!(first, first.clone());
+        assert_ne!(first, second);
+        assert_ne!(first.cmp(&second), Ordering::Equal);
+    }
+
     #[test]
     fn concat_strings() {
         let str1 = Object::String(MyString::from("foo"));

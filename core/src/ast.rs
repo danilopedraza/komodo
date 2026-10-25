@@ -85,7 +85,7 @@ impl Hash for ASTNode {
 
 impl PartialOrd for ASTNode {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.kind.cmp(&other.kind))
+        Some(self.cmp(other))
     }
 }
 

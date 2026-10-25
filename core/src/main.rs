@@ -1,6 +1,6 @@
 use std::env::current_dir;
 use std::fs;
-use std::io::{Error, ErrorKind};
+use std::io::Error;
 use std::path::{Path, PathBuf};
 
 #[cfg(feature = "repl")]
@@ -34,7 +34,7 @@ pub fn run_file(path: &str) -> std::io::Result<()> {
             let res = run(&input, &mut env);
             if let Err(err) = res {
                 err.emit();
-                Err(Error::new(ErrorKind::Other, ""))
+                Err(Error::other(""))
             } else {
                 Ok(())
             }

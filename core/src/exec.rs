@@ -99,11 +99,11 @@ pub fn constant_set(list: &[Constant]) -> Object {
 
 fn function(param: &Pattern, result: &ASTNode, env: &Environment) -> ExecResult<(Object, Address)> {
     Ok((
-        Object::Function(object::Function::Anonymous(AnonFunction::new(
+        Object::Function(object::Function::Anonymous(Box::new(AnonFunction::new(
             param.to_owned(),
             result.to_owned(),
             env.clone(),
-        ))),
+        )))),
         Address::default(),
     ))
 }
@@ -392,6 +392,10 @@ fn import_from(
     Ok((Object::empty_tuple(), Address::default()))
 }
 
+#[allow(
+    clippy::mutable_key_type,
+    reason = "Object ordering uses stable captured-environment identity; see PatternFunction::cmp"
+)]
 fn set_cons(
     some: (Object, Address),
     most: &ASTNode,
@@ -580,6 +584,10 @@ fn symbol(str: &str, env: &mut Environment, position: Position) -> ExecResult<(O
     }
 }
 
+#[allow(
+    clippy::mutable_key_type,
+    reason = "Object ordering uses stable captured-environment identity; see PatternFunction::cmp"
+)]
 fn comprehension(
     element: &ASTNode,
     variable: &str,
@@ -1350,7 +1358,7 @@ mod tests {
 
         assert_eq!(
             exec(node, &mut Environment::default()).unwrap().0,
-            Object::Function(object::Function::Anonymous(AnonFunction::new(
+            Object::Function(object::Function::Anonymous(Box::new(AnonFunction::new(
                 symbol_pattern("x"),
                 crate::typed_ast::lower(
                     &infix(
@@ -1362,7 +1370,7 @@ mod tests {
                     &Default::default()
                 ),
                 Environment::default(),
-            ))),
+            )))),
         );
     }
 
@@ -2085,11 +2093,11 @@ mod tests {
         assert_eq!(
             exec(&attr, &mut env),
             Ok((
-                Object::Function(Function::Anonymous(AnonFunction::new(
+                Object::Function(Function::Anonymous(Box::new(AnonFunction::new(
                     Pattern::Tuple { list: vec![] },
                     crate::typed_ast::lower(&dec_integer("5", dummy_pos()), &Default::default()),
                     Environment::default()
-                ))),
+                )))),
                 Address::default()
             ))
         );
