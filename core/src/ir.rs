@@ -23,6 +23,7 @@ use crate::{
     ast::{Constant, InfixOperator, Pattern},
     cst::{ComprehensionKind, PrefixOperator},
     error::Position,
+    matcher::RuntimePattern,
     run::ModuleAddress,
     typed_ast::{self, Type},
 };
@@ -67,7 +68,8 @@ impl Block {
 // Type metadata does not participate in runtime function identity.
 impl PartialEq for Block {
     fn eq(&self, other: &Self) -> bool {
-        self.code == other.code && self.position == other.position
+        Rc::ptr_eq(&self.0, &other.0)
+            || (self.code == other.code && self.position == other.position)
     }
 }
 impl Eq for Block {}
@@ -83,7 +85,11 @@ impl PartialOrd for Block {
 }
 impl Ord for Block {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.code.cmp(&other.code)
+        if Rc::ptr_eq(&self.0, &other.0) {
+            Ordering::Equal
+        } else {
+            self.code.cmp(&other.code)
+        }
     }
 }
 
@@ -151,10 +157,10 @@ pub enum Op {
     },
     Case {
         expr: Block,
-        pairs: Vec<(Pattern, Block)>,
+        pairs: Vec<(RuntimePattern, Block)>,
     },
     For {
-        pattern: Pattern,
+        pattern: RuntimePattern,
         iterator: Block,
         body: Block,
     },
@@ -166,7 +172,7 @@ pub enum Op {
     },
     /// Consume an initializer and leave its value after binding the pattern.
     Bind {
-        pattern: Pattern,
+        pattern: RuntimePattern,
         mutable: bool,
         value_position: Position,
         discard: bool,
@@ -246,7 +252,7 @@ impl Op {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum AssignableSymbol {
-    Pattern(Pattern),
+    Pattern(RuntimePattern),
     ObjectValue { object: Rc<str>, value: Rc<str> },
     IndexableValue { container: Rc<str> },
 }
@@ -722,10 +728,10 @@ fn emit(node: &typed_ast::ASTNode, code: &mut Vec<Instruction>) {
         }
         A::Case { expr, pairs } => Op::Case {
             expr: lower(expr),
-            pairs: pairs.iter().map(|(p, b)| (p.clone(), lower(b))).collect(),
+            pairs: pairs.iter().map(|(p, b)| (p.into(), lower(b))).collect(),
         },
         A::For { val, iter, proc } => Op::For {
-            pattern: val.clone(),
+            pattern: val.into(),
             iterator: lower(iter),
             body: lower(proc),
         },
@@ -747,7 +753,7 @@ fn emit(node: &typed_ast::ASTNode, code: &mut Vec<Instruction>) {
         A::Assignment { left, right } => {
             emit(right, code);
             let left = match left {
-                S::Pattern(p) => AssignableSymbol::Pattern(p.clone()),
+                S::Pattern(p) => AssignableSymbol::Pattern(p.into()),
                 S::ObjectValue { object, value } => AssignableSymbol::ObjectValue {
                     object: crate::names::intern(object),
                     value: crate::names::intern(value),
@@ -770,7 +776,7 @@ fn emit(node: &typed_ast::ASTNode, code: &mut Vec<Instruction>) {
                 emit(right, code);
                 Op::Bind {
                     discard: false,
-                    pattern: left.clone(),
+                    pattern: left.into(),
                     mutable: matches!(d, D::Mutable { .. }),
                     value_position: right.position,
                 }

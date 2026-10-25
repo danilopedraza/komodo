@@ -1,272 +1,309 @@
-use std::{collections::BTreeMap, iter::zip};
-
 use crate::{
-    ast::{Constant, Pattern, TypeHint},
+    ast::{Pattern, TypeHint},
     exec::eval_constant,
-    object::{Dictionary, List, Object, Tuple},
+    object::{List, Object},
 };
+use std::collections::BTreeMap;
+
+/// Source shape remains available for binding and capture analysis.
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct RuntimePattern(std::rc::Rc<RuntimePatternData>);
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+struct RuntimePatternData {
+    source: Pattern,
+    compiled: CompiledPattern,
+}
+impl From<&Pattern> for RuntimePattern {
+    fn from(source: &Pattern) -> Self {
+        Self(std::rc::Rc::new(RuntimePatternData {
+            source: source.clone(),
+            compiled: source.into(),
+        }))
+    }
+}
+impl std::ops::Deref for RuntimePattern {
+    type Target = Pattern;
+    fn deref(&self) -> &Pattern {
+        &self.0.source
+    }
+}
+impl RuntimePattern {
+    pub fn matches(&self, value: &Object) -> Option<Match> {
+        self.0.compiled.matches(value)
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Match(pub BTreeMap<String, Object>);
-
 impl From<Vec<(String, Object)>> for Match {
-    fn from(map: Vec<(String, Object)>) -> Self {
-        let mut res = BTreeMap::new();
-
-        for (key, value) in map {
-            res.insert(key, value);
-        }
-
-        Self(res)
+    fn from(values: Vec<(String, Object)>) -> Self {
+        Self(values.into_iter().collect())
     }
 }
-
 impl From<(String, Object)> for Match {
-    fn from((key, value): (String, Object)) -> Self {
-        let mut res = BTreeMap::new();
-        res.insert(key, value);
-        Self(res)
+    fn from(value: (String, Object)) -> Self {
+        Self::from(vec![value])
     }
 }
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum CompiledPattern {
+    Constant(Object),
+    Dictionary {
+        pairs: Vec<(CompiledPattern, CompiledPattern)>,
+        complete: bool,
+    },
+    List {
+        list: Vec<CompiledPattern>,
+    },
+    Set {
+        list: Vec<CompiledPattern>,
+    },
+    ListCons {
+        first: Box<CompiledPattern>,
+        tail: Box<CompiledPattern>,
+    },
+    SetCons {
+        some: Box<CompiledPattern>,
+        most: Box<CompiledPattern>,
+    },
+    Symbol {
+        name: String,
+    },
+    Tuple {
+        list: Vec<CompiledPattern>,
+    },
+    Range {
+        start: Box<CompiledPattern>,
+        end: Box<CompiledPattern>,
+    },
+    Fraction {
+        numer: Box<CompiledPattern>,
+        denom: Box<CompiledPattern>,
+    },
+    Signature {
+        pattern: Box<CompiledPattern>,
+        constraint: TypeHint,
+    },
+    Either {
+        lhs: Box<CompiledPattern>,
+        rhs: Box<CompiledPattern>,
+    },
+    Wildcard,
+    AdInfinitum,
+}
 
-fn join(match1: Option<Match>, match2: Option<Match>) -> Option<Match> {
-    let Match(mut map1) = match1?;
-    let Match(map2) = match2?;
-
-    for (key, val) in map2 {
-        match map1.get(&key) {
-            None => {
-                map1.insert(key, val);
-            }
-            Some(other_val) if *other_val != val => return None,
-            Some(_) => continue,
+impl From<&Pattern> for CompiledPattern {
+    fn from(pattern: &Pattern) -> Self {
+        match pattern {
+            Pattern::Dictionary { pairs, complete } => Self::Dictionary {
+                pairs: pairs.iter().map(|(k, v)| (k.into(), v.into())).collect(),
+                complete: *complete,
+            },
+            Pattern::List { list } => Self::List {
+                list: list.iter().map(Into::into).collect(),
+            },
+            Pattern::Set { list } => Self::Set {
+                list: list.iter().map(Into::into).collect(),
+            },
+            Pattern::Tuple { list } => Self::Tuple {
+                list: list.iter().map(Into::into).collect(),
+            },
+            Pattern::ListCons { first, tail } => Self::ListCons {
+                first: Box::new(first.as_ref().into()),
+                tail: Box::new(tail.as_ref().into()),
+            },
+            Pattern::SetCons { some, most } => Self::SetCons {
+                some: Box::new(some.as_ref().into()),
+                most: Box::new(most.as_ref().into()),
+            },
+            Pattern::Range { start, end } => Self::Range {
+                start: Box::new(start.as_ref().into()),
+                end: Box::new(end.as_ref().into()),
+            },
+            Pattern::Fraction { numer, denom } => Self::Fraction {
+                numer: Box::new(numer.as_ref().into()),
+                denom: Box::new(denom.as_ref().into()),
+            },
+            Pattern::Signature {
+                pattern,
+                constraint,
+            } => Self::Signature {
+                pattern: Box::new(pattern.as_ref().into()),
+                constraint: constraint.clone(),
+            },
+            Pattern::Either { lhs, rhs } => Self::Either {
+                lhs: Box::new(lhs.as_ref().into()),
+                rhs: Box::new(rhs.as_ref().into()),
+            },
+            Pattern::Symbol { name } => Self::Symbol { name: name.clone() },
+            Pattern::Constant(c) => Self::Constant(eval_constant(c)),
+            Pattern::Wildcard => Self::Wildcard,
+            Pattern::AdInfinitum => Self::AdInfinitum,
         }
     }
-
-    Some(Match(map1))
 }
-
-fn match_sequence(patterns: &[Pattern], vals: &[Object]) -> Option<Match> {
-    if patterns.len() != vals.len() {
-        None
-    } else {
-        zip(patterns, vals)
-            .map(|(pattern, val)| match_(pattern, val))
-            .fold(empty_match(), join)
-    }
-}
-
 fn satisfies(obj: &Object, constraint: &TypeHint) -> bool {
     match constraint {
         TypeHint::Simple(name) => obj.has_property(name),
         TypeHint::Either { lhs, rhs } => satisfies(obj, lhs) || satisfies(obj, rhs),
     }
 }
-
+#[cfg(test)]
 pub fn match_(pattern: &Pattern, val: &Object) -> Option<Match> {
-    match pattern {
-        Pattern::Constant(constant) => match_constant(constant, val),
-        Pattern::Symbol { name } => single_match(name, val),
-        Pattern::List { list } => match_extension_list(list, val),
-        Pattern::Tuple { list } => match_tuple(list, val),
-        Pattern::Set { list } => match_extension_set(list, val),
-        Pattern::ListCons { first, tail } => match_prefix_crop(first, tail, val),
-        Pattern::Dictionary { pairs, complete } => match_dictionary(pairs, *complete, val),
-        Pattern::SetCons { some, most } => set_cons(some, most, val),
-        Pattern::Wildcard => empty_match(),
-        Pattern::Range { start, end } => match_range(start, end, val),
-        Pattern::Fraction { numer, denom } => fraction(numer, denom, val),
-        Pattern::Signature {
-            pattern,
-            constraint,
-        } => match_signature(pattern, constraint, val),
-        Pattern::Either { lhs, rhs } => match_either(lhs, rhs, val),
-        Pattern::AdInfinitum => None,
+    CompiledPattern::from(pattern).matches(val)
+}
+fn merge(into: &mut BTreeMap<String, Object>, values: Match) -> Option<()> {
+    for (name, value) in values.0 {
+        bind(into, &name, &value)?;
     }
+    Some(())
 }
-
-fn match_either(lhs: &Pattern, rhs: &Pattern, val: &Object) -> Option<Match> {
-    match_(lhs, val).or_else(|| match_(rhs, val))
-}
-
-fn match_signature(pattern: &Pattern, constraint: &TypeHint, val: &Object) -> Option<Match> {
-    if satisfies(val, constraint) {
-        match_(pattern, val)
-    } else {
-        None
+fn bind(into: &mut BTreeMap<String, Object>, name: &str, value: &Object) -> Option<()> {
+    if let Some(previous) = into.get(name) {
+        return (previous == value).then_some(());
     }
+    into.insert(name.to_owned(), value.clone());
+    Some(())
 }
-
-fn single_match(name: &str, val: &Object) -> Option<Match> {
-    Some(Match::from((name.to_string(), val.clone())))
-}
-
-fn empty_match() -> Option<Match> {
-    Some(Match::from(vec![]))
-}
-
-fn match_extension_list(pattern: &[Pattern], val: &Object) -> Option<Match> {
-    match pattern.last() {
-        Some(Pattern::AdInfinitum) => {
-            let pattern = &pattern[..pattern.len() - 1];
-
-            match val {
-                Object::List(List { list }) => {
-                    let list = &list[..pattern.len()];
-
-                    match_list(pattern, list)
-                }
-                _ => None,
-            }
-        }
-        _ => match val {
-            Object::List(List { list }) => match_list(pattern, list),
-            _ => None,
-        },
+impl CompiledPattern {
+    pub fn matches(&self, value: &Object) -> Option<Match> {
+        let mut bindings = BTreeMap::new();
+        self.accumulate(value, &mut bindings)?;
+        Some(Match(bindings))
     }
-}
-
-fn match_tuple(pattern: &[Pattern], val: &Object) -> Option<Match> {
-    match val {
-        Object::Tuple(Tuple { list }) => match_list(pattern, list),
-        _ => None,
-    }
-}
-
-fn match_extension_set(patterns: &[Pattern], val: &Object) -> Option<Match> {
-    match val {
-        Object::Set(set) if patterns.len() == set.len() => {
-            let mut res = empty_match();
-
-            for (pattern, val) in zip(patterns, set.iter()) {
-                res = join(res, match_(pattern, val));
-            }
-
-            res
-        }
-        _ => None,
-    }
-}
-
-fn match_list(pattern: &[Pattern], list: &[Object]) -> Option<Match> {
-    match_sequence(pattern, list)
-}
-
-fn match_prefix_crop(first: &Pattern, most: &Pattern, val: &Object) -> Option<Match> {
-    match val {
-        Object::List(List { list }) if !list.is_empty() => {
-            let first_match = match_(first, &list[0]);
-
-            let last_list = Object::List(List::from(list[1..].to_owned()));
-            let last_match = match_(most, &last_list);
-
-            join(first_match, last_match)
-        }
-        Object::String(str) => {
-            let (first_val, tail_val) = str.cons_format()?;
-            let first_match = match_(first, &Object::Char(first_val.into()));
-            let tail_match = match_(most, &Object::String(tail_val.into()));
-
-            join(first_match, tail_match)
-        }
-        _ => None,
-    }
-}
-
-fn match_dictionary(
-    pairs: &Vec<(Pattern, Pattern)>,
-    must_match_all: bool,
-    val: &Object,
-) -> Option<Match> {
-    match val {
-        Object::Dictionary(dict) => match_dict(pairs, dict, must_match_all),
-        _ => None,
-    }
-}
-
-fn match_dict(
-    pairs: &Vec<(Pattern, Pattern)>,
-    dict: &Dictionary,
-    must_match_all: bool,
-) -> Option<Match> {
-    if pairs.len() != dict.dict.len() && must_match_all {
-        return None;
-    }
-
-    let mut res = empty_match();
-
-    for (key, value) in pairs {
-        let mut match_found = false;
-
-        for (some_key, some_value) in &dict.dict {
-            let left_match = match_(key, some_key);
-            let right_match = match_(value, some_value);
-            let whole_match = join(left_match, right_match);
-
-            if whole_match.is_some() {
-                match_found = true;
-                res = join(res, whole_match);
-                break;
-            }
-        }
-
-        if !match_found {
+    fn sequence(
+        patterns: &[Self],
+        values: &[Object],
+        out: &mut BTreeMap<String, Object>,
+    ) -> Option<()> {
+        if patterns.len() != values.len() {
             return None;
         }
+        for (pattern, value) in patterns.iter().zip(values) {
+            pattern.accumulate(value, out)?;
+        }
+        Some(())
     }
-
-    res
-}
-
-fn match_range(lhs: &Pattern, rhs: &Pattern, val: &Object) -> Option<Match> {
-    match val {
-        Object::Range(range) => join(
-            match_(lhs, &Object::Integer(range.start.to_owned())),
-            match_(rhs, &Object::Integer(range.end.to_owned())),
-        ),
-        _ => None,
-    }
-}
-
-fn set_cons(some: &Pattern, most: &Pattern, val: &Object) -> Option<Match> {
-    match val {
-        Object::Set(set) => {
-            for val in set.iter() {
-                let mut new_set = set.clone();
-                new_set.remove(val);
-                let res = join(match_(some, val), match_(most, &new_set.into()));
-
-                if res.is_some() {
-                    return res;
+    fn accumulate(&self, value: &Object, out: &mut BTreeMap<String, Object>) -> Option<()> {
+        match (self, value) {
+            (Self::Constant(c), value) => (c == value).then_some(()),
+            (Self::Wildcard, _) => Some(()),
+            (Self::Symbol { name }, value) => bind(out, name, value),
+            (
+                Self::Signature {
+                    pattern,
+                    constraint,
+                },
+                value,
+            ) => {
+                if !satisfies(value, constraint) {
+                    return None;
+                }
+                pattern.accumulate(value, out)
+            }
+            // Alternatives choose locally before merging with enclosing bindings.
+            (Self::Either { lhs, rhs }, value) => {
+                merge(out, lhs.matches(value).or_else(|| rhs.matches(value))?)
+            }
+            (Self::List { list: patterns }, Object::List(list)) => {
+                if matches!(patterns.last(), Some(Self::AdInfinitum)) {
+                    let patterns = &patterns[..patterns.len() - 1];
+                    Self::sequence(patterns, list.list.get(..patterns.len())?, out)
+                } else {
+                    Self::sequence(patterns, &list.list, out)
                 }
             }
-
-            None
+            (Self::Tuple { list }, Object::Tuple(tuple)) => Self::sequence(list, &tuple.list, out),
+            (Self::Set { list }, Object::Set(set)) => {
+                if list.len() != set.len() {
+                    return None;
+                }
+                for (p, v) in list.iter().zip(set.iter()) {
+                    p.accumulate(v, out)?;
+                }
+                Some(())
+            }
+            (Self::ListCons { first, tail }, Object::List(list)) => {
+                first.accumulate(list.list.first()?, out)?;
+                tail.accumulate(
+                    &Object::List(List {
+                        list: list.list.suffix(1),
+                    }),
+                    out,
+                )
+            }
+            (Self::ListCons { first, tail }, Object::String(string)) => {
+                let (head, rest) = string.cons_format()?;
+                first.accumulate(&Object::Char(head.into()), out)?;
+                tail.accumulate(&Object::String(rest), out)
+            }
+            (Self::Dictionary { pairs, complete }, Object::Dictionary(dict)) => {
+                if *complete && pairs.len() != dict.dict.len() {
+                    return None;
+                }
+                for (key, value) in pairs {
+                    let matched = if let Self::Constant(key) = key {
+                        value.matches(dict.dict.get(key)?)?
+                    } else {
+                        dict.dict.iter().find_map(|(k, v)| {
+                            let mut local = key.matches(k)?;
+                            value.accumulate(v, &mut local.0)?;
+                            Some(local)
+                        })?
+                    };
+                    merge(out, matched)?;
+                }
+                Some(())
+            }
+            (Self::SetCons { some, most }, Object::Set(set)) => {
+                for candidate in set.iter() {
+                    let Some(mut local) = some.matches(candidate) else {
+                        continue;
+                    };
+                    let mut rest = set.clone();
+                    rest.remove(candidate);
+                    if most.accumulate(&rest.into(), &mut local.0).is_some() {
+                        return merge(out, local);
+                    }
+                }
+                None
+            }
+            (Self::Range { start, end }, Object::Range(range)) => {
+                start.accumulate(&Object::Integer(range.start.clone()), out)?;
+                end.accumulate(&Object::Integer(range.end.clone()), out)
+            }
+            (Self::Fraction { numer, denom }, Object::Fraction(frac)) => {
+                numer.accumulate(&Object::Integer(frac.numer()), out)?;
+                denom.accumulate(&Object::Integer(frac.denom()), out)
+            }
+            _ => None,
         }
-        _ => None,
     }
 }
-
-fn fraction(numer: &Pattern, denom: &Pattern, val: &Object) -> Option<Match> {
-    match val {
-        Object::Fraction(frac) => {
-            let numer_val = Object::Integer(frac.numer());
-            let denom_val = Object::Integer(frac.denom());
-
-            join(match_(numer, &numer_val), match_(denom, &denom_val))
-        }
-        _ => None,
-    }
+#[cfg(test)]
+fn empty_match() -> Option<Match> {
+    Some(Match(BTreeMap::new()))
 }
-
-fn match_constant(constant: &Constant, val: &Object) -> Option<Match> {
-    if eval_constant(constant) == *val {
-        empty_match()
-    } else {
-        None
-    }
+#[cfg(test)]
+fn single_match(name: &str, value: &Object) -> Option<Match> {
+    Some(Match::from((name.into(), value.clone())))
 }
-
+#[cfg(test)]
+fn join(a: Option<Match>, b: Option<Match>) -> Option<Match> {
+    let mut a = a?;
+    merge(&mut a.0, b?)?;
+    Some(a)
+}
+#[cfg(test)]
+fn match_sequence(patterns: &[Pattern], values: &[Object]) -> Option<Match> {
+    let mut out = BTreeMap::new();
+    CompiledPattern::sequence(
+        &patterns.iter().map(Into::into).collect::<Vec<_>>(),
+        values,
+        &mut out,
+    )?;
+    Some(Match(out))
+}
 #[cfg(test)]
 mod tests {
     use crate::{
@@ -280,6 +317,57 @@ mod tests {
     };
 
     use super::*;
+
+    #[test]
+    fn short_prefix_fails_without_panicking() {
+        assert_eq!(
+            match_(
+                &list_pattern(vec![wildcard(), wildcard(), ad_infinitum()]),
+                &Object::List(vec![Object::true_obj()].into())
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn failed_alternative_does_not_leak_bindings() {
+        let pattern = either_pattern(
+            list_pattern(vec![symbol_pattern("x"), dec_integer_pattern("0")]),
+            list_pattern(vec![wildcard(), symbol_pattern("x")]),
+        );
+        let value = Object::List(vec![Object::Integer(1.into()), Object::Integer(2.into())].into());
+        assert_eq!(
+            match_(&pattern, &value),
+            single_match("x", &Object::Integer(2.into()))
+        );
+    }
+
+    #[test]
+    fn dictionary_keeps_first_local_candidate_on_outer_conflict() {
+        let pattern = list_pattern(vec![
+            symbol_pattern("x"),
+            dictionary_pattern(vec![(wildcard(), symbol_pattern("x"))], false),
+        ]);
+        let dict = Dictionary::from(vec![
+            (Object::Integer(0.into()), Object::Integer(1.into())),
+            (Object::Integer(1.into()), Object::Integer(2.into())),
+        ]);
+        let value = Object::List(vec![Object::Integer(2.into()), Object::Dictionary(dict)].into());
+        assert_eq!(match_(&pattern, &value), None);
+    }
+
+    #[test]
+    fn set_cons_retries_after_tail_failure() {
+        let pattern = set_cons_pattern(
+            symbol_pattern("x"),
+            set_pattern(vec![dec_integer_pattern("1")]),
+        );
+        let value = Object::Set(vec![Object::Integer(1.into()), Object::Integer(2.into())].into());
+        assert_eq!(
+            match_(&pattern, &value),
+            single_match("x", &Object::Integer(2.into()))
+        );
+    }
 
     #[test]
     fn two_args() {

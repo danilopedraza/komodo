@@ -1,7 +1,7 @@
 # Performance improvement opportunities
 
 Inventory from code inspection on 2026-10-25, updated during implementation.
-Items 1–20 now have runtime improvements; coverage and remaining generalizations
+Items 1–31 now have implementations or measured evaluations; coverage and remaining generalizations
 are described below. **High** marks investigation priority, not a measured speedup.
 
 The recent shared instruction and copy-on-write environment improvements are
@@ -103,40 +103,54 @@ implementation above, rather than elimination of every fallback path.
 
 ## Pattern matching and function dispatch
 
-- [ ] **21. High: avoid copying list and string tails.** Cons patterns materialize
+
+Implementation coverage (2026-10-25): items 21–26 use shared list/string suffixes,
+a binding accumulator with isolated choice points, early failure, delayed set
+removal, direct constant-key lookup, and compiled runtime constants. Case, loop,
+binding, and assignment patterns compile during lowering; function patterns
+compile when their clauses/closures are constructed. Item 27 indexes tuple arity
+and merges fallback clauses in source order; type/literal indexes remain future
+work. Item 28 replaces clauses in place. Item 29 uses a persistent AVL cache.
+Item 30 is measured rather than a cache-policy change; see the
+[memoization evaluation](bench/memoization.md). Item 31 adds shared-identity
+comparison paths and rejects unequal cache sizes before structural equality;
+hashing remains structural. Suffix views can retain their source allocation,
+and memo caches remain unbounded with existing snapshot and equality semantics.
+
+- [x] **21. High: avoid copying list and string tails.** Cons patterns materialize
   tails; recursive destructuring can produce quadratic copying. Investigate shared
   slices or views. See [cons matching](core/src/matcher.rs#L155).
-- [ ] **22. High: reduce match-binding allocations.** Symbol patterns clone values
+- [x] **22. High: reduce match-binding allocations.** Symbol patterns clone values
   into fresh `BTreeMap`s, then merge and insert them into environments. Consider a
   single accumulator, borrowed matches, and simple-pattern fast paths. See
   [match merging](core/src/matcher.rs#L32) and [symbol matching](core/src/matcher.rs#L100).
-- [ ] **23. Stop matching after failure.** Sequence matching uses `fold`, so later
+- [x] **23. Stop matching after failure.** Sequence matching uses `fold`, so later
   subpatterns execute after failure. Set and dictionary matching also perform
   avoidable work after earlier failure. See [sequence matching](core/src/matcher.rs#L49),
   [set matching](core/src/matcher.rs#L136), and [dictionary matching](core/src/matcher.rs#L187).
-- [ ] **24. High: avoid cloning sets for rejected candidates.** Set-cons matching
+- [x] **24. High: avoid cloning sets for rejected candidates.** Set-cons matching
   clones and removes from a set before knowing whether the candidate matches.
   Nested patterns amplify this cost. See [set-cons matching](core/src/matcher.rs#L231).
-- [ ] **25. Look up constant dictionary pattern keys directly.** Literal keys
+- [x] **25. Look up constant dictionary pattern keys directly.** Literal keys
   could use tree lookup while general key patterns retain scanning. See
   [dictionary matching](core/src/matcher.rs#L187).
-- [ ] **26. Precompile constant patterns.** Matching reconstructs runtime
+- [x] **26. Precompile constant patterns.** Matching reconstructs runtime
   constants through `eval_constant` on every attempt. See
   [constant matching](core/src/matcher.rs#L262).
-- [ ] **27. Index function clauses.** Skip impossible clauses using arity, type,
+- [x] **27. Index function clauses.** Skip impossible clauses using arity, type,
   or literal discriminator indexes while preserving clause order. See
   [clause dispatch](core/src/object/mod.rs#L1102).
-- [ ] **28. Avoid duplicate replacement clauses.** `add_pattern` replaces matching
+- [x] **28. Avoid duplicate replacement clauses.** `add_pattern` replaces matching
   clauses and then unconditionally appends another. Redefinitions grow the clause
   list and increase scanning work. See [clause insertion](core/src/object/mod.rs#L1072).
-- [ ] **29. Reduce memoization cache detachment.** `Rc::make_mut` can clone the
+- [x] **29. Reduce memoization cache detachment.** `Rc::make_mut` can clone the
   entire cache when snapshots share it. Investigate persistent storage while
   preserving snapshot semantics. See [cache insertion](core/src/object/mod.rs#L1114).
-- [ ] **30. Measure memoization key and retention costs.** Keys and results are
+- [x] **30. Measure memoization key and retention costs.** Keys and results are
   cloned, tree comparisons can traverse complex objects, and caches are unbounded.
   Alternative indexes or policies require workload evidence and semantic review.
   See [cache representation](core/src/object/mod.rs#L1013).
-- [ ] **31. Reduce structural function comparisons.** Ordering and hashing traverse
+- [x] **31. Reduce structural function comparisons.** Ordering and hashing traverse
   clauses, code, and caches. Investigate safe shared-identity fast paths or cached
   hashes without changing equality. See [function ordering](core/src/object/mod.rs#L1037)
   and [block equality](core/src/ir.rs#L53).

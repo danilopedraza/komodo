@@ -18,3 +18,5 @@ devenv.local.nix
 
 # rust-analyzer saving its output
 /target
+# Benchmark tooling builds
+/bench/target

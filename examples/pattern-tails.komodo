@@ -1,0 +1,15 @@
+# Shared suffixes preserve values, mutation isolation, and Unicode characters.
+let count([], n) := n
+let count([_|tail], n) := count(tail, n + 1)
+let original := [n for n in 0..20000]
+assert(count(original, 0) = 20000)
+let [head|suffix] := original
+var changed := suffix
+changed[0] := -1
+assert(head = 0)
+assert(suffix[0] = 1)
+assert(original[1] = 1)
+
+let chars("", n) := n
+let chars([_|tail]: String, n) := chars(tail, n + 1)
+assert(chars("é🦎z", 0) = 3)

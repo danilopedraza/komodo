@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use crate::error::{Error, Position};
 use crate::lexer::Radix;
-use crate::matcher::{match_, Match};
+use crate::matcher::{Match, RuntimePattern};
 use crate::object::fraction::Fraction;
 use crate::object::{
     self, float::Float, AnonFunction, Dictionary, Function, FunctionPatternKind, Kind, List,
@@ -176,7 +176,7 @@ fn exec_stack(
                 Op::Case { expr, pairs } => {
                     let value = exec(expr, env)?;
                     for (pattern, body) in pairs {
-                        if let Some(Match(bindings)) = match_(pattern, &value) {
+                        if let Some(Match(bindings)) = pattern.matches(&value) {
                             env.push_bindings(ScopeKind::Block, bindings);
                             let result = exec_tail(body, env);
                             env.pop_scope();
@@ -405,11 +405,15 @@ pub fn eval_constant(constant: &Constant) -> Object {
     }
 }
 
-fn case(expr: &Block, pairs: &[(Pattern, Block)], env: &mut Environment) -> ExecResult<Object> {
+fn case(
+    expr: &Block,
+    pairs: &[(RuntimePattern, Block)],
+    env: &mut Environment,
+) -> ExecResult<Object> {
     let expr_obj = exec(expr, env)?;
 
     for (pattern, res) in pairs {
-        if let Some(Match(map)) = match_(pattern, &expr_obj) {
+        if let Some(Match(map)) = pattern.matches(&expr_obj) {
             env.push_scope(ScopeKind::Block);
             for (key, val) in map {
                 env.set_inmutable(&key, val);
@@ -439,7 +443,10 @@ fn assignment(
     env: &mut Environment,
 ) -> ExecResult<Object> {
     match left {
-        AssignableSymbol::Pattern(Pattern::Symbol { name }) => {
+        AssignableSymbol::Pattern(pattern) if matches!(&**pattern, Pattern::Symbol { .. }) => {
+            let Pattern::Symbol { name } = &**pattern else {
+                unreachable!()
+            };
             let target = get_mutable_value(name, env, value_position)?;
             if discard {
                 *target = evaluated_value;
@@ -512,12 +519,12 @@ fn assignment(
 }
 
 fn destructure(
-    pattern: &Pattern,
+    pattern: &RuntimePattern,
     pos: Position,
     val: &Object,
     env: &mut Environment,
 ) -> ExecResult<BTreeMap<String, Object>> {
-    match match_(pattern, val) {
+    match pattern.matches(val) {
         Some(Match(map)) => Ok(map),
         None => Err(Error::with_position(
             ExecError::BadMatch.into(),
@@ -673,7 +680,7 @@ fn boolean(val: bool) -> Object {
 }
 
 fn let_pattern(
-    left: &Pattern,
+    left: &RuntimePattern,
     value: Object,
     value_position: Position,
     discard: bool,
@@ -681,7 +688,7 @@ fn let_pattern(
     env: &mut Environment,
 ) -> ExecResult<Object> {
     if discard {
-        if let Pattern::Symbol { name } = left {
+        if let Pattern::Symbol { name } = &**left {
             match kind {
                 ValueKind::Mutable => env.set_mutable(name, value),
                 ValueKind::Inmutable => env.set_inmutable(name, value),
@@ -689,7 +696,7 @@ fn let_pattern(
             return Ok(Object::false_obj());
         }
     }
-    match match_(left, &value) {
+    match left.matches(&value) {
         Some(Match(map)) => {
             for (name, val) in map {
                 match kind {
@@ -820,7 +827,7 @@ fn if_(cond: Object, first: &Block, second: &Block, env: &mut Environment) -> Ex
 }
 
 fn for_(
-    pattern: &Pattern,
+    pattern: &RuntimePattern,
     iterable: &Block,
     proc: &Block,
     env: &mut Environment,

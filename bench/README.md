@@ -113,3 +113,9 @@ The changes remove deep copies of instruction trees, function clauses, caches,
 and captured bindings on reads/calls. Bindings, clauses, and caches detach on
 mutation to preserve snapshot semantics. Arithmetic and operand-stack execution
 are largely unchanged; the small loop regression remains visible above.
+
+## Pattern matching and memoization
+
+See [the memoization evaluation](memoization.md) for the TODO 21–31 changes,
+reproducible allocation/retention measurements, baseline comparisons, and remaining
+key-comparison and unbounded-retention costs.

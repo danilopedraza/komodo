@@ -13,3 +13,7 @@ path = "runtime-layout.rs"
 [[bin]]
 name = "memory"
 path = "memory.rs"
+
+[[bin]]
+name = "memoization"
+path = "memoization.rs"

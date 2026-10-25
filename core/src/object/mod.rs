@@ -1,6 +1,9 @@
 pub mod float;
 pub mod fraction;
 pub mod integer;
+mod memo;
+mod view;
+use view::View;
 
 use std::{
     cell::RefCell,
@@ -27,7 +30,7 @@ use crate::{
     error::{Error, Position},
     exec::{exec, ExecError},
     ir::Block,
-    matcher::{match_, Match},
+    matcher::{CompiledPattern, Match, RuntimePattern},
 };
 
 /// Value storage shared by snapshots, detached only through mutable access.
@@ -847,7 +850,7 @@ impl PrefixOperable for Dictionary {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct MyString {
-    val: Shared<String>,
+    val: View<String>,
 }
 
 impl From<String> for MyString {
@@ -865,7 +868,7 @@ impl From<MyString> for String {
 impl MyString {
     pub(crate) fn has_prefix(&self, prefix: &Object) -> bool {
         match prefix {
-            Object::String(prefix) => self.val.starts_with(prefix.val.as_str()),
+            Object::String(prefix) => self.val.starts_with(&*prefix.val),
             Object::Char(prefix) => self.val.starts_with(prefix.val),
             _ => false,
         }
@@ -877,11 +880,16 @@ impl MyString {
         Object::String(MyString { val: val.into() })
     }
 
-    pub fn cons_format(&self) -> Option<(char, &str)> {
+    pub fn cons_format(&self) -> Option<(char, Self)> {
         let mut iter = self.val.chars();
         let first = iter.next()?;
 
-        Some((first, iter.as_str()))
+        Some((
+            first,
+            Self {
+                val: self.val.suffix(first.len_utf8()),
+            },
+        ))
     }
 }
 
@@ -1138,8 +1146,9 @@ impl CapturedEnvironment {
 #[derive(Clone, Debug)]
 pub struct PatternFunction {
     pub env: CapturedEnvironment,
-    patterns: Rc<Vec<(FunctionPatternKind, Pattern, Block)>>,
-    cache: Rc<BTreeMap<Object, Object>>,
+    patterns: Rc<Vec<(FunctionPatternKind, Pattern, Block, CompiledPattern)>>,
+    cache: memo::Cache,
+    clause_index: Rc<BTreeMap<Option<usize>, Vec<usize>>>,
 }
 
 // Captured environments are shared and can change when recursive clauses are
@@ -1147,7 +1156,7 @@ pub struct PatternFunction {
 // functions (including those nested in containers) must remain stable map keys.
 impl PartialEq for PatternFunction {
     fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
+        self.cache.len() == other.cache.len() && self.cmp(other) == Ordering::Equal
     }
 }
 
@@ -1161,11 +1170,17 @@ impl PartialOrd for PatternFunction {
 
 impl Ord for PatternFunction {
     fn cmp(&self, other: &Self) -> Ordering {
-        (self.env.as_ptr(), &self.patterns, &self.cache).cmp(&(
-            other.env.as_ptr(),
-            &other.patterns,
-            &other.cache,
-        ))
+        self.env
+            .as_ptr()
+            .cmp(&other.env.as_ptr())
+            .then_with(|| {
+                if Rc::ptr_eq(&self.patterns, &other.patterns) {
+                    Ordering::Equal
+                } else {
+                    self.patterns.cmp(&other.patterns)
+                }
+            })
+            .then_with(|| self.cache.cmp(&other.cache))
     }
 }
 
@@ -1177,12 +1192,21 @@ impl Hash for PatternFunction {
     }
 }
 
+fn tuple_arity(pattern: &Pattern) -> Option<usize> {
+    match pattern {
+        Pattern::Tuple { list } => Some(list.len()),
+        Pattern::Signature { pattern, .. } => tuple_arity(pattern),
+        _ => None,
+    }
+}
+
 impl PatternFunction {
     pub fn new(env: Rc<RefCell<Environment>>) -> Self {
         Self {
             env: CapturedEnvironment::Strong(env),
             patterns: Rc::default(),
-            cache: Rc::default(),
+            cache: memo::Cache::default(),
+            clause_index: Rc::default(),
         }
     }
     pub(crate) fn recursive_clone(&self) -> Self {
@@ -1199,13 +1223,19 @@ impl PatternFunction {
     pub fn add_pattern(&mut self, param: &Pattern, value: &Block, kind: FunctionPatternKind) {
         let patterns = Rc::make_mut(&mut self.patterns);
         for pattern in patterns.iter_mut() {
-            let (_, other_args, _) = pattern;
+            let (_, other_args, _, _) = pattern;
             if param == other_args {
-                *pattern = (kind, param.to_owned(), value.to_owned());
+                *pattern = (kind, param.to_owned(), value.to_owned(), param.into());
+                return;
             }
         }
 
-        patterns.push((kind, param.clone(), value.clone()));
+        let index = patterns.len();
+        patterns.push((kind, param.clone(), value.clone(), param.into()));
+        Rc::make_mut(&mut self.clause_index)
+            .entry(tuple_arity(param))
+            .or_default()
+            .push(index);
     }
 
     fn exec_call(
@@ -1232,8 +1262,32 @@ impl PatternFunction {
         if let Some(cached) = self.cache.get(arg) {
             Ok(crate::exec::Outcome::Value(cached.to_owned()))
         } else {
-            for (kind, patterns, val) in self.patterns.iter() {
-                if let Some(Match(v)) = match_(patterns, arg) {
+            let arity = match arg {
+                Object::Tuple(t) => Some(t.list.len()),
+                _ => None,
+            };
+            let mut general = self
+                .clause_index
+                .get(&None)
+                .into_iter()
+                .flatten()
+                .copied()
+                .peekable();
+            let mut exact = arity
+                .and_then(|arity| self.clause_index.get(&Some(arity)))
+                .into_iter()
+                .flatten()
+                .copied()
+                .peekable();
+            let candidates = std::iter::from_fn(|| match (general.peek(), exact.peek()) {
+                (Some(a), Some(b)) if a < b => general.next(),
+                (Some(_), Some(_)) | (None, Some(_)) => exact.next(),
+                (Some(_), None) => general.next(),
+                (None, None) => None,
+            });
+            for index in candidates {
+                let (kind, _, val, pattern) = &self.patterns[index];
+                if let Some(Match(v)) = pattern.matches(arg) {
                     match kind {
                         FunctionPatternKind::NotMemoized => {
                             let mut frame = captured.borrow().to_owned();
@@ -1245,7 +1299,7 @@ impl PatternFunction {
                         }
                         FunctionPatternKind::Memoized => {
                             let res = Self::exec_call(v, val, &mut captured.borrow().to_owned())?;
-                            Rc::make_mut(&mut self.cache).insert(arg.to_owned(), res.clone());
+                            self.cache.insert(arg.to_owned(), res.clone());
                             return Ok(crate::exec::Outcome::Value(res));
                         }
                     }
@@ -1263,7 +1317,7 @@ impl PatternFunction {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct AnonFunction {
-    param: Pattern,
+    param: RuntimePattern,
     result: Block,
     env: Environment,
 }
@@ -1272,7 +1326,11 @@ impl AnonFunction {
     pub fn new(param: Pattern, result: Block, env: Environment) -> Self {
         let result = crate::ir::resolve_function(&param, result);
         let env = env.capture(&result, &param);
-        Self { param, result, env }
+        Self {
+            param: (&param).into(),
+            result,
+            env,
+        }
     }
 
     fn call_step(
@@ -1280,7 +1338,7 @@ impl AnonFunction {
         arg: &Object,
         call_pos: Position,
     ) -> Result<crate::exec::Outcome, Error> {
-        let Some(Match(values)) = match_(&self.param, arg) else {
+        let Some(Match(values)) = self.param.matches(arg) else {
             return Err(Error::with_position(
                 ExecError::UnmatchedCall.into(),
                 call_pos,
@@ -1362,7 +1420,7 @@ impl Eq for ExternFunction {}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct List {
-    pub list: Shared<Vec<Object>>,
+    pub list: View<Vec<Object>>,
 }
 
 impl List {
@@ -1664,6 +1722,85 @@ mod tests {
         assert_eq!(first, first.clone());
         assert_ne!(first, second);
         assert_ne!(first.cmp(&second), Ordering::Equal);
+    }
+
+    #[test]
+    fn suffixes_share_storage_and_detach_visible_contents() {
+        let original = List::from(vec![
+            Object::Integer(1.into()),
+            Object::Integer(2.into()),
+            Object::Integer(3.into()),
+        ]);
+        let mut tail = List {
+            list: original.list.suffix(1),
+        };
+        assert!(Rc::ptr_eq(&original.list.0, &tail.list.0));
+        assert_eq!(
+            tail,
+            List::from(vec![Object::Integer(2.into()), Object::Integer(3.into())])
+        );
+        tail.list[0] = Object::Integer(9.into());
+        assert_eq!(original.list[1], Object::Integer(2.into()));
+        assert_eq!(
+            tail.list.into_owned(),
+            vec![Object::Integer(9.into()), Object::Integer(3.into())]
+        );
+        let text = MyString::from("é🦎z");
+        let (head, tail) = text.cons_format().unwrap();
+        assert_eq!(head, 'é');
+        assert!(Rc::ptr_eq(&text.val.0, &tail.val.0));
+        let (head, tail) = tail.cons_format().unwrap();
+        assert_eq!(head, '🦎');
+        assert_eq!(tail, MyString::from("z"));
+        assert_eq!(String::from(tail), "z");
+    }
+
+    #[test]
+    fn clause_replacement_keeps_position_and_snapshot() {
+        let mut env = crate::builtin::standard_env(Default::default());
+        crate::run::run("let f(0) := 1\nlet f(x) := 2\nlet old := f\nlet f(0) := 3\nassert(f(0) = 3)\nassert(old(0) = 1)", &mut env).unwrap();
+        let Object::Function(Function::Pattern(f)) = env.lookup("f").unwrap() else {
+            panic!()
+        };
+        assert_eq!(f.patterns.len(), 2);
+        assert_eq!(f.clause_index.values().map(Vec::len).sum::<usize>(), 2);
+    }
+
+    #[test]
+    fn arity_index_merges_general_clauses_in_source_order() {
+        let mut env = crate::builtin::standard_env(Default::default());
+        crate::run::run(
+            "let f(0, 0) := 1\nlet fallback(x) := 2\nlet triple(a, b, c) := 3",
+            &mut env,
+        )
+        .unwrap();
+        let Object::Function(Function::Pattern(mut f)) = env.lookup("f").unwrap().clone() else {
+            panic!()
+        };
+        let Object::Function(Function::Pattern(fallback)) = env.lookup("fallback").unwrap() else {
+            panic!()
+        };
+        let Object::Function(Function::Pattern(triple)) = env.lookup("triple").unwrap() else {
+            panic!()
+        };
+        f.add_pattern(
+            &Pattern::Symbol {
+                name: "anything".into(),
+            },
+            &fallback.patterns[0].2,
+            FunctionPatternKind::NotMemoized,
+        );
+        let (kind, param, body, _) = &triple.patterns[0];
+        f.add_pattern(param, body, *kind);
+        for (arity, expected) in [(2, 1), (3, 2), (0, 2)] {
+            let arg = Object::Tuple(Tuple::from(vec![Object::Integer(0.into()); arity]));
+            let crate::exec::Outcome::Value(result) =
+                f.call_step(&arg, Position::new(0, 0)).unwrap()
+            else {
+                panic!()
+            };
+            assert_eq!(result, Object::Integer(expected.into()));
+        }
     }
 
     #[test]
