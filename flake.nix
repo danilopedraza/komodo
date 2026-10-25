@@ -41,6 +41,38 @@
             inherit cargoArtifacts;
             meta.mainProgram = "komodo";
           });
+          benchmarkArgs = {
+            pname = "komodo-bench-tools";
+            version = "0.1.0";
+            src = pkgs.lib.cleanSourceWith {
+              src = ./.;
+              filter = path: type:
+                let rel = pkgs.lib.removePrefix (toString ./. + "/") path;
+                in (rel == "core" || rel == "bench"
+                  || pkgs.lib.hasPrefix "core/" rel || pkgs.lib.hasPrefix "bench/" rel)
+                  && craneLib.filterCargoSources path type;
+            };
+            cargoLock = ./bench/Cargo.lock;
+            cargoToml = ./bench/Cargo.toml;
+            postUnpack = ''sourceRoot="$sourceRoot/bench"'';
+            strictDeps = true;
+          };
+          benchmarkTools = craneLib.buildPackage (benchmarkArgs // {
+            cargoArtifacts = craneLib.buildDepsOnly benchmarkArgs;
+          });
+          benchmarkSources = pkgs.lib.cleanSourceWith {
+            src = ./bench;
+            filter = path: type:
+              (type == "directory" && path == toString ./bench)
+              || (type == "regular" && (pkgs.lib.hasSuffix ".komodo" path
+                || builtins.baseNameOf path == "compare.sh"));
+          };
+          benchmarkInputs = pkgs.runCommand "komodo-benchmark-inputs" { } ''
+            mkdir -p $out/bench
+            cp ${benchmarkSources}/*.komodo $out/bench/
+            cp ${./bench/compare.sh} $out/bench/compare.sh
+            cp -r ${./std} $out/std
+          '';
           # Release downloads must also run on Linux machines without /nix/store.
           releaseArgs = commonArgs // {
             CARGO_BUILD_TARGET = pkgs.pkgsStatic.stdenv.hostPlatform.rust.rustcTarget;
@@ -130,6 +162,19 @@
           };
           checks = {
             inherit komodo komodo-release playground book report website extension;
+            benchmark-tools = benchmarkTools;
+            benchmark-formatting = craneLib.cargoFmt benchmarkArgs;
+            benchmark-clippy = craneLib.cargoClippy (benchmarkArgs // {
+              cargoArtifacts = craneLib.buildDepsOnly benchmarkArgs;
+              cargoClippyExtraArgs = "--all-targets -- -D warnings";
+            });
+            benchmark-workloads = pkgs.runCommand "benchmark-workloads" { } ''
+              export KOMODO_STD=${benchmarkInputs}/std
+              for workload in ${benchmarkInputs}/bench/*.komodo; do
+                ${komodo}/bin/komodo "$workload"
+              done
+              touch $out
+            '';
             ci-workflows = pkgs.runCommand "ci-workflows" { nativeBuildInputs = [ pkgs.actionlint ]; } ''
               actionlint -shellcheck= ${./.github/workflows}/*.yml
               touch $out
@@ -184,6 +229,7 @@
         in {
           packages = {
             inherit komodo komodo-release playground book report website extension;
+            benchmark-tools = benchmarkTools;
             extension-publisher = ovsx;
             default = komodo;
           };
@@ -191,6 +237,31 @@
           apps = checkApps // {
             default = { type = "app"; meta.description = "Run Komodo"; program = "${komodo}/bin/komodo"; };
             komodo = { type = "app"; meta.description = "Run Komodo"; program = "${komodo}/bin/komodo"; };
+            runtime-layout = {
+              type = "app";
+              meta.description = "Measure interpreter data structure sizes";
+              program = "${benchmarkTools}/bin/runtime-layout";
+            };
+            bench-compare = {
+              type = "app";
+              meta.description = "Compare two packaged interpreters against the benchmark suite";
+              program = "${pkgs.writeShellApplication {
+                name = "komodo-bench-compare";
+                runtimeInputs = [ pkgs.bash pkgs.hyperfine ];
+                text = ''exec bash ${benchmarkInputs}/bench/compare.sh "$@"'';
+              }}/bin/komodo-bench-compare";
+            };
+            bench-memory = {
+              type = "app";
+              meta.description = "Sample benchmark peak RSS on Linux";
+              program = "${pkgs.writeShellApplication {
+                name = "komodo-bench-memory";
+                text = ''
+                  export KOMODO_BENCH_ROOT=${benchmarkInputs}
+                  exec ${benchmarkTools}/bin/memory "$@"
+                '';
+              }}/bin/komodo-bench-memory";
+            };
             bench = {
               type = "app";
               meta.description = "Compare interpreter benchmarks against a previous commit";
@@ -225,7 +296,7 @@
           devShells.default = craneLib.devShell {
             inherit checks;
             packages = with pkgs; [
-              bashInteractive gnumake hyperfine mdbook nil nodejs_22 rust-analyzer
+              bashInteractive gnumake hyperfine mdbook nil nodejs_22 python3 rust-analyzer
               rustToolchain tinymist typst vsce wasm-bindgen-cli wasm-pack
             ] ++ lib.optional stdenv.isLinux docker-client;
           };

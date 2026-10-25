@@ -1,0 +1,12 @@
+# Repeatedly discard local recursive functions to expose captured-environment cycles.
+let make(seed) :=
+    let local(0) := seed
+    let local(n) := local(n - 1)
+    local
+
+var total := 0
+for n in 0..5000 do
+    let f := make(n)
+    total := total + f(2)
+
+assert(total = 12497500)

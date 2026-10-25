@@ -11,7 +11,7 @@ use std::{
     },
     fmt,
     hash::Hash,
-    rc::Rc,
+    rc::{Rc, Weak},
     vec,
 };
 
@@ -29,6 +29,53 @@ use crate::{
     ir::Block,
     matcher::{match_, Match},
 };
+
+/// Value storage shared by snapshots, detached only through mutable access.
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Shared<T>(Rc<T>);
+impl<T> From<T> for Shared<T> {
+    fn from(value: T) -> Self {
+        Self(Rc::new(value))
+    }
+}
+impl<T> std::ops::Deref for Shared<T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        &self.0
+    }
+}
+impl<T: Clone> std::ops::DerefMut for Shared<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        Rc::make_mut(&mut self.0)
+    }
+}
+impl<T: Clone> Shared<T> {
+    pub(crate) fn into_owned(self) -> T {
+        Rc::unwrap_or_clone(self.0)
+    }
+}
+impl<T: Clone + IntoIterator> IntoIterator for Shared<T> {
+    type Item = T::Item;
+    type IntoIter = T::IntoIter;
+    fn into_iter(self) -> Self::IntoIter {
+        self.into_owned().into_iter()
+    }
+}
+impl<'a, T> IntoIterator for &'a Shared<T>
+where
+    &'a T: IntoIterator,
+{
+    type Item = <&'a T as IntoIterator>::Item;
+    type IntoIter = <&'a T as IntoIterator>::IntoIter;
+    fn into_iter(self) -> Self::IntoIter {
+        (&*self.0).into_iter()
+    }
+}
+impl<T: fmt::Display> fmt::Display for Shared<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
 macro_rules! default_infix_method {
     ($ident:ident) => {
@@ -111,6 +158,25 @@ pub enum Object {
 }
 
 impl Object {
+    pub(crate) fn snapshot(&self) -> Self {
+        match self {
+            Self::Function(Function::Pattern(function)) => {
+                Self::Function(Function::Pattern(function.strong_clone()))
+            }
+            object => object.clone(),
+        }
+    }
+
+    pub(crate) fn is_recursive_reference(&self) -> bool {
+        matches!(
+            self,
+            Self::Function(Function::Pattern(PatternFunction {
+                env: CapturedEnvironment::Recursive(_),
+                ..
+            }))
+        )
+    }
+
     pub fn empty_tuple() -> Self {
         Self::Tuple(Tuple::empty_tuple())
     }
@@ -469,7 +535,7 @@ impl Char {
     fn multiply(&self, num: &Integer) -> Object {
         let times = num.to_machine_magnitude();
         let val = self.val.to_string().repeat(times);
-        Object::String(MyString { val })
+        Object::String(MyString { val: val.into() })
     }
 }
 
@@ -481,14 +547,14 @@ impl InfixOperable for Char {
                 val.push(self.val);
                 val.push_str(str);
 
-                Some(Object::String(MyString { val }))
+                Some(Object::String(MyString { val: val.into() }))
             }
             Object::Char(Char { val: other_chr }) => {
                 let mut val = String::new();
                 val.push(self.val);
                 val.push(*other_chr);
 
-                Some(Object::String(MyString { val }))
+                Some(Object::String(MyString { val: val.into() }))
             }
             _ => None,
         }
@@ -531,7 +597,7 @@ impl From<char> for Char {
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Set {
-    set: BTreeSet<Object>,
+    set: Shared<BTreeSet<Object>>,
 }
 
 #[allow(
@@ -541,26 +607,26 @@ pub struct Set {
 impl Set {
     pub fn empty_set() -> Object {
         Object::Set(Self {
-            set: BTreeSet::new(),
+            set: BTreeSet::new().into(),
         })
     }
 
     fn union(&self, other: &Set) -> Object {
-        let set = self
+        let set: BTreeSet<Object> = self
             .set
             .union(&other.set)
             .map(|val| val.to_owned())
             .collect();
-        Object::Set(Set { set })
+        Object::Set(Set { set: set.into() })
     }
 
     fn difference(&self, other: &Set) -> Object {
-        let set = self
+        let set: BTreeSet<Object> = self
             .set
             .difference(&other.set)
             .map(|val| val.to_owned())
             .collect();
-        Object::Set(Set { set })
+        Object::Set(Set { set: set.into() })
     }
 
     fn subset_strict(&self, other: &Set) -> Object {
@@ -668,13 +734,13 @@ impl From<Vec<Object>> for Set {
             set.insert(obj);
         }
 
-        Self { set }
+        Self { set: set.into() }
     }
 }
 
 impl From<BTreeSet<Object>> for Set {
     fn from(set: BTreeSet<Object>) -> Self {
-        Self { set }
+        Self { set: set.into() }
     }
 }
 
@@ -693,12 +759,12 @@ impl fmt::Display for Set {
 
 #[derive(Clone, Debug, PartialEq, Eq, Default, PartialOrd, Ord, Hash)]
 pub struct Dictionary {
-    pub dict: BTreeMap<Object, Object>,
+    pub dict: Shared<BTreeMap<Object, Object>>,
 }
 
 impl From<BTreeMap<Object, Object>> for Dictionary {
     fn from(dict: BTreeMap<Object, Object>) -> Self {
-        Self { dict }
+        Self { dict: dict.into() }
     }
 }
 
@@ -714,7 +780,7 @@ impl From<Vec<(Object, Object)>> for Dictionary {
             dict.insert(key, value);
         }
 
-        Self { dict }
+        Self { dict: dict.into() }
     }
 }
 
@@ -777,18 +843,18 @@ impl PrefixOperable for Dictionary {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct MyString {
-    val: String,
+    val: Shared<String>,
 }
 
 impl From<String> for MyString {
     fn from(val: String) -> Self {
-        Self { val }
+        Self { val: val.into() }
     }
 }
 
 impl From<MyString> for String {
     fn from(value: MyString) -> Self {
-        value.val
+        value.val.into_owned()
     }
 }
 
@@ -796,7 +862,7 @@ impl MyString {
     fn multiply(&self, num: &Integer) -> Object {
         let times = num.to_machine_magnitude();
         let val = self.val.repeat(times);
-        Object::String(MyString { val })
+        Object::String(MyString { val: val.into() })
     }
 
     pub fn cons_format(&self) -> Option<(char, &str)> {
@@ -814,7 +880,7 @@ impl InfixOperable for MyString {
                 let mut val = String::new();
                 val.push_str(&self.val);
                 val.push_str(other_string);
-                Some(Object::String(MyString { val }))
+                Some(Object::String(MyString { val: val.into() }))
             }
             Object::Char(Char { val: chr }) => {
                 let mut val = self.val.clone();
@@ -859,7 +925,7 @@ impl fmt::Display for MyString {
 impl From<&str> for MyString {
     fn from(val: &str) -> Self {
         MyString {
-            val: val.to_string(),
+            val: val.to_string().into(),
         }
     }
 }
@@ -902,12 +968,14 @@ impl PrefixOperable for Symbol {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Tuple {
-    pub list: Vec<Object>,
+    pub list: Shared<Vec<Object>>,
 }
 
 impl Tuple {
     pub fn empty_tuple() -> Self {
-        Self { list: Vec::new() }
+        Self {
+            list: Vec::new().into(),
+        }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -947,7 +1015,7 @@ impl fmt::Display for Tuple {
 
 impl From<Vec<Object>> for Tuple {
     fn from(list: Vec<Object>) -> Self {
-        Self { list }
+        Self { list: list.into() }
     }
 }
 
@@ -988,10 +1056,38 @@ impl Function {
         env: &mut Environment,
         call_pos: Position,
     ) -> Result<Object, Error> {
+        let mut outcome = self.call_step(arg, env, call_pos)?;
+        loop {
+            match outcome {
+                crate::exec::Outcome::Value(value) => return Ok(value),
+                crate::exec::Outcome::TailCall {
+                    mut function,
+                    argument,
+                    position,
+                    context,
+                } => {
+                    outcome = function.call_step(&argument, env, position)?;
+                    if let crate::exec::Outcome::Value(Object::Error(error)) = outcome {
+                        return Err(Error::with_position(
+                            error.into(),
+                            position,
+                            context.executed_file_path.clone(),
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    fn call_step(
+        &mut self,
+        arg: &Object,
+        env: &mut Environment,
+        call_pos: Position,
+    ) -> Result<crate::exec::Outcome, Error> {
         match self {
-            Self::Pattern(f) => f.call(arg, call_pos),
-            Self::Anonymous(f) => f.call(arg, call_pos),
-            Self::Extern(ef) => ef.call(arg, env, call_pos),
+            Self::Pattern(f) => f.call_step(arg, call_pos),
+            Self::Anonymous(f) => f.call_step(arg, call_pos),
+            Self::Extern(f) => f.call(arg, env, call_pos).map(crate::exec::Outcome::Value),
         }
     }
 }
@@ -1002,9 +1098,33 @@ pub enum FunctionPatternKind {
     NotMemoized,
 }
 
+/// Recursive bindings borrow their owning environment. Values that escape a
+/// frame promote that back reference to a strong capture before leaving it.
+#[derive(Clone, Debug)]
+pub enum CapturedEnvironment {
+    Strong(Rc<RefCell<Environment>>),
+    Recursive(Weak<RefCell<Environment>>),
+}
+impl CapturedEnvironment {
+    pub fn upgrade(&self) -> Rc<RefCell<Environment>> {
+        match self {
+            Self::Strong(env) => env.clone(),
+            Self::Recursive(env) => env
+                .upgrade()
+                .expect("recursive capture must have a live owner"),
+        }
+    }
+    fn as_ptr(&self) -> *const RefCell<Environment> {
+        match self {
+            Self::Strong(env) => Rc::as_ptr(env),
+            Self::Recursive(env) => env.as_ptr(),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct PatternFunction {
-    pub env: Rc<RefCell<Environment>>,
+    pub env: CapturedEnvironment,
     patterns: Rc<Vec<(FunctionPatternKind, Pattern, Block)>>,
     cache: Rc<BTreeMap<Object, Object>>,
 }
@@ -1028,8 +1148,8 @@ impl PartialOrd for PatternFunction {
 
 impl Ord for PatternFunction {
     fn cmp(&self, other: &Self) -> Ordering {
-        (Rc::as_ptr(&self.env), &self.patterns, &self.cache).cmp(&(
-            Rc::as_ptr(&other.env),
+        (self.env.as_ptr(), &self.patterns, &self.cache).cmp(&(
+            other.env.as_ptr(),
             &other.patterns,
             &other.cache,
         ))
@@ -1038,7 +1158,7 @@ impl Ord for PatternFunction {
 
 impl Hash for PatternFunction {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        Rc::as_ptr(&self.env).hash(state);
+        self.env.as_ptr().hash(state);
         self.patterns.hash(state);
         self.cache.hash(state);
     }
@@ -1047,11 +1167,22 @@ impl Hash for PatternFunction {
 impl PatternFunction {
     pub fn new(env: Rc<RefCell<Environment>>) -> Self {
         Self {
-            env,
+            env: CapturedEnvironment::Strong(env),
             patterns: Rc::default(),
             cache: Rc::default(),
         }
     }
+    pub(crate) fn recursive_clone(&self) -> Self {
+        let mut result = self.clone();
+        result.env = CapturedEnvironment::Recursive(Rc::downgrade(&self.env.upgrade()));
+        result
+    }
+    pub(crate) fn strong_clone(&self) -> Self {
+        let mut result = self.clone();
+        result.env = CapturedEnvironment::Strong(self.env.upgrade());
+        result
+    }
+
     pub fn add_pattern(&mut self, param: &Pattern, value: &Block, kind: FunctionPatternKind) {
         let patterns = Rc::make_mut(&mut self.patterns);
         for pattern in patterns.iter_mut() {
@@ -1069,11 +1200,8 @@ impl PatternFunction {
         result_node: &Block,
         env: &mut Environment,
     ) -> Result<Object, Error> {
-        env.push_scope(ScopeKind::Function);
-
-        for (name, pattern_val) in matched_values {
-            env.set_inmutable(&name, pattern_val);
-        }
+        env.resolve_captures(result_node);
+        env.push_bindings(ScopeKind::Function, matched_values);
 
         let res = exec(result_node, env);
 
@@ -1082,20 +1210,30 @@ impl PatternFunction {
         res
     }
 
-    fn call(&mut self, arg: &Object, call_pos: Position) -> Result<Object, Error> {
+    fn call_step(
+        &mut self,
+        arg: &Object,
+        call_pos: Position,
+    ) -> Result<crate::exec::Outcome, Error> {
+        let captured = self.env.upgrade();
         if let Some(cached) = self.cache.get(arg) {
-            Ok(cached.to_owned())
+            Ok(crate::exec::Outcome::Value(cached.to_owned()))
         } else {
             for (kind, patterns, val) in self.patterns.iter() {
                 if let Some(Match(v)) = match_(patterns, arg) {
                     match kind {
                         FunctionPatternKind::NotMemoized => {
-                            return Self::exec_call(v, val, &mut self.env.borrow().to_owned());
+                            let mut frame = captured.borrow().to_owned();
+                            frame.resolve_captures(val);
+                            frame.push_bindings(ScopeKind::Function, v);
+                            let result = crate::exec::exec_tail(val, &mut frame);
+                            frame.pop_scope();
+                            return result;
                         }
                         FunctionPatternKind::Memoized => {
-                            let res = Self::exec_call(v, val, &mut self.env.borrow().to_owned())?;
+                            let res = Self::exec_call(v, val, &mut captured.borrow().to_owned())?;
                             Rc::make_mut(&mut self.cache).insert(arg.to_owned(), res.clone());
-                            return Ok(res);
+                            return Ok(crate::exec::Outcome::Value(res));
                         }
                     }
                 }
@@ -1104,7 +1242,7 @@ impl PatternFunction {
             Err(Error::with_position(
                 ExecError::UnmatchedCall.into(),
                 call_pos,
-                self.env.borrow().file_path(),
+                captured.borrow().file_path(),
             ))
         }
     }
@@ -1119,10 +1257,16 @@ pub struct AnonFunction {
 
 impl AnonFunction {
     pub fn new(param: Pattern, result: Block, env: Environment) -> Self {
+        let result = crate::ir::resolve_function(&param, result);
+        let env = env.capture(&result, &param);
         Self { param, result, env }
     }
 
-    fn call(&mut self, arg: &Object, call_pos: Position) -> Result<Object, Error> {
+    fn call_step(
+        &mut self,
+        arg: &Object,
+        call_pos: Position,
+    ) -> Result<crate::exec::Outcome, Error> {
         let Some(Match(values)) = match_(&self.param, arg) else {
             return Err(Error::with_position(
                 ExecError::UnmatchedCall.into(),
@@ -1130,11 +1274,9 @@ impl AnonFunction {
                 self.env.file_path(),
             ));
         };
-        self.env.push_scope(ScopeKind::Function);
-        for (name, value) in values {
-            self.env.set_inmutable(&name, value);
-        }
-        let res = exec(&self.result, &mut self.env);
+        self.env.resolve_captures(&self.result);
+        self.env.push_bindings(ScopeKind::Function, values);
+        let res = crate::exec::exec_tail(&self.result, &mut self.env);
         self.env.pop_scope();
         res
     }
@@ -1189,12 +1331,14 @@ impl Eq for ExternFunction {}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct List {
-    pub list: Vec<Object>,
+    pub list: Shared<Vec<Object>>,
 }
 
 impl List {
     pub fn empty_list() -> Self {
-        Self { list: Vec::new() }
+        Self {
+            list: Vec::new().into(),
+        }
     }
 
     fn multiply(&self, num: &Integer) -> Object {
@@ -1252,7 +1396,7 @@ impl List {
 
 impl From<Vec<Object>> for List {
     fn from(list: Vec<Object>) -> Self {
-        Self { list }
+        Self { list: list.into() }
     }
 }
 
@@ -1474,6 +1618,43 @@ mod tests {
         assert_eq!(first, first.clone());
         assert_ne!(first, second);
         assert_ne!(first.cmp(&second), Ordering::Equal);
+    }
+
+    #[test]
+    fn collection_snapshots_share_storage_and_detach_on_mutation() {
+        let mut list = List::from(vec![Object::List(vec![Object::Integer(1.into())].into())]);
+        let snapshot = list.clone();
+        assert!(Rc::ptr_eq(&list.list.0, &snapshot.list.0));
+        let Object::List(nested) = &mut list.list[0] else {
+            panic!("nested list")
+        };
+        nested.list[0] = Object::Integer(2.into());
+        assert_eq!(
+            snapshot.list[0],
+            Object::List(vec![Object::Integer(1.into())].into())
+        );
+        assert!(!Rc::ptr_eq(&list.list.0, &snapshot.list.0));
+
+        let mut dictionary =
+            Dictionary::from(vec![(Object::Integer(1.into()), Object::true_obj())]);
+        let snapshot = dictionary.clone();
+        assert!(Rc::ptr_eq(&dictionary.dict.0, &snapshot.dict.0));
+        *dictionary.get_mut(&Object::Integer(1.into())).unwrap() = Object::false_obj();
+        assert_eq!(
+            snapshot.get(&Object::Integer(1.into())).unwrap(),
+            Object::true_obj()
+        );
+
+        let mut set = Set::from(vec![Object::Integer(1.into())]);
+        let snapshot = set.clone();
+        assert!(Rc::ptr_eq(&set.set.0, &snapshot.set.0));
+        assert!(set.remove(&Object::Integer(1.into())));
+        assert_eq!(snapshot.len(), 1);
+
+        let tuple = Tuple::from(vec![Object::true_obj()]);
+        assert!(Rc::ptr_eq(&tuple.list.0, &tuple.clone().list.0));
+        let text = MyString::from("shared");
+        assert!(Rc::ptr_eq(&text.val.0, &text.clone().val.0));
     }
 
     #[test]

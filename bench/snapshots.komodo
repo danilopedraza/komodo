@@ -1,0 +1,13 @@
+# Nested collection snapshots detach the changed path and preserve older values.
+let original := [[n for n in 0..1024], {label => "unchanged"}]
+var current := original
+var total := 0
+for n in 0..5000 do
+    let snapshot := current
+    current[0] := [n]
+    total := total + snapshot[0][0]
+
+assert(original[0][1000] = 1000)
+assert(original[1].label = "unchanged")
+assert(current[0] = [4999])
+assert(total = 12492501)

@@ -1,0 +1,10 @@
+# A closure shares the enclosing scope while loop-local mutation searches it.
+# The captured list makes unnecessary scope detachment expensive.
+let payload := [n for n in 0..2048]
+var total := 0
+let captured() := payload[2047]
+for n in 0..20000 do
+    total := total + 1
+
+assert(captured() = 2047)
+assert(total = 20000)

@@ -1,0 +1,15 @@
+[package]
+name = "komodo-bench-tools"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+komodo = { path = "../core" }
+
+[[bin]]
+name = "runtime-layout"
+path = "runtime-layout.rs"
+
+[[bin]]
+name = "memory"
+path = "memory.rs"

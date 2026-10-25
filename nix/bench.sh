@@ -14,6 +14,9 @@ for revision in "$previous" "$current"; do
   cp "$root/flake.nix" "$root/flake.lock" "$source_dir/"
   mkdir -p "$source_dir/nix"
   cp -r "$root/nix/." "$source_dir/nix/"
+  # The current flake also declares the separately packaged benchmark tools.
+  mkdir -p "$source_dir/bench"
+  cp "$root/bench/"{Cargo.toml,Cargo.lock,runtime-layout.rs,memory.rs} "$source_dir/bench/"
   binary=$(nix build "path:$source_dir#komodo" --no-link --print-out-paths)
   binaries+=("$binary/bin/komodo")
 done

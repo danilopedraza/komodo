@@ -7,6 +7,7 @@ pub mod exec;
 pub mod ir;
 mod lexer;
 mod matcher;
+mod names;
 pub mod object;
 mod parser;
 #[cfg(feature = "repl")]

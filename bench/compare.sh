@@ -7,6 +7,9 @@ if [[ $# != 2 ]]; then
     exit 1
 fi
 
+if [[ -n ${RESULTS_DIR:-} && $RESULTS_DIR != /* ]]; then
+    RESULTS_DIR="$PWD/$RESULTS_DIR"
+fi
 cd "$(dirname "$0")/.."
 export KOMODO_STD="$PWD/std"
 printf -v baseline '%q' "$1"
@@ -14,7 +17,7 @@ printf -v candidate '%q' "$2"
 if [[ -n ${RESULTS_DIR:-} ]]; then
     mkdir -p "$RESULTS_DIR"
 fi
-for workload in calls closures loops polyominoes; do
+for workload in calls closures loops polyominoes indexing snapshots literals blocks scope-mutation tail-calls capture-retention recursive-retention; do
     echo "$workload"
     export_args=()
     if [[ -n ${RESULTS_DIR:-} ]]; then

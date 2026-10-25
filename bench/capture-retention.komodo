@@ -1,0 +1,11 @@
+# Unused large values should not be retained by returned anonymous closures.
+let make(seed) :=
+    let unused := [n for n in 0..512]
+    x -> seed + x
+
+let functions := [make(n) for n in 0..1000]
+var total := 0
+for f in functions do
+    total := total + f(1)
+
+assert(total = 500500)

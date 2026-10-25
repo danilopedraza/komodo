@@ -1,0 +1,9 @@
+# Repeated BigInt and decimal literals are constructed during lowering.
+let literal() := (1234567890123456789012345678901234567890, 123456789.0123456789)
+var total := 0
+for n in 0..10000 do
+    let (integer, decimal) := literal()
+    assert(decimal > 123456789.0)
+    total := total + integer
+
+assert(total = 12345678901234567890123456789012345678900000)

@@ -90,31 +90,145 @@ fn function(param: &Pattern, result: &Block, env: &Environment) -> ExecResult<Ob
     ))))
 }
 
-/// Execute a compiler-produced block with a fresh operand stack.
+thread_local! {
+    // Bound retained capacity and nesting so one large evaluation cannot pin an
+    // unbounded allocation. Values are cleared on success and error alike.
+    static STACKS: RefCell<Vec<Vec<Object>>> = const { RefCell::new(Vec::new()) };
+}
+
+pub(crate) enum Outcome {
+    Value(Object),
+    TailCall {
+        function: Function,
+        argument: Object,
+        position: Position,
+        context: Rc<crate::env::ExecContext>,
+    },
+}
+
+/// Execute a compiler-produced block, reusing a vacant stack when available.
 pub fn exec(node: &Block, env: &mut Environment) -> ExecResult<Object> {
-    let mut stack = Vec::new();
-    for instruction in node.instructions() {
+    match exec_outcome(node, env, false)? {
+        Outcome::Value(value) => Ok(value),
+        Outcome::TailCall { .. } => unreachable!("ordinary execution cannot yield a tail call"),
+    }
+}
+
+pub(crate) fn exec_tail(node: &Block, env: &mut Environment) -> ExecResult<Outcome> {
+    exec_outcome(node, env, true)
+}
+
+fn exec_outcome(node: &Block, env: &mut Environment, tail: bool) -> ExecResult<Outcome> {
+    let mut stack = STACKS
+        .with(|pool| pool.borrow_mut().pop())
+        .unwrap_or_default();
+    stack.reserve(node.stack_capacity);
+    let result = exec_stack(node, env, &mut stack, tail);
+    stack.clear();
+    if stack.capacity() <= 4096 {
+        STACKS.with(|pool| {
+            let mut pool = pool.borrow_mut();
+            if pool.len() < 32 {
+                pool.push(stack);
+            }
+        });
+    }
+    result
+}
+
+fn exec_stack(
+    node: &Block,
+    env: &mut Environment,
+    stack: &mut Vec<Object>,
+    tail: bool,
+) -> ExecResult<Outcome> {
+    for (offset, instruction) in node.instructions().iter().enumerate() {
         let pos = instruction.position;
+        if tail && offset + 1 == node.instructions().len() {
+            match &instruction.op {
+                Op::Call { callee, .. } => {
+                    let argument = pop(stack);
+                    let function = pop(stack);
+                    return match function {
+                        Object::Function(function) => Ok(Outcome::TailCall {
+                            function,
+                            argument,
+                            position: pos,
+                            context: env.shared_context(),
+                        }),
+                        obj => Err(Error::with_position(
+                            ExecError::NonCallableObject(obj.kind()).into(),
+                            *callee,
+                            env.file_path(),
+                        )),
+                    };
+                }
+                Op::If { positive, negative } => {
+                    return exec_tail(
+                        if truthy(&pop(stack)) {
+                            positive
+                        } else {
+                            negative
+                        },
+                        env,
+                    );
+                }
+                Op::Case { expr, pairs } => {
+                    let value = exec(expr, env)?;
+                    for (pattern, body) in pairs {
+                        if let Some(Match(bindings)) = match_(pattern, &value) {
+                            env.push_bindings(ScopeKind::Block, bindings);
+                            let result = exec_tail(body, env);
+                            env.pop_scope();
+                            return result;
+                        }
+                    }
+                    return Err(Error::with_position(
+                        ExecError::UnmatchedExpression.into(),
+                        expr.position,
+                        env.file_path(),
+                    ));
+                }
+                _ => {}
+            }
+        }
         let res = match &instruction.op {
             Op::Drop => {
                 stack.pop().expect("IR stack underflow");
                 continue;
             }
-            Op::Constant(c) => Ok(eval_constant(c)),
+            Op::Constant(c) => Ok(c.clone()),
             Op::Load(name) => symbol(name, env, pos),
+            Op::LoadCapture { name, index } => match env.lookup_capture(*index, name) {
+                Some(value) => Ok(value.snapshot()),
+                None => symbol(name, env, pos),
+            },
+            Op::LoadLocal { name, slot } => match env.lookup_slot(0, *slot, name) {
+                Some(value) => Ok(value.clone()),
+                None => symbol(name, env, pos),
+            },
+            Op::IntegerInfix(op) => {
+                let rhs = pop(stack);
+                let lhs = pop(stack);
+                if let Some(result) = integer_infix(*op, &lhs, &rhs) {
+                    Ok(result)
+                } else {
+                    infix(*op, &lhs, &rhs, pos, env)
+                }
+            }
             Op::Infix(op) => {
-                let rhs = pop(&mut stack);
-                let lhs = pop(&mut stack);
+                let rhs = pop(stack);
+                let lhs = pop(stack);
                 infix(*op, &lhs, &rhs, pos, env)
             }
-            Op::Prefix(op) => prefix(*op, pop(&mut stack), pos, env),
-            Op::List(n) => Ok(Object::List(take(&mut stack, *n).into())),
-            Op::Tuple(n) => Ok(Object::Tuple(take(&mut stack, *n).into())),
-            Op::Set(n) => Ok(Object::Set(take(&mut stack, *n).into())),
+            Op::Prefix(op) => prefix(*op, pop(stack), pos, env),
+            Op::List(n) => Ok(Object::List(take(stack, *n).collect::<Vec<_>>().into())),
+            Op::Tuple(n) => Ok(Object::Tuple(take(stack, *n).collect::<Vec<_>>().into())),
+            Op::Set(n) => Ok(Object::Set(take(stack, *n).collect::<BTreeSet<_>>().into())),
             Op::Dictionary(n) => {
-                let values = take(&mut stack, n * 2);
+                let values = take(stack, n * 2);
                 let mut dict = Dictionary::default();
-                let mut values = values.into_iter();
+                let mut values = values;
                 while let Some(key) = values.next() {
                     dict.dict
                         .insert(key, values.next().expect("missing dictionary value"));
@@ -122,13 +236,13 @@ pub fn exec(node: &Block, env: &mut Environment) -> ExecResult<Object> {
                 Ok(Object::Dictionary(dict))
             }
             Op::Fraction(denom_pos) => {
-                let denom = pop(&mut stack);
-                let numer = pop(&mut stack);
+                let denom = pop(stack);
+                let numer = pop(stack);
                 fraction(numer, denom, *denom_pos, pos, env)
             }
             Op::Index { container, index } => {
-                let key = pop(&mut stack);
-                let obj = pop(&mut stack);
+                let key = pop(stack);
+                let obj = pop(stack);
                 match obj {
                     Object::List(list) => list
                         .get(&key)
@@ -144,17 +258,17 @@ pub fn exec(node: &Block, env: &mut Environment) -> ExecResult<Object> {
                 }
             }
             Op::Cons(tail_pos) => {
-                let tail = pop(&mut stack);
-                let first = pop(&mut stack);
+                let tail = pop(stack);
+                let first = pop(stack);
                 cons(first, tail, *tail_pos, env)
             }
             Op::SetCons(tail_pos) => {
-                let tail = pop(&mut stack);
-                let first = pop(&mut stack);
+                let tail = pop(stack);
+                let first = pop(stack);
                 set_cons(first, tail, *tail_pos, env)
             }
             Op::Function { param, body } => function(param, body, env),
-            Op::If { positive, negative } => if_(pop(&mut stack), positive, negative, env),
+            Op::If { positive, negative } => if_(pop(stack), positive, negative, env),
             Op::Case { expr, pairs } => case(expr, pairs, env),
             Op::For {
                 pattern,
@@ -171,10 +285,12 @@ pub fn exec(node: &Block, env: &mut Environment) -> ExecResult<Object> {
                 pattern,
                 mutable,
                 value_position,
+                discard,
             } => let_pattern(
                 pattern,
-                pop(&mut stack),
+                pop(stack),
                 *value_position,
+                *discard,
                 if *mutable {
                     ValueKind::Mutable
                 } else {
@@ -202,21 +318,22 @@ pub fn exec(node: &Block, env: &mut Environment) -> ExecResult<Object> {
             Op::Assign {
                 left,
                 value_position,
+                discard,
             } => {
                 let index = if matches!(left, AssignableSymbol::IndexableValue { .. }) {
-                    Some(pop(&mut stack))
+                    Some(pop(stack))
                 } else {
                     None
                 };
-                assignment(left, pop(&mut stack), index, *value_position, env)
+                assignment(left, pop(stack), index, *value_position, *discard, env)
             }
             Op::Import { source, values } => import_from(source, values, env),
             Op::Call { name, callee } => {
-                let arg = pop(&mut stack);
-                let func = pop(&mut stack);
+                let arg = pop(stack);
+                let func = pop(stack);
                 call(func, arg, name.as_deref(), *callee, pos, env)
             }
-            Op::Attribute { name, position } => object_attr(pop(&mut stack), name, *position, env),
+            Op::Attribute { name, position } => object_attr(pop(stack), name, *position, env),
             Op::MethodCall {
                 receiver,
                 method,
@@ -239,11 +356,11 @@ pub fn exec(node: &Block, env: &mut Environment) -> ExecResult<Object> {
                 } else {
                     let func = exec(method, env)?;
                     let arg = exec(argument, env)?;
-                    let mut values = vec![receiver_obj];
-                    match arg {
-                        Object::Tuple(tuple) => values.extend(tuple.list),
-                        obj => values.push(obj),
-                    }
+                    let mut values = match arg {
+                        Object::Tuple(tuple) => tuple.list.into_owned(),
+                        obj => vec![obj],
+                    };
+                    values.insert(0, receiver_obj);
                     let arg = if values.len() == 1 {
                         values.pop().unwrap()
                     } else {
@@ -257,16 +374,21 @@ pub fn exec(node: &Block, env: &mut Environment) -> ExecResult<Object> {
         if let Object::Error(err) = res {
             return Err(Error::with_position(err.into(), pos, env.file_path()));
         }
-        stack.push(res);
+        if !matches!(
+            &instruction.op,
+            Op::Bind { discard: true, .. } | Op::Assign { discard: true, .. }
+        ) {
+            stack.push(res);
+        }
     }
     debug_assert_eq!(stack.len(), 1, "invalid IR block stack effect");
-    Ok(pop(&mut stack))
+    Ok(Outcome::Value(pop(stack)))
 }
 fn pop(stack: &mut Vec<Object>) -> Object {
     stack.pop().expect("IR stack underflow")
 }
-fn take(stack: &mut Vec<Object>, count: usize) -> Vec<Object> {
-    stack.split_off(stack.len().checked_sub(count).expect("IR stack underflow"))
+fn take(stack: &mut Vec<Object>, count: usize) -> std::vec::Drain<'_, Object> {
+    stack.drain(stack.len().checked_sub(count).expect("IR stack underflow")..)
 }
 
 pub fn eval_constant(constant: &Constant) -> Object {
@@ -313,9 +435,20 @@ fn assignment(
     evaluated_value: Object,
     index: Option<Object>,
     value_position: Position,
+    discard: bool,
     env: &mut Environment,
 ) -> ExecResult<Object> {
     match left {
+        AssignableSymbol::Pattern(Pattern::Symbol { name }) => {
+            let target = get_mutable_value(name, env, value_position)?;
+            if discard {
+                *target = evaluated_value;
+                Ok(Object::false_obj())
+            } else {
+                *target = evaluated_value.clone();
+                Ok(evaluated_value)
+            }
+        }
         AssignableSymbol::Pattern(pattern) => {
             make_assignment(
                 destructure(pattern, value_position, &evaluated_value, env)?,
@@ -329,7 +462,7 @@ fn assignment(
 
             let element_ref = match object {
                 Object::Dictionary(dict) => {
-                    match dict.get_mut(&Object::String(value.as_str().into())) {
+                    match dict.get_mut(&Object::String(value.as_ref().into())) {
                         Ok(obj) => Ok(obj),
                         Err(eval_err) => Err(Error::with_position(
                             eval_err.into(),
@@ -346,7 +479,11 @@ fn assignment(
             }?;
 
             *element_ref = evaluated_value;
-            Ok(element_ref.to_owned())
+            Ok(if discard {
+                Object::false_obj()
+            } else {
+                element_ref.to_owned()
+            })
         }
         AssignableSymbol::IndexableValue { container } => {
             let index = index.expect("indexed assignment requires an index operand");
@@ -408,7 +545,7 @@ fn get_mutable_value<'a>(
     env: &'a mut Environment,
     position: Position,
 ) -> Result<&'a mut Object, Error> {
-    let path = env.file_path();
+    let context = env.shared_context();
     match env.get(name) {
         EnvResponse::Mutable(obj_ref) => Ok(obj_ref),
         EnvResponse::MutableOriginally(_) => Err(Error::with_position(
@@ -417,17 +554,17 @@ fn get_mutable_value<'a>(
             }
             .into(),
             position,
-            path,
+            context.executed_file_path.clone(),
         )),
         EnvResponse::Inmutable(_) => Err(Error::with_position(
             ExecError::InmutableAssign(name.into()).into(),
             position,
-            path,
+            context.executed_file_path.clone(),
         )),
         EnvResponse::NotFound => Err(Error::with_position(
             ExecError::UnknownValue(name.into()).into(),
             position,
-            path,
+            context.executed_file_path.clone(),
         )),
     }
 }
@@ -543,9 +680,19 @@ fn let_pattern(
     left: &Pattern,
     value: Object,
     value_position: Position,
+    discard: bool,
     kind: ValueKind,
     env: &mut Environment,
 ) -> ExecResult<Object> {
+    if discard {
+        if let Pattern::Symbol { name } = left {
+            match kind {
+                ValueKind::Mutable => env.set_mutable(name, value),
+                ValueKind::Inmutable => env.set_inmutable(name, value),
+            }
+            return Ok(Object::false_obj());
+        }
+    }
     match match_(left, &value) {
         Some(Match(map)) => {
             for (name, val) in map {
@@ -582,7 +729,7 @@ fn integer(str: &str, radix: Radix) -> Object {
 
 fn symbol(str: &str, env: &mut Environment, position: Position) -> ExecResult<Object> {
     match env.lookup(str) {
-        Some(obj) => Ok(obj.to_owned()),
+        Some(obj) => Ok(obj.snapshot()),
         None => Err(Error::with_position(
             ExecError::UnknownValue(str.to_owned()).into(),
             position,
@@ -646,7 +793,7 @@ fn let_function(
             env.set_mutable(
                 name,
                 Object::Function(Function::Pattern(PatternFunction::new(Rc::new(
-                    RefCell::new(env.clone()),
+                    RefCell::new(env.snapshot()),
                 )))),
             );
 
@@ -660,10 +807,10 @@ fn let_function(
     };
 
     function.add_pattern(param, value, kind);
-    function
-        .env
-        .borrow_mut()
-        .set_mutable(name, Object::Function(Function::Pattern(function.clone())));
+    function.env.upgrade().borrow_mut().set_mutable(
+        name,
+        Object::Function(Function::Pattern(function.recursive_clone())),
+    );
 
     Ok(Object::Function(Function::Pattern(function.clone())))
 }
@@ -794,6 +941,24 @@ fn object_attr(
     }
 }
 
+pub(crate) fn integer_infix(op: InfixOperator, lhs: &Object, rhs: &Object) -> Option<Object> {
+    let (Object::Integer(lhs), Object::Integer(rhs)) = (lhs, rhs) else {
+        return None;
+    };
+    Some(match op {
+        InfixOperator::Sum => Object::Integer(lhs + rhs),
+        InfixOperator::Substraction => Object::Integer(lhs - rhs),
+        InfixOperator::Product => Object::Integer(lhs * rhs),
+        InfixOperator::Equality => Object::Boolean((lhs == rhs).into()),
+        InfixOperator::NotEquality => Object::Boolean((lhs != rhs).into()),
+        InfixOperator::Less => Object::Boolean((lhs < rhs).into()),
+        InfixOperator::LessEqual => Object::Boolean((lhs <= rhs).into()),
+        InfixOperator::Greater => Object::Boolean((lhs > rhs).into()),
+        InfixOperator::GreaterEqual => Object::Boolean((lhs >= rhs).into()),
+        _ => return None,
+    })
+}
+
 fn infix(
     op: InfixOperator,
     lhs: &Object,
@@ -801,9 +966,6 @@ fn infix(
     infix_pos: Position,
     env: &mut Environment,
 ) -> ExecResult<Object> {
-    let lhs_kind = lhs.kind();
-    let rhs_kind = rhs.kind();
-
     let res = match op {
         InfixOperator::BitwiseAnd => lhs.bitwise_and(rhs),
         InfixOperator::BitwiseXor => lhs.bitwise_xor(rhs),
@@ -841,8 +1003,8 @@ fn infix(
         None => Err(Error::WithPosition(
             ExecError::NonExistentInfixOperation {
                 op: op.ident(),
-                lhs: lhs_kind,
-                rhs: rhs_kind,
+                lhs: lhs.kind(),
+                rhs: rhs.kind(),
             }
             .into(),
             infix_pos,

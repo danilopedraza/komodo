@@ -290,10 +290,10 @@ mod tests {
 
         let args = [
             Object::List(List {
-                list: vec![Object::Integer(Integer::from(1))],
+                list: vec![Object::Integer(Integer::from(1))].into(),
             }),
             Object::List(List {
-                list: vec![Object::Integer(Integer::from(2))],
+                list: vec![Object::Integer(Integer::from(2))].into(),
             }),
         ];
 
