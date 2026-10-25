@@ -1,0 +1,8 @@
+# Closure creation, captured bindings, and anonymous calls inside a loop.
+let makeAdder(n) := x -> x + n
+var total := 0
+for n in 0..20000 do
+    let add := makeAdder(n)
+    total := total + add(1)
+
+assert(total = 200010000)

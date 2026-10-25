@@ -136,6 +136,7 @@
             '';
             benchmark-script = pkgs.runCommand "benchmark-script" { nativeBuildInputs = [ pkgs.shellcheck ]; } ''
               shellcheck -s bash ${./nix/bench.sh}
+              shellcheck -s bash ${./bench/compare.sh}
               touch $out
             '';
             extension-publisher = pkgs.runCommand "extension-publisher-check" { } ''
@@ -195,7 +196,7 @@
               meta.description = "Compare interpreter benchmarks against a previous commit";
               program = "${pkgs.writeShellApplication {
                 name = "komodo-bench";
-                runtimeInputs = [ pkgs.nix pkgs.git pkgs.hyperfine bencher.packages.${system}.bencher pkgs.coreutils pkgs.gnutar ];
+                runtimeInputs = [ pkgs.nix pkgs.git pkgs.bash pkgs.hyperfine pkgs.jq bencher.packages.${system}.bencher pkgs.coreutils pkgs.gnutar ];
                 text = builtins.readFile ./nix/bench.sh;
               }}/bin/komodo-bench";
             };

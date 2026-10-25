@@ -1005,8 +1005,8 @@ pub enum FunctionPatternKind {
 #[derive(Clone, Debug)]
 pub struct PatternFunction {
     pub env: Rc<RefCell<Environment>>,
-    patterns: Vec<(FunctionPatternKind, Pattern, Block)>,
-    cache: BTreeMap<Object, Object>,
+    patterns: Rc<Vec<(FunctionPatternKind, Pattern, Block)>>,
+    cache: Rc<BTreeMap<Object, Object>>,
 }
 
 // Captured environments are shared and can change when recursive clauses are
@@ -1048,19 +1048,20 @@ impl PatternFunction {
     pub fn new(env: Rc<RefCell<Environment>>) -> Self {
         Self {
             env,
-            patterns: Vec::default(),
-            cache: BTreeMap::default(),
+            patterns: Rc::default(),
+            cache: Rc::default(),
         }
     }
     pub fn add_pattern(&mut self, param: &Pattern, value: &Block, kind: FunctionPatternKind) {
-        for i in 0..self.patterns.len() {
-            let (_, other_args, _) = &self.patterns[i];
+        let patterns = Rc::make_mut(&mut self.patterns);
+        for pattern in patterns.iter_mut() {
+            let (_, other_args, _) = pattern;
             if param == other_args {
-                self.patterns[i] = (kind, param.to_owned(), value.to_owned());
+                *pattern = (kind, param.to_owned(), value.to_owned());
             }
         }
 
-        self.patterns.push((kind, param.clone(), value.clone()));
+        patterns.push((kind, param.clone(), value.clone()));
     }
 
     fn exec_call(
@@ -1085,7 +1086,7 @@ impl PatternFunction {
         if let Some(cached) = self.cache.get(arg) {
             Ok(cached.to_owned())
         } else {
-            for (kind, patterns, val) in &self.patterns {
+            for (kind, patterns, val) in self.patterns.iter() {
                 if let Some(Match(v)) = match_(patterns, arg) {
                     match kind {
                         FunctionPatternKind::NotMemoized => {
@@ -1093,7 +1094,7 @@ impl PatternFunction {
                         }
                         FunctionPatternKind::Memoized => {
                             let res = Self::exec_call(v, val, &mut self.env.borrow().to_owned())?;
-                            self.cache.insert(arg.to_owned(), res.clone());
+                            Rc::make_mut(&mut self.cache).insert(arg.to_owned(), res.clone());
                             return Ok(res);
                         }
                     }

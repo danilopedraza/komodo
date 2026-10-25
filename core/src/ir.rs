@@ -29,11 +29,13 @@ use crate::{
 use std::{
     cmp::Ordering,
     hash::{Hash, Hasher},
+    rc::Rc,
 };
 
 #[derive(Clone, Debug)]
 pub struct Block {
-    pub(crate) code: Vec<Instruction>,
+    // Executable code is immutable and shared by closure and environment copies.
+    pub(crate) code: Rc<[Instruction]>,
     pub(crate) position: Position,
     pub(crate) typ: Type,
 }
@@ -190,7 +192,7 @@ pub fn lower(node: &typed_ast::ASTNode) -> Block {
     let mut code = Vec::new();
     emit(node, &mut code);
     Block {
-        code,
+        code: code.into(),
         position: node.position,
         typ: node.typ.clone(),
     }

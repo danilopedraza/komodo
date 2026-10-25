@@ -174,6 +174,45 @@ mod tests {
     use super::*;
 
     #[test]
+    fn closures_preserve_captured_values_and_function_clauses() {
+        let mut env = standard_env(ExecContext::default());
+        run(
+            unindent::unindent(
+                r#"
+                var value := [1]
+                let read := x -> value[0]
+                value[0] := 2
+                assert(read(()) = 1)
+
+                let makeAdder(n) := x -> x + n
+                let first := makeAdder(10)
+                let second := makeAdder(20)
+                assert(first(1) = 11)
+                assert(second(1) = 21)
+                assert(first(2) = 12)
+
+                let choose(0) := 1
+                let previous := choose
+                let choose(0) := 2
+                assert(previous(0) = 1)
+                assert(choose(0) = 2)
+
+                let memoize twice(x) := 2 * x
+                let saved := twice
+                assert(twice(1) = 2)
+                assert(twice(2) = 4)
+                assert(!(saved = twice))
+                assert(saved(3) = 6)
+                assert(twice(1) = 2)
+            "#,
+            )
+            .as_str(),
+            &mut env,
+        )
+        .unwrap();
+    }
+
+    #[test]
     fn import_relative_path() {
         assert_eq!(
             ModuleAddress::LocalPath {

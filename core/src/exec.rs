@@ -93,7 +93,7 @@ fn function(param: &Pattern, result: &Block, env: &Environment) -> ExecResult<Ob
 /// Execute a compiler-produced block with a fresh operand stack.
 pub fn exec(node: &Block, env: &mut Environment) -> ExecResult<Object> {
     let mut stack = Vec::new();
-    for instruction in &node.code {
+    for instruction in node.instructions() {
         let pos = instruction.position;
         let res = match &instruction.op {
             Op::Drop => {
@@ -114,8 +114,10 @@ pub fn exec(node: &Block, env: &mut Environment) -> ExecResult<Object> {
             Op::Dictionary(n) => {
                 let values = take(&mut stack, n * 2);
                 let mut dict = Dictionary::default();
-                for pair in values.as_chunks::<2>().0 {
-                    dict.dict.insert(pair[0].clone(), pair[1].clone());
+                let mut values = values.into_iter();
+                while let Some(key) = values.next() {
+                    dict.dict
+                        .insert(key, values.next().expect("missing dictionary value"));
                 }
                 Ok(Object::Dictionary(dict))
             }
@@ -579,10 +581,9 @@ fn integer(str: &str, radix: Radix) -> Object {
 }
 
 fn symbol(str: &str, env: &mut Environment, position: Position) -> ExecResult<Object> {
-    match env.get(str) {
-        EnvResponse::Inmutable(obj) | EnvResponse::MutableOriginally(obj) => Ok(obj.to_owned()),
-        EnvResponse::Mutable(obj) => Ok(obj.to_owned()),
-        EnvResponse::NotFound => Err(Error::with_position(
+    match env.lookup(str) {
+        Some(obj) => Ok(obj.to_owned()),
+        None => Err(Error::with_position(
             ExecError::UnknownValue(str.to_owned()).into(),
             position,
             env.file_path(),
@@ -687,7 +688,7 @@ fn for_(
 
     for val in iter {
         for (name, val) in destructure(pattern, iterable.position, &val, env)? {
-            env.set_inmutable(&name, val.clone());
+            env.set_inmutable(&name, val);
         }
 
         exec(proc, env)?;
@@ -726,7 +727,7 @@ fn call(
         Object::Function(mut f) => {
             let res = f.call(&argument, env, call_pos);
             if let Some(name) = func_name {
-                env.set_mutable(name, Object::Function(f.clone()));
+                env.set_mutable(name, Object::Function(f));
             }
             res
         }

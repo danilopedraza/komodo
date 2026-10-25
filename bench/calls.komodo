@@ -1,0 +1,6 @@
+# Recursive dispatch and repeated calls with a captured standard environment.
+let fib(0) := 0
+let fib(1) := 1
+let fib(n) := fib(n - 1) + fib(n - 2)
+
+assert(fib(24) = 46368)

@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, path::PathBuf};
+use std::{collections::BTreeMap, path::PathBuf, rc::Rc};
 
 use crate::object::Object;
 
@@ -34,20 +34,21 @@ pub enum ScopeKind {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 struct Scope {
-    dict: BTreeMap<String, (ValueKind, Object)>,
+    // Captures share their bindings until a scope is changed.
+    dict: Rc<BTreeMap<String, (ValueKind, Object)>>,
     kind: ScopeKind,
 }
 
 impl Scope {
     fn new(kind: ScopeKind) -> Self {
         Self {
-            dict: BTreeMap::default(),
+            dict: Rc::default(),
             kind,
         }
     }
 
     fn get(&mut self, name: &str) -> ScopeResponse<'_> {
-        match self.dict.get_mut(name) {
+        match Rc::make_mut(&mut self.dict).get_mut(name) {
             Some((ValueKind::Inmutable, value)) => ScopeResponse::Inmutable(value),
             Some((ValueKind::Mutable, value)) => ScopeResponse::Mutable(value),
             None => ScopeResponse::NotFound,
@@ -55,13 +56,11 @@ impl Scope {
     }
 
     fn set_mutable(&mut self, name: &str, obj: Object) {
-        self.dict
-            .insert(name.to_string(), (ValueKind::Mutable, obj));
+        Rc::make_mut(&mut self.dict).insert(name.to_string(), (ValueKind::Mutable, obj));
     }
 
     fn set_inmutable(&mut self, name: &str, obj: Object) {
-        self.dict
-            .insert(name.to_string(), (ValueKind::Inmutable, obj));
+        Rc::make_mut(&mut self.dict).insert(name.to_string(), (ValueKind::Inmutable, obj));
     }
 }
 
@@ -101,6 +100,15 @@ impl Environment {
 
     pub fn file_path(&self) -> PathBuf {
         self.ctx.executed_file_path.to_path_buf()
+    }
+
+    /// Read a value without copying a shared captured scope to obtain a mutable reference.
+    pub fn lookup(&self, name: &str) -> Option<&Object> {
+        self.scopes
+            .iter()
+            .rev()
+            .chain([&self.base])
+            .find_map(|scope| scope.dict.get(name).map(|(_, value)| value))
     }
 
     pub fn get(&mut self, name: &str) -> EnvResponse<'_> {
@@ -174,4 +182,41 @@ pub fn env_with(assets: Vec<(&str, Object)>, ctx: ExecContext) -> Environment {
     }
 
     env
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn captures_keep_bindings_and_mutable_collections_isolated() {
+        let mut original = Environment::default();
+        original.set_mutable(
+            "items",
+            Object::List(vec![Object::Integer(1.into())].into()),
+        );
+        original.push_scope(ScopeKind::Block);
+        original.set_inmutable("local", Object::Integer(2.into()));
+        let mut captured = original.clone();
+
+        original.set_inmutable("local", Object::Integer(4.into()));
+        assert_eq!(captured.lookup("local"), Some(&Object::Integer(2.into())));
+        assert!(matches!(
+            captured.get("items"),
+            EnvResponse::MutableOriginally(_)
+        ));
+        captured.pop_scope();
+
+        // Mutable references to nested objects must detach the captured scope.
+        let EnvResponse::Mutable(Object::List(items)) = captured.get("items") else {
+            panic!("expected mutable list");
+        };
+        items.list[0] = Object::Integer(3.into());
+        assert_eq!(
+            original.lookup("items"),
+            Some(&Object::List(vec![Object::Integer(1.into())].into()))
+        );
+        captured.set_inmutable("added", Object::true_obj());
+        assert_eq!(original.lookup("added"), None);
+    }
 }
