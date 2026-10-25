@@ -143,44 +143,60 @@ implementation above, rather than elimination of every fallback path.
 
 ## Collections, numbers, and standard library
 
-- [ ] **32. Move owned elements instead of cloning them.** List prepend and
+Implementation coverage (2026-10-25): items 32–42 move owned prepend elements,
+reuse set storage, reserve collection/string outputs, repeat directly into output,
+and store canonical inline `i64` integers with arbitrary-precision promotion.
+Ranges benefit from inline increments and expose bounded size estimates; loops
+use an iterator enum. Fraction rounding consumes the rounded rational without
+cloning its numerator. Native collection helpers make reductions and filtering
+iterative, and prefix checks borrow UTF-8 strings. `fold` still extracts its first
+item once before iterative reduction. `some`/`every` now stop traversal and callback
+execution as soon as the result is known (an intentional semantic change).
+`indexOf` iterates directly and retains the last matching index.
+
+Item 43 is evaluated rather than a storage replacement: ordered trees remain.
+The reproducible comparison and limitations are in
+[collection storage evaluation](bench/collection-storage.md). Checked entries below
+refer to this scope; BigInt-backed bit operations and other generic fallbacks remain.
+
+- [x] **32. Move owned elements instead of cloning them.** List prepend and
   list-to-set prepend clone elements despite owning the source. Set prepend also
   rebuilds owned storage. See [set prepend](core/src/exec.rs#L448) and
   [list prepend](core/src/exec.rs#L497).
-- [ ] **33. Reserve known output sizes.** List repetition, prepend, string
+- [x] **33. Reserve known output sizes.** List repetition, prepend, string
   concatenation, and comprehensions have exact or useful estimated sizes. See
   [list repetition](core/src/object/mod.rs#L1214) and [comprehensions](core/src/exec.rs#L598).
-- [ ] **34. Avoid temporary vectors during repetition.** Clone elements directly
+- [x] **34. Avoid temporary vectors during repetition.** Clone elements directly
   into reserved output instead of cloning a source vector for each repetition.
   See [list repetition](core/src/object/mod.rs#L1214).
-- [ ] **35. High: use a small-integer representation.** All integers use `BigInt`,
+- [x] **35. High: use a small-integer representation.** All integers use `BigInt`,
   including indexes and counters. Investigate inline machine integers with overflow
   promotion. This is a larger representation change. See
   [Integer](core/src/object/integer.rs#L13).
-- [ ] **36. Reduce range iteration overhead.** Each step clones an arbitrary-
+- [x] **36. Reduce range iteration overhead.** Each step clones an arbitrary-
   precision integer and constructs an integer for incrementing. Investigate a
   machine-integer fast path. See [Range iteration](core/src/object/mod.rs#L1359).
-- [ ] **37. Avoid boxed iterator dispatch.** An enum for supported iterator kinds
+- [x] **37. Avoid boxed iterator dispatch.** An enum for supported iterator kinds
   could remove allocation and per-element virtual dispatch from loops and
   comprehensions. See [iterable construction](core/src/exec.rs#L702).
-- [ ] **38. Reduce rational-number copies.** Rounding clones rationals before
+- [x] **38. Reduce rational-number copies.** Rounding clones rationals before
   extracting integer results. Investigate borrowed arithmetic and owned-operation
   paths where appropriate. See [fraction rounding](core/src/object/fraction.rs#L47).
-- [ ] **39. High: make collection reductions iterative.** List/set `reduce`, and
+- [x] **39. High: make collection reductions iterative.** List/set `reduce`, and
   consequently `sum`, `prod`, and `fold`, repeatedly copy tails and recurse. Avoid
   quadratic copying and stack growth. See [reductions](std/utils.komodo#L4).
-- [ ] **40. Avoid repeated tails in filtering and prefix checking.** Recursive
+- [x] **40. Avoid repeated tails in filtering and prefix checking.** Recursive
   filters copy tails and reconstruct results; `isPrefix` repeatedly copies string
   suffixes. Investigate iteration or shared views. See [filters](std/utils.komodo#L15)
   and [prefix checking](std/utils.komodo#L44).
-- [ ] **41. Permit early exit for `some` and `every`.** Both use `reduce` and
+- [x] **41. Permit early exit for `some` and `every`.** Both use `reduce` and
   continue traversal and predicate evaluation after the result is established.
   Changing this affects callback side effects and requires a semantic decision.
   See [quantifiers](std/utils.komodo#L49).
-- [ ] **42. Optimize `indexOf` traversal.** Indexed accesses can clone `values`.
+- [x] **42. Optimize `indexOf` traversal.** Indexed accesses can clone `values`.
   Use direct iteration while preserving the current last-matching-index behavior;
   stopping at the first match would change behavior. See [indexOf](std/utils.komodo#L54).
-- [ ] **43. Evaluate collection data structures selectively.** Tree sets and maps
+- [x] **43. Evaluate collection data structures selectively.** Tree sets and maps
   allocate nodes and perform structural comparisons. Specialized representations
   may help particular key types, but preserve ordering and display behavior. See
   [Set representation](core/src/object/mod.rs#L542).

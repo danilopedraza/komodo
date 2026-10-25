@@ -594,20 +594,14 @@ fn set_cons(
             res.insert(some);
 
             for obj in lst.list {
-                res.insert(obj.to_owned());
+                res.insert(obj);
             }
 
             Ok(Object::Set(res.into()))
         }
-        Object::Set(set) => {
-            let mut res = BTreeSet::new();
-            res.insert(some);
-
-            for obj in set.iter() {
-                res.insert(obj.to_owned());
-            }
-
-            Ok(Object::Set(res.into()))
+        Object::Set(mut set) => {
+            set.insert(some);
+            Ok(Object::Set(set))
         }
         obj => Err(Error::WithPosition(
             ExecError::NonPrependableObject(obj.kind()).into(),
@@ -639,19 +633,21 @@ fn cons(
 ) -> ExecResult<Object> {
     match most {
         Object::List(lst) => {
-            let mut res = vec![first];
+            let mut res = Vec::with_capacity(lst.len() + 1);
+            res.push(first);
 
             for obj in lst.list {
-                res.push(obj.to_owned());
+                res.push(obj);
             }
 
             Ok(Object::List(res.into()))
         }
         Object::Set(set) => {
-            let mut res = vec![first];
+            let mut res = Vec::with_capacity(set.len() + 1);
+            res.push(first);
 
-            for obj in set.iter() {
-                res.push(obj.to_owned());
+            for obj in set.into_iter() {
+                res.push(obj);
             }
 
             Ok(Object::List(res.into()))
@@ -753,7 +749,7 @@ fn comprehension(
 
     match kind {
         ComprehensionKind::List => {
-            let mut new_list = vec![];
+            let mut new_list = Vec::with_capacity(iterator.size_hint().0);
             env.push_scope(ScopeKind::Block);
 
             for val in iterator {
@@ -846,19 +842,48 @@ fn for_(
     Ok(Object::empty_tuple())
 }
 
-fn get_iterable(
-    node: &Block,
-    env: &mut Environment,
-) -> Result<Box<dyn Iterator<Item = Object>>, Error> {
-    match exec(node, env)? {
-        Object::Set(set) => Ok(Box::new(set.into_iter())),
-        Object::List(list) => Ok(Box::new(list.list.into_iter())),
-        Object::Range(range) => Ok(Box::new(range.into_iter())),
-        obj => Err(Error::WithPosition(
-            ExecError::NonIterableObject(obj.kind()).into(),
+pub(crate) enum ObjectIterator {
+    List(std::vec::IntoIter<Object>),
+    Set(std::collections::btree_set::IntoIter<Object>),
+    Range(Range),
+}
+impl ObjectIterator {
+    pub(crate) fn new(value: Object) -> Option<Self> {
+        match value {
+            Object::List(list) => Some(Self::List(list.list.into_iter())),
+            Object::Set(set) => Some(Self::Set(set.into_iter())),
+            Object::Range(range) => Some(Self::Range(range)),
+            _ => None,
+        }
+    }
+}
+impl Iterator for ObjectIterator {
+    type Item = Object;
+    fn next(&mut self) -> Option<Object> {
+        match self {
+            Self::List(iter) => iter.next(),
+            Self::Set(iter) => iter.next(),
+            Self::Range(iter) => iter.next(),
+        }
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self {
+            Self::List(iter) => iter.size_hint(),
+            Self::Set(iter) => iter.size_hint(),
+            Self::Range(iter) => iter.size_hint(),
+        }
+    }
+}
+fn get_iterable(node: &Block, env: &mut Environment) -> Result<ObjectIterator, Error> {
+    let value = exec(node, env)?;
+    if matches!(value, Object::List(_) | Object::Set(_) | Object::Range(_)) {
+        Ok(ObjectIterator::new(value).unwrap())
+    } else {
+        Err(Error::WithPosition(
+            ExecError::NonIterableObject(value.kind()).into(),
             node.position,
             env.file_path(),
-        )),
+        ))
     }
 }
 
@@ -959,7 +984,7 @@ pub(crate) fn integer_infix(op: InfixOperator, lhs: &Object, rhs: &Object) -> Op
     })
 }
 
-fn infix(
+pub(crate) fn infix(
     op: InfixOperator,
     lhs: &Object,
     rhs: &Object,

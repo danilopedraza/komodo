@@ -253,7 +253,7 @@ impl InfixOperable for Float {
         match other {
             Object::Integer(int) => Some(Object::Float(
                 (&self.val)
-                    .pow(i32::try_from(<&BigInt>::from(int)).unwrap())
+                    .pow(i32::try_from(BigInt::from(int)).unwrap())
                     .into(),
             )),
             _ => None,

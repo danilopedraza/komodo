@@ -129,6 +129,7 @@ fn get_module_env(module: &ModuleAddress, env: &Environment) -> Result<Environme
     match module {
         ModuleAddress::LocalPath { path } => module_env(path, env),
         ModuleAddress::StandardLibrary { name } => match name.as_str() {
+            "collections" => Ok(crate::std::collections::environment(env.ctx())),
             "json" => Ok(komodo_json(env.ctx())),
             "math" => Ok(komodo_math(env.ctx())),
             "time" => Ok(komodo_time(env.ctx())),

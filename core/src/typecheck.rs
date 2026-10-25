@@ -612,6 +612,27 @@ fn infer_import_from(
                 }
                 Ok(Type::empty_tuple())
             }
+            "collections" => {
+                for (name, position) in values {
+                    if !crate::std::collections::NAMES.contains(&name.as_str()) {
+                        return Err((
+                            TypeError::UnknownSymbolInStd {
+                                symbol: name.clone(),
+                                module: "collections".into(),
+                            },
+                            *position,
+                        ));
+                    }
+                    env.set_type(
+                        name,
+                        Type::Function {
+                            input: Box::new(Type::Unknown),
+                            output: Box::new(Type::Unknown),
+                        },
+                    );
+                }
+                Ok(Type::empty_tuple())
+            }
             "time" => {
                 for (name, position) in values {
                     let type_hint = match name.as_str() {

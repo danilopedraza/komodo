@@ -210,7 +210,7 @@ impl Object {
     }
 
     pub fn from_fn(func: fn(&Object) -> Object, name: String) -> Self {
-        Self::Function(Function::Extern(ExternFunction { func, name }))
+        Self::Function(Function::Extern(ExternFunction::new(func, name)))
     }
 
     pub fn to_float(&self) -> Result<Float, ObjectError> {
@@ -543,14 +543,14 @@ impl InfixOperable for Char {
     fn sum(&self, other: &Object) -> Option<Object> {
         match other {
             Object::String(MyString { val: str }) => {
-                let mut val = String::new();
+                let mut val = String::with_capacity(self.val.len_utf8() + str.len());
                 val.push(self.val);
                 val.push_str(str);
 
                 Some(Object::String(MyString { val: val.into() }))
             }
             Object::Char(Char { val: other_chr }) => {
-                let mut val = String::new();
+                let mut val = String::with_capacity(self.val.len_utf8() + other_chr.len_utf8());
                 val.push(self.val);
                 val.push(*other_chr);
 
@@ -644,6 +644,10 @@ impl Set {
     #[allow(clippy::should_implement_trait)]
     pub fn into_iter(self) -> IntoIter<Object> {
         self.set.into_iter()
+    }
+
+    pub fn insert(&mut self, val: Object) {
+        self.set.insert(val);
     }
 
     pub fn remove(&mut self, val: &Object) -> bool {
@@ -859,6 +863,14 @@ impl From<MyString> for String {
 }
 
 impl MyString {
+    pub(crate) fn has_prefix(&self, prefix: &Object) -> bool {
+        match prefix {
+            Object::String(prefix) => self.val.starts_with(prefix.val.as_str()),
+            Object::Char(prefix) => self.val.starts_with(prefix.val),
+            _ => false,
+        }
+    }
+
     fn multiply(&self, num: &Integer) -> Object {
         let times = num.to_machine_magnitude();
         let val = self.val.repeat(times);
@@ -877,16 +889,17 @@ impl InfixOperable for MyString {
     fn sum(&self, other: &Object) -> Option<Object> {
         match other {
             Object::String(MyString { val: other_string }) => {
-                let mut val = String::new();
+                let mut val = String::with_capacity(self.val.len() + other_string.len());
                 val.push_str(&self.val);
                 val.push_str(other_string);
                 Some(Object::String(MyString { val: val.into() }))
             }
             Object::Char(Char { val: chr }) => {
-                let mut val = self.val.clone();
+                let mut val = String::with_capacity(self.val.len() + chr.len_utf8());
+                val.push_str(&self.val);
                 val.push(*chr);
 
-                Some(Object::String(MyString { val }))
+                Some(Object::String(MyString { val: val.into() }))
             }
             _ => None,
         }
@@ -1282,24 +1295,42 @@ impl AnonFunction {
     }
 }
 
+type ContextFunction = fn(&Object, &mut Environment, Position) -> Result<Object, Error>;
+#[derive(Clone, Debug)]
+enum NativeFunction {
+    Simple(fn(&Object) -> Object),
+    Context(ContextFunction),
+}
 #[derive(Clone, Debug)]
 pub struct ExternFunction {
-    func: fn(&Object) -> Object,
+    func: NativeFunction,
     name: String,
 }
 
 impl ExternFunction {
     pub fn new(func: fn(&Object) -> Object, name: String) -> Self {
-        Self { func, name }
+        Self {
+            func: NativeFunction::Simple(func),
+            name,
+        }
     }
 
+    pub(crate) fn contextual(func: ContextFunction, name: String) -> Self {
+        Self {
+            func: NativeFunction::Context(func),
+            name,
+        }
+    }
     fn call(
         &mut self,
         arg: &Object,
-        _env: &mut Environment,
-        _call_pos: Position,
+        env: &mut Environment,
+        pos: Position,
     ) -> Result<Object, Error> {
-        Ok((self.func)(arg))
+        match self.func {
+            NativeFunction::Simple(f) => Ok(f(arg)),
+            NativeFunction::Context(f) => f(arg, env, pos),
+        }
     }
 }
 
@@ -1343,10 +1374,14 @@ impl List {
 
     fn multiply(&self, num: &Integer) -> Object {
         let times = num.to_machine_magnitude();
-        let mut list = vec![];
+        let mut list = Vec::with_capacity(
+            self.len()
+                .checked_mul(times)
+                .expect("list capacity overflow"),
+        );
 
-        for _ in 0..times {
-            list.extend(self.list.clone());
+        for _ in 0..if self.is_empty() { 0 } else { times } {
+            list.extend(self.list.iter().cloned());
         }
 
         Object::List(list.into())
@@ -1467,6 +1502,17 @@ pub struct Range {
 
 impl Iterator for Range {
     type Item = Object;
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = (&self.end - &self.cur).to_machine_magnitude();
+        (
+            remaining.min(4096),
+            if remaining == usize::MAX {
+                None
+            } else {
+                Some(remaining)
+            },
+        )
+    }
     fn next(&mut self) -> Option<Self::Item> {
         if self.cur < self.end {
             let val = self.cur.to_owned();

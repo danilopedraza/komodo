@@ -44,15 +44,15 @@ impl Fraction {
     }
 
     pub fn floor(&self) -> Integer {
-        self.val.clone().floor().numer().to_owned().into()
+        self.val.floor().into_raw().0.into()
     }
 
     pub fn ceil(&self) -> Integer {
-        self.val.clone().ceil().numer().to_owned().into()
+        self.val.ceil().into_raw().0.into()
     }
 
     pub fn round(&self) -> Integer {
-        self.val.clone().round().numer().to_owned().into()
+        self.val.round().into_raw().0.into()
     }
 }
 
@@ -235,5 +235,25 @@ impl fmt::Display for Fraction {
         self.val.numer().fmt(f)?;
         write!(f, " // ")?;
         self.val.denom().fmt(f)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn rounding_preserves_signed_half_and_integral_results() {
+        for (n, d, floor, ceil, round) in [
+            (3, 2, 1, 2, 2),
+            (-3, 2, -2, -1, -2),
+            (4, 3, 1, 2, 1),
+            (-4, 3, -2, -1, -1),
+            (4, 2, 2, 2, 2),
+        ] {
+            let value = Fraction::new(n.into(), d.into());
+            assert_eq!(value.floor(), floor.into());
+            assert_eq!(value.ceil(), ceil.into());
+            assert_eq!(value.round(), round.into());
+        }
     }
 }

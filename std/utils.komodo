@@ -1,37 +1,11 @@
 let map(iter: Set, fn: Function) := {fn(val) for val in iter}
 let map(iter: List || Range, fn: Function) := [fn(val) for val in iter]
 
-let reduce([] || {}, _, initial) := initial
-let reduce([some|most] || {some|most}, fn: Function, initial) := reduce(most, fn, fn(initial, some))
-let reduce(range: Range, fn: Function, initial) :=
-    var res := initial
-    for val in range do
-        res := fn(res, val)
-    res
+from collections import (reduce, filter, some, every, isPrefix)
+from collections import (filterFirst)
 
 let fold([first|most], fn: Function) := reduce(most, fn, first)
 let fold({some|most}, fn: Function) := reduce(most, fn, some)
-
-let filter([], _: Function) := []
-let filter({}, _: Function) := {}
-let filter([first|tail], fn: Function) :=
-    if fn(first) then
-        [first|filter(tail, fn)]
-    else
-        filter(tail, fn)
-let filter({first|tail}, fn: Function) :=
-    if fn(first) then
-        {first|filter(tail, fn)}
-    else
-        filter(tail, fn)
-
-let filterFirst([], _: Function) := []
-let filterFirst({}, _: Function) := {}
-let filterFirst([first|tail], fn: Function) :=
-    if fn(first) then
-        [first|filterFirst(tail, fn)]
-    else
-        tail
 
 let deleteOnce(container, element) := filterFirst(container, val -> val /= element)
 
@@ -41,23 +15,15 @@ let sum(container) :=
 let prod(container) :=
     reduce(container, (a, b) -> a * b, 1)
 
-let isPrefix("", _: String) := true
-let isPrefix(chr: Char, [chr|_]: String) := true
-let isPrefix([chr|prefixTail]: String, [chr|strTail]: String) := isPrefix(prefixTail, strTail)
-let isPrefix(_, _) := false
-
-let some(values: List || Set || Range, fn: Function) :=
-    reduce(values, (a, b) -> a || fn(b), false)
-let every(values: List || Set || Range, fn: Function) :=
-    reduce(values, (a, b) -> a && fn(b), true)
-
 let indexOf(values: List, value) :=
     var res := ()
-    for i in 0..len(values) do
-        if values[i] = value then
+    var i := 0
+    for element in values do
+        if element = value then
             res := i
         else
             ()
+        i := i + 1
     
     res
 
