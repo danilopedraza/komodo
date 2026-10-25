@@ -2,26 +2,18 @@ use std::{collections::BTreeMap, path::PathBuf};
 
 use crate::object::Object;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct Address(usize);
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
-struct Store {
-    memory: Vec<Object>,
-}
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum EnvResponse<'a> {
-    Mutable((&'a mut Object, Address)),
-    Inmutable((&'a Object, Address)),
-    MutableOriginally((&'a Object, Address)),
+    Mutable(&'a mut Object),
+    Inmutable(&'a Object),
+    MutableOriginally(&'a Object),
     NotFound,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 enum ScopeResponse<'a> {
-    Mutable((&'a mut Object, Address)),
-    Inmutable((&'a Object, Address)),
+    Mutable(&'a mut Object),
+    Inmutable(&'a Object),
     NotFound,
 }
 
@@ -42,7 +34,7 @@ pub enum ScopeKind {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 struct Scope {
-    dict: BTreeMap<String, (ValueKind, Object, Address)>,
+    dict: BTreeMap<String, (ValueKind, Object)>,
     kind: ScopeKind,
 }
 
@@ -56,20 +48,20 @@ impl Scope {
 
     fn get(&mut self, name: &str) -> ScopeResponse<'_> {
         match self.dict.get_mut(name) {
-            Some((ValueKind::Inmutable, value, addr)) => ScopeResponse::Inmutable((value, *addr)),
-            Some((ValueKind::Mutable, value, addr)) => ScopeResponse::Mutable((value, *addr)),
+            Some((ValueKind::Inmutable, value)) => ScopeResponse::Inmutable(value),
+            Some((ValueKind::Mutable, value)) => ScopeResponse::Mutable(value),
             None => ScopeResponse::NotFound,
         }
     }
 
-    fn set_mutable(&mut self, name: &str, (obj, addr): (Object, Address)) {
+    fn set_mutable(&mut self, name: &str, obj: Object) {
         self.dict
-            .insert(name.to_string(), (ValueKind::Mutable, obj, addr));
+            .insert(name.to_string(), (ValueKind::Mutable, obj));
     }
 
-    fn set_inmutable(&mut self, name: &str, (obj, addr): (Object, Address)) {
+    fn set_inmutable(&mut self, name: &str, obj: Object) {
         self.dict
-            .insert(name.to_string(), (ValueKind::Inmutable, obj, addr));
+            .insert(name.to_string(), (ValueKind::Inmutable, obj));
     }
 }
 
@@ -90,7 +82,6 @@ impl ExecContext {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct Environment {
-    store: Store,
     base: Scope,
     scopes: Vec<Scope>,
     ctx: ExecContext,
@@ -125,7 +116,7 @@ impl Environment {
                     if mutable_reachable {
                         Some(EnvResponse::Mutable(val))
                     } else {
-                        Some(EnvResponse::MutableOriginally((val.0, val.1)))
+                        Some(EnvResponse::MutableOriginally(val))
                     }
                 }
             };
@@ -152,14 +143,14 @@ impl Environment {
         }
     }
 
-    pub fn set_mutable(&mut self, name: &str, val: (Object, Address)) {
+    pub fn set_mutable(&mut self, name: &str, val: Object) {
         self.scopes
             .last_mut()
             .unwrap_or(&mut self.base)
             .set_mutable(name, val);
     }
 
-    pub fn set_inmutable(&mut self, name: &str, val: (Object, Address)) {
+    pub fn set_inmutable(&mut self, name: &str, val: Object) {
         self.scopes
             .last_mut()
             .unwrap_or(&mut self.base)
@@ -179,7 +170,7 @@ pub fn env_with(assets: Vec<(&str, Object)>, ctx: ExecContext) -> Environment {
     let mut env = Environment::new(ctx);
 
     for (name, value) in assets {
-        env.set_inmutable(name, (value, Address::default()));
+        env.set_inmutable(name, value);
     }
 
     env

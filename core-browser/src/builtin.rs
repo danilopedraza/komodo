@@ -5,7 +5,7 @@ use std::{
 
 use komodo::{
     builtin::komodo_assert,
-    env::{Address, Environment, ExecContext},
+    env::{Environment, ExecContext},
     object::{ExternFunction, Function, Object},
 };
 
@@ -58,7 +58,7 @@ pub fn standard_env() -> Environment {
         PathBuf::default(),
     ));
     for (name, obj) in assets {
-        env.set_inmutable(name, (obj, Address::default()));
+        env.set_inmutable(name, obj);
     }
 
     env

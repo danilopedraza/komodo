@@ -435,7 +435,7 @@ mod tests {
         assert_ne!(code[0].position, code[1].position);
         assert_eq!(block.typ(), &Type::Integer);
         assert_eq!(
-            exec(&block, &mut Environment::default()).unwrap().0,
+            exec(&block, &mut Environment::default()).unwrap(),
             Object::Integer(4.into())
         );
     }
@@ -445,7 +445,7 @@ mod tests {
         let block = compile("10 + (if false then 1 / 0 else 3)");
         assert!(matches!(block.code[2].op, Op::If { .. }));
         assert_eq!(
-            exec(&block, &mut Environment::default()).unwrap().0,
+            exec(&block, &mut Environment::default()).unwrap(),
             Object::Integer(13.into())
         );
     }
@@ -463,7 +463,7 @@ mod tests {
         ] {
             let ast = block(exprs, pos);
             let ir = lower(&crate::typecheck::elaborate(&ast, &mut Default::default()).unwrap());
-            assert_eq!(exec(&ir, &mut Environment::default()).unwrap().0, expected);
+            assert_eq!(exec(&ir, &mut Environment::default()).unwrap(), expected);
             if ir.code.len() > 1 {
                 assert!(matches!(ir.code[1].op, Op::Drop));
             }
@@ -476,7 +476,7 @@ mod tests {
         assert!(
             matches!(&block.code[0].op, Op::Constant(Constant::String { str }) if str == "foo")
         );
-        let result = exec(&block, &mut Environment::default()).unwrap().0;
+        let result = exec(&block, &mut Environment::default()).unwrap();
         let Object::Dictionary(dict) = result else {
             panic!("expected dictionary")
         };

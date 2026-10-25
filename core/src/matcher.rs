@@ -2,20 +2,19 @@ use std::{collections::BTreeMap, iter::zip};
 
 use crate::{
     ast::{Constant, Pattern, TypeHint},
-    env::Address,
     exec::eval_constant,
     object::{Dictionary, List, Object, Tuple},
 };
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Match(pub BTreeMap<String, (Object, Address)>);
+pub struct Match(pub BTreeMap<String, Object>);
 
 impl From<Vec<(String, Object)>> for Match {
     fn from(map: Vec<(String, Object)>) -> Self {
         let mut res = BTreeMap::new();
 
         for (key, value) in map {
-            res.insert(key, (value, Address::default()));
+            res.insert(key, value);
         }
 
         Self(res)
@@ -25,7 +24,7 @@ impl From<Vec<(String, Object)>> for Match {
 impl From<(String, Object)> for Match {
     fn from((key, value): (String, Object)) -> Self {
         let mut res = BTreeMap::new();
-        res.insert(key, (value, Address::default()));
+        res.insert(key, value);
         Self(res)
     }
 }
@@ -115,19 +114,13 @@ fn match_extension_list(pattern: &[Pattern], val: &Object) -> Option<Match> {
                 Object::List(List { list }) => {
                     let list = &list[..pattern.len()];
 
-                    match_list(
-                        pattern,
-                        &list.iter().map(|(obj, _)| obj.clone()).collect::<Vec<_>>(),
-                    )
+                    match_list(pattern, list)
                 }
                 _ => None,
             }
         }
         _ => match val {
-            Object::List(List { list }) => match_list(
-                pattern,
-                &list.iter().map(|(obj, _)| obj.clone()).collect::<Vec<_>>(),
-            ),
+            Object::List(List { list }) => match_list(pattern, list),
             _ => None,
         },
     }
@@ -135,10 +128,7 @@ fn match_extension_list(pattern: &[Pattern], val: &Object) -> Option<Match> {
 
 fn match_tuple(pattern: &[Pattern], val: &Object) -> Option<Match> {
     match val {
-        Object::Tuple(Tuple { list }) => match_list(
-            pattern,
-            &list.iter().map(|(obj, _)| obj.clone()).collect::<Vec<_>>(),
-        ),
+        Object::Tuple(Tuple { list }) => match_list(pattern, list),
         _ => None,
     }
 }
@@ -165,7 +155,7 @@ fn match_list(pattern: &[Pattern], list: &[Object]) -> Option<Match> {
 fn match_prefix_crop(first: &Pattern, most: &Pattern, val: &Object) -> Option<Match> {
     match val {
         Object::List(List { list }) if !list.is_empty() => {
-            let first_match = match_(first, &list[0].0);
+            let first_match = match_(first, &list[0]);
 
             let last_list = Object::List(List::from(list[1..].to_owned()));
             let last_match = match_(most, &last_list);
@@ -286,7 +276,6 @@ mod tests {
             set_pattern, signature_pattern, simple_type_hint, string_pattern, symbol_pattern,
             wildcard,
         },
-        env::Address,
         object::{fraction::Fraction, integer::Integer, Dictionary, Range, Set, Symbol},
     };
 
@@ -301,10 +290,10 @@ mod tests {
 
         let args = [
             Object::List(List {
-                list: vec![(Object::Integer(Integer::from(1)), Address::default())],
+                list: vec![Object::Integer(Integer::from(1))],
             }),
             Object::List(List {
-                list: vec![(Object::Integer(Integer::from(2)), Address::default())],
+                list: vec![Object::Integer(Integer::from(2))],
             }),
         ];
 

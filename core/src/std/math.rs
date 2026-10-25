@@ -26,7 +26,7 @@ fn hypot(arg: &Object) -> Object {
             arg.kind(),
         ));
     };
-    let [(x, _), (y, _)] = tuple.list.as_slice() else {
+    let [x, y] = tuple.list.as_slice() else {
         return Object::Error(ObjectError::UnexpectedType(
             vec!["(Number, Number)".into()],
             arg.kind(),
@@ -42,7 +42,7 @@ fn log(arg: &Object) -> Object {
     let Object::Tuple(tuple) = arg else {
         return ln(arg);
     };
-    let [(value, _), (base, _)] = tuple.list.as_slice() else {
+    let [value, base] = tuple.list.as_slice() else {
         return Object::Error(ObjectError::UnexpectedType(
             vec!["(Number, Integer)".into()],
             arg.kind(),

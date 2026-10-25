@@ -84,22 +84,12 @@ fn to_json(obj: &Object) -> String {
             if tuple.is_empty() {
                 "null".into()
             } else {
-                let values = tuple
-                    .list
-                    .iter()
-                    .map(|(obj, _)| to_json(obj))
-                    .collect::<Vec<_>>()
-                    .join(",");
+                let values = tuple.list.iter().map(to_json).collect::<Vec<_>>().join(",");
                 format!("[{values}]")
             }
         }
         Object::List(list) => {
-            let values = list
-                .list
-                .iter()
-                .map(|(obj, _)| to_json(obj))
-                .collect::<Vec<_>>()
-                .join(",");
+            let values = list.list.iter().map(to_json).collect::<Vec<_>>().join(",");
             format!("[{values}]")
         }
         Object::Set(_set) => "{}".into(),

@@ -23,7 +23,7 @@ use integer::Integer;
 
 use crate::{
     ast::Pattern,
-    env::{Address, Environment, ScopeKind},
+    env::{Environment, ScopeKind},
     error::{Error, Position},
     exec::{exec, ExecError},
     ir::Block,
@@ -672,40 +672,9 @@ impl From<Vec<Object>> for Set {
     }
 }
 
-#[allow(
-    clippy::mutable_key_type,
-    reason = "Object ordering uses stable captured-environment identity; see PatternFunction::cmp"
-)]
-impl From<Vec<(Object, Address)>> for Set {
-    fn from(list: Vec<(Object, Address)>) -> Self {
-        let mut set = BTreeSet::new();
-
-        for obj in list {
-            set.insert(obj.0);
-        }
-
-        Self { set }
-    }
-}
-
 impl From<BTreeSet<Object>> for Set {
     fn from(set: BTreeSet<Object>) -> Self {
         Self { set }
-    }
-}
-
-#[allow(
-    clippy::mutable_key_type,
-    reason = "Object ordering uses stable captured-environment identity; see PatternFunction::cmp"
-)]
-impl From<BTreeSet<(Object, Address)>> for Set {
-    fn from(set: BTreeSet<(Object, Address)>) -> Self {
-        let mut new_set = BTreeSet::new();
-        for obj in set {
-            new_set.insert(obj.0);
-        }
-
-        Self { set: new_set }
     }
 }
 
@@ -933,7 +902,7 @@ impl PrefixOperable for Symbol {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Tuple {
-    pub list: Vec<(Object, Address)>,
+    pub list: Vec<Object>,
 }
 
 impl Tuple {
@@ -968,7 +937,7 @@ impl fmt::Display for Tuple {
         let list = self
             .list
             .iter()
-            .map(|obj| obj.0.to_string())
+            .map(|obj| obj.to_string())
             .collect::<Vec<_>>()
             .join(", ");
 
@@ -978,16 +947,6 @@ impl fmt::Display for Tuple {
 
 impl From<Vec<Object>> for Tuple {
     fn from(list: Vec<Object>) -> Self {
-        let list = list
-            .into_iter()
-            .map(|obj| (obj, Address::default()))
-            .collect();
-        Self { list }
-    }
-}
-
-impl From<Vec<(Object, Address)>> for Tuple {
-    fn from(list: Vec<(Object, Address)>) -> Self {
         Self { list }
     }
 }
@@ -1105,7 +1064,7 @@ impl PatternFunction {
     }
 
     fn exec_call(
-        matched_values: BTreeMap<String, (Object, Address)>,
+        matched_values: BTreeMap<String, Object>,
         result_node: &Block,
         env: &mut Environment,
     ) -> Result<Object, Error> {
@@ -1119,7 +1078,7 @@ impl PatternFunction {
 
         env.pop_scope();
 
-        res.map(|(obj, _)| obj)
+        res
     }
 
     fn call(&mut self, arg: &Object, call_pos: Position) -> Result<Object, Error> {
@@ -1176,7 +1135,7 @@ impl AnonFunction {
         }
         let res = exec(&self.result, &mut self.env);
         self.env.pop_scope();
-        res.map(|(obj, _)| obj)
+        res
     }
 }
 
@@ -1229,7 +1188,7 @@ impl Eq for ExternFunction {}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct List {
-    pub list: Vec<(Object, Address)>,
+    pub list: Vec<Object>,
 }
 
 impl List {
@@ -1248,7 +1207,7 @@ impl List {
         Object::List(list.into())
     }
 
-    pub fn get(&self, index: &Object) -> Result<(Object, Address), ExecError> {
+    pub fn get(&self, index: &Object) -> Result<Object, ExecError> {
         match index {
             Object::Integer(int) => {
                 let index = int.to_machine_magnitude();
@@ -1261,7 +1220,7 @@ impl List {
         }
     }
 
-    pub fn get_mut(&mut self, index: &Object) -> Result<&mut (Object, Address), ExecError> {
+    pub fn get_mut(&mut self, index: &Object) -> Result<&mut Object, ExecError> {
         match index {
             Object::Integer(int) => {
                 let index = int.to_machine_magnitude();
@@ -1292,17 +1251,6 @@ impl List {
 
 impl From<Vec<Object>> for List {
     fn from(list: Vec<Object>) -> Self {
-        let list = list
-            .into_iter()
-            .map(|obj| (obj, Address::default()))
-            .collect();
-
-        Self { list }
-    }
-}
-
-impl From<Vec<(Object, Address)>> for List {
-    fn from(list: Vec<(Object, Address)>) -> Self {
         Self { list }
     }
 }
@@ -1311,7 +1259,7 @@ impl InfixOperable for List {
     fn sum(&self, other: &Object) -> Option<Object> {
         match other {
             Object::List(List { list: other_list }) => {
-                let list: Vec<(Object, Address)> = self
+                let list: Vec<Object> = self
                     .list
                     .iter()
                     .chain(other_list)
@@ -1332,11 +1280,7 @@ impl InfixOperable for List {
     }
 
     fn contains(&self, val: &Object) -> Option<Object> {
-        Some(
-            self.list
-                .contains(&(val.clone(), Address::default()))
-                .into(),
-        )
+        Some(self.list.contains(val).into())
     }
 
     fn equality(&self, other: &Object) -> Option<Object> {
@@ -1361,7 +1305,7 @@ impl fmt::Display for List {
         let list = self
             .list
             .iter()
-            .map(|(obj, _)| quote_mystring(obj))
+            .map(quote_mystring)
             .collect::<Vec<_>>()
             .join(", ");
 
@@ -1500,10 +1444,8 @@ mod tests {
         let captured = Rc::new(RefCell::new(Environment::default()));
         let function = Object::Function(Function::Pattern(PatternFunction::new(captured.clone())));
         // Real named functions capture an environment that refers back to them.
-        captured
-            .borrow_mut()
-            .set_mutable("self", (function.clone(), Address::default()));
-        let nested = Object::Tuple(vec![(function.clone(), Address::default())].into());
+        captured.borrow_mut().set_mutable("self", function.clone());
+        let nested = Object::Tuple(vec![function.clone()].into());
         let keys = [function, nested];
         let mut set = BTreeSet::new();
         let mut map = BTreeMap::new();
@@ -1515,7 +1457,7 @@ mod tests {
 
         // Comparisons and hashing must not borrow the captured environment.
         let mut captured = captured.borrow_mut();
-        captured.set_mutable("new_binding", (Object::false_obj(), Address::default()));
+        captured.set_mutable("new_binding", Object::false_obj());
         for (key, before) in keys.iter().zip(hashes) {
             assert!(set.contains(key));
             assert_eq!(map.get(key), Some(&Object::true_obj()));

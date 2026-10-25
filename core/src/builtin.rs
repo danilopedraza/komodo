@@ -30,7 +30,7 @@ fn komodo_getln(_arg: &Object) -> Object {
 pub fn komodo_assert(arg: &Object) -> Object {
     let (condition, message) = match arg {
         Object::Tuple(tuple) if tuple.list.len() == 2 => {
-            (&tuple.list[0].0, Some(tuple.list[1].0.to_string()))
+            (&tuple.list[0], Some(tuple.list[1].to_string()))
         }
         obj => (obj, None),
     };

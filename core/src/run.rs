@@ -62,7 +62,7 @@ pub fn run(source: &str, env: &mut Environment) -> Result<(), Error> {
 }
 
 pub fn run_node(node: crate::typed_ast::ASTNode, env: &mut Environment) -> Result<Object, Error> {
-    exec(&crate::ir::lower(&node), env).map(|(obj, _)| obj)
+    exec(&crate::ir::lower(&node), env)
 }
 
 pub static STDLIB_PATH: &str = "/usr/local/lib/komodo/";
@@ -150,9 +150,9 @@ pub fn import_from(
 
     for (value, position) in values {
         match temp_env.get(value) {
-            EnvResponse::Mutable((obj, addr)) => env.set_mutable(value, (obj.to_owned(), addr)),
-            EnvResponse::Inmutable((obj, addr)) | EnvResponse::MutableOriginally((obj, addr)) => {
-                env.set_inmutable(value, (obj.to_owned(), addr))
+            EnvResponse::Mutable(obj) => env.set_mutable(value, obj.to_owned()),
+            EnvResponse::Inmutable(obj) | EnvResponse::MutableOriginally(obj) => {
+                env.set_inmutable(value, obj.to_owned())
             }
             EnvResponse::NotFound => {
                 let module = module.to_string();
