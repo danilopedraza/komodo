@@ -10,8 +10,15 @@ fi
 if [[ -n ${RESULTS_DIR:-} && $RESULTS_DIR != /* ]]; then
     RESULTS_DIR="$PWD/$RESULTS_DIR"
 fi
+if [[ -n ${BASELINE_STD:-} && $BASELINE_STD != /* ]]; then
+    BASELINE_STD="$PWD/$BASELINE_STD"
+fi
+if [[ -n ${CANDIDATE_STD:-} && $CANDIDATE_STD != /* ]]; then
+    CANDIDATE_STD="$PWD/$CANDIDATE_STD"
+fi
 cd "$(dirname "$0")/.."
-export KOMODO_STD="$PWD/std"
+printf -v baseline_std '%q' "${BASELINE_STD:-$PWD/std}"
+printf -v candidate_std '%q' "${CANDIDATE_STD:-$PWD/std}"
 printf -v baseline '%q' "$1"
 printf -v candidate '%q' "$2"
 if [[ -n ${RESULTS_DIR:-} ]]; then
@@ -25,6 +32,6 @@ for workload in calls closures loops polyominoes indexing snapshots literals blo
     fi
     hyperfine --shell bash --warmup 3 --runs "${RUNS:-15}" \
         "${export_args[@]}" \
-        --command-name "baseline: $workload" "$baseline bench/$workload.komodo" \
-        --command-name "candidate: $workload" "$candidate bench/$workload.komodo"
+        --command-name "baseline: $workload" "KOMODO_STD=$baseline_std $baseline bench/$workload.komodo" \
+        --command-name "candidate: $workload" "KOMODO_STD=$candidate_std $candidate bench/$workload.komodo"
 done

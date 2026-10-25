@@ -21,9 +21,10 @@ for revision in "$previous" "$current"; do
   binaries+=("$binary/bin/komodo")
 done
 
-# Use the current workloads and standard library for both binaries, including
-# workloads that did not exist at the baseline revision.
-RESULTS_DIR="$work/results" bash "$root/bench/compare.sh" "${binaries[@]}"
+# Use current workloads, but pair each interpreter with its own standard library.
+# Newer libraries can depend on native modules absent from older interpreters.
+BASELINE_STD="$work/$previous/std" CANDIDATE_STD="$work/$current/std" \
+  RESULTS_DIR="$work/results" bash "$root/bench/compare.sh" "${binaries[@]}"
 
 for index in 0 1; do
   revision=$previous

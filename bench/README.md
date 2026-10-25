@@ -38,11 +38,16 @@ commands so the source includes them without changing the Git index.
 The script uses three warmups and fifteen measured runs per binary and workload.
 Set `RUNS` to change the measured run count. Timings include process startup,
 parsing, typechecking, imports, and execution. Run on an otherwise idle machine.
+Set `BASELINE_STD` and `CANDIDATE_STD` to the respective revisions' `std/`
+directories when comparing interpreters with different standard libraries.
+Each defaults to the current bundled standard library; relative paths are resolved
+from the invocation directory.
 
 Set `RESULTS_DIR` to export one hyperfine JSON file per workload (relative paths
 are resolved from the invocation directory). CI uses `nix run .#bench -- PREVIOUS_COMMIT`
 to build both revisions with the current pinned toolchain, run this same
-`compare.sh` against the current workloads and standard library, and upload the
+`compare.sh` against the current workloads with each revision's own standard
+library, and upload the
 baseline and candidate measurements to Bencher with the existing 25% regression
 threshold. Both scripts are checked by the Nix `benchmark-script` check.
 
