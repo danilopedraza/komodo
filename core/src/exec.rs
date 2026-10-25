@@ -13,13 +13,12 @@ use crate::object::{
 
 type ExecResult<T> = Result<T, Error>;
 
-use crate::ast::{
-    ASTNode, ASTNodeKind, AssignableSymbol, Constant, Declaration, InfixOperator, Pattern,
-};
+use crate::ast::{Constant, InfixOperator, Pattern};
 use crate::cst::{ComprehensionKind, PrefixOperator};
 use crate::env::{Address, EnvResponse, Environment, ScopeKind, ValueKind};
 use crate::object::{integer::Integer, Bool, Char, MyString, Object, Set, Symbol, Tuple};
 use crate::run::{self, ModuleAddress};
+use crate::typed_ast::{ASTNode, ASTNodeKind, AssignableSymbol, Declaration};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ExecError {
@@ -925,6 +924,12 @@ mod tests {
     use std::vec;
 
     use super::*;
+    // Runtime error tests deliberately include programs rejected by inference.
+    // Only this test adapter bypasses checking; production execution requires a typed tree.
+    fn exec(node: &crate::ast::ASTNode, env: &mut Environment) -> ExecResult<(Object, Address)> {
+        super::exec(&crate::typed_ast::lower(node, &Default::default()), env)
+    }
+
     use crate::ast::tests::{
         _for, _if, assignable_container_element, assignable_object_value, assignable_pattern,
         assignment, block, boolean, call, case, comprehension, cons, container_element,
@@ -1347,11 +1352,14 @@ mod tests {
             exec(node, &mut Environment::default()).unwrap().0,
             Object::Function(object::Function::Anonymous(AnonFunction::new(
                 symbol_pattern("x"),
-                infix(
-                    InfixOperator::Product,
-                    dec_integer("2", dummy_pos()),
-                    symbol("x", dummy_pos()),
-                    dummy_pos()
+                crate::typed_ast::lower(
+                    &infix(
+                        InfixOperator::Product,
+                        dec_integer("2", dummy_pos()),
+                        symbol("x", dummy_pos()),
+                        dummy_pos()
+                    ),
+                    &Default::default()
                 ),
                 Environment::default(),
             ))),
@@ -2079,7 +2087,7 @@ mod tests {
             Ok((
                 Object::Function(Function::Anonymous(AnonFunction::new(
                     Pattern::Tuple { list: vec![] },
-                    dec_integer("5", dummy_pos()),
+                    crate::typed_ast::lower(&dec_integer("5", dummy_pos()), &Default::default()),
                     Environment::default()
                 ))),
                 Address::default()

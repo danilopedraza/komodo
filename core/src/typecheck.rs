@@ -17,11 +17,14 @@ use crate::{
     run::{collect_nodes, get_std_path, ModuleAddress, STDLIB_PATH_VAR},
 };
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Environment {
     bottom: Level,
     stack: Vec<Level>,
     ctx: ExecContext,
+    // Source-node identities live only for one elaboration; the tree is borrowed
+    // throughout inference and lowering, so nodes cannot move during this pass.
+    annotations: Option<HashMap<usize, Type>>,
 }
 
 impl Environment {
@@ -95,7 +98,7 @@ impl Environment {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 struct Level {
     dict: HashMap<String, Type>,
 }
@@ -464,7 +467,27 @@ fn tuple_alternatives(items: &[Type]) -> Vec<Vec<Type>> {
     tuples
 }
 
+/// Check a syntax tree and emit the executable, annotated representation.
+pub fn elaborate(
+    val: &ASTNode,
+    env: &mut Environment,
+) -> Result<crate::typed_ast::ASTNode, (TypeError, Position)> {
+    env.annotations = Some(HashMap::new());
+    let result = infer(val, env);
+    let annotations = env.annotations.take().unwrap();
+    result?;
+    Ok(crate::typed_ast::lower(val, &annotations))
+}
+
 pub fn infer(val: &ASTNode, env: &mut Environment) -> Result<Type, (TypeError, Position)> {
+    let typ = infer_node(val, env)?;
+    if let Some(annotations) = &mut env.annotations {
+        annotations.insert(val as *const ASTNode as usize, typ.clone());
+    }
+    Ok(typ)
+}
+
+fn infer_node(val: &ASTNode, env: &mut Environment) -> Result<Type, (TypeError, Position)> {
     match &val.kind {
         ASTNodeKind::Integer { .. } => Ok(Type::Integer),
         ASTNodeKind::Decimal { .. } => Ok(Type::Float),
@@ -1442,6 +1465,91 @@ mod tests {
             result = infer(&node, &mut env)?;
         }
         Ok(result)
+    }
+
+    #[test]
+    fn elaboration_preserves_nested_types_and_positions() {
+        use crate::typed_ast::ASTNodeKind as TypedKind;
+        let source = "(1 + 2, true)";
+        let nodes = crate::run::collect_nodes(crate::parser::Parser::from(
+            crate::lexer::Lexer::from((source, std::path::PathBuf::default())),
+        ))
+        .unwrap();
+        let typed = super::elaborate(&nodes[0], &mut Environment::default()).unwrap();
+        assert_eq!(
+            typed.typ(),
+            &Type::Tuple(vec![Type::Integer, Type::Boolean])
+        );
+        assert_eq!(typed.position(), nodes[0].position);
+        let TypedKind::Tuple { list } = &typed.kind else {
+            panic!("expected tuple")
+        };
+        let TypedKind::Infix { lhs, rhs, .. } = &list[0].kind else {
+            panic!("expected sum")
+        };
+        assert_eq!(list[0].typ(), &Type::Integer);
+        assert_eq!(lhs.typ(), &Type::Integer);
+        assert_eq!(rhs.typ(), &Type::Integer);
+        assert_eq!(list[1].typ(), &Type::Boolean);
+    }
+
+    #[test]
+    fn elaboration_preserves_function_body_types_and_executes_them() {
+        use crate::typed_ast::{ASTNodeKind as TypedKind, Declaration as TypedDeclaration};
+        let nodes =
+            crate::run::collect_nodes(crate::parser::Parser::from(crate::lexer::Lexer::from((
+                "let twice(x: Integer) := x + x\ntwice(3)",
+                std::path::PathBuf::default(),
+            ))))
+            .unwrap();
+        let mut env = Environment::std_env(crate::env::ExecContext::default());
+        let function = super::elaborate(&nodes[0], &mut env).unwrap();
+        let TypedKind::Declaration(TypedDeclaration::Function { result, .. }) = &function.kind
+        else {
+            panic!("expected function declaration")
+        };
+        assert_eq!(result.typ(), &Type::Integer);
+        let TypedKind::Infix { lhs, rhs, .. } = &result.kind else {
+            panic!("expected sum")
+        };
+        assert_eq!(lhs.typ(), &Type::Integer);
+        assert_eq!(rhs.typ(), &Type::Integer);
+        let call = super::elaborate(&nodes[1], &mut env).unwrap();
+        assert_eq!(call.typ(), &Type::Integer);
+        let mut runtime = crate::builtin::standard_env(crate::env::ExecContext::default());
+        crate::run::run_node(function, &mut runtime).unwrap();
+        assert_eq!(
+            crate::run::run_node(call, &mut runtime)
+                .unwrap()
+                .to_string(),
+            "6"
+        );
+    }
+
+    #[test]
+    fn elaboration_rejects_invalid_input_and_clears_annotations() {
+        let nodes = crate::run::collect_nodes(crate::parser::Parser::from(
+            crate::lexer::Lexer::from(("1 + true", std::path::PathBuf::default())),
+        ))
+        .unwrap();
+        let mut env = Environment::default();
+        assert!(super::elaborate(&nodes[0], &mut env).is_err());
+        assert!(env.annotations.is_none());
+    }
+
+    #[test]
+    fn elaboration_keeps_uninspected_expressions_unknown() {
+        use crate::typed_ast::ASTNodeKind as TypedKind;
+        let nodes = crate::run::collect_nodes(crate::parser::Parser::from(
+            crate::lexer::Lexer::from(("[1]", std::path::PathBuf::default())),
+        ))
+        .unwrap();
+        let typed = super::elaborate(&nodes[0], &mut Environment::default()).unwrap();
+        assert_eq!(typed.typ(), &Type::List);
+        let TypedKind::List { list } = &typed.kind else {
+            panic!("expected list")
+        };
+        assert_eq!(list[0].typ(), &Type::Unknown);
     }
 
     #[test]

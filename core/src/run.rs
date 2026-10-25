@@ -16,7 +16,7 @@ use crate::{
     object::Object,
     parser::Parser,
     std::{json::komodo_json, math::komodo_math, time::komodo_time},
-    typecheck::{self, infer},
+    typecheck::{self, elaborate},
     weeder::{rewrite, WeederError},
 };
 
@@ -46,10 +46,13 @@ pub fn run(source: &str, env: &mut Environment) -> Result<(), Error> {
     let nodes = collect_nodes(parser)?;
     let mut typecheck_env = typecheck::Environment::std_env(env.ctx());
 
-    for node in &nodes {
-        infer(node, &mut typecheck_env)
-            .map_err(|(err, pos)| Error::with_position(err.into(), pos, env.file_path()))?;
-    }
+    let nodes = nodes
+        .iter()
+        .map(|node| {
+            elaborate(node, &mut typecheck_env)
+                .map_err(|(err, pos)| Error::with_position(err.into(), pos, env.file_path()))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
 
     for node in nodes {
         run_node(node, env)?;
@@ -58,7 +61,7 @@ pub fn run(source: &str, env: &mut Environment) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn run_node(node: ASTNode, env: &mut Environment) -> Result<Object, Error> {
+pub fn run_node(node: crate::typed_ast::ASTNode, env: &mut Environment) -> Result<Object, Error> {
     exec(&node, env).map(|(obj, _)| obj)
 }
 

@@ -13,4 +13,5 @@ pub mod repl;
 pub mod run;
 mod std;
 mod typecheck;
+pub mod typed_ast;
 mod weeder;

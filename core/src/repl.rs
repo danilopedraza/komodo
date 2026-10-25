@@ -25,11 +25,13 @@ pub enum ReplResponse {
 struct Repl {
     env: Environment,
     code: String,
+    typecheck_env: crate::typecheck::Environment,
 }
 
 impl Repl {
     fn standard_repl(ctx: ExecContext) -> Self {
         Self {
+            typecheck_env: crate::typecheck::Environment::std_env(ctx.clone()),
             env: standard_env(ctx),
             code: String::new(),
         }
@@ -85,7 +87,13 @@ impl Repl {
     }
 
     fn exec_result(&mut self, node_res: Result<ASTNode, Error>) -> Result<Object, Error> {
-        run::run_node(node_res?, &mut self.env)
+        let node = node_res?;
+        let mut typecheck_env = self.typecheck_env.clone();
+        let node = crate::typecheck::elaborate(&node, &mut typecheck_env)
+            .map_err(|(err, pos)| Error::with_position(err.into(), pos, self.env.file_path()))?;
+        let result = run::run_node(node, &mut self.env)?;
+        self.typecheck_env = typecheck_env;
+        Ok(result)
     }
 }
 
@@ -199,6 +207,24 @@ mod tests {
         fn add_history_entry(&mut self, entry: &str) {
             self.history.push(entry.to_owned());
         }
+    }
+
+    #[test]
+    fn checked_bindings_persist_between_inputs() {
+        let mut repl = Repl::standard_repl(ExecContext::default());
+        assert_eq!(
+            repl.response(Ok("let x := 3".into())).1,
+            ReplResponse::Continue
+        );
+        assert_eq!(
+            repl.response(Ok("x + 2".into())),
+            ("5".into(), ReplResponse::Continue)
+        );
+        assert_eq!(repl.response(Ok("x + true".into())).1, ReplResponse::Error);
+        assert_eq!(
+            repl.response(Ok("x".into())),
+            ("3".into(), ReplResponse::Continue)
+        );
     }
 
     #[test]

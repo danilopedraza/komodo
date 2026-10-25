@@ -22,11 +22,12 @@ use fraction::Fraction;
 use integer::Integer;
 
 use crate::{
-    ast::{ASTNode, Pattern},
+    ast::Pattern,
     env::{Address, Environment, ScopeKind},
     error::{Error, Position},
     exec::{exec, ExecError},
     matcher::{match_, Match},
+    typed_ast::ASTNode,
 };
 
 macro_rules! default_infix_method {
