@@ -1355,8 +1355,7 @@ fn infer_prefix(
 
 fn infer_block(block: &[ASTNode], env: &mut Environment) -> Result<Type, (TypeError, Position)> {
     env.within_new_level(|env| {
-        let mut block = block.iter();
-        let mut res = infer(block.next().unwrap(), env)?;
+        let mut res = Type::empty_tuple();
 
         for expr in block {
             res = infer(expr, env)?;

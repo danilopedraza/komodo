@@ -1,4 +1,4 @@
-//! Executable syntax emitted by the typechecker.
+//! Typed syntax emitted by the typechecker and consumed by IR lowering.
 //!
 //! Every expression carries the inferred type. `Unknown` preserves the checker's
 //! gradual typing behavior, including expressions it does not yet inspect.

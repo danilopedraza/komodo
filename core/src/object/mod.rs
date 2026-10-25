@@ -26,8 +26,8 @@ use crate::{
     env::{Address, Environment, ScopeKind},
     error::{Error, Position},
     exec::{exec, ExecError},
+    ir::Block,
     matcher::{match_, Match},
-    typed_ast::ASTNode,
 };
 
 macro_rules! default_infix_method {
@@ -1046,7 +1046,7 @@ pub enum FunctionPatternKind {
 #[derive(Clone, Debug)]
 pub struct PatternFunction {
     pub env: Rc<RefCell<Environment>>,
-    patterns: Vec<(FunctionPatternKind, Pattern, ASTNode)>,
+    patterns: Vec<(FunctionPatternKind, Pattern, Block)>,
     cache: BTreeMap<Object, Object>,
 }
 
@@ -1093,7 +1093,7 @@ impl PatternFunction {
             cache: BTreeMap::default(),
         }
     }
-    pub fn add_pattern(&mut self, param: &Pattern, value: &ASTNode, kind: FunctionPatternKind) {
+    pub fn add_pattern(&mut self, param: &Pattern, value: &Block, kind: FunctionPatternKind) {
         for i in 0..self.patterns.len() {
             let (_, other_args, _) = &self.patterns[i];
             if param == other_args {
@@ -1106,7 +1106,7 @@ impl PatternFunction {
 
     fn exec_call(
         matched_values: BTreeMap<String, (Object, Address)>,
-        result_node: &ASTNode,
+        result_node: &Block,
         env: &mut Environment,
     ) -> Result<Object, Error> {
         env.push_scope(ScopeKind::Function);
@@ -1153,12 +1153,12 @@ impl PatternFunction {
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct AnonFunction {
     param: Pattern,
-    result: ASTNode,
+    result: Block,
     env: Environment,
 }
 
 impl AnonFunction {
-    pub fn new(param: Pattern, result: ASTNode, env: Environment) -> Self {
+    pub fn new(param: Pattern, result: Block, env: Environment) -> Self {
         Self { param, result, env }
     }
 

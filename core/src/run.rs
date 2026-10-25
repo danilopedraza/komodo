@@ -62,7 +62,7 @@ pub fn run(source: &str, env: &mut Environment) -> Result<(), Error> {
 }
 
 pub fn run_node(node: crate::typed_ast::ASTNode, env: &mut Environment) -> Result<Object, Error> {
-    exec(&node, env).map(|(obj, _)| obj)
+    exec(&crate::ir::lower(&node), env).map(|(obj, _)| obj)
 }
 
 pub static STDLIB_PATH: &str = "/usr/local/lib/komodo/";

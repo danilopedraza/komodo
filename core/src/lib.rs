@@ -4,6 +4,7 @@ mod cst;
 pub mod env;
 pub mod error;
 pub mod exec;
+pub mod ir;
 mod lexer;
 mod matcher;
 pub mod object;
