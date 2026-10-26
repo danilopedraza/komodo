@@ -1,0 +1,24 @@
+name: Publish extension
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-extension.yml'
+      - 'vsc-extension/**'
+      - 'nix/ovsx/**'
+      - 'flake.nix'
+      - 'flake.lock'
+permissions:
+  contents: read
+jobs:
+  deploy-ext:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v30
+      - uses: DeterminateSystems/magic-nix-cache-action@v13
+      - name: Publish extension
+        run: nix run .#publish-extension
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
