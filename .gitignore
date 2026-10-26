@@ -20,3 +20,7 @@ devenv.local.nix
 /target
 # Benchmark tooling builds
 /bench/target
+
+# Generated benchmark measurements
+/bench/results/
+/bench/*.csv

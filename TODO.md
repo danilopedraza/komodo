@@ -5,7 +5,7 @@ Items 1–31 now have implementations or measured evaluations; coverage and rema
 are described below. **High** marks investigation priority, not a measured speedup.
 
 The recent shared instruction and copy-on-write environment improvements are
-already implemented. See [existing benchmark results](bench/README.md#capture-and-code-sharing-results).
+already implemented.
 
 ## Runtime and memory
 
@@ -111,8 +111,8 @@ binding, and assignment patterns compile during lowering; function patterns
 compile when their clauses/closures are constructed. Item 27 indexes tuple arity
 and merges fallback clauses in source order; type/literal indexes remain future
 work. Item 28 replaces clauses in place. Item 29 uses a persistent AVL cache.
-Item 30 is measured rather than a cache-policy change; see the
-[memoization evaluation](bench/memoization.md). Item 31 adds shared-identity
+Item 30 has a [measurement harness](bench/README.md#additional-measurements)
+rather than a cache-policy change. Item 31 adds shared-identity
 comparison paths and rejects unequal cache sizes before structural equality;
 hashing remains structural. Suffix views can retain their source allocation,
 and memo caches remain unbounded with existing snapshot and equality semantics.
@@ -169,8 +169,8 @@ execution as soon as the result is known (an intentional semantic change).
 `indexOf` iterates directly and retains the last matching index.
 
 Item 43 is evaluated rather than a storage replacement: ordered trees remain.
-The reproducible comparison and limitations are in
-[collection storage evaluation](bench/collection-storage.md). Checked entries below
+The [collection storage harness](bench/README.md#additional-measurements)
+compares ordered trees with sorted vectors. Checked entries below
 refer to this scope; BigInt-backed bit operations and other generic fallbacks remain.
 
 - [x] **32. Move owned elements instead of cloning them.** List prepend and
@@ -289,8 +289,7 @@ and imports. See [benchmark documentation](bench/README.md).
 - [ ] Add scaling workloads for indexing, recursive collection operations, failed
   pattern matches, memoization, repeated imports, and union-heavy types.
 - [ ] Measure Wasm execution and browser responsiveness separately.
-- [ ] Track smaller regressions: the documented arithmetic-loop regression is
-  approximately 2%, while the documented CI regression threshold is 25%.
+- [ ] Track regressions smaller than the current CI regression threshold of 25%.
 
 ## Suggested first investigations
 

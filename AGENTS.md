@@ -5,7 +5,7 @@
 - `core/`: Rust interpreter and CLI. Compiler stages live in `core/src/`, integration tests in `core/tests/`, and unit tests alongside implementation code. The pipeline is source → CST → AST → typed AST → stack IR → interpreter.
 - `core-browser/`: Rust/Wasm wrapper and HTML/CSS/JavaScript playground.
 - `std/` and `examples/`: Komodo standard-library utilities and executable `.komodo` examples.
-- `bench/`: Benchmark workloads, Rust tooling, and recorded results.
+- `bench/`: Benchmark workloads and Rust tooling.
 - `vsc-extension/`: VS Code language configuration and syntax grammar.
 - `book/`, `website/`, `report/`, and `installer/`: mdBook documentation, landing page, Typst report, and installation scripts.
 - `flake.nix`, `nix/`, and `.github/workflows/`: Reproducible builds and CI automation.
