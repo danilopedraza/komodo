@@ -15,6 +15,7 @@
     - [Builtin functions](./programming_with_komodo/functions/builtin_functions.md)
     - [Named functions](./programming_with_komodo/functions/named_functions.md)
     - [Anonymous functions](./programming_with_komodo/functions/anonymous_functions.md)
+    - [Generators](./programming_with_komodo/functions/generators.md)
   - [Pattern matching](./programming_with_komodo/pattern_matching.md)
     - [Destructuring](./programming_with_komodo/pattern_matching/destructuring.md)
     - [With functions](./programming_with_komodo/pattern_matching/with_functions.md)
