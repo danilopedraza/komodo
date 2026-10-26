@@ -28,7 +28,9 @@ Use Rust 2021 conventions: four-space indentation, `snake_case` functions/module
 
 ## Testing Guidelines
 
-Use Rust's `#[test]` framework with descriptive `snake_case` test names. Add regression tests near the affected compiler stage or in `core/tests/`; add executable examples for language behavior. Browser tests must run with `--test-threads=1` because they share global I/O buffers. No numeric coverage threshold is configured.
+Tests that execute whole Komodo programs belong in `examples/` as end-to-end `.komodo` tests with assertions, run by `make test-core`. Do not embed whole-program execution tests in Rust unit tests or `core/tests/`; this is a permanent testing preference. Keep Rust tests focused on individual functions, compiler stages, and internal invariants, using `#[test]` with descriptive `snake_case` names near the affected code or in `core/tests/`.
+
+Browser tests must run with `--test-threads=1` because they share global I/O buffers. No numeric coverage threshold is configured.
 
 ## Commit & Pull Request Guidelines
 
