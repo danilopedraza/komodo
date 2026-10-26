@@ -15,3 +15,4 @@ The following list contains all the keywords that Komodo uses. You can't name an
 - `then`: part of `if` expressions
 - `true`: Boolean true literal
 - `var`: declare a mutable value
+- `yield`: produce the next value of a generator

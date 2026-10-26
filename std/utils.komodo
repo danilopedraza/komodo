@@ -1,5 +1,5 @@
 let map(iter: Set, fn: Function) := {fn(val) for val in iter}
-let map(iter: List || Range, fn: Function) := [fn(val) for val in iter]
+let map(iter: List || Range || Generator, fn: Function) := [fn(val) for val in iter]
 
 from collections import (reduce, filter, some, every, isPrefix)
 from collections import (filterFirst)

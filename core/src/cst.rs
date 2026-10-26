@@ -166,6 +166,7 @@ impl InfixOperator {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum PrefixOperator {
+    Yield,
     BitwiseNot,
     LogicNot,
     Minus,
@@ -174,6 +175,7 @@ pub enum PrefixOperator {
 impl PrefixOperator {
     pub fn from(tok: &TokenType) -> Option<Self> {
         match tok {
+            TokenType::Yield => Some(Self::Yield),
             TokenType::Bang => Some(Self::LogicNot),
             TokenType::Minus => Some(Self::Minus),
             TokenType::Tilde => Some(Self::BitwiseNot),
@@ -183,6 +185,7 @@ impl PrefixOperator {
 
     pub fn ident(&self) -> String {
         match self {
+            PrefixOperator::Yield => "yield",
             PrefixOperator::BitwiseNot => "bitwise negation",
             PrefixOperator::LogicNot => "logic negation",
             PrefixOperator::Minus => "additive inversion",

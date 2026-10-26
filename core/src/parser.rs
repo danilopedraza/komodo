@@ -588,8 +588,12 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
     fn prefix(&mut self, op: PrefixOperator) -> NodeResult {
         let start = self.cur_pos.start;
 
-        self.expression(Precedence::Prefix)
-            .map(|expr| prefix(op, expr, self.start_to_cur(start)))
+        self.expression(if op == PrefixOperator::Yield {
+            Precedence::Lowest
+        } else {
+            Precedence::Prefix
+        })
+        .map(|expr| prefix(op, expr, self.start_to_cur(start)))
     }
 
     fn set_or_dict(&mut self) -> NodeResult {

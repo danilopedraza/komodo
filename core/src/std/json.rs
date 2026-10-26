@@ -110,6 +110,7 @@ fn to_json(obj: &Object) -> String {
         }
         Object::Function(_function) => "null".into(),
         Object::Range(_range) => "null".into(),
+        Object::Generator(_) => "null".into(),
         Object::Error(_object_error) => "null".into(),
     }
 }

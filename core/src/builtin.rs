@@ -54,8 +54,34 @@ macro_rules! cast_fn {
 
 cast_fn!(to_int, Integer);
 cast_fn!(to_float, Float);
-cast_fn!(to_list, List);
-cast_fn!(to_set, Set);
+fn to_list(
+    arg: &Object,
+    env: &mut Environment,
+    pos: crate::error::Position,
+) -> Result<Object, crate::error::Error> {
+    if let Object::Generator(generator) = arg {
+        let values = generator.iter().collect::<Result<Vec<_>, _>>()?;
+        Ok(Object::List(values.into()))
+    } else {
+        arg.to_list()
+            .map(Object::List)
+            .map_err(|err| crate::error::Error::with_position(err.into(), pos, env.file_path()))
+    }
+}
+fn to_set(
+    arg: &Object,
+    env: &mut Environment,
+    pos: crate::error::Position,
+) -> Result<Object, crate::error::Error> {
+    if let Object::Generator(generator) = arg {
+        let values = generator.iter().collect::<Result<Vec<_>, _>>()?;
+        Ok(Object::Set(values.into()))
+    } else {
+        arg.to_set()
+            .map(Object::Set)
+            .map_err(|err| crate::error::Error::with_position(err.into(), pos, env.file_path()))
+    }
+}
 
 fn to_string(arg: &Object) -> Object {
     Object::String(arg.to_string().into())
@@ -91,8 +117,18 @@ pub fn standard_env(ctx: ExecContext) -> Environment {
             ("assert", Object::from_fn(komodo_assert, "assert".into())),
             ("Integer", Object::from_fn(to_int, "Integer".into())),
             ("Float", Object::from_fn(to_float, "Float".into())),
-            ("List", Object::from_fn(to_list, "List".into())),
-            ("Set", Object::from_fn(to_set, "Set".into())),
+            (
+                "List",
+                Object::Function(crate::object::Function::Extern(
+                    crate::object::ExternFunction::contextual(to_list, "List".into()),
+                )),
+            ),
+            (
+                "Set",
+                Object::Function(crate::object::Function::Extern(
+                    crate::object::ExternFunction::contextual(to_set, "Set".into()),
+                )),
+            ),
             ("String", Object::from_fn(to_string, "String".into())),
             ("len", Object::from_fn(len, "len".into())),
             ("sorted", Object::from_fn(sorted, "sorted".into())),

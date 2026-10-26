@@ -39,6 +39,7 @@ pub struct Block(Rc<BlockData>);
 /// Immutable executable data shared together with its metadata.
 #[derive(Clone, Debug)]
 pub struct BlockData {
+    pub(crate) has_yield: bool,
     pub(crate) code: Box<[Instruction]>,
     pub(crate) position: Position,
     pub(crate) typ: Type,
@@ -250,6 +251,27 @@ impl Op {
     }
 }
 
+impl Op {
+    fn has_yield(&self) -> bool {
+        match self {
+            Self::Prefix(PrefixOperator::Yield) => true,
+            Self::If { positive, negative } => positive.has_yield || negative.has_yield,
+            Self::Case { expr, pairs } => expr.has_yield || pairs.iter().any(|(_, b)| b.has_yield),
+            Self::For { iterator, body, .. } => iterator.has_yield || body.has_yield,
+            Self::Comprehension {
+                iterator, element, ..
+            } => iterator.has_yield || element.has_yield,
+            Self::MethodCall {
+                receiver,
+                method,
+                argument,
+                ..
+            } => receiver.has_yield || method.has_yield || argument.has_yield,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum AssignableSymbol {
     Pattern(RuntimePattern),
@@ -277,7 +299,9 @@ pub fn lower(node: &typed_ast::ASTNode) -> Block {
         stack_capacity = stack_capacity.max(depth);
     }
     let references = referenced_names(&code).into_iter().collect();
+    let has_yield = code.iter().any(|i| i.op.has_yield());
     Block(Rc::new(BlockData {
+        has_yield,
         references,
         parameters_resolved: false,
         capture_names: Box::default(),

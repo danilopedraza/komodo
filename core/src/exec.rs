@@ -1,3 +1,5 @@
+pub(crate) mod generator;
+
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::rc::Rc;
@@ -22,6 +24,7 @@ use crate::run::{self, ModuleAddress};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ExecError {
+    YieldOutsideGenerator,
     BadFraction {
         numer_kind: String,
         denom_kind: String,
@@ -192,198 +195,209 @@ fn exec_stack(
                 _ => {}
             }
         }
-        let res = match &instruction.op {
-            Op::Drop => {
-                stack.pop().expect("IR stack underflow");
-                continue;
-            }
-            Op::Constant(c) => Ok(c.clone()),
-            Op::Load(name) => symbol(name, env, pos),
-            Op::LoadCapture { name, index } => match env.lookup_capture(*index, name) {
-                Some(value) => Ok(value.snapshot()),
-                None => symbol(name, env, pos),
-            },
-            Op::LoadLocal { name, slot } => match env.lookup_slot(0, *slot, name) {
-                Some(value) => Ok(value.clone()),
-                None => symbol(name, env, pos),
-            },
-            Op::IntegerInfix(op) => {
-                let rhs = pop(stack);
-                let lhs = pop(stack);
-                if let Some(result) = integer_infix(*op, &lhs, &rhs) {
-                    Ok(result)
-                } else {
-                    infix(*op, &lhs, &rhs, pos, env)
-                }
-            }
-            Op::Infix(op) => {
-                let rhs = pop(stack);
-                let lhs = pop(stack);
-                infix(*op, &lhs, &rhs, pos, env)
-            }
-            Op::Prefix(op) => prefix(*op, pop(stack), pos, env),
-            Op::List(n) => Ok(Object::List(take(stack, *n).collect::<Vec<_>>().into())),
-            Op::Tuple(n) => Ok(Object::Tuple(take(stack, *n).collect::<Vec<_>>().into())),
-            Op::Set(n) => Ok(Object::Set(take(stack, *n).collect::<BTreeSet<_>>().into())),
-            Op::Dictionary(n) => {
-                let values = take(stack, n * 2);
-                let mut dict = Dictionary::default();
-                let mut values = values;
-                while let Some(key) = values.next() {
-                    dict.dict
-                        .insert(key, values.next().expect("missing dictionary value"));
-                }
-                Ok(Object::Dictionary(dict))
-            }
-            Op::Fraction(denom_pos) => {
-                let denom = pop(stack);
-                let numer = pop(stack);
-                fraction(numer, denom, *denom_pos, pos, env)
-            }
-            Op::Index { container, index } => {
-                let key = pop(stack);
-                let obj = pop(stack);
-                match obj {
-                    Object::List(list) => list
-                        .get(&key)
-                        .map_err(|e| Error::with_position(e.into(), *index, env.file_path())),
-                    Object::Dictionary(dict) => dict
-                        .get(&key)
-                        .map_err(|e| Error::with_position(e.into(), *index, env.file_path())),
-                    obj => Err(Error::with_position(
-                        ExecError::IndexingNonContainer { kind: obj.kind() }.into(),
-                        *container,
-                        env.file_path(),
-                    )),
-                }
-            }
-            Op::Cons(tail_pos) => {
-                let tail = pop(stack);
-                let first = pop(stack);
-                cons(first, tail, *tail_pos, env)
-            }
-            Op::SetCons(tail_pos) => {
-                let tail = pop(stack);
-                let first = pop(stack);
-                set_cons(first, tail, *tail_pos, env)
-            }
-            Op::Function { param, body } => function(param, body, env),
-            Op::If { positive, negative } => if_(pop(stack), positive, negative, env),
-            Op::Case { expr, pairs } => case(expr, pairs, env),
-            Op::For {
-                pattern,
-                iterator,
-                body,
-            } => for_(pattern, iterator, body, env),
-            Op::Comprehension {
-                element,
-                variable,
-                iterator,
-                kind,
-            } => comprehension(element, variable, iterator, *kind, env),
-            Op::Bind {
-                pattern,
-                mutable,
-                value_position,
-                discard,
-            } => let_pattern(
-                pattern,
-                pop(stack),
-                *value_position,
-                *discard,
-                if *mutable {
-                    ValueKind::Mutable
-                } else {
-                    ValueKind::Inmutable
-                },
-                env,
-            ),
-            Op::Symbolic { name, constraint } => let_without_value(name, constraint, env),
-            Op::DefineFunction {
-                name,
-                param,
-                body,
-                memoized,
-            } => let_function(
-                name,
-                param,
-                body,
-                if *memoized {
-                    FunctionPatternKind::Memoized
-                } else {
-                    FunctionPatternKind::NotMemoized
-                },
-                env,
-            ),
-            Op::Assign {
-                left,
-                value_position,
-                discard,
-            } => {
-                let index = if matches!(left, AssignableSymbol::IndexableValue { .. }) {
-                    Some(pop(stack))
-                } else {
-                    None
-                };
-                assignment(left, pop(stack), index, *value_position, *discard, env)
-            }
-            Op::Import { source, values } => import_from(source, values, env),
-            Op::Call { name, callee } => {
-                let arg = pop(stack);
-                let func = pop(stack);
-                call(func, arg, name.as_deref(), *callee, pos, env)
-            }
-            Op::Attribute { name, position } => object_attr(pop(stack), name, *position, env),
-            Op::MethodCall {
-                receiver,
-                method,
-                argument,
-                attribute,
-            } => {
-                let receiver_obj = exec(receiver, env)?;
-                let (func, arg) = if matches!(receiver_obj, Object::Dictionary(_)) {
-                    // Preserve dictionary method lookup behavior, including receiver reevaluation.
-                    let obj = exec(receiver, env)?;
-                    (
-                        object_attr(
-                            obj,
-                            attribute.as_deref().expect("attribute must be a symbol"),
-                            method.position,
-                            env,
-                        )?,
-                        exec(argument, env)?,
-                    )
-                } else {
-                    let func = exec(method, env)?;
-                    let arg = exec(argument, env)?;
-                    let mut values = match arg {
-                        Object::Tuple(tuple) => tuple.list.into_owned(),
-                        obj => vec![obj],
-                    };
-                    values.insert(0, receiver_obj);
-                    let arg = if values.len() == 1 {
-                        values.pop().unwrap()
-                    } else {
-                        Object::Tuple(values.into())
-                    };
-                    (func, arg)
-                };
-                call(func, arg, None, receiver.position, pos, env)
-            }
-        }?;
-        if let Object::Error(err) = res {
-            return Err(Error::with_position(err.into(), pos, env.file_path()));
-        }
-        if !matches!(
-            &instruction.op,
-            Op::Bind { discard: true, .. } | Op::Assign { discard: true, .. }
-        ) {
-            stack.push(res);
-        }
+        exec_instruction(instruction, env, stack)?;
     }
     debug_assert_eq!(stack.len(), 1, "invalid IR block stack effect");
     Ok(Outcome::Value(pop(stack)))
 }
+
+fn exec_instruction(
+    instruction: &crate::ir::Instruction,
+    env: &mut Environment,
+    stack: &mut Vec<Object>,
+) -> ExecResult<()> {
+    let pos = instruction.position;
+    let res = match &instruction.op {
+        Op::Drop => {
+            stack.pop().expect("IR stack underflow");
+            return Ok(());
+        }
+        Op::Constant(c) => Ok(c.clone()),
+        Op::Load(name) => symbol(name, env, pos),
+        Op::LoadCapture { name, index } => match env.lookup_capture(*index, name) {
+            Some(value) => Ok(value.snapshot()),
+            None => symbol(name, env, pos),
+        },
+        Op::LoadLocal { name, slot } => match env.lookup_slot(0, *slot, name) {
+            Some(value) => Ok(value.clone()),
+            None => symbol(name, env, pos),
+        },
+        Op::IntegerInfix(op) => {
+            let rhs = pop(stack);
+            let lhs = pop(stack);
+            if let Some(result) = integer_infix(*op, &lhs, &rhs) {
+                Ok(result)
+            } else {
+                infix(*op, &lhs, &rhs, pos, env)
+            }
+        }
+        Op::Infix(op) => {
+            let rhs = pop(stack);
+            let lhs = pop(stack);
+            infix(*op, &lhs, &rhs, pos, env)
+        }
+        Op::Prefix(op) => prefix(*op, pop(stack), pos, env),
+        Op::List(n) => Ok(Object::List(take(stack, *n).collect::<Vec<_>>().into())),
+        Op::Tuple(n) => Ok(Object::Tuple(take(stack, *n).collect::<Vec<_>>().into())),
+        Op::Set(n) => Ok(Object::Set(take(stack, *n).collect::<BTreeSet<_>>().into())),
+        Op::Dictionary(n) => {
+            let values = take(stack, n * 2);
+            let mut dict = Dictionary::default();
+            let mut values = values;
+            while let Some(key) = values.next() {
+                dict.dict
+                    .insert(key, values.next().expect("missing dictionary value"));
+            }
+            Ok(Object::Dictionary(dict))
+        }
+        Op::Fraction(denom_pos) => {
+            let denom = pop(stack);
+            let numer = pop(stack);
+            fraction(numer, denom, *denom_pos, pos, env)
+        }
+        Op::Index { container, index } => {
+            let key = pop(stack);
+            let obj = pop(stack);
+            match obj {
+                Object::List(list) => list
+                    .get(&key)
+                    .map_err(|e| Error::with_position(e.into(), *index, env.file_path())),
+                Object::Dictionary(dict) => dict
+                    .get(&key)
+                    .map_err(|e| Error::with_position(e.into(), *index, env.file_path())),
+                obj => Err(Error::with_position(
+                    ExecError::IndexingNonContainer { kind: obj.kind() }.into(),
+                    *container,
+                    env.file_path(),
+                )),
+            }
+        }
+        Op::Cons(tail_pos) => {
+            let tail = pop(stack);
+            let first = pop(stack);
+            cons(first, tail, *tail_pos, env)
+        }
+        Op::SetCons(tail_pos) => {
+            let tail = pop(stack);
+            let first = pop(stack);
+            set_cons(first, tail, *tail_pos, env)
+        }
+        Op::Function { param, body } => function(param, body, env),
+        Op::If { positive, negative } => if_(pop(stack), positive, negative, env),
+        Op::Case { expr, pairs } => case(expr, pairs, env),
+        Op::For {
+            pattern,
+            iterator,
+            body,
+        } => for_(pattern, iterator, body, env),
+        Op::Comprehension {
+            element,
+            variable,
+            iterator,
+            kind,
+        } => comprehension(element, variable, iterator, *kind, env),
+        Op::Bind {
+            pattern,
+            mutable,
+            value_position,
+            discard,
+        } => let_pattern(
+            pattern,
+            pop(stack),
+            *value_position,
+            *discard,
+            if *mutable {
+                ValueKind::Mutable
+            } else {
+                ValueKind::Inmutable
+            },
+            env,
+        ),
+        Op::Symbolic { name, constraint } => let_without_value(name, constraint, env),
+        Op::DefineFunction {
+            name,
+            param,
+            body,
+            memoized,
+        } => let_function(
+            name,
+            param,
+            body,
+            if *memoized {
+                FunctionPatternKind::Memoized
+            } else {
+                FunctionPatternKind::NotMemoized
+            },
+            env,
+        ),
+        Op::Assign {
+            left,
+            value_position,
+            discard,
+        } => {
+            let index = if matches!(left, AssignableSymbol::IndexableValue { .. }) {
+                Some(pop(stack))
+            } else {
+                None
+            };
+            assignment(left, pop(stack), index, *value_position, *discard, env)
+        }
+        Op::Import { source, values } => import_from(source, values, env),
+        Op::Call { name, callee } => {
+            let arg = pop(stack);
+            let func = pop(stack);
+            call(func, arg, name.as_deref(), *callee, pos, env)
+        }
+        Op::Attribute { name, position } => object_attr(pop(stack), name, *position, env),
+        Op::MethodCall {
+            receiver,
+            method,
+            argument,
+            attribute,
+        } => {
+            let receiver_obj = exec(receiver, env)?;
+            let (func, arg) = if matches!(receiver_obj, Object::Dictionary(_)) {
+                // Preserve dictionary method lookup behavior, including receiver reevaluation.
+                let obj = exec(receiver, env)?;
+                (
+                    object_attr(
+                        obj,
+                        attribute.as_deref().expect("attribute must be a symbol"),
+                        method.position,
+                        env,
+                    )?,
+                    exec(argument, env)?,
+                )
+            } else {
+                let func = exec(method, env)?;
+                let arg = exec(argument, env)?;
+                let mut values = match arg {
+                    Object::Tuple(tuple) => tuple.list.into_owned(),
+                    obj => vec![obj],
+                };
+                values.insert(0, receiver_obj);
+                let arg = if values.len() == 1 {
+                    values.pop().unwrap()
+                } else {
+                    Object::Tuple(values.into())
+                };
+                (func, arg)
+            };
+            call(func, arg, None, receiver.position, pos, env)
+        }
+    }?;
+    if let Object::Error(err) = res {
+        return Err(Error::with_position(err.into(), pos, env.file_path()));
+    }
+    if !matches!(
+        &instruction.op,
+        Op::Bind { discard: true, .. } | Op::Assign { discard: true, .. }
+    ) {
+        stack.push(res);
+    }
+    Ok(())
+}
+
 fn pop(stack: &mut Vec<Object>) -> Object {
     stack.pop().expect("IR stack underflow")
 }
@@ -754,34 +768,31 @@ fn comprehension(
 ) -> ExecResult<Object> {
     let iterator = get_iterable(iterator, env)?;
 
-    match kind {
+    env.push_scope(ScopeKind::Block);
+    let result = (|| match kind {
         ComprehensionKind::List => {
             let mut new_list = Vec::with_capacity(iterator.size_hint().0);
-            env.push_scope(ScopeKind::Block);
 
             for val in iterator {
-                env.set_inmutable(variable, val);
+                env.set_inmutable(variable, val?);
                 new_list.push(exec(element, env)?);
             }
-
-            env.pop_scope();
 
             Ok(Object::List(List::from(new_list)))
         }
         ComprehensionKind::Set => {
             let mut new_set = BTreeSet::new();
-            env.push_scope(ScopeKind::Block);
 
             for val in iterator {
-                env.set_inmutable(variable, val);
+                env.set_inmutable(variable, val?);
                 new_set.insert(exec(element, env)?);
             }
 
-            env.pop_scope();
-
             Ok(Object::Set(Set::from(new_set)))
         }
-    }
+    })();
+    env.pop_scope();
+    result
 }
 
 fn let_function(
@@ -836,23 +847,25 @@ fn for_(
 
     env.push_scope(ScopeKind::Loop);
 
-    for val in iter {
-        for (name, val) in destructure(pattern, iterable.position, &val, env)? {
-            env.set_inmutable(&name, val);
+    let result = (|| {
+        for val in iter {
+            let val = val?;
+            for (name, val) in destructure(pattern, iterable.position, &val, env)? {
+                env.set_inmutable(&name, val);
+            }
+            exec(proc, env)?;
         }
-
-        exec(proc, env)?;
-    }
-
+        Ok(Object::empty_tuple())
+    })();
     env.pop_scope();
-
-    Ok(Object::empty_tuple())
+    result
 }
 
 pub(crate) enum ObjectIterator {
     List(std::vec::IntoIter<Object>),
     Set(std::collections::btree_set::IntoIter<Object>),
     Range(Range),
+    Generator(Box<generator::GeneratorIterator>),
 }
 impl ObjectIterator {
     pub(crate) fn new(value: Object) -> Option<Self> {
@@ -860,17 +873,19 @@ impl ObjectIterator {
             Object::List(list) => Some(Self::List(list.list.into_iter())),
             Object::Set(set) => Some(Self::Set(set.into_iter())),
             Object::Range(range) => Some(Self::Range(range)),
+            Object::Generator(generator) => Some(Self::Generator(Box::new(generator.iter()))),
             _ => None,
         }
     }
 }
 impl Iterator for ObjectIterator {
-    type Item = Object;
-    fn next(&mut self) -> Option<Object> {
+    type Item = ExecResult<Object>;
+    fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::List(iter) => iter.next(),
-            Self::Set(iter) => iter.next(),
-            Self::Range(iter) => iter.next(),
+            Self::List(iter) => iter.next().map(Ok),
+            Self::Set(iter) => iter.next().map(Ok),
+            Self::Range(iter) => iter.next().map(Ok),
+            Self::Generator(iter) => iter.next(),
         }
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -878,12 +893,16 @@ impl Iterator for ObjectIterator {
             Self::List(iter) => iter.size_hint(),
             Self::Set(iter) => iter.size_hint(),
             Self::Range(iter) => iter.size_hint(),
+            Self::Generator(iter) => iter.size_hint(),
         }
     }
 }
 fn get_iterable(node: &Block, env: &mut Environment) -> Result<ObjectIterator, Error> {
     let value = exec(node, env)?;
-    if matches!(value, Object::List(_) | Object::Set(_) | Object::Range(_)) {
+    if matches!(
+        value,
+        Object::List(_) | Object::Set(_) | Object::Range(_) | Object::Generator(_)
+    ) {
         Ok(ObjectIterator::new(value).unwrap())
     } else {
         Err(Error::WithPosition(
@@ -1053,6 +1072,13 @@ fn prefix(
     env: &Environment,
 ) -> ExecResult<Object> {
     let res = match op {
+        PrefixOperator::Yield => {
+            return Err(Error::with_position(
+                ExecError::YieldOutsideGenerator.into(),
+                prefix_pos,
+                env.file_path(),
+            ))
+        }
         PrefixOperator::BitwiseNot => obj.bitwise_not(),
         PrefixOperator::LogicNot => obj.logic_not(),
         PrefixOperator::Minus => obj.inverse(),

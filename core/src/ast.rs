@@ -77,6 +77,115 @@ impl ASTNode {
     }
 }
 
+impl ASTNode {
+    pub(crate) fn has_yield(&self) -> bool {
+        let mut found = false;
+        self.walk(0, &mut |node, depth| {
+            found |= depth == 0
+                && matches!(
+                    node.kind,
+                    ASTNodeKind::Prefix {
+                        op: cst::PrefixOperator::Yield,
+                        ..
+                    }
+                );
+        });
+        found
+    }
+
+    pub(crate) fn walk(&self, depth: usize, visit: &mut impl FnMut(&ASTNode, usize)) {
+        use ASTNodeKind::*;
+        visit(self, depth);
+        let mut child = |node: &ASTNode| node.walk(depth, visit);
+        match &self.kind {
+            Function { result, .. }
+            | Declaration(
+                crate::ast::Declaration::Function { result, .. }
+                | crate::ast::Declaration::MemoizedFunction { result, .. },
+            ) => result.walk(depth + 1, visit),
+            Assignment { left, right } => {
+                if let AssignableSymbol::IndexableValue { index, .. } = left {
+                    child(index);
+                }
+                child(right);
+            }
+            Declaration(
+                crate::ast::Declaration::Mutable { right, .. }
+                | crate::ast::Declaration::Inmutable { right, .. },
+            ) => child(right),
+            Block(list) | List { list } | Set { list } | Tuple { list } => {
+                for node in list {
+                    child(node);
+                }
+            }
+            Call { called, arg } => {
+                child(called);
+                child(arg);
+            }
+            Case { expr, pairs } => {
+                child(expr);
+                for (_, body) in pairs {
+                    child(body);
+                }
+            }
+            Comprehension {
+                element, iterator, ..
+            } => {
+                child(element);
+                child(iterator);
+            }
+            DotNotation { lhs, rhs } | Infix { lhs, rhs, .. } => {
+                child(lhs);
+                child(rhs);
+            }
+            IndexNotation { container, index } => {
+                child(container);
+                child(index);
+            }
+            Dictionary { pairs, .. } => {
+                for (key, value) in pairs {
+                    child(key);
+                    child(value);
+                }
+            }
+            For { iter, proc, .. } => {
+                child(iter);
+                child(proc);
+            }
+            Fraction { numer, denom } => {
+                child(numer);
+                child(denom);
+            }
+            If {
+                cond,
+                positive,
+                negative,
+            } => {
+                child(cond);
+                child(positive);
+                child(negative);
+            }
+            Prefix { val, .. } => child(val),
+            Cons { first, tail } => {
+                child(first);
+                child(tail);
+            }
+            SetCons { some, most } => {
+                child(some);
+                child(most);
+            }
+            Boolean(_)
+            | Char(_)
+            | Decimal { .. }
+            | Integer { .. }
+            | ImportFrom { .. }
+            | String { .. }
+            | Symbol { .. }
+            | Declaration(crate::ast::Declaration::Symbolic { .. }) => {}
+        }
+    }
+}
+
 impl Hash for ASTNode {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.kind.hash(state);

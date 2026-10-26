@@ -75,7 +75,7 @@
 				},
 				{
 					"name": "keyword.control.komodo",
-					"match": "\\b(case|do|for|if|else|then|from|import)\\b"
+					"match": "\\b(case|do|for|if|else|then|from|import|yield)\\b"
 				}
 			]
 		},

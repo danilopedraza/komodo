@@ -1,6 +1,6 @@
 use core::fmt;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     env, fs,
     ops::Deref,
     path::{Path, PathBuf},
@@ -40,6 +40,15 @@ impl Environment {
         }
 
         self.bottom.get_type(name)
+    }
+
+    fn is_generator_function(&self, name: &str) -> bool {
+        self.stack
+            .iter()
+            .rev()
+            .chain([&self.bottom])
+            .find(|level| level.dict.contains_key(name))
+            .is_some_and(|level| level.generators.contains(name))
     }
 
     fn within_new_level<T, F: FnOnce(&mut Self) -> T>(&mut self, procedure: F) -> T {
@@ -101,10 +110,14 @@ impl Environment {
 #[derive(Clone, Debug, Default)]
 struct Level {
     dict: HashMap<String, Type>,
+    // Distinguish functions containing yield from ordinary functions that
+    // happen to return a generator in one of their clauses.
+    generators: HashSet<String>,
 }
 
 impl Level {
     fn set_type(&mut self, name: &str, typ: Type) {
+        self.generators.remove(name);
         self.dict.insert(name.to_string(), typ);
     }
 
@@ -115,6 +128,7 @@ impl Level {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TypeError {
+    YieldOutsideFunction,
     NonExistentInfix {
         op: InfixOperator,
         lhs_type: Type,
@@ -211,6 +225,7 @@ pub enum Type {
     Integer,
     List,
     Range,
+    Generator,
     Set,
     String,
     Function { input: Box<Type>, output: Box<Type> },
@@ -230,6 +245,7 @@ impl fmt::Display for Type {
             Type::Integer => write!(f, "Integer"),
             Type::List => write!(f, "List"),
             Type::Range => write!(f, "Range"),
+            Type::Generator => write!(f, "Generator"),
             Type::Set => write!(f, "Set"),
             Type::String => write!(f, "String"),
             Type::Function { input, output } => {
@@ -290,6 +306,7 @@ impl PartialOrd for Type {
             (Self::Set, Self::Set) => Some(std::cmp::Ordering::Equal),
             (Self::String, Self::String) => Some(std::cmp::Ordering::Equal),
             (Self::Unknown, Self::Unknown) => Some(std::cmp::Ordering::Equal),
+            (Self::Generator, Self::Generator) => Some(std::cmp::Ordering::Equal),
             (Self::Range, Self::Range) => Some(std::cmp::Ordering::Equal),
             (
                 Self::Function { input, output },
@@ -472,6 +489,23 @@ pub fn elaborate(
     val: &ASTNode,
     env: &mut Environment,
 ) -> Result<crate::typed_ast::ASTNode, (TypeError, Position)> {
+    let mut invalid_yield = None;
+    val.walk(0, &mut |node, depth| {
+        if depth == 0
+            && matches!(
+                node.kind,
+                ASTNodeKind::Prefix {
+                    op: PrefixOperator::Yield,
+                    ..
+                }
+            )
+        {
+            invalid_yield.get_or_insert(node.position);
+        }
+    });
+    if let Some(position) = invalid_yield {
+        return Err((TypeError::YieldOutsideFunction, position));
+    }
     env.annotations = Some(HashMap::new());
     let result = infer(val, env);
     let annotations = env.annotations.take().unwrap();
@@ -809,6 +843,7 @@ fn lookup_type(typename: &str) -> Result<Type, TypeError> {
         "Integer" => Ok(Type::Integer),
         "List" => Ok(Type::List),
         "Range" => Ok(Type::Range),
+        "Generator" => Ok(Type::Generator),
         "Set" => Ok(Type::Set),
         "String" => Ok(Type::String),
         "Function" => Ok(Type::Function {
@@ -830,6 +865,7 @@ fn infer_function_definition(
     env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
     let input_type = infer_pattern(param).map_err(|err| (err, err_pos))?;
+    let generator = result.has_yield() || env.is_generator_function(name);
 
     // Keep real earlier clauses separate from the placeholder for recursion.
     // Joining a first clause's result with that Unknown would erase its type.
@@ -860,13 +896,20 @@ fn infer_function_definition(
         for (name, typ) in get_introduced_symbols(param, err_pos)? {
             env.set_type(&name, typ);
         }
-        infer(result, env)
+        infer(result, env).map(|typ| {
+            if result.has_yield() {
+                Type::Generator
+            } else {
+                typ
+            }
+        })
     })?;
 
     let res = if let Some(Type::Function { input, .. }) = env.get_type(name) {
         Type::Function {
             input: input.clone(),
             output: Box::new(match previous_output {
+                _ if generator => Type::Generator,
                 Some(previous) => join(output_type, previous),
                 None => output_type,
             }),
@@ -879,6 +922,9 @@ fn infer_function_definition(
     };
 
     env.set_type(name, res.clone());
+    if generator {
+        env.top_level_mut().generators.insert(name.to_owned());
+    }
 
     Ok(res)
 }
@@ -1325,7 +1371,13 @@ fn infer_function(
         for (name, typ) in get_introduced_symbols(param, result.position)? {
             env.set_type(&name, typ);
         }
-        infer(result, env)
+        infer(result, env).map(|typ| {
+            if result.has_yield() {
+                Type::Generator
+            } else {
+                typ
+            }
+        })
     })?);
     Ok(Type::Function { input, output })
 }
@@ -1368,6 +1420,10 @@ fn infer_prefix(
     env: &mut Environment,
 ) -> Result<Type, (TypeError, Position)> {
     match op {
+        PrefixOperator::Yield => {
+            infer(val, env)?;
+            Ok(Type::empty_tuple())
+        }
         PrefixOperator::BitwiseNot => check(val, Type::Integer, env),
         PrefixOperator::LogicNot => check(val, Type::Boolean, env),
         PrefixOperator::Minus => check(val, Type::any_number(), env),

@@ -1,3 +1,4 @@
+pub use crate::exec::generator::Generator;
 pub mod float;
 pub mod fraction;
 pub mod integer;
@@ -157,6 +158,7 @@ pub enum Object {
     Dictionary(Dictionary),
     Function(Function),
     Range(Range),
+    Generator(Generator),
     Error(ObjectError),
 }
 
@@ -337,6 +339,7 @@ impl fmt::Display for Object {
             Object::Function(func) => func.fmt(f),
             Object::Integer(int) => int.fmt(f),
             Object::Range(range) => range.fmt(f),
+            Object::Generator(generator) => generator.fmt(f),
             Object::String(str) => str.fmt(f),
             Object::Symbol(s) => s.fmt(f),
             Object::Tuple(s) => s.fmt(f),
@@ -362,6 +365,7 @@ impl Kind for Object {
             Object::Function(_) => "Function",
             Object::Integer(_) => "Integer",
             Object::Range(_) => "Range",
+            Object::Generator(_) => "Generator",
             Object::String(_) => "String",
             Object::Symbol(_) => "Symbol",
             Object::Tuple(_) => "Tuple",
@@ -385,6 +389,7 @@ macro_rules! derived_object_infix_trait {
                 Self::Function(left) => left.$ident(other),
                 Self::Integer(left) => left.$ident(other),
                 Self::Range(left) => left.$ident(other),
+                Self::Generator(left) => left.$ident(other),
                 Self::String(left) => left.$ident(other),
                 Self::Symbol(left) => left.$ident(other),
                 Self::Tuple(left) => left.$ident(other),
@@ -441,6 +446,7 @@ macro_rules! derived_object_prefix_trait {
                 Self::Function(left) => left.$ident(),
                 Self::Integer(left) => left.$ident(),
                 Self::Range(left) => left.$ident(),
+                Self::Generator(left) => left.$ident(),
                 Self::String(left) => left.$ident(),
                 Self::Symbol(left) => left.$ident(),
                 Self::Tuple(left) => left.$ident(),
@@ -1288,6 +1294,16 @@ impl PatternFunction {
             for index in candidates {
                 let (kind, _, val, pattern) = &self.patterns[index];
                 if let Some(Match(v)) = pattern.matches(arg) {
+                    if self.patterns.iter().any(|(_, _, body, _)| body.has_yield) {
+                        let mut frame = captured.borrow().to_owned();
+                        frame.resolve_captures(val);
+                        frame.push_bindings(ScopeKind::Function, v);
+                        let value = Object::Generator(Generator::new(val.clone(), &frame));
+                        if *kind == FunctionPatternKind::Memoized {
+                            self.cache.insert(arg.clone(), value.clone());
+                        }
+                        return Ok(crate::exec::Outcome::Value(value));
+                    }
                     match kind {
                         FunctionPatternKind::NotMemoized => {
                             let mut frame = captured.borrow().to_owned();
@@ -1347,7 +1363,13 @@ impl AnonFunction {
         };
         self.env.resolve_captures(&self.result);
         self.env.push_bindings(ScopeKind::Function, values);
-        let res = crate::exec::exec_tail(&self.result, &mut self.env);
+        let res = if self.result.has_yield {
+            Ok(crate::exec::Outcome::Value(Object::Generator(
+                Generator::new(self.result.clone(), &self.env),
+            )))
+        } else {
+            crate::exec::exec_tail(&self.result, &mut self.env)
+        };
         self.env.pop_scope();
         res
     }

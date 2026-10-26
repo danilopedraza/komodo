@@ -1,0 +1,10 @@
+from utils import sum
+
+let numbers(a, b) :=
+    if a >= b then
+        ()
+    else
+        yield a
+        numbers(a + 1, b)
+
+assert([i for i in numbers(1, 4)] = [1, 2, 3])

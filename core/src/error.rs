@@ -194,6 +194,7 @@ fn found_a(tok: &TokenType) -> String {
         TokenType::Equals => "an equality operator: `=`".into(),
         TokenType::False => "a boolean: `false`".into(),
         TokenType::FatArrow => "a fat arrow: `=>`".into(),
+        TokenType::Yield => "the `yield` keyword".into(),
         TokenType::For => "the `for` keyword".into(),
         TokenType::Greater => "an operator: `>`".into(),
         TokenType::GreaterEqual => "an operator: `>=`".into(),
@@ -372,6 +373,7 @@ fn type_error_msg(err: &TypeError) -> String {
         TypeError::UnknownSymbol { name } => {
             format!("Reference to unkwown variable: `{name}`. Check for typos")
         }
+        TypeError::YieldOutsideFunction => "`yield` is only valid inside a function".into(),
         TypeError::UnknownType { name } => {
             format!("Reference to unknown type: `{name}`. Check for typos")
         }
@@ -390,6 +392,7 @@ fn exec_error_msg(err: &ExecError) -> String {
             numer_kind,
             denom_kind,
         } => bad_fraction(numer_kind, denom_kind),
+        ExecError::YieldOutsideGenerator => "`yield` is only valid inside a generator".into(),
         ExecError::BadMatch => "The pattern did not match its assigned value".into(),
         ExecError::DenominatorZero => "Division by zero".into(),
         ExecError::MutationOutOfScope { name } => mutation_out_of_scope(name),

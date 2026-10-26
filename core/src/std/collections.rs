@@ -68,6 +68,7 @@ fn apply(
     let mut removed = false;
     let mut f = callback.clone();
     for value in iter {
+        let value = value?;
         if operation == "reduce" {
             result = f.call(&Object::Tuple(vec![result, value].into()), env, pos)?;
             continue;
