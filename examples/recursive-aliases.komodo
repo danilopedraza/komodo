@@ -1,0 +1,6 @@
+let f(0) := 0
+let f(n) := f(n - 1)
+let old := f
+let f(0) := 42
+let result := old(3)
+assert(result = 42)

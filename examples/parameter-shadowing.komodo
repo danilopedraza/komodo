@@ -1,0 +1,7 @@
+let f(x) :=
+    var total := x
+    for x in [2, 3] do
+        total := total + x
+    total + x
+let result := f(10)
+assert(result = 25)

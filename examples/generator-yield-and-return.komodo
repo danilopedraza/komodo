@@ -1,0 +1,11 @@
+let values() :=
+    yield [1, 2]
+    yield ()
+    [3, 4]
+assert([x for x in values()] = [[1, 2], ()])
+let finish() := yield 3
+let delegate() :=
+    yield 1
+    yield 2
+    finish()
+assert([x for x in delegate()] = [1, 2, 3])

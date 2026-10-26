@@ -1,0 +1,5 @@
+from collections import (some, every, reduce, filterFirst)
+assert(some([1, 0], x -> 1 / x = 1))
+assert(!every([1, 0], x -> 1 / x /= 1))
+assert(reduce([], (), 42) = 42)
+assert(filterFirst([1, 0], x -> 1 / x /= 1) = [0])

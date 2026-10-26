@@ -1,0 +1,9 @@
+let inner(n) := yield n
+let nested() :=
+    for n in [1, 2] do
+        for m in inner(n) do
+            yield m
+            yield m * 10
+    let ignored := [yield n + 1 for n in [4, 5]]
+    yield 7
+assert(List(nested()) = [1, 10, 2, 20, 5, 6, 7])

@@ -1,0 +1,4 @@
+let make(unused) := x -> x + 1
+let first := make(1)
+let second := make(2)
+assert(first = second)

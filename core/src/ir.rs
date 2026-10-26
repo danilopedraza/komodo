@@ -892,31 +892,6 @@ mod tests {
     }
 
     #[test]
-    fn parameter_slots_preserve_shadowing_and_rebinding() {
-        let mut env = Environment::default();
-        crate::run::run("let f(x) :=\n    var total := x\n    for x in [2, 3] do\n        total := total + x\n    total + x\nlet result := f(10)", &mut env).unwrap();
-        assert_eq!(env.lookup("result"), Some(&Object::Integer(25.into())));
-    }
-
-    #[test]
-    fn recursive_aliases_keep_clause_updates_visible() {
-        let mut env = Environment::default();
-        crate::run::run("let f(0) := 0\nlet f(n) := f(n - 1)\nlet old := f\nlet f(0) := 42\nlet result := old(3)", &mut env).unwrap();
-        assert_eq!(env.lookup("result"), Some(&Object::Integer(42.into())));
-    }
-
-    #[test]
-    fn closure_equality_ignores_unused_captures() {
-        let mut env = Environment::default();
-        crate::run::run(
-            "let make(unused) := x -> x + 1\nlet first := make(1)\nlet second := make(2)",
-            &mut env,
-        )
-        .unwrap();
-        assert_eq!(env.lookup("first"), env.lookup("second"));
-    }
-
-    #[test]
     fn postfix_operands_keep_types_and_positions() {
         let block = compile("10 - 2 * 3");
         let mut emitted = Vec::new();

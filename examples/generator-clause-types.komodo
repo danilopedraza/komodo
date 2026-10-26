@@ -1,0 +1,7 @@
+let g(1) := yield 1
+let g(0) := ()
+let empty: Generator := g(0)
+assert(List(empty) = [])
+let wrap(1) := g(1)
+let wrap(0) := 42
+assert(wrap(0) = 42)

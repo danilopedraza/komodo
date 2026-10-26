@@ -1,0 +1,13 @@
+from collections import (some, every)
+let numbers(n) :=
+    yield n
+    numbers(n + 1)
+let values := numbers(0)
+assert(some(values, n -> n = 10000))
+assert(some(values, n -> n = 0))
+assert(!every(values, n -> n < 3))
+let fails() :=
+    yield 1
+    assert(false)
+let unused := fails()
+assert(some(unused, n -> n = 1))

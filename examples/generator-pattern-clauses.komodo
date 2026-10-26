@@ -1,0 +1,8 @@
+let down(0) := ()
+let down(n) :=
+    yield n
+    down(n - 1)
+assert([n for n in down(0)] = [])
+assert([n for n in down(3)] = [3, 2, 1])
+assert(List(down(3)) = [3, 2, 1])
+assert(Set(down(3)) = {1, 2, 3})

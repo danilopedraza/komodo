@@ -1,0 +1,5 @@
+let f() := yield 1
+let g: Generator := f()
+let d := {(g, g) => 42}
+assert([x for x in g] = [1])
+assert(d[(g, g)] = 42)

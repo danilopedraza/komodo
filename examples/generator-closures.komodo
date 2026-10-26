@@ -1,0 +1,19 @@
+let make(start) :=
+    let inner() :=
+        yield start
+        yield start + 1
+    inner()
+let outer() :=
+    let inner() := yield 99
+    yield 1
+    let ignored := inner()
+    yield 2
+assert([n for n in make(3)] = [3, 4])
+assert([n for n in outer()] = [1, 2])
+let anon := x -> yield x * 2 + 1
+assert([n for n in anon(4)] = [9])
+let empty() :=
+    if false then yield 1 else ()
+assert([n for n in empty()] = [])
+let takesGenerator(value: Generator) := [n for n in value]
+assert(takesGenerator(make(5)) = [5, 6])

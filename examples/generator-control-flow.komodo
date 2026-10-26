@@ -1,0 +1,19 @@
+let sequence() :=
+    var total := 0
+    for n in [1, 2, 3] do
+        total := total + n
+        if n = 2 then
+            yield total * 10
+        else
+            yield total
+        case n do
+            2 => yield 20
+            _ => ()
+    yield total + 1
+    999
+assert([n for n in sequence()] = [1, 30, 20, 6, 7])
+assert({n for n in sequence()} = {1, 30, 20, 6, 7})
+var result := 0
+for n in sequence() do
+    result := result + n
+assert(result = 64)

@@ -9,22 +9,6 @@ use komodo::{
 };
 
 #[test]
-fn sorted_mixed_numbers() {
-    let mut env = standard_env(ExecContext::default());
-    run(include_str!("../../examples/sort-types.komodo"), &mut env).unwrap();
-    // Converting all values to f64 would lose these distinctions.
-    run(
-        r#"
-assert([9007199254740993, 9007199254740992.0].sorted() = [9007199254740992.0, 9007199254740993])
-assert([0.1, 1//10].sorted() = [1//10, 0.1])
-assert(["z", 2, 0.5, "a"].sorted() = [0.5, 2, "a", "z"])
-"#,
-        &mut env,
-    )
-    .unwrap();
-}
-
-#[test]
 fn number_string_comparison_is_rejected() {
     let mut env = standard_env(ExecContext::default());
     assert!(run("0.5 < \"cesar\"", &mut env).is_err());
