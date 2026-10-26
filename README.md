@@ -10,7 +10,7 @@ This is a monorepo with all the code related to Komodo. Here is a quick summary:
 
   The compiler pipeline is source → CST → AST → typed AST → stack IR → interpreter. The [IR](core/src/ir.rs) uses an operand stack, structured control blocks, and abstract runtime operations. It retains inferred types and source positions. Closures and named functions store IR bodies. This provides a separate lowering boundary for a future Wasm backend.
 
-- `core-browser`: A static website and a Rust project that compiles the interpreter to WASM and creates a simple API to use it in the browser.
+- `core-browser`: A static website and a Rust project that compiles the interpreter to Wasm and creates a simple API to use it in the browser.
 
 - `vsc-extension`: The VSC extension for Komodo. It's a Node project.
 
