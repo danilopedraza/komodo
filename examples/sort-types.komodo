@@ -9,9 +9,55 @@ assert([2.5, -1, 1//4, 0, -3//2].sorted() = [-3//2, -1, 0, 1//4, 2.5])
 assert([1.0, 1//1, 1].sorted() = [1.0, 1//1, 1])
 
 assert(0.5 < 1)
+assert(0.5 < "cesar")
 assert(["cesar", "ana"].sorted() = ["ana", "cesar"])
 
 # Converting all values to f64 would lose these distinctions.
 assert([9007199254740993, 9007199254740992.0].sorted() = [9007199254740992.0, 9007199254740993])
 assert([0.1, 1//10].sorted() = [1//10, 0.1])
 assert(["z", 2, 0.5, "a"].sorted() = [0.5, 2, "a", "z"])
+
+# All six comparisons use the same total order, including through unknown types.
+let values := [
+    false, true, 'a', -2, -0.0, 0, 0.0, 1//10, 0.1, 0.5, 1, 1.0, 1//1,
+    9007199254740992.0, 9007199254740993, 2**2000, "ana", "cesar", (), (1, 2),
+    [], [0.5], [1], [1.0], {}, {1, 2}, {2}, {"a" => 1}, (x -> x), 0..3,
+]
+for a in values do
+    for b in values do
+        assert((a < b) = (b > a))
+        assert((a <= b) = (b >= a))
+        assert((a = b) = (!(a /= b)))
+        assert((a = b) = ((a <= b) && (a >= b)))
+        assert((a < b) = (!(a >= b)))
+        assert((a > b) = (!(a <= b)))
+        let ordered := [a, b].sorted()
+        assert(ordered[0] <= ordered[1])
+        assert(if a <= b then ordered = [a, b] else ordered = [b, a])
+
+# Exact numeric comparison also applies recursively and to collection keys.
+assert(1//10 < 0.1)
+assert(9007199254740992.0 < 9007199254740993)
+assert(1.0 < 2**2000)
+assert(-0.0 = 0)
+assert([0.5] < [1])
+assert([1] = [1.0])
+assert((1, 0.5) < (1.0, 1))
+assert({1, 1.0, 1//1} = {1})
+assert({1 => "one"}[1.0] = "one")
+
+# Sets compare lexicographically rather than by subset membership.
+assert({1, 2} < {2})
+assert([{2}, {1, 2}].sorted() = [{1, 2}, {2}])
+
+# Comparing generators does not consume them.
+let numbers() :=
+    yield 1
+let first := numbers()
+let second := numbers()
+assert(first = first)
+assert(first /= second)
+assert((first < second) || (first > second))
+let generators := [first, second].sorted()
+assert(generators[0] <= generators[1])
+assert([x for x in first] = [1])

@@ -1158,6 +1158,17 @@ fn infer_infix(
         return infer_arithmetic_op(op, lhs_type, rhs_type)
             .map_err(|err| (err, lhs.position.join(rhs.position)));
     }
+    if matches!(
+        op,
+        InfixOperator::Equality
+            | InfixOperator::NotEquality
+            | InfixOperator::Less
+            | InfixOperator::LessEqual
+            | InfixOperator::Greater
+            | InfixOperator::GreaterEqual
+    ) {
+        return Ok(Type::Boolean);
+    }
     if lhs_type == Type::Unknown {
         return Ok(Type::Unknown);
     }
@@ -1176,28 +1187,17 @@ fn infer_infix(
             check(rhs, Type::Integer, env)?;
             Ok(Type::Integer)
         }
-        InfixOperator::Equality => Ok(Type::Boolean),
+        InfixOperator::Equality
+        | InfixOperator::NotEquality
+        | InfixOperator::Less
+        | InfixOperator::LessEqual
+        | InfixOperator::Greater
+        | InfixOperator::GreaterEqual => Ok(Type::Boolean),
         InfixOperator::Division
         | InfixOperator::Exponentiation
         | InfixOperator::Product
         | InfixOperator::Substraction
         | InfixOperator::Sum => unreachable!(),
-        InfixOperator::Greater => match (infer(lhs, env)?, infer(rhs, env)?) {
-            (Type::Set, Type::Set) => Ok(Type::Boolean),
-            (lhs_type, rhs_type) => {
-                check_type(lhs_type, Type::any_number()).map_err(|err| (err, lhs.position))?;
-                check_type(rhs_type, Type::any_number()).map_err(|err| (err, rhs.position))?;
-                Ok(Type::Boolean)
-            }
-        },
-        InfixOperator::GreaterEqual => match (infer(lhs, env)?, infer(rhs, env)?) {
-            (Type::Set, Type::Set) => Ok(Type::Boolean),
-            (lhs_type, rhs_type) => {
-                check_type(lhs_type, Type::any_number()).map_err(|err| (err, lhs.position))?;
-                check_type(rhs_type, Type::any_number()).map_err(|err| (err, rhs.position))?;
-                Ok(Type::Boolean)
-            }
-        },
         InfixOperator::In => {
             infer(lhs, env)?;
             check(rhs, Type::Either(Either::new(Type::List, Type::Set)), env)?;
@@ -1208,22 +1208,6 @@ fn infer_infix(
             check(rhs, Type::Integer, env)?;
             Ok(Type::Integer)
         }
-        InfixOperator::Less => match (infer(lhs, env)?, infer(rhs, env)?) {
-            (Type::Set, Type::Set) => Ok(Type::Boolean),
-            (lhs_type, rhs_type) => {
-                check_type(lhs_type, Type::any_number()).map_err(|err| (err, lhs.position))?;
-                check_type(rhs_type, Type::any_number()).map_err(|err| (err, rhs.position))?;
-                Ok(Type::Boolean)
-            }
-        },
-        InfixOperator::LessEqual => match (infer(lhs, env)?, infer(rhs, env)?) {
-            (Type::Set, Type::Set) => Ok(Type::Boolean),
-            (lhs_type, rhs_type) => {
-                check_type(lhs_type, Type::any_number()).map_err(|err| (err, lhs.position))?;
-                check_type(rhs_type, Type::any_number()).map_err(|err| (err, rhs.position))?;
-                Ok(Type::Boolean)
-            }
-        },
         InfixOperator::LogicAnd => {
             check(lhs, Type::Boolean, env)?;
             check(rhs, Type::Boolean, env)?;
@@ -1239,7 +1223,6 @@ fn infer_infix(
             check(rhs, Type::Integer, env)?;
             Ok(Type::Integer)
         }
-        InfixOperator::NotEquality => Ok(Type::Boolean),
         InfixOperator::Range => {
             check(lhs, Type::Integer, env)?;
             check(rhs, Type::Integer, env)?;

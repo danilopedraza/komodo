@@ -61,14 +61,7 @@ impl Hash for Generator {
     }
 }
 impl object::PrefixOperable for Generator {}
-impl object::InfixOperable for Generator {
-    fn equality(&self, other: &Object) -> Option<Object> {
-        Some(matches!(other, Object::Generator(g) if self == g).into())
-    }
-    fn neq(&self, other: &Object) -> Option<Object> {
-        Some((!matches!(other, Object::Generator(g) if self == g)).into())
-    }
-}
+impl object::InfixOperable for Generator {}
 
 enum Task {
     Eval(Block, usize),

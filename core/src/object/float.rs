@@ -9,7 +9,7 @@ use num_bigint::BigInt;
 use num_rational::BigRational;
 use num_traits::{Pow, ToPrimitive, Zero};
 
-use super::{integer::Integer, Bool, Fraction, InfixOperable, Object, ObjectError, PrefixOperable};
+use super::{integer::Integer, Fraction, InfixOperable, Object, ObjectError, PrefixOperable};
 
 macro_rules! wrapper_fn {
     ($name:ident) => {
@@ -257,76 +257,6 @@ impl InfixOperable for Float {
                     .into(),
             )),
             _ => None,
-        }
-    }
-
-    fn greater(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Float(val) => Some(Object::Boolean(Bool::from(self > val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(
-                self > &Float::try_from(val).ok()?,
-            ))),
-            Object::Fraction(val) => Some(Object::Boolean(Bool::from(self > &Float::from(val)))),
-            _ => None,
-        }
-    }
-
-    fn less(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Float(val) => Some(Object::Boolean(Bool::from(self < val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(
-                self < &Float::try_from(val).ok()?,
-            ))),
-            Object::Fraction(val) => Some(Object::Boolean(Bool::from(self < &Float::from(val)))),
-            _ => None,
-        }
-    }
-
-    fn greater_equal(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Float(val) => Some(Object::Boolean(Bool::from(self >= val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(
-                self >= &Float::try_from(val).ok()?,
-            ))),
-            Object::Fraction(frac) => Some(Object::Boolean(Bool::from(
-                self.val >= Float::from(frac).val,
-            ))),
-            _ => None,
-        }
-    }
-
-    fn less_equal(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Float(val) => Some(Object::Boolean(Bool::from(self <= val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(
-                self <= &Float::try_from(val).ok()?,
-            ))),
-            Object::Fraction(val) => Some(Object::Boolean(Bool::from(self <= &Float::from(val)))),
-            _ => None,
-        }
-    }
-
-    fn equality(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Float(val) => Some(Object::Boolean(Bool::from(self == val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(
-                self == &Float::try_from(val).ok()?,
-            ))),
-            Object::Fraction(val) => Some(Object::Boolean(Bool::from(self == &Float::from(val)))),
-            _ => Some(Object::Boolean(false.into())),
-        }
-    }
-
-    fn neq(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Float(val) => Some(Object::Boolean(Bool::from(self != val))),
-            Object::Integer(val) => Some(Object::Boolean(Bool::from(
-                self != &Float::try_from(val).ok()?,
-            ))),
-            Object::Fraction(frac) => Some(Object::Boolean(Bool::from(
-                self.val != Float::from(frac).val,
-            ))),
-            _ => Some(Object::Boolean(true.into())),
         }
     }
 

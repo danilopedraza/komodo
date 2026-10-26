@@ -83,4 +83,4 @@ These functions allow to convert values of certain type into types of another. I
 
 - `len(container)`: Returns the length of a set or a list. If you pass it something else, it will fail.
 
-- `sorted(list)`: Returns the input list, but sorted. If you pass it something else, it will fail.
+- `sorted(list)`: Returns the input list sorted using the same total order as the comparison operators, including for mixed types. Equal values keep their input order. If you pass it something else, it will fail.

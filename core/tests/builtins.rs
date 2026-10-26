@@ -9,12 +9,6 @@ use komodo::{
 };
 
 #[test]
-fn number_string_comparison_is_rejected() {
-    let mut env = standard_env(ExecContext::default());
-    assert!(run("0.5 < \"cesar\"", &mut env).is_err());
-}
-
-#[test]
 fn sorted_non_finite_numbers() {
     use komodo::object::{List, Object};
 

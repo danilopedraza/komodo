@@ -27,6 +27,28 @@ This list contains all the infix operators, an example of how the operator would
 | `*`      | `5 * 7`           | Arithmetic multiplication     | 10         |
 | `**`     | `2 ** 5`          | Exponentiation                | 11         |
 
+### Comparison order
+
+All six comparison operators work between any two values and use the same total
+order as `sorted`. Different types are ordered as follows:
+
+`Bool < Char < Number < Symbol < String < Tuple < List < Set < Dictionary < Function < Range < Generator < Error`.
+
+Integers, floats, and fractions share numeric ordering. Comparisons use the exact
+stored value, without rounding integers or fractions to floats. Thus `1 = 1.0`,
+but `1//10 < 0.1` because the float is slightly greater than one tenth. Positive
+and negative zero compare equal. Infinities bound finite numbers; negative NaNs
+sort before negative infinity and positive NaNs after positive infinity, with
+NaN bit patterns providing a deterministic order within each group.
+
+Collections compare lexicographically, recursively using this order. Sets compare
+their sorted elements; dictionaries compare their sorted key/value pairs. Equal
+numeric values are also interchangeable as set elements and dictionary keys.
+Function and generator ordering can depend on identity within an execution;
+comparing a generator does not consume it.
+
+For example, `0.5 < "cesar"` and `[0.5] < [1]` are both true.
+
 ## Prefix operators
 
 This list contains all the prefix operators, an example of how the operator would be used, and a short explanation.
@@ -36,4 +58,3 @@ This list contains all the prefix operators, an example of how the operator woul
 | `~`      | `~1`     | Bitwise negation |
 | `!`      | `!false` | Logic negation   |
 | `-`      | `-5`     | Additive inverse |
-

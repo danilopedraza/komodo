@@ -169,7 +169,8 @@ The `Set` type represents an unordered collection of Komodo values. You can writ
   {1}
   ```
 
-- You can check if a set is a subset of another:
+- Comparisons use the same lexicographic order as `sorted`, rather than subset
+  membership:
   ```
   >>> {} < {1, 2}
   true
@@ -179,7 +180,12 @@ The `Set` type represents an unordered collection of Komodo values. You can writ
   true
   >>> {1} <= {1, 2}
   true
+  >>> {1, 2} < {2}
+  true
   ```
+
+  To check whether `A` is a subset of `B`, use `A - B = {}`; for a strict
+  subset, also require `A /= B`.
 
 - You can add elements to a set:
   ```

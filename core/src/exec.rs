@@ -992,21 +992,27 @@ fn object_attr(
     }
 }
 
+fn comparison(op: InfixOperator, lhs: &Object, rhs: &Object) -> Option<Object> {
+    match op {
+        InfixOperator::Equality => lhs.equality(rhs),
+        InfixOperator::NotEquality => lhs.neq(rhs),
+        InfixOperator::Less => lhs.less(rhs),
+        InfixOperator::LessEqual => lhs.less_equal(rhs),
+        InfixOperator::Greater => lhs.greater(rhs),
+        InfixOperator::GreaterEqual => lhs.greater_equal(rhs),
+        _ => None,
+    }
+}
+
 pub(crate) fn integer_infix(op: InfixOperator, lhs: &Object, rhs: &Object) -> Option<Object> {
-    let (Object::Integer(lhs), Object::Integer(rhs)) = (lhs, rhs) else {
+    let (Object::Integer(left), Object::Integer(right)) = (lhs, rhs) else {
         return None;
     };
     Some(match op {
-        InfixOperator::Sum => Object::Integer(lhs + rhs),
-        InfixOperator::Substraction => Object::Integer(lhs - rhs),
-        InfixOperator::Product => Object::Integer(lhs * rhs),
-        InfixOperator::Equality => Object::Boolean((lhs == rhs).into()),
-        InfixOperator::NotEquality => Object::Boolean((lhs != rhs).into()),
-        InfixOperator::Less => Object::Boolean((lhs < rhs).into()),
-        InfixOperator::LessEqual => Object::Boolean((lhs <= rhs).into()),
-        InfixOperator::Greater => Object::Boolean((lhs > rhs).into()),
-        InfixOperator::GreaterEqual => Object::Boolean((lhs >= rhs).into()),
-        _ => return None,
+        InfixOperator::Sum => Object::Integer(left + right),
+        InfixOperator::Substraction => Object::Integer(left - right),
+        InfixOperator::Product => Object::Integer(left * right),
+        _ => return comparison(op, lhs, rhs),
     })
 }
 
@@ -1018,6 +1024,12 @@ pub(crate) fn infix(
     env: &mut Environment,
 ) -> ExecResult<Object> {
     let res = match op {
+        InfixOperator::Equality
+        | InfixOperator::NotEquality
+        | InfixOperator::Less
+        | InfixOperator::LessEqual
+        | InfixOperator::Greater
+        | InfixOperator::GreaterEqual => comparison(op, lhs, rhs),
         InfixOperator::BitwiseAnd => lhs.bitwise_and(rhs),
         InfixOperator::BitwiseXor => lhs.bitwise_xor(rhs),
         InfixOperator::Division => {
@@ -1031,18 +1043,12 @@ pub(crate) fn infix(
                 lhs.over(rhs)
             }
         }
-        InfixOperator::Equality => lhs.equality(rhs),
         InfixOperator::Exponentiation => lhs.pow(rhs),
-        InfixOperator::Greater => lhs.greater(rhs),
-        InfixOperator::GreaterEqual => lhs.greater_equal(rhs),
         InfixOperator::In => rhs.contains(lhs),
         InfixOperator::LeftShift => lhs.left_shift(rhs),
-        InfixOperator::Less => lhs.less(rhs),
-        InfixOperator::LessEqual => lhs.less_equal(rhs),
         InfixOperator::LogicAnd => lhs.logic_and(rhs),
         InfixOperator::Or => lhs.or(rhs),
         InfixOperator::Rem => lhs.rem(rhs),
-        InfixOperator::NotEquality => lhs.neq(rhs),
         InfixOperator::Product => lhs.product(rhs),
         InfixOperator::RightShift => lhs.right_shift(rhs),
         InfixOperator::Substraction => lhs.substraction(rhs),

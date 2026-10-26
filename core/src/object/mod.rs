@@ -104,17 +104,11 @@ macro_rules! default_infix_methods {
 default_infix_methods!(
     bitwise_and,
     bitwise_xor,
-    equality,
-    greater,
-    greater_equal,
     contains,
     left_shift,
-    less,
-    less_equal,
     logic_and,
     or,
     rem,
-    neq,
     over,
     pow,
     product,
@@ -144,7 +138,7 @@ macro_rules! default_prefix_methods {
 
 default_prefix_methods!(bitwise_not, logic_not, inverse);
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Debug)]
 pub enum Object {
     Boolean(Bool),
     Char(Char),
@@ -163,7 +157,110 @@ pub enum Object {
     Error(ObjectError),
 }
 
+// This key defines the language's total order. Deriving the traits on a
+// borrowed key keeps ordering, equality, and hashing consistent, including
+// recursively inside collections, without cloning nonnumeric values.
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum OrderKey<'a> {
+    Boolean(&'a Bool),
+    Char(&'a Char),
+    Number(NumberKey),
+    Symbol(&'a Symbol),
+    String(&'a MyString),
+    Tuple(&'a Tuple),
+    List(&'a List),
+    Set(&'a Set),
+    Dictionary(&'a Dictionary),
+    Function(&'a Function),
+    Range(&'a Integer, &'a Integer),
+    Generator(&'a Generator),
+    Error(&'a ObjectError),
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum NumberKey {
+    NegativeNonFinite(Float),
+    Finite(BigRational),
+    PositiveNonFinite(Float),
+}
+
 impl Object {
+    fn order_key(&self) -> OrderKey<'_> {
+        match self {
+            Self::Boolean(value) => OrderKey::Boolean(value),
+            Self::Char(value) => OrderKey::Char(value),
+            Self::Integer(value) => {
+                OrderKey::Number(NumberKey::Finite(BigRational::from_integer(value.into())))
+            }
+            Self::Fraction(value) => OrderKey::Number(NumberKey::Finite(value.clone().into())),
+            Self::Float(value) => {
+                let float: f64 = value.clone().into();
+                OrderKey::Number(match BigRational::from_float(float) {
+                    Some(value) => NumberKey::Finite(value),
+                    None if float.is_sign_negative() => NumberKey::NegativeNonFinite(value.clone()),
+                    None => NumberKey::PositiveNonFinite(value.clone()),
+                })
+            }
+            Self::Symbol(value) => OrderKey::Symbol(value),
+            Self::String(value) => OrderKey::String(value),
+            Self::Tuple(value) => OrderKey::Tuple(value),
+            Self::List(value) => OrderKey::List(value),
+            Self::Set(value) => OrderKey::Set(value),
+            Self::Dictionary(value) => OrderKey::Dictionary(value),
+            Self::Function(value) => OrderKey::Function(value),
+            Self::Range(value) => OrderKey::Range(&value.start, &value.end),
+            Self::Generator(value) => OrderKey::Generator(value),
+            Self::Error(value) => OrderKey::Error(value),
+        }
+    }
+}
+
+impl Ord for Object {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            // Preserve the allocation-free path for the most common comparison.
+            (Self::Integer(left), Self::Integer(right)) => left.cmp(right),
+            _ => self.order_key().cmp(&other.order_key()),
+        }
+    }
+}
+
+impl PartialOrd for Object {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Object {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other).is_eq()
+    }
+}
+
+impl Eq for Object {}
+
+impl Hash for Object {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.order_key().hash(state);
+    }
+}
+
+macro_rules! object_comparison {
+    ($name:ident, $op:tt) => {
+        pub fn $name(&self, other: &Object) -> Option<Object> {
+            Some((self $op other).into())
+        }
+    };
+}
+
+impl Object {
+    object_comparison!(less, <);
+    object_comparison!(less_equal, <=);
+    object_comparison!(greater, >);
+    object_comparison!(greater_equal, >=);
+    object_comparison!(equality, ==);
+    object_comparison!(neq, !=);
+
     pub(crate) fn snapshot(&self) -> Self {
         match self {
             Self::Function(Function::Pattern(function)) => {
@@ -414,14 +511,8 @@ derived_object_infix_traits!(
     bitwise_and,
     bitwise_xor,
     contains,
-    equality,
-    greater,
-    greater_equal,
     left_shift,
-    less,
-    less_equal,
     logic_and,
-    neq,
     or,
     rem,
     over,
@@ -502,20 +593,6 @@ impl InfixOperable for Bool {
             _ => None,
         }
     }
-
-    fn equality(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Boolean(bool) => Some(Object::Boolean(Bool::from(self == bool))),
-            _ => Some(Object::false_obj()),
-        }
-    }
-
-    fn neq(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Boolean(bool) => Some(Object::Boolean(Bool::from(self != bool))),
-            _ => Some(Object::true_obj()),
-        }
-    }
 }
 
 impl PrefixOperable for Bool {
@@ -576,20 +653,6 @@ impl InfixOperable for Char {
             _ => None,
         }
     }
-
-    fn equality(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Char(chr) => Some(Object::Boolean(Bool::from(self == chr))),
-            _ => Some(Object::false_obj()),
-        }
-    }
-
-    fn neq(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Char(chr) => Some(Object::Boolean(Bool::from(self != chr))),
-            _ => Some(Object::true_obj()),
-        }
-    }
 }
 impl PrefixOperable for Char {}
 
@@ -639,14 +702,6 @@ impl Set {
         Object::Set(Set { set: set.into() })
     }
 
-    fn subset_strict(&self, other: &Set) -> Object {
-        Object::Boolean((self.set.is_subset(&other.set) && self.set.len() < other.set.len()).into())
-    }
-
-    fn subset_eq(&self, other: &Set) -> Object {
-        Object::Boolean(self.set.is_subset(&other.set).into())
-    }
-
     pub fn iter(&self) -> Iter<'_, Object> {
         self.set.iter()
     }
@@ -688,50 +743,8 @@ impl InfixOperable for Set {
         }
     }
 
-    fn less(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Set(set) => Some(self.subset_strict(set)),
-            _ => None,
-        }
-    }
-
-    fn less_equal(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Set(set) => Some(self.subset_eq(set)),
-            _ => None,
-        }
-    }
-
-    fn greater(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Set(set) => Some(set.subset_strict(self)),
-            _ => None,
-        }
-    }
-
-    fn greater_equal(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Set(set) => Some(set.subset_eq(self)),
-            _ => None,
-        }
-    }
-
     fn contains(&self, val: &Object) -> Option<Object> {
         Some(self.set.contains(val).into())
-    }
-
-    fn equality(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Set(set) => Some(Object::Boolean(Bool::from(self == set))),
-            _ => Some(Object::false_obj()),
-        }
-    }
-
-    fn neq(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Set(set) => Some(Object::Boolean(Bool::from(self != set))),
-            _ => Some(Object::true_obj()),
-        }
     }
 }
 impl PrefixOperable for Set {}
@@ -838,21 +851,7 @@ impl fmt::Display for Dictionary {
     }
 }
 
-impl InfixOperable for Dictionary {
-    fn equality(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Dictionary(dict) => Some(Object::Boolean(Bool::from(self == dict))),
-            _ => Some(Object::false_obj()),
-        }
-    }
-
-    fn neq(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Dictionary(dict) => Some(Object::Boolean(Bool::from(self != dict))),
-            _ => Some(Object::true_obj()),
-        }
-    }
-}
+impl InfixOperable for Dictionary {}
 impl PrefixOperable for Dictionary {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -926,20 +925,6 @@ impl InfixOperable for MyString {
             _ => None,
         }
     }
-
-    fn equality(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::String(str) => Some(Object::Boolean(Bool::from(self == str))),
-            _ => Some(Object::false_obj()),
-        }
-    }
-
-    fn neq(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::String(str) => Some(Object::Boolean(Bool::from(self != str))),
-            _ => Some(Object::true_obj()),
-        }
-    }
 }
 
 impl PrefixOperable for MyString {}
@@ -976,21 +961,7 @@ impl fmt::Display for Symbol {
     }
 }
 
-impl InfixOperable for Symbol {
-    fn equality(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Symbol(sym) => Some(Object::Boolean(Bool::from(self == sym))),
-            _ => Some(Object::false_obj()),
-        }
-    }
-
-    fn neq(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Symbol(sym) => Some(Object::Boolean(Bool::from(self != sym))),
-            _ => Some(Object::true_obj()),
-        }
-    }
-}
+impl InfixOperable for Symbol {}
 
 impl PrefixOperable for Symbol {}
 
@@ -1011,21 +982,7 @@ impl Tuple {
     }
 }
 
-impl InfixOperable for Tuple {
-    fn equality(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Tuple(tup) => Some(Object::Boolean(Bool::from(self == tup))),
-            _ => Some(Object::false_obj()),
-        }
-    }
-
-    fn neq(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Tuple(tup) => Some(Object::Boolean(Bool::from(self != tup))),
-            _ => Some(Object::true_obj()),
-        }
-    }
-}
+impl InfixOperable for Tuple {}
 impl PrefixOperable for Tuple {}
 
 impl fmt::Display for Tuple {
@@ -1054,21 +1011,7 @@ pub enum Function {
     Extern(ExternFunction),
 }
 
-impl InfixOperable for Function {
-    fn equality(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Function(func) => Some(Object::Boolean(Bool::from(self == func))),
-            _ => Some(Object::false_obj()),
-        }
-    }
-
-    fn neq(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Function(func) => Some(Object::Boolean(Bool::from(self != func))),
-            _ => Some(Object::true_obj()),
-        }
-    }
-}
+impl InfixOperable for Function {}
 impl PrefixOperable for Function {}
 
 impl fmt::Display for Function {
@@ -1504,43 +1447,10 @@ impl List {
 
     pub fn sorted(&self) -> Self {
         let mut list = self.list.to_owned();
-        // Numeric values share one ordering, independent of their storage type.
-        // Keep Object's structural ordering for keys in sets and dictionaries.
-        list.sort_by_cached_key(|object| match object {
-            Object::Integer(value) => SortKey::Number(NumberSortKey::Finite(
-                BigRational::from_integer(value.into()),
-            )),
-            Object::Fraction(value) => SortKey::Number(NumberSortKey::Finite(value.clone().into())),
-            Object::Float(value) => {
-                let float: f64 = value.clone().into();
-                SortKey::Number(match BigRational::from_float(float) {
-                    Some(value) => NumberSortKey::Finite(value),
-                    None if float.is_sign_negative() => {
-                        NumberSortKey::NegativeNonFinite(value.clone())
-                    }
-                    None => NumberSortKey::PositiveNonFinite(value.clone()),
-                })
-            }
-            Object::Boolean(_) | Object::Char(_) => SortKey::BeforeNumber(object.clone()),
-            _ => SortKey::AfterNumber(object.clone()),
-        });
+        list.sort();
 
         Self { list }
     }
-}
-
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
-enum SortKey {
-    BeforeNumber(Object),
-    Number(NumberSortKey),
-    AfterNumber(Object),
-}
-
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
-enum NumberSortKey {
-    NegativeNonFinite(Float),
-    Finite(BigRational),
-    PositiveNonFinite(Float),
 }
 
 impl From<Vec<Object>> for List {
@@ -1575,20 +1485,6 @@ impl InfixOperable for List {
 
     fn contains(&self, val: &Object) -> Option<Object> {
         Some(self.list.contains(val).into())
-    }
-
-    fn equality(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::List(list) => Some(Object::Boolean(Bool::from(self == list))),
-            _ => Some(Object::false_obj()),
-        }
-    }
-
-    fn neq(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::List(list) => Some(Object::Boolean(Bool::from(self != list))),
-            _ => Some(Object::true_obj()),
-        }
     }
 }
 
@@ -1669,21 +1565,7 @@ impl Range {
 }
 
 impl PrefixOperable for Range {}
-impl InfixOperable for Range {
-    fn equality(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Range(range) => Some(Object::Boolean(Bool::from(self == range))),
-            _ => Some(Object::false_obj()),
-        }
-    }
-
-    fn neq(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Range(range) => Some(Object::Boolean(Bool::from(self != range))),
-            _ => Some(Object::true_obj()),
-        }
-    }
-}
+impl InfixOperable for Range {}
 
 impl fmt::Display for Range {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1710,27 +1592,84 @@ impl fmt::Display for ObjectError {
 }
 
 impl PrefixOperable for ObjectError {}
-impl InfixOperable for ObjectError {
-    fn equality(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Error(err) => Some(Object::Boolean(Bool::from(self == err))),
-            _ => Some(Object::false_obj()),
-        }
-    }
-
-    fn neq(&self, other: &Object) -> Option<Object> {
-        match other {
-            Object::Error(err) => Some(Object::Boolean(Bool::from(self != err))),
-            _ => Some(Object::true_obj()),
-        }
-    }
-}
+impl InfixOperable for ObjectError {}
 
 #[cfg(test)]
 mod tests {
     use crate::lexer::Radix;
 
     use super::*;
+
+    #[test]
+    fn numeric_order_equality_and_hash_agree() {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::Hasher;
+
+        let hash = |value: &Object| {
+            let mut state = DefaultHasher::new();
+            value.hash(&mut state);
+            state.finish()
+        };
+        let values = vec![
+            Object::Float((-f64::NAN).into()),
+            Object::Float(f64::NEG_INFINITY.into()),
+            Object::Integer((-1).into()),
+            Object::Float((-0.0).into()),
+            Object::Integer(0.into()),
+            Object::Fraction(Fraction::_new(0, 1)),
+            Object::Float(0.0.into()),
+            Object::Fraction(Fraction::_new(1, 10)),
+            Object::Float(0.1.into()),
+            Object::Integer(1.into()),
+            Object::Fraction(Fraction::_new(1, 1)),
+            Object::Float(1.0.into()),
+            Object::Integer((BigInt::from(1) << 2000usize).into()),
+            Object::Float(f64::INFINITY.into()),
+            Object::Float(f64::NAN.into()),
+            Object::Float(f64::from_bits(f64::NAN.to_bits() + 1).into()),
+        ];
+        for (i, left) in values.iter().enumerate() {
+            for (j, right) in values.iter().enumerate() {
+                let order = left.cmp(right);
+                assert_eq!(order, right.cmp(left).reverse());
+                assert_eq!(left == right, order.is_eq());
+                assert_eq!(left.equality(right), Some(order.is_eq().into()));
+                assert_eq!(left.less(right), Some(order.is_lt().into()));
+                if i <= j {
+                    assert!(order.is_le());
+                }
+                if order.is_eq() {
+                    assert_eq!(hash(left), hash(right));
+                    let left = Object::List(vec![left.clone()].into());
+                    let right = Object::List(vec![right.clone()].into());
+                    assert_eq!(left, right);
+                    assert_eq!(hash(&left), hash(&right));
+                }
+            }
+        }
+        let mut reversed = values.clone();
+        reversed.reverse();
+        assert_eq!(List::from(reversed).sorted(), List::from(values));
+    }
+
+    #[test]
+    fn range_order_and_hash_ignore_iterator_position() {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::Hasher;
+
+        let range = Range::_new(0, 3);
+        let mut advanced = range.clone();
+        advanced.next();
+        let left = Object::Range(range);
+        let right = Object::Range(advanced);
+        assert_eq!(left, right);
+        let mut left_hash = DefaultHasher::new();
+        let mut right_hash = DefaultHasher::new();
+        left.hash(&mut left_hash);
+        right.hash(&mut right_hash);
+        assert_eq!(left_hash.finish(), right_hash.finish());
+    }
+
     #[test]
     #[allow(
         clippy::mutable_key_type,
