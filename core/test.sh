@@ -11,21 +11,7 @@ cargo build
 
 echo "Running examples..."
 someone_failed=false
-excluded_files=("sort-types.komodo")
 for file in $(find "$examples_dir" -type f -name "*.komodo"); do
-    filename=$(basename "$file")
-    excluded=false
-    for excluded_file in "${excluded_files[@]}"; do
-        if [ "$filename" = "$excluded_file" ]; then
-            excluded=true
-            break
-        fi
-    done
-    if [ "$excluded" = true ]; then
-        echo "⏭️  Skipping excluded file: $file"
-        continue
-    fi
-
     output=$(eval "cargo run --quiet $file" 2>&1)
 
     if [ $? -ne 0 ]; then

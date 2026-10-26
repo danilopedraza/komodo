@@ -20,6 +20,7 @@ use std::{
 };
 
 use num_bigint::BigInt;
+use num_rational::BigRational;
 
 use float::Float;
 use fraction::Fraction;
@@ -1503,10 +1504,43 @@ impl List {
 
     pub fn sorted(&self) -> Self {
         let mut list = self.list.to_owned();
-        list.sort();
+        // Numeric values share one ordering, independent of their storage type.
+        // Keep Object's structural ordering for keys in sets and dictionaries.
+        list.sort_by_cached_key(|object| match object {
+            Object::Integer(value) => SortKey::Number(NumberSortKey::Finite(
+                BigRational::from_integer(value.into()),
+            )),
+            Object::Fraction(value) => SortKey::Number(NumberSortKey::Finite(value.clone().into())),
+            Object::Float(value) => {
+                let float: f64 = value.clone().into();
+                SortKey::Number(match BigRational::from_float(float) {
+                    Some(value) => NumberSortKey::Finite(value),
+                    None if float.is_sign_negative() => {
+                        NumberSortKey::NegativeNonFinite(value.clone())
+                    }
+                    None => NumberSortKey::PositiveNonFinite(value.clone()),
+                })
+            }
+            Object::Boolean(_) | Object::Char(_) => SortKey::BeforeNumber(object.clone()),
+            _ => SortKey::AfterNumber(object.clone()),
+        });
 
         Self { list }
     }
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+enum SortKey {
+    BeforeNumber(Object),
+    Number(NumberSortKey),
+    AfterNumber(Object),
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+enum NumberSortKey {
+    NegativeNonFinite(Float),
+    Finite(BigRational),
+    PositiveNonFinite(Float),
 }
 
 impl From<Vec<Object>> for List {
