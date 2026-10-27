@@ -36,6 +36,14 @@ nix develop
 
 Run that in the repository root. The existing Makefiles are the convenient command interface inside the development shell. You can also build the interpreter directly with `nix build`, or run all flake checks with `nix flake check`.
 
+Enable the repository's pre-push hook once per clone:
+
+```sh
+git config --local core.hooksPath .githooks
+```
+
+The pre-push hook runs `nix flake check -L` and blocks the push if any check fails.
+
 CI uses the locked flake for builds and checks, with the Nix store cached between
 GitHub Actions runs. Run the same checks locally:
 

@@ -1,0 +1,2 @@
+#!/bin/sh
+exec nix flake check -L
