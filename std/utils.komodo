@@ -15,9 +15,9 @@ let sum(container) :=
 let prod(container) :=
     reduce(container, (a, b) -> a * b, 1)
 
-let indexOfHelper([]: List, _, _) := ()
-let indexOfHelper([value|tail]: List, value, acc) := acc
-let indexOfHelper([_|tail]: List, value, acc) := indexOfHelper(tail, value, acc)
+let indexOfHelper([] || "", _, _: Integer) := ()
+let indexOfHelper([value|tail], value, acc: Integer) := acc
+let indexOfHelper([_|tail], value, acc: Integer) := indexOfHelper(tail, value, acc + 1)
 
 let indexOf(values: List, value) :=
     indexOfHelper(values, value, 0)
