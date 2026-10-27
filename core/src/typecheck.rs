@@ -1,9 +1,10 @@
 use core::fmt;
 use std::{
     collections::{HashMap, HashSet},
-    env, fs,
+    env,
     ops::Deref,
     path::{Path, PathBuf},
+    rc::Rc,
     vec,
 };
 
@@ -12,9 +13,7 @@ use crate::{
     cst::{ComprehensionKind, PrefixOperator},
     env::ExecContext,
     error::Position,
-    lexer::Lexer,
-    parser::Parser,
-    run::{collect_nodes, get_std_path, ModuleAddress, STDLIB_PATH_VAR},
+    run::{get_std_path, ModuleAddress, STDLIB_PATH_VAR},
 };
 
 #[derive(Clone, Debug, Default)]
@@ -28,6 +27,26 @@ pub struct Environment {
 }
 
 impl Environment {
+    /// Stage only the bindings changed by one REPL expression.
+    #[cfg(any(test, feature = "repl"))]
+    pub(crate) fn begin_transaction(&mut self) {
+        assert!(self.stack.is_empty());
+        self.stack.push(Level::default());
+    }
+
+    #[cfg(any(test, feature = "repl"))]
+    pub(crate) fn finish_transaction(&mut self, commit: bool) {
+        assert_eq!(self.stack.len(), 1);
+        let pending = self.stack.pop().unwrap();
+        if commit {
+            let bottom = &mut self.bottom;
+            for (name, typ) in pending.dict {
+                bottom.set_type(&name, typ);
+            }
+            bottom.generators.extend(pending.generators);
+        }
+    }
+
     fn set_type(&mut self, name: &str, typ: Type) {
         self.top_level_mut().set_type(name, typ)
     }
@@ -155,35 +174,35 @@ pub enum TypeError {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Either {
-    left: Box<Type>,
-    right: Box<Type>,
+    alternatives: Rc<[Type]>,
 }
 
 impl Either {
     fn new(left: Type, right: Type) -> Self {
-        let left = Box::new(left);
-        let right = Box::new(right);
-        Self { left, right }
-    }
-
-    fn collect(&self) -> Vec<Type> {
-        let mut stack = vec![self.right.as_ref(), self.left.as_ref()];
-        let mut res = vec![];
-
-        while let Some(top) = stack.pop() {
-            match top {
+        let mut alternatives = Vec::new();
+        for typ in [left, right] {
+            match typ {
                 Type::Either(either) => {
-                    stack.push(either.right.as_ref());
-                    stack.push(either.left.as_ref());
+                    for typ in either.alternatives.iter() {
+                        if !alternatives.contains(typ) {
+                            alternatives.push(typ.clone());
+                        }
+                    }
                 }
                 typ => {
-                    res.push(typ.to_owned().to_owned());
+                    if !alternatives.contains(&typ) {
+                        alternatives.push(typ);
+                    }
                 }
             }
         }
+        Self {
+            alternatives: alternatives.into(),
+        }
+    }
 
-        res.dedup();
-        res
+    fn collect(&self) -> &[Type] {
+        &self.alternatives
     }
 }
 
@@ -263,7 +282,7 @@ impl fmt::Display for Type {
             Type::Either(either) => {
                 let type_str = either
                     .collect()
-                    .into_iter()
+                    .iter()
                     .map(|typ| typ.to_string())
                     .reduce(|acc, cur| acc + " | " + &cur)
                     .unwrap();
@@ -376,112 +395,61 @@ pub fn check(
 }
 
 fn check_type(actual: Type, expected: Type) -> Result<Type, TypeError> {
-    match (actual, expected) {
-        (actual, expected) if actual == expected => Ok(actual),
-        (Type::Unknown, _) => Ok(Type::Unknown),
-        (actual, Type::Unknown) => Ok(actual),
-        (Type::Either(either), expected) => {
-            let actual = Type::Either(either.clone());
-            for alternative in either.collect() {
-                if check_type(alternative, expected.clone()).is_err() {
-                    return Err(TypeError::TypeMismatch { expected, actual });
-                }
-            }
-            Ok(actual)
-        }
-        (actual, Type::Either(either)) => {
-            for type_hint in either.collect() {
-                if check_type(actual.clone(), type_hint).is_ok() {
-                    return Ok(actual);
-                }
-            }
-            // An overloaded function can cover different alternatives of a tuple
-            // argument in different clauses, e.g. (List | Set, Function).
-            if let Type::Tuple(items) = &actual {
-                let alternatives = tuple_alternatives(items);
-                if alternatives.len() > 1 {
-                    let expected = Type::Either(either);
-                    for alternative in alternatives {
-                        if check_type(Type::Tuple(alternative), expected.clone()).is_err() {
-                            return Err(TypeError::TypeMismatch { expected, actual });
-                        }
-                    }
-                    return Ok(actual);
-                }
-            }
-            let expected = Type::Either(either);
-            Err(TypeError::TypeMismatch { expected, actual })
-        }
-        (
-            Type::Function {
-                input: actual_input,
-                output: actual_output,
-            },
-            Type::Function {
-                input: expected_input,
-                output: expected_output,
-            },
-        ) => {
-            let compatible = check_type(*expected_input.clone(), *actual_input.clone()).is_ok()
-                && check_type(*actual_output.clone(), *expected_output.clone()).is_ok();
-            let actual = Type::Function {
-                input: actual_input,
-                output: actual_output,
-            };
-            if compatible {
-                Ok(actual)
-            } else {
-                let expected = Type::Function {
-                    input: expected_input,
-                    output: expected_output,
-                };
-                Err(TypeError::TypeMismatch { expected, actual })
-            }
-        }
-        (Type::Tuple(ltup), Type::Tuple(rtup)) => {
-            if ltup.len() != rtup.len() {
-                let actual = Type::Tuple(ltup);
-                let expected = Type::Tuple(rtup);
-                return Err(TypeError::TypeMismatch { expected, actual });
-            }
-
-            for (lhs, rhs) in ltup.iter().zip(&rtup) {
-                if check_type(lhs.clone(), rhs.clone()).is_err() {
-                    let actual = Type::Tuple(ltup);
-                    let expected = Type::Tuple(rtup);
-                    return Err(TypeError::TypeMismatch { expected, actual });
-                }
-            }
-
-            Ok(Type::Tuple(ltup))
-        }
-        (actual, expected) => Err(TypeError::TypeMismatch { expected, actual }),
+    if compatible(&actual, &expected) {
+        Ok(actual)
+    } else {
+        Err(TypeError::TypeMismatch { expected, actual })
     }
 }
 
-fn tuple_alternatives(items: &[Type]) -> Vec<Vec<Type>> {
-    let mut tuples = vec![vec![]];
-    for item in items {
-        let alternatives = match item {
-            Type::Either(either) => either.collect(),
-            Type::Tuple(items) => tuple_alternatives(items)
-                .into_iter()
-                .map(Type::Tuple)
-                .collect(),
-            typ => vec![typ.clone()],
-        };
-        tuples = tuples
-            .into_iter()
-            .flat_map(|tuple| {
-                alternatives.iter().map(move |typ| {
-                    let mut tuple = tuple.clone();
-                    tuple.push(typ.clone());
-                    tuple
-                })
-            })
-            .collect();
+fn compatible(actual: &Type, expected: &Type) -> bool {
+    if actual == expected || matches!(actual, Type::Unknown) || matches!(expected, Type::Unknown) {
+        return true;
     }
-    tuples
+    match (actual, expected) {
+        (Type::Either(either), expected) => {
+            either.collect().iter().all(|typ| compatible(typ, expected))
+        }
+        (actual, Type::Either(either)) => {
+            if either.collect().iter().any(|typ| compatible(actual, typ)) {
+                return true;
+            }
+            // Split only one union at a time, including unions inside nested
+            // tuples. Reject immediately; never materialize a Cartesian product.
+            split_tuple_union(actual)
+                .is_some_and(|mut alternatives| alternatives.all(|typ| compatible(&typ, expected)))
+        }
+        (
+            Type::Function { input, output },
+            Type::Function {
+                input: other_input,
+                output: other_output,
+            },
+        ) => compatible(other_input, input) && compatible(output, other_output),
+        (Type::Tuple(items), Type::Tuple(others)) => {
+            items.len() == others.len() && items.iter().zip(others).all(|(a, b)| compatible(a, b))
+        }
+        _ => false,
+    }
+}
+
+fn split_tuple_union(typ: &Type) -> Option<Box<dyn Iterator<Item = Type> + '_>> {
+    let Type::Tuple(items) = typ else { return None };
+    for (index, item) in items.iter().enumerate() {
+        let alternatives: Option<Box<dyn Iterator<Item = Type>>> = match item {
+            Type::Either(either) => Some(Box::new(either.collect().iter().cloned())),
+            Type::Tuple(_) => split_tuple_union(item),
+            _ => None,
+        };
+        if let Some(alternatives) = alternatives {
+            return Some(Box::new(alternatives.map(move |alternative| {
+                let mut tuple = items.clone();
+                tuple[index] = alternative;
+                Type::Tuple(tuple)
+            })));
+        }
+    }
+    None
 }
 
 /// Check a syntax tree and emit the executable, annotated representation.
@@ -715,15 +683,12 @@ fn infer_module(
     path: PathBuf,
     env: &mut Environment,
 ) -> Result<Environment, (TypeError, Position)> {
-    let source = fs::read_to_string(path).unwrap();
-    let lexer = Lexer::from((source.as_str(), env.ctx.executed_file_path.to_path_buf()));
-    let parser = Parser::from(lexer);
-    let nodes = collect_nodes(parser).unwrap();
+    let nodes = crate::run::module_nodes(&path).unwrap();
 
     let mut temp_env = Environment::std_env(env.ctx.clone());
 
-    for node in nodes {
-        infer(&node, &mut temp_env)?;
+    for node in nodes.iter() {
+        infer(node, &mut temp_env)?;
     }
     Ok(temp_env)
 }
@@ -975,7 +940,7 @@ fn bind_pattern_types(
             let mut merged: HashMap<String, Type> = HashMap::new();
             for alternative in either.collect() {
                 let mut symbols = vec![];
-                bind_pattern_types(pattern, &alternative, &mut symbols)?;
+                bind_pattern_types(pattern, alternative, &mut symbols)?;
                 for (name, typ) in symbols {
                     let typ = match merged.remove(&name) {
                         Some(previous) => join(previous, typ),
@@ -1007,8 +972,9 @@ fn binding_annotation_type(constraint: &TypeHint, actual: &Type) -> Result<Type,
             Type::Tuple(_) | Type::Unknown => actual.clone(),
             Type::Either(either) => either
                 .collect()
-                .into_iter()
+                .iter()
                 .filter(|typ| matches!(typ, Type::Tuple(_)))
+                .cloned()
                 .reduce(join)
                 .unwrap_or_else(Type::empty_tuple),
             _ => Type::empty_tuple(),
@@ -1240,8 +1206,8 @@ fn infer_arithmetic_op(op: InfixOperator, lhs: Type, rhs: Type) -> Result<Type, 
     match (lhs, rhs) {
         (Type::Either(either), rhs) => either
             .collect()
-            .into_iter()
-            .map(|lhs| infer_arithmetic_op(op, lhs, rhs.clone()))
+            .iter()
+            .map(|lhs| infer_arithmetic_op(op, lhs.clone(), rhs.clone()))
             .try_fold(None, |result, typ| {
                 let typ = typ?;
                 Ok(Some(match result {
@@ -1252,8 +1218,8 @@ fn infer_arithmetic_op(op: InfixOperator, lhs: Type, rhs: Type) -> Result<Type, 
             .map(|result| result.unwrap()),
         (lhs, Type::Either(either)) => either
             .collect()
-            .into_iter()
-            .map(|rhs| infer_arithmetic_op(op, lhs.clone(), rhs))
+            .iter()
+            .map(|rhs| infer_arithmetic_op(op, lhs.clone(), rhs.clone()))
             .try_fold(None, |result, typ| {
                 let typ = typ?;
                 Ok(Some(match result {
@@ -1488,6 +1454,7 @@ fn join(left: Type, right: Type) -> Type {
 
 #[cfg(test)]
 mod tests {
+    use super::{check_type, compatible};
     use crate::{
         ast::{
             tests::{
@@ -1504,6 +1471,78 @@ mod tests {
         run::ModuleAddress,
         typecheck::{check, infer, Either, Environment, Type, TypeError},
     };
+    use std::rc::Rc;
+
+    #[test]
+    fn union_normalization_shares_flat_unique_alternatives() {
+        let union = Either::new(Type::Integer, Type::String);
+        let clone = union.clone();
+        assert!(Rc::ptr_eq(&union.alternatives, &clone.alternatives));
+        let union = Either::new(Type::Either(union), Type::Integer);
+        assert_eq!(union.collect(), &[Type::Integer, Type::String]);
+        assert_eq!(
+            Type::Either(union),
+            Type::Either(Either::new(Type::String, Type::Integer))
+        );
+    }
+
+    #[test]
+    fn lazy_tuple_union_coverage_and_rejection() {
+        let union = Type::Either(Either::new(Type::Integer, Type::String));
+        let actual = Type::Tuple(vec![Type::Tuple(vec![union.clone()]), Type::Boolean]);
+        let clause = |typ| Type::Tuple(vec![Type::Tuple(vec![typ]), Type::Boolean]);
+        let expected = Type::Either(Either::new(clause(Type::Integer), clause(Type::String)));
+        assert!(compatible(&actual, &expected));
+        assert!(!compatible(
+            &actual,
+            &Type::Either(Either::new(clause(Type::Integer), clause(Type::Char)))
+        ));
+        // An eager product would allocate 2^40 tuples before rejecting.
+        let actual = Type::Tuple(vec![union; 40]);
+        let expected = Type::Either(Either::new(Type::Boolean, Type::Char));
+        assert!(!compatible(&actual, &expected));
+    }
+
+    #[test]
+    fn compatibility_keeps_function_variance_and_outer_errors() {
+        let function = |input, output| Type::Function {
+            input: Box::new(input),
+            output: Box::new(output),
+        };
+        let union = Type::Either(Either::new(Type::Integer, Type::String));
+        assert!(compatible(
+            &function(union.clone(), Type::Integer),
+            &function(Type::Integer, union.clone())
+        ));
+        let actual = function(Type::Integer, union);
+        let expected = function(Type::String, Type::Integer);
+        assert_eq!(
+            check_type(actual.clone(), expected.clone()),
+            Err(TypeError::TypeMismatch { actual, expected })
+        );
+    }
+
+    #[test]
+    fn type_transactions_commit_and_rollback_bindings_and_generators() {
+        let mut env = Environment::default();
+        env.set_type("f", Type::Generator);
+        env.bottom.generators.insert("f".into());
+        env.begin_transaction();
+        env.set_type("f", Type::Integer);
+        env.set_type("new", Type::String);
+        assert!(!env.is_generator_function("f"));
+        env.finish_transaction(false);
+        assert!(env.is_generator_function("f"));
+        assert_eq!(env.get_type("f"), Some(&Type::Generator));
+        assert_eq!(env.get_type("new"), None);
+        env.begin_transaction();
+        env.set_type("f", Type::Integer);
+        env.set_type("new", Type::String);
+        env.finish_transaction(true);
+        assert!(!env.is_generator_function("f"));
+        assert_eq!(env.get_type("f"), Some(&Type::Integer));
+        assert_eq!(env.get_type("new"), Some(&Type::String));
+    }
 
     fn fresh_check(val: &ASTNode, expected: Type) -> Result<Type, (TypeError, Position)> {
         check(val, expected, &mut Environment::default())

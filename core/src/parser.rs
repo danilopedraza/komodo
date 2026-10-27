@@ -251,7 +251,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
             let path = parser.path.to_path_buf();
 
             match parser.peek_token()? {
-                Some(tok) if tok == terminator => {
+                Some(tok) if tok == &terminator => {
                     parser.next_token()?;
                     Ok(res)
                 }
@@ -266,7 +266,7 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
 
                     match parser.next_token()? {
                         Some(TokenType::Comma) => match parser.peek_token() {
-                            Ok(Some(tok)) if tok == terminator => {
+                            Ok(Some(tok)) if tok == &terminator => {
                                 parser.next_token()?;
                                 break Ok(res);
                             }
@@ -415,13 +415,13 @@ impl<T: Iterator<Item = Result<Token, Error>>> Parser<T> {
         }
     }
 
-    fn peek_token(&mut self) -> Result<Option<TokenType>, Error> {
+    fn peek_token(&mut self) -> Result<Option<&TokenType>, Error> {
         if self.ignore_whitespace {
             self.skip_whitespace();
         }
 
         match self.tokens.peek() {
-            Some(Ok(Token { token, .. })) => Ok(Some(token.to_owned())),
+            Some(Ok(Token { token, .. })) => Ok(Some(token)),
             Some(Err(err)) => Err(err.to_owned()),
             None => Ok(None),
         }

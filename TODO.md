@@ -217,28 +217,43 @@ refer to this scope; BigInt-backed bit operations and other generic fallbacks re
 
 ## Compilation, imports, and REPL
 
-- [ ] **44. High: share import compilation work.** Inference reads and parses
+Implementation coverage (2026-10-27): item 44 shares parsed module trees in a
+bounded per-thread cache, validating file contents on every access. Inference and
+execution remain fresh, including dependency checks and import side effects;
+checked-module/IR caching and avoiding repeated file reads remain future work.
+Item 45 streams CST rewriting and releases each top-level AST/typed tree after
+lowering, retaining IR until whole-program validation succeeds. Cached module
+ASTs remain shared; lowering still copies within a node.
+Item 46 borrows lookahead tokens. Items 47–49 use lazy, short-circuiting tuple
+union expansion, flat deduplicated shared union alternatives (in first-seen
+order), and borrowed compatibility checks. Worst-case coverage can still take
+exponential time; it no longer allocates the full Cartesian product. Union
+membership still uses linear comparisons. Item 50 stages REPL type changes in a
+transactional scope and commits only changed bindings after execution succeeds;
+failed inference or execution discards the staged types.
+
+- [x] **44. High: share import compilation work.** Inference reads and parses
   modules; runtime import reads, parses, and typechecks them again. Repeated imports
   repeat the work. Cache source, checked modules, or IR with appropriate
   invalidation. See [import inference](core/src/typecheck.rs#L659) and
   [runtime module loading](core/src/run.rs#L132).
-- [ ] **45. Reduce simultaneous syntax-tree storage.** CST, AST, typed AST, and IR
+- [x] **45. Reduce simultaneous syntax-tree storage.** CST, AST, typed AST, and IR
   use owned strings and patterns copied between stages. Consider consuming lowering
   or shared arenas. Preserve whole-program validation before execution. See
   [pipeline](core/src/run.rs#L34) and [typed lowering](core/src/typed_ast.rs#L205).
-- [ ] **46. Avoid cloning tokens for lookahead.** Owned token lookahead can copy
+- [x] **46. Avoid cloning tokens for lookahead.** Owned token lookahead can copy
   identifier and literal strings repeatedly. Consider borrowed lookahead or token
   discriminants. See [parser lookahead](core/src/parser.rs#L418).
-- [ ] **47. High for complex types: avoid eager union Cartesian products.**
+- [x] **47. High for complex types: avoid eager union Cartesian products.**
   `tuple_alternatives` materializes combinations that can grow exponentially.
   Investigate lazy compatibility checking. See [tuple alternatives](core/src/typecheck.rs#L445).
-- [ ] **48. Normalize and share union types.** Comparisons repeatedly flatten and
+- [x] **48. Normalize and share union types.** Comparisons repeatedly flatten and
   clone alternatives, then perform linear membership checks. Consider canonical
   representations. See [union handling](core/src/typecheck.rs#L155).
-- [ ] **49. Borrow types during compatibility checks.** Reduce cloning of nested
+- [x] **49. Borrow types during compatibility checks.** Reduce cloning of nested
   function inputs, outputs, and tuple members through reference-based checks or
   shared immutable types. See [type compatibility](core/src/typecheck.rs#L367).
-- [ ] **50. Reduce REPL environment copies.** Each expression clones the complete
+- [x] **50. Reduce REPL environment copies.** Each expression clones the complete
   type environment for rollback. Investigate transactional updates or persistent
   maps while preserving rollback. See [REPL execution](core/src/repl.rs#L89).
 

@@ -88,12 +88,12 @@ impl Repl {
 
     fn exec_result(&mut self, node_res: Result<ASTNode, Error>) -> Result<Object, Error> {
         let node = node_res?;
-        let mut typecheck_env = self.typecheck_env.clone();
-        let node = crate::typecheck::elaborate(&node, &mut typecheck_env)
-            .map_err(|(err, pos)| Error::with_position(err.into(), pos, self.env.file_path()))?;
-        let result = run::run_node(node, &mut self.env)?;
-        self.typecheck_env = typecheck_env;
-        Ok(result)
+        self.typecheck_env.begin_transaction();
+        let result = crate::typecheck::elaborate(&node, &mut self.typecheck_env)
+            .map_err(|(err, pos)| Error::with_position(err.into(), pos, self.env.file_path()))
+            .and_then(|node| run::run_node(node, &mut self.env));
+        self.typecheck_env.finish_transaction(result.is_ok());
+        result
     }
 }
 

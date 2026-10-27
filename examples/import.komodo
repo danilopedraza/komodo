@@ -1,3 +1,7 @@
 from "./fib.komodo" import fib
 
 assert(fib(9) = 34)
+
+# Repeated imports reuse parsing while preserving exported function behavior.
+from "./fib.komodo" import fib
+assert(fib(10) = 55)

@@ -66,7 +66,7 @@ pub enum InfixOperator {
 }
 
 impl InfixOperator {
-    pub fn from(tok: TokenType) -> Option<Self> {
+    pub fn from(tok: &TokenType) -> Option<Self> {
         match tok {
             TokenType::Assign => Some(Self::Assignment),
             TokenType::Ampersand => Some(Self::BitwiseAnd),
