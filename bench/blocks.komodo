@@ -1,6 +1,8 @@
 # Many short selected blocks exercise stack reuse and arithmetic dispatch.
-var total := 0
-for n in 0..100000 do
-    total := total + (if n % 2 = 0 then (if n % 4 = 0 then 3 else 1) else 2)
+# Repeat the workload to spend more time executing per measured process.
+for repetition in 0..50 do
+    var total := 0
+    for n in 0..100000 do
+        total := total + (if n % 2 = 0 then (if n % 4 = 0 then 3 else 1) else 2)
 
-assert(total = 200000)
+    assert(total = 200000)

@@ -2,8 +2,10 @@
 # The unit suite separately exercises recursion deeper than the native call stack.
 let count(0, acc) := acc
 let count(n, acc) := count(n - 1, acc + 1)
-var total := 0
-for n in 0..200 do
-    total := total + count(200, 0)
+# Repeat the workload to spend more time executing per measured process.
+for repetition in 0..50 do
+    var total := 0
+    for n in 0..200 do
+        total := total + count(200, 0)
 
-assert(total = 40000)
+    assert(total = 40000)

@@ -66,18 +66,20 @@ let polyominoes(n) :=
 # a(n) is the number of free polyominoes with n cells.
 let a(n) := len(polyominoes(n))
 
-# Some tests!
-let A := [(), 1, 1, 2, 5, 12]
+# Repeat the workload to spend more time executing per measured process.
+for repetition in 0..50 do
+    # Some tests!
+    let A := [(), 1, 1, 2, 5, 12]
 
-for n in 1..5 do
-    let expected := A[n]
-    let actual := a(n)
-    assert(
-        expected = actual,
-        "The expected value of a(" +
-        String(n) +
-        ") is " +
-        String(expected) +
-        ", but your implementation returns " +
-        String(actual)
-    )
+    for n in 1..5 do
+        let expected := A[n]
+        let actual := a(n)
+        assert(
+            expected = actual,
+            "The expected value of a(" +
+            String(n) +
+            ") is " +
+            String(expected) +
+            ", but your implementation returns " +
+            String(actual)
+        )

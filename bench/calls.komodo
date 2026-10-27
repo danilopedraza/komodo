@@ -3,4 +3,6 @@ let fib(0) := 0
 let fib(1) := 1
 let fib(n) := fib(n - 1) + fib(n - 2)
 
-assert(fib(24) = 46368)
+# Repeat the workload to spend more time executing per measured process.
+for repetition in 0..50 do
+    assert(fib(24) = 46368)

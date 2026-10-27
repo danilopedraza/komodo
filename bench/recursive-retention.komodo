@@ -4,9 +4,11 @@ let make(seed) :=
     let local(n) := local(n - 1)
     local
 
-var total := 0
-for n in 0..5000 do
-    let f := make(n)
-    total := total + f(2)
+# Repeat the workload to spend more time executing per measured process.
+for repetition in 0..50 do
+    var total := 0
+    for n in 0..5000 do
+        let f := make(n)
+        total := total + f(2)
 
-assert(total = 12497500)
+    assert(total = 12497500)

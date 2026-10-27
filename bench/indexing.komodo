@@ -1,8 +1,10 @@
 # Repeated reads must share the large container and copy only the selected value.
-let values := [n for n in 0..4096]
-let table := {items => values}
-var total := 0
-for n in 0..10000 do
-    total := total + table.items[n % 4096]
+# Repeat the workload to spend more time executing per measured process.
+for repetition in 0..50 do
+    let values := [n for n in 0..4096]
+    let table := {items => values}
+    var total := 0
+    for n in 0..10000 do
+        total := total + table.items[n % 4096]
 
-assert(total = 18406648)
+    assert(total = 18406648)

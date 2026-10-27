@@ -1,8 +1,10 @@
 # Closure creation, captured bindings, and anonymous calls inside a loop.
 let makeAdder(n) := x -> x + n
-var total := 0
-for n in 0..20000 do
-    let add := makeAdder(n)
-    total := total + add(1)
+# Repeat the workload to spend more time executing per measured process.
+for repetition in 0..50 do
+    var total := 0
+    for n in 0..20000 do
+        let add := makeAdder(n)
+        total := total + add(1)
 
-assert(total = 200010000)
+    assert(total = 200010000)

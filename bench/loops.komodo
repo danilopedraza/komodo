@@ -1,6 +1,8 @@
 # Arithmetic and bindings without function-call overhead.
-var total := 0
-for n in 0..100000 do
-    total := total + n
+# Repeat the workload to spend more time executing per measured process.
+for repetition in 0..50 do
+    var total := 0
+    for n in 0..100000 do
+        total := total + n
 
-assert(total = 4999950000)
+    assert(total = 4999950000)

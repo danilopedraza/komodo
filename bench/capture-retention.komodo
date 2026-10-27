@@ -3,9 +3,11 @@ let make(seed) :=
     let unused := [n for n in 0..512]
     x -> seed + x
 
-let functions := [make(n) for n in 0..1000]
-var total := 0
-for f in functions do
-    total := total + f(1)
+# Repeat the workload to spend more time executing per measured process.
+for repetition in 0..50 do
+    let functions := [make(n) for n in 0..1000]
+    var total := 0
+    for f in functions do
+        total := total + f(1)
 
-assert(total = 500500)
+    assert(total = 500500)

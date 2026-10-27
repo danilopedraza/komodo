@@ -1,6 +1,10 @@
 # Interpreter benchmarks
 
-Each workload checks its result with assertions:
+Each workload repeats its original work fifty times per process, checking its result
+with assertions on every repetition. Collection sizes and recursion depths stay
+the same; the extra work reduces the relative cost of process startup and compilation.
+
+The workloads are:
 
 - `calls.komodo`: recursive pattern dispatch and captured environments.
 - `closures.komodo`: closure creation, capture, and anonymous calls.
