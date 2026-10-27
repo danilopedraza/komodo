@@ -72,4 +72,8 @@
 
 # Upstream
 
+- We have implemented several optimizations that have improved Komodo performance by an order of magnitude!
 
+- All Komodo values can be compared between themselves now. It does bring some peculiarities, though. In particular, comparisons between sets do not correspond to the subset relationship.
+
+- Now we have Python-style generators via the `yield` keyword.
