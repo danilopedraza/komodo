@@ -15,12 +15,12 @@ let sum(container) :=
 let prod(container) :=
     reduce(container, (a, b) -> a * b, 1)
 
-let indexOf(values: List, value) :=
-    indexOfHelper(values, value, 0)
-
 let indexOfHelper([]: List, _, _) := ()
 let indexOfHelper([value|tail]: List, value, acc) := acc
 let indexOfHelper([_|tail]: List, value, acc) := indexOfHelper(tail, value, acc)
+
+let indexOf(values: List, value) :=
+    indexOfHelper(values, value, 0)
 
 let inspect(obj) :=
     print(obj)
