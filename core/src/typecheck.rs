@@ -12,7 +12,7 @@ use crate::{
     ast::{ASTNode, ASTNodeKind, Constant, Declaration, InfixOperator, Pattern, TypeHint},
     cst::{ComprehensionKind, PrefixOperator},
     env::ExecContext,
-    error::Position,
+    error::{Error, Position},
     run::{get_std_path, ModuleAddress, STDLIB_PATH_VAR},
 };
 
@@ -116,6 +116,10 @@ impl Environment {
         }
 
         res
+    }
+
+    fn error(&self, err: TypeError, position: Position) -> Error {
+        Error::with_position(err.into(), position, self.ctx.executed_file_path.clone())
     }
 
     pub fn new(ctx: ExecContext) -> Self {
@@ -384,14 +388,10 @@ impl PartialOrd for Type {
     }
 }
 
-pub fn check(
-    val: &ASTNode,
-    expected: Type,
-    env: &mut Environment,
-) -> Result<Type, (TypeError, Position)> {
+pub fn check(val: &ASTNode, expected: Type, env: &mut Environment) -> Result<Type, Error> {
     let actual = infer(val, env)?;
 
-    check_type(actual, expected).map_err(|type_error| (type_error, val.position))
+    check_type(actual, expected).map_err(|type_error| env.error(type_error, val.position))
 }
 
 fn check_type(actual: Type, expected: Type) -> Result<Type, TypeError> {
@@ -453,10 +453,7 @@ fn split_tuple_union(typ: &Type) -> Option<Box<dyn Iterator<Item = Type> + '_>> 
 }
 
 /// Check a syntax tree and emit the executable, annotated representation.
-pub fn elaborate(
-    val: &ASTNode,
-    env: &mut Environment,
-) -> Result<crate::typed_ast::ASTNode, (TypeError, Position)> {
+pub fn elaborate(val: &ASTNode, env: &mut Environment) -> Result<crate::typed_ast::ASTNode, Error> {
     let mut invalid_yield = None;
     val.walk(0, &mut |node, depth| {
         if depth == 0
@@ -472,7 +469,7 @@ pub fn elaborate(
         }
     });
     if let Some(position) = invalid_yield {
-        return Err((TypeError::YieldOutsideFunction, position));
+        return Err(env.error(TypeError::YieldOutsideFunction, position));
     }
     env.annotations = Some(HashMap::new());
     let result = infer(val, env);
@@ -481,7 +478,7 @@ pub fn elaborate(
     Ok(crate::typed_ast::lower(val, &annotations))
 }
 
-pub fn infer(val: &ASTNode, env: &mut Environment) -> Result<Type, (TypeError, Position)> {
+pub fn infer(val: &ASTNode, env: &mut Environment) -> Result<Type, Error> {
     let typ = infer_node(val, env)?;
     if let Some(annotations) = &mut env.annotations {
         annotations.insert(val as *const ASTNode as usize, typ.clone());
@@ -489,7 +486,7 @@ pub fn infer(val: &ASTNode, env: &mut Environment) -> Result<Type, (TypeError, P
     Ok(typ)
 }
 
-fn infer_node(val: &ASTNode, env: &mut Environment) -> Result<Type, (TypeError, Position)> {
+fn infer_node(val: &ASTNode, env: &mut Environment) -> Result<Type, Error> {
     match &val.kind {
         ASTNodeKind::Integer { .. } => Ok(Type::Integer),
         ASTNodeKind::Decimal { .. } => Ok(Type::Float),
@@ -540,9 +537,8 @@ fn infer_node(val: &ASTNode, env: &mut Environment) -> Result<Type, (TypeError, 
 fn infer_import_from(
     source: &ModuleAddress,
     values: &[(String, Position)],
-    // err_pos: Position,
     env: &mut Environment,
-) -> Result<Type, (TypeError, Position)> {
+) -> Result<Type, Error> {
     match source {
         ModuleAddress::StandardLibrary { name } => match name.as_str() {
             "json" => {
@@ -558,7 +554,7 @@ fn infer_import_from(
                             let output = Box::new(Type::String);
                             Ok(Type::Function { input, output })
                         }
-                        symbol => Err((
+                        symbol => Err(env.error(
                             TypeError::UnknownSymbolInStd {
                                 symbol: symbol.to_string(),
                                 module: name.to_string(),
@@ -601,7 +597,7 @@ fn infer_import_from(
                             input: Box::new(Type::any_number()),
                             output: Box::new(Type::Integer),
                         }),
-                        symbol => Err((
+                        symbol => Err(env.error(
                             TypeError::UnknownSymbolInStd {
                                 symbol: symbol.to_string(),
                                 module: name.to_string(),
@@ -617,7 +613,7 @@ fn infer_import_from(
             "collections" => {
                 for (name, position) in values {
                     if !crate::std::collections::NAMES.contains(&name.as_str()) {
-                        return Err((
+                        return Err(env.error(
                             TypeError::UnknownSymbolInStd {
                                 symbol: name.clone(),
                                 module: "collections".into(),
@@ -648,7 +644,7 @@ fn infer_import_from(
                             let output = Box::new(Type::empty_tuple());
                             Ok(Type::Function { input, output })
                         }
-                        symbol => Err((
+                        symbol => Err(env.error(
                             TypeError::UnknownSymbolInStd {
                                 symbol: symbol.to_string(),
                                 module: name.to_string(),
@@ -679,13 +675,10 @@ fn infer_import_from(
     }
 }
 
-fn infer_module(
-    path: PathBuf,
-    env: &mut Environment,
-) -> Result<Environment, (TypeError, Position)> {
-    let nodes = crate::run::module_nodes(&path).unwrap();
+fn infer_module(path: PathBuf, env: &mut Environment) -> Result<Environment, Error> {
+    let nodes = crate::run::module_nodes(&path)?;
 
-    let mut temp_env = Environment::std_env(env.ctx.clone());
+    let mut temp_env = Environment::std_env(ExecContext::new(path, env.ctx.reference_path.clone()));
 
     for node in nodes.iter() {
         infer(node, &mut temp_env)?;
@@ -697,13 +690,13 @@ fn infer_imported_values(
     values: &[(String, Position)],
     env: &mut Environment,
     foreign_env: &Environment,
-) -> Result<Type, (TypeError, Position)> {
+) -> Result<Type, Error> {
     for (name, pos) in values {
         if let Some(type_hint) = foreign_env.get_type(name) {
             env.set_type(name, type_hint.to_owned());
         } else {
             let name = name.to_owned();
-            return Err((TypeError::UnknownSymbol { name }, *pos));
+            return Err(env.error(TypeError::UnknownSymbol { name }, *pos));
         }
     }
 
@@ -714,7 +707,7 @@ fn infer_declaration(
     declaration: &Declaration,
     position: Position,
     env: &mut Environment,
-) -> Result<Type, (TypeError, Position)> {
+) -> Result<Type, Error> {
     match declaration {
         Declaration::Mutable { left, right } => infer_binding(left, right, position, env),
         Declaration::Inmutable { left, right } => infer_binding(left, right, position, env),
@@ -828,8 +821,8 @@ fn infer_function_definition(
     result: &ASTNode,
     err_pos: Position,
     env: &mut Environment,
-) -> Result<Type, (TypeError, Position)> {
-    let input_type = infer_pattern(param).map_err(|err| (err, err_pos))?;
+) -> Result<Type, Error> {
+    let input_type = infer_pattern(param).map_err(|err| env.error(err, err_pos))?;
     let generator = result.has_yield() || env.is_generator_function(name);
 
     // Keep real earlier clauses separate from the placeholder for recursion.
@@ -858,7 +851,7 @@ fn infer_function_definition(
     }
 
     let output_type = env.within_new_level(|env| {
-        for (name, typ) in get_introduced_symbols(param, err_pos)? {
+        for (name, typ) in get_introduced_symbols(param, err_pos, env)? {
             env.set_type(&name, typ);
         }
         infer(result, env).map(|typ| {
@@ -899,10 +892,10 @@ fn infer_binding(
     value: &ASTNode,
     err_pos: Position,
     env: &mut Environment,
-) -> Result<Type, (TypeError, Position)> {
+) -> Result<Type, Error> {
     let actual = infer(value, env)?;
     let mut introduced = vec![];
-    bind_pattern_types(pattern, &actual, &mut introduced).map_err(|err| (err, err_pos))?;
+    bind_pattern_types(pattern, &actual, &mut introduced).map_err(|err| env.error(err, err_pos))?;
     for (name, typ) in introduced {
         env.set_type(&name, typ);
     }
@@ -992,7 +985,7 @@ fn infer_destructuring(
     value: &ASTNode,
     err_pos: Position,
     env: &mut Environment,
-) -> Result<Type, (TypeError, Position)> {
+) -> Result<Type, Error> {
     let introduced_symbols = destructure(pattern, value, err_pos, env)?;
 
     for (name, typ) in introduced_symbols {
@@ -1005,9 +998,10 @@ fn infer_destructuring(
 fn get_introduced_symbols(
     pattern: &Pattern,
     position: Position,
-) -> Result<Vec<(String, Type)>, (TypeError, Position)> {
+    env: &Environment,
+) -> Result<Vec<(String, Type)>, Error> {
     let mut acc = vec![];
-    get_introduced_symbols_helper(pattern, &mut acc).map_err(|err| (err, position))?;
+    get_introduced_symbols_helper(pattern, &mut acc).map_err(|err| env.error(err, position))?;
 
     Ok(acc)
 }
@@ -1081,7 +1075,7 @@ fn destructure(
     value: &ASTNode,
     err_pos: Position,
     env: &mut Environment,
-) -> Result<Vec<(String, Type)>, (TypeError, Position)> {
+) -> Result<Vec<(String, Type)>, Error> {
     let mut acc = vec![];
     destructure_helper(pattern, value, &mut acc, err_pos, env)?;
 
@@ -1094,14 +1088,14 @@ fn destructure_helper(
     acc: &mut Vec<(String, Type)>,
     err_pos: Position,
     env: &mut Environment,
-) -> Result<(), (TypeError, Position)> {
+) -> Result<(), Error> {
     // TODO: actually contrast the pattern information with the value to destructure
     if let Pattern::Symbol { name } = pattern {
         let type_hint = infer(value, env)?;
         acc.push((name.to_string(), type_hint));
         Ok(())
     } else {
-        get_introduced_symbols_helper(pattern, acc).map_err(|err| (err, err_pos))
+        get_introduced_symbols_helper(pattern, acc).map_err(|err| env.error(err, err_pos))
     }
 }
 
@@ -1110,7 +1104,7 @@ fn infer_infix(
     lhs: &ASTNode,
     rhs: &ASTNode,
     env: &mut Environment,
-) -> Result<Type, (TypeError, Position)> {
+) -> Result<Type, Error> {
     let lhs_type = infer(lhs, env)?;
     let rhs_type = infer(rhs, env)?;
     if matches!(
@@ -1122,7 +1116,7 @@ fn infer_infix(
             | InfixOperator::Exponentiation
     ) {
         return infer_arithmetic_op(op, lhs_type, rhs_type)
-            .map_err(|err| (err, lhs.position.join(rhs.position)));
+            .map_err(|err| env.error(err, lhs.position.join(rhs.position)));
     }
     if matches!(
         op,
@@ -1287,7 +1281,7 @@ fn infer_case(
     expr: &ASTNode,
     pairs: &[(Pattern, ASTNode)],
     env: &mut Environment,
-) -> Result<Type, (TypeError, Position)> {
+) -> Result<Type, Error> {
     let _expr_type = infer(expr, env)?;
 
     let mut pairs = pairs.iter();
@@ -1310,14 +1304,10 @@ fn infer_case(
     Ok(result)
 }
 
-fn infer_function(
-    param: &Pattern,
-    result: &ASTNode,
-    env: &mut Environment,
-) -> Result<Type, (TypeError, Position)> {
-    let input = Box::new(infer_pattern(param).map_err(|err| (err, result.position))?);
+fn infer_function(param: &Pattern, result: &ASTNode, env: &mut Environment) -> Result<Type, Error> {
+    let input = Box::new(infer_pattern(param).map_err(|err| env.error(err, result.position))?);
     let output = Box::new(env.within_new_level(|env| {
-        for (name, typ) in get_introduced_symbols(param, result.position)? {
+        for (name, typ) in get_introduced_symbols(param, result.position, env)? {
             env.set_type(&name, typ);
         }
         infer(result, env).map(|typ| {
@@ -1331,11 +1321,7 @@ fn infer_function(
     Ok(Type::Function { input, output })
 }
 
-fn infer_call(
-    called: &ASTNode,
-    arg: &ASTNode,
-    env: &mut Environment,
-) -> Result<Type, (TypeError, Position)> {
+fn infer_call(called: &ASTNode, arg: &ASTNode, env: &mut Environment) -> Result<Type, Error> {
     let actual_input = Box::new(infer(arg, env)?);
 
     match infer(called, env)? {
@@ -1344,7 +1330,7 @@ fn infer_call(
             output: expected_output,
         } => {
             check_type(*actual_input, *expected_input)
-                .map_err(|type_error| (type_error, called.position))?;
+                .map_err(|type_error| env.error(type_error, called.position))?;
             Ok(*expected_output)
         }
         Type::Unknown => Ok(Type::Unknown),
@@ -1355,7 +1341,7 @@ fn infer_call(
             };
             let expected = typ;
 
-            Err((
+            Err(env.error(
                 TypeError::TypeMismatch { expected, actual },
                 called.position,
             ))
@@ -1363,11 +1349,7 @@ fn infer_call(
     }
 }
 
-fn infer_prefix(
-    op: PrefixOperator,
-    val: &ASTNode,
-    env: &mut Environment,
-) -> Result<Type, (TypeError, Position)> {
+fn infer_prefix(op: PrefixOperator, val: &ASTNode, env: &mut Environment) -> Result<Type, Error> {
     match op {
         PrefixOperator::Yield => {
             infer(val, env)?;
@@ -1379,7 +1361,7 @@ fn infer_prefix(
     }
 }
 
-fn infer_block(block: &[ASTNode], env: &mut Environment) -> Result<Type, (TypeError, Position)> {
+fn infer_block(block: &[ASTNode], env: &mut Environment) -> Result<Type, Error> {
     env.within_new_level(|env| {
         let mut res = Type::empty_tuple();
 
@@ -1391,14 +1373,10 @@ fn infer_block(block: &[ASTNode], env: &mut Environment) -> Result<Type, (TypeEr
     })
 }
 
-fn infer_symbol(
-    name: &str,
-    name_pos: Position,
-    env: &mut Environment,
-) -> Result<Type, (TypeError, Position)> {
+fn infer_symbol(name: &str, name_pos: Position, env: &mut Environment) -> Result<Type, Error> {
     match env.get_type(name) {
         Some(typ) => Ok(typ.to_owned()),
-        None => Err((TypeError::UnknownSymbol { name: name.into() }, name_pos)),
+        None => Err(env.error(TypeError::UnknownSymbol { name: name.into() }, name_pos)),
     }
 }
 
@@ -1409,9 +1387,8 @@ fn infer_comprehension(kind: ComprehensionKind) -> Type {
     }
 }
 
-fn infer_tuple(vals: &[ASTNode], env: &mut Environment) -> Result<Type, (TypeError, Position)> {
-    let vals_types: Result<Vec<Type>, (TypeError, Position)> =
-        vals.iter().map(|val| infer(val, env)).collect();
+fn infer_tuple(vals: &[ASTNode], env: &mut Environment) -> Result<Type, Error> {
+    let vals_types: Result<Vec<Type>, Error> = vals.iter().map(|val| infer(val, env)).collect();
 
     vals_types.map(Type::Tuple)
 }
@@ -1421,7 +1398,7 @@ fn infer_if(
     positive: &ASTNode,
     negative: &ASTNode,
     env: &mut Environment,
-) -> Result<Type, (TypeError, Position)> {
+) -> Result<Type, Error> {
     check(cond, Type::Boolean, env)?;
     Ok(join(infer(positive, env)?, infer(negative, env)?))
 }
@@ -1455,6 +1432,7 @@ fn join(left: Type, right: Type) -> Type {
 #[cfg(test)]
 mod tests {
     use super::{check_type, compatible};
+    use crate::error::{Error, ErrorKind};
     use crate::{
         ast::{
             tests::{
@@ -1472,6 +1450,80 @@ mod tests {
         typecheck::{check, infer, Either, Environment, Type, TypeError},
     };
     use std::rc::Rc;
+
+    #[test]
+    fn import_failures_preserve_error_kind_and_source_context() {
+        use std::fs;
+
+        let root =
+            std::env::temp_dir().join(format!("komodo-typecheck-import-{}", std::process::id()));
+        fs::create_dir_all(root.join("modules")).unwrap();
+        let caller = root.join("main.komodo");
+        let module = root.join("modules/outer.komodo");
+        let dependency = root.join("dependency.komodo");
+        let mut env =
+            Environment::std_env(crate::env::ExecContext::new(caller.clone(), root.clone()));
+        let node = import_from(
+            ModuleAddress::LocalPath {
+                path: "modules/outer.komodo".into(),
+            },
+            vec![("value", dummy_pos())],
+            dummy_pos(),
+        );
+
+        // A directory cannot be read as module source.
+        fs::create_dir_all(&module).unwrap();
+        assert!(matches!(
+            super::elaborate(&node, &mut env),
+            Err(Error::IO(_))
+        ));
+        assert!(env.annotations.is_none());
+        fs::remove_dir(&module).unwrap();
+        assert!(matches!(infer(&node, &mut env), Err(Error::IO(_))));
+
+        for source in ["let =", "\"", "missing"] {
+            fs::write(&module, source).unwrap();
+            let error = infer(&node, &mut env).unwrap_err();
+            match error {
+                Error::WithPosition(kind, position, path) => {
+                    assert_eq!(path, module);
+                    assert!(position.start <= source.len());
+                    match source {
+                        "let =" => assert!(matches!(kind, ErrorKind::Parser(_))),
+                        "\"" => assert!(matches!(kind, ErrorKind::Lexer(_))),
+                        _ => assert!(matches!(
+                            kind,
+                            ErrorKind::Type(TypeError::UnknownSymbol { .. })
+                        )),
+                    }
+                }
+                other => panic!("unexpected error: {other:?}"),
+            }
+        }
+
+        // Nested imports remain relative to the invocation directory.
+        fs::write(&module, "from \"dependency.komodo\" import value").unwrap();
+        fs::write(&dependency, "missing").unwrap();
+        assert!(
+            matches!(infer(&node, &mut env), Err(Error::WithPosition(ErrorKind::Type(_), _, path)) if path == dependency)
+        );
+        fs::write(&dependency, "let value := 1").unwrap();
+        assert_eq!(infer(&node, &mut env), Ok(Type::empty_tuple()));
+        assert_eq!(env.get_type("value"), Some(&Type::Integer));
+
+        fs::write(&module, "let other := 1").unwrap();
+        assert_eq!(
+            infer(&node, &mut env),
+            Err(Error::WithPosition(
+                ErrorKind::Type(TypeError::UnknownSymbol {
+                    name: "value".into()
+                }),
+                dummy_pos(),
+                caller,
+            ))
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn union_normalization_shares_flat_unique_alternatives() {
@@ -1544,15 +1596,15 @@ mod tests {
         assert_eq!(env.get_type("new"), Some(&Type::String));
     }
 
-    fn fresh_check(val: &ASTNode, expected: Type) -> Result<Type, (TypeError, Position)> {
+    fn fresh_check(val: &ASTNode, expected: Type) -> Result<Type, Error> {
         check(val, expected, &mut Environment::default())
     }
 
-    fn fresh_infer(val: &ASTNode) -> Result<Type, (TypeError, Position)> {
+    fn fresh_infer(val: &ASTNode) -> Result<Type, Error> {
         infer(val, &mut Environment::default())
     }
 
-    fn infer_program(source: &str) -> Result<Type, (TypeError, Position)> {
+    fn infer_program(source: &str) -> Result<Type, Error> {
         let nodes = crate::run::collect_nodes(crate::parser::Parser::from(
             crate::lexer::Lexer::from((source, std::path::PathBuf::default())),
         ))
@@ -1663,7 +1715,11 @@ mod tests {
             assert!(
                 matches!(
                     infer_program(source),
-                    Err((TypeError::TypeMismatch { .. }, _))
+                    Err(Error::WithPosition(
+                        ErrorKind::Type(TypeError::TypeMismatch { .. }),
+                        _,
+                        _
+                    ))
                 ),
                 "{source}"
             );
@@ -1731,7 +1787,11 @@ mod tests {
             assert!(
                 matches!(
                     infer_program(source),
-                    Err((TypeError::NonExistentInfix { .. }, _))
+                    Err(Error::WithPosition(
+                        ErrorKind::Type(TypeError::NonExistentInfix { .. }),
+                        _,
+                        _
+                    ))
                 ),
                 "{source}"
             );
@@ -1746,11 +1806,15 @@ mod tests {
         );
         assert!(matches!(
             infer_program("let f(a: Integer, b: Integer) := a + b\nf(1, true)"),
-            Err((TypeError::TypeMismatch { .. }, _))
+            Err(Error::WithPosition(
+                ErrorKind::Type(TypeError::TypeMismatch { .. }),
+                _,
+                _
+            ))
         ));
         assert!(matches!(
             infer_program("let f(x) := x\nf(1, missing)"),
-            Err((TypeError::UnknownSymbol { name }, _)) if name == "missing"
+            Err(Error::WithPosition(ErrorKind::Type(TypeError::UnknownSymbol { name }), _, _)) if name == "missing"
         ));
     }
 
@@ -1772,7 +1836,11 @@ mod tests {
              let f(x: String, y: Integer) := 2\n\
              f(if true then 1 else \"one\", true)"
             ),
-            Err((TypeError::TypeMismatch { .. }, _))
+            Err(Error::WithPosition(
+                ErrorKind::Type(TypeError::TypeMismatch { .. }),
+                _,
+                _
+            ))
         ));
     }
 
@@ -1787,7 +1855,11 @@ mod tests {
             assert!(
                 matches!(
                     infer_program(source),
-                    Err((TypeError::TypeMismatch { .. }, _))
+                    Err(Error::WithPosition(
+                        ErrorKind::Type(TypeError::TypeMismatch { .. }),
+                        _,
+                        _
+                    ))
                 ),
                 "{source}"
             );
@@ -1861,7 +1933,11 @@ mod tests {
         );
         assert!(matches!(
             infer(&expr, &mut env),
-            Err((TypeError::NonExistentInfix { .. }, _))
+            Err(Error::WithPosition(
+                ErrorKind::Type(TypeError::NonExistentInfix { .. }),
+                _,
+                _
+            ))
         ));
     }
 
@@ -1901,12 +1977,13 @@ mod tests {
     fn bad_check() {
         assert_eq!(
             fresh_check(&decimal("0", "0", dummy_pos()), Type::Integer,),
-            Err((
-                TypeError::TypeMismatch {
+            Err(Error::WithPosition(
+                ErrorKind::Type(TypeError::TypeMismatch {
                     expected: Type::Integer,
                     actual: Type::Float
-                },
-                dummy_pos()
+                }),
+                dummy_pos(),
+                Default::default()
             ))
         )
     }
@@ -2079,11 +2156,12 @@ mod tests {
     fn unknown_symbol() {
         assert_eq!(
             fresh_infer(&symbol("foo", Position::new(0, 3))),
-            Err((
-                TypeError::UnknownSymbol {
+            Err(Error::WithPosition(
+                ErrorKind::Type(TypeError::UnknownSymbol {
                     name: String::from("foo")
-                },
-                Position::new(0, 3)
+                }),
+                Position::new(0, 3),
+                Default::default()
             ))
         );
     }
@@ -2110,12 +2188,13 @@ mod tests {
                 dec_integer("6", dummy_pos()),
                 dummy_pos()
             )),
-            Err((
-                TypeError::TypeMismatch {
+            Err(Error::WithPosition(
+                ErrorKind::Type(TypeError::TypeMismatch {
                     expected: Type::Boolean,
                     actual: Type::Integer
-                },
-                Position::new(3, 1)
+                }),
+                Position::new(3, 1),
+                Default::default()
             )),
         );
     }
@@ -2214,12 +2293,13 @@ mod tests {
                 ),
                 &mut env,
             ),
-            Err((
-                TypeError::TypeMismatch {
+            Err(Error::WithPosition(
+                ErrorKind::Type(TypeError::TypeMismatch {
                     expected: Type::Integer,
                     actual: Type::Boolean
-                },
-                dummy_pos()
+                }),
+                dummy_pos(),
+                Default::default()
             )),
         );
     }

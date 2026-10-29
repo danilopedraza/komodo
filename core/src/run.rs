@@ -55,7 +55,6 @@ fn run_nodes(
         .map(|node| {
             elaborate(std::borrow::Borrow::borrow(&node), &mut typecheck_env)
                 .map(|typed| crate::ir::lower(&typed))
-                .map_err(|(err, pos)| Error::with_position(err.into(), pos, env.file_path()))
         })
         .collect::<Result<Vec<_>, _>>()?;
     for block in blocks {
